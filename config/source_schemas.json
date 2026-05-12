@@ -53,6 +53,11 @@
         "plan_count"
       ],
       "numeric": ["score_year", "min_score", "min_rank", "plan_count"],
+      "audit": {
+        "scope_columns": ["score_year", "batch", "subject_cat"],
+        "compare_columns": ["min_score", "min_rank"],
+        "sample_limit": 20
+      },
       "aliases": {
         "school_code": ["school_code", "院校代码", "学校代码", "院校专业组代码"],
         "major_code": ["major_code", "专业代码", "专业组代码"],

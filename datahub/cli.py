@@ -16,6 +16,7 @@ from .builders.policy_tables import (
     build_policy_plan_history_package,
 )
 from .builders.score_history_from_projection import build_score_history_from_projection_package
+from .builders.score_history_package_audit import audit_score_history_package_against_core
 from .builders.score_history_snapshot import build_score_history_snapshot_package
 from .builders.school_identity import build_school_identity_package
 from .builders.score_distribution_readiness import audit_score_distribution_readiness
@@ -146,6 +147,15 @@ def main() -> int:
     build_score_derived.add_argument("--output-root", required=True, type=Path)
     build_score_derived.add_argument("--package-id")
     build_score_derived.add_argument("--source-version")
+
+    audit_score_history_package = sub.add_parser(
+        "audit-score-history-package-against-core",
+        help="Compare fa_fact_ln_score_history package rows against core DB without importing",
+    )
+    audit_score_history_package.add_argument("--core-db", required=True, type=Path)
+    audit_score_history_package.add_argument("--package-dir", required=True, action="append", dest="package_dirs", type=Path)
+    audit_score_history_package.add_argument("--report", type=Path)
+    audit_score_history_package.add_argument("--sample-limit", type=int)
 
     build_policy_industry = sub.add_parser(
         "build-policy-industry-map",
@@ -400,6 +410,17 @@ def main() -> int:
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
+    if args.cmd == "audit-score-history-package-against-core":
+        report = audit_score_history_package_against_core(
+            core_db=args.core_db,
+            package_dirs=args.package_dirs,
+            sample_limit=args.sample_limit,
+        )
+        if args.report:
+            args.report.parent.mkdir(parents=True, exist_ok=True)
+            args.report.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        print(json.dumps(report, ensure_ascii=False, indent=2))
+        return 0 if not report["errors"] else 1
     if args.cmd == "build-policy-industry-map":
         result = build_policy_industry_map_package(
             output_root=args.output_root,

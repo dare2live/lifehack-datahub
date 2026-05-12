@@ -11,6 +11,7 @@ staging/
 normalized/
 cleaned/
 ocr/
+audits/
 exports/
 *.xlsx
 *.xls

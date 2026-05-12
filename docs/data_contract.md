@@ -158,6 +158,18 @@ python3 scripts/build_package.py build-score-history-from-projection \
 
 真实派生 smoke：2023 投档最低分 14,435 行 + 2023 一分一段 PDF 镜像 1,076 行，生成 14,435 行 `fa_fact_ln_score_history`，unmatched=0、质量错误为空；2024 投档最低分 14,298 行 + 2024 一分一段 PDF 镜像 1,086 行，生成 14,298 行，unmatched=0、质量错误为空。core importer 修复 `upsert_or_replace_package` 后，连续导入 2023/2024 两个数据包的临时库同时保留两年数据，且 `min_rank` 无空值。
 
+实际 core 库导入前先运行 package-vs-core 对账，避免不同来源或院校/专业代码体系的派生包直接覆盖工作库。对账主键、作用域列、对比列和 sample limit 均由 `config/source_schemas.json` 维护：
+
+```bash
+python3 scripts/build_package.py audit-score-history-package-against-core \
+  --core-db ../lifehack/backend/data/university.db \
+  --package-dir exports/2023_ln_score_history_derived_pdf_mirror \
+  --package-dir exports/2024_ln_score_history_derived_pdf_mirror \
+  --report audits/score_history_2023_2024_against_core.json
+```
+
+该命令只读 core DB。报告中 `decision.reconciliation_required=true` 时，先处理 `different_rows`、`package_only_rows`、`core_only_rows` 的来源和代码差异，再决定导入策略。
+
 2022/2023/2024 官方图片页和 2022 镜像图片页可先用 `download-page-images` 采集图片并生成 manifest。manifest 兼容 `build-local --intake-manifest`，后续无论使用 OCR 还是人工转录，发布包都能追溯到原始图片 SHA-256：
 
 ```bash

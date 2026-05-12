@@ -125,6 +125,18 @@ python3 scripts/build_package.py build-score-history-from-projection \
 
 2023/2024 已跑通真实派生 smoke：2023 生成 14,435 行、2024 生成 14,298 行 `fa_fact_ln_score_history`，两个包连续导入 core 临时库后可同时保留两年数据，`min_rank` 无空值。
 
+导入实际 core 库前必须先做只读对账。对账字段和作用域由 `config/source_schemas.json` 的 `fa_fact_ln_score_history.audit` 维护，命令只读打开 core DB，不会写入 `university.db`：
+
+```bash
+python3 scripts/build_package.py audit-score-history-package-against-core \
+  --core-db ../lifehack/backend/data/university.db \
+  --package-dir exports/2023_ln_score_history_derived_pdf_mirror \
+  --package-dir exports/2024_ln_score_history_derived_pdf_mirror \
+  --report audits/score_history_2023_2024_against_core.json
+```
+
+若报告出现 `different_rows`、`core_only_rows` 或重叠作用域下的 `package_only_rows`，先做代码体系/来源体系 reconciliation，不直接覆盖实际工作库。
+
 2023/2024 已补充可文本解析的转载 PDF 镜像，配置为 `mirror_pdf`，不能冒充辽宁官网原始长期来源。真实 smoke 已解析 2023 年 1,076 行、2024 年 1,086 行，并通过 `fa_fact_ln_score_distribution` 质量闸门：
 
 ```bash

@@ -18,6 +18,7 @@ from datahub.builders.policy_tables import (
     build_policy_plan_history_package,
 )
 from datahub.builders.score_history_from_projection import build_score_history_from_projection_package
+from datahub.builders.score_history_package_audit import audit_score_history_package_against_core
 from datahub.builders.score_history_snapshot import build_score_history_snapshot_package
 from datahub.builders.score_distribution_review_workspace import (
     build_score_distribution_review_workspace,
@@ -1115,6 +1116,112 @@ def test_build_score_history_from_projection_package(tmp_path: Path):
         rows = list(csv.DictReader(f))
     assert rows[0]["min_rank"] == "22820"
     assert rows[0]["school_code"] == "0378"
+
+
+def test_audit_score_history_package_against_core_reports_overlap_drift(tmp_path: Path):
+    db = tmp_path / "core.duckdb"
+    con = duckdb.connect(str(db))
+    try:
+        con.execute("""
+            CREATE TABLE fa_fact_ln_score_history (
+                school_code VARCHAR,
+                major_code VARCHAR,
+                batch VARCHAR,
+                subject_cat VARCHAR,
+                score_year INTEGER,
+                min_score DOUBLE,
+                min_rank INTEGER
+            )
+        """)
+        con.execute("""
+            INSERT INTO fa_fact_ln_score_history VALUES
+                ('1001', '01', '本科批', '物理类', 2024, 600, 1000),
+                ('1002', '02', '本科批', '物理类', 2024, 580, 2000),
+                ('1003', '03', '本科批', '物理类', 2024, 570, 3000),
+                ('2001', '01', '本科批', '物理类', 2023, 610, 900)
+        """)
+    finally:
+        con.close()
+
+    package_dir = tmp_path / "exports" / "pkg-score-history-audit"
+    package_dir.mkdir(parents=True)
+    table_path = package_dir / "fa_fact_ln_score_history.csv"
+    with table_path.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(
+            f,
+            fieldnames=[
+                "school_code",
+                "major_code",
+                "batch",
+                "subject_cat",
+                "score_year",
+                "min_score",
+                "min_rank",
+                "plan_count",
+            ],
+        )
+        writer.writeheader()
+        writer.writerows([
+            {
+                "school_code": "1001",
+                "major_code": "01",
+                "batch": "本科批",
+                "subject_cat": "物理类",
+                "score_year": "2024",
+                "min_score": "600",
+                "min_rank": "1000",
+                "plan_count": "10",
+            },
+            {
+                "school_code": "1002",
+                "major_code": "02",
+                "batch": "本科批",
+                "subject_cat": "物理类",
+                "score_year": "2024",
+                "min_score": "580",
+                "min_rank": "1990",
+                "plan_count": "8",
+            },
+            {
+                "school_code": "1004",
+                "major_code": "04",
+                "batch": "本科批",
+                "subject_cat": "物理类",
+                "score_year": "2024",
+                "min_score": "560",
+                "min_rank": "4000",
+                "plan_count": "6",
+            },
+        ])
+    (package_dir / "quality_report.json").write_text('{"errors":[]}\n', encoding="utf-8")
+    (package_dir / "manifest.json").write_text(json.dumps({
+        "package_id": "pkg-score-history-audit",
+        "built_at": "2026-05-13T00:00:00",
+        "source_version": "fixture",
+        "tables": [{"name": "fa_fact_ln_score_history", "file": "fa_fact_ln_score_history.csv"}],
+        "files": ["fa_fact_ln_score_history.csv"],
+        "hashes": {},
+        "quality_report": "quality_report.json",
+    }, ensure_ascii=False), encoding="utf-8")
+
+    report = audit_score_history_package_against_core(
+        core_db=db,
+        package_dirs=[package_dir],
+        sample_limit=5,
+    )
+
+    assert report["errors"] == []
+    assert report["counts"]["package_rows"] == 3
+    assert report["counts"]["core_scoped_rows"] == 3
+    assert report["counts"]["matched_rows"] == 2
+    assert report["counts"]["package_only_rows"] == 1
+    assert report["counts"]["core_only_rows"] == 1
+    assert report["counts"]["different_rows"] == 1
+    assert report["decision"]["reconciliation_required"] is True
+    assert report["decision"]["safe_to_import_without_reconciliation"] is False
+    assert report["samples"]["different_rows"][0]["differences"] == [
+        {"column": "min_rank", "package_value": 1990, "core_value": 2000}
+    ]
 
 
 def test_build_policy_industry_map_package_from_config(tmp_path: Path):
