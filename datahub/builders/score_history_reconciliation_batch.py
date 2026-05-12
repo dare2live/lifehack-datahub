@@ -82,6 +82,76 @@ def build_score_history_reconciliation_review_batch(
     }
 
 
+def merge_score_history_reconciliation_review_batch(
+    *,
+    plan_csv: Path,
+    batch_csv: Path,
+    output: Path,
+) -> dict[str, Any]:
+    schema = get_table_schema(TARGET_TABLE)
+    review_config = _review_config(schema)
+    plan_rows, plan_fieldnames = _read_csv(plan_csv)
+    batch_rows, batch_fieldnames = _read_csv(batch_csv)
+    _ensure_columns(plan_fieldnames, "plan csv")
+    _ensure_columns(batch_fieldnames, "batch csv")
+    editable_columns = review_config["batch_editable_columns"]
+    invalid_editable = [column for column in editable_columns if column not in PLAN_COLUMNS]
+    if invalid_editable:
+        raise ValueError(f"unknown editable columns: {', '.join(invalid_editable)}")
+
+    plan_by_task_id = _rows_by_task_id(plan_rows, "plan csv")
+    seen_batch_ids: set[str] = set()
+    duplicate_batch_ids = []
+    unknown_task_ids = []
+    updated_rows = 0
+
+    for batch_row in batch_rows:
+        task_id = str(batch_row.get("task_id") or "").strip()
+        if not task_id:
+            unknown_task_ids.append("")
+            continue
+        if task_id in seen_batch_ids:
+            duplicate_batch_ids.append(task_id)
+            continue
+        seen_batch_ids.add(task_id)
+        target = plan_by_task_id.get(task_id)
+        if not target:
+            unknown_task_ids.append(task_id)
+            continue
+        changed = False
+        for column in editable_columns:
+            value = batch_row.get(column, "")
+            if target.get(column, "") != value:
+                target[column] = value
+                changed = True
+        if changed:
+            updated_rows += 1
+
+    errors = []
+    if duplicate_batch_ids:
+        errors.append(f"duplicate batch task_id rows: {len(duplicate_batch_ids)}")
+    if unknown_task_ids:
+        errors.append(f"unknown batch task_id rows: {len(unknown_task_ids)}")
+    if errors:
+        raise ValueError("; ".join(errors))
+
+    output.parent.mkdir(parents=True, exist_ok=True)
+    _write_csv(output, plan_rows)
+    status_counts = Counter(str(row.get("status") or "") for row in plan_rows)
+    return {
+        "built_at": datetime.utcnow().isoformat(),
+        "plan_csv": str(plan_csv),
+        "batch_csv": str(batch_csv),
+        "output": str(output),
+        "input_rows": len(plan_rows),
+        "batch_rows": len(batch_rows),
+        "updated_rows": updated_rows,
+        "editable_columns": editable_columns,
+        "status_counts": dict(sorted(status_counts.items())),
+        "notes": "Merged review batch into full reconciliation plan. Run audit-score-history-reconciliation-plan next.",
+    }
+
+
 def _issue_type_order(review_config: dict[str, Any], selected_issue_types: set[str]) -> list[str]:
     issue_configs = review_config["issue_types"]
     return [
@@ -112,3 +182,23 @@ def _write_csv(path: Path, rows: list[dict[str, Any]]) -> None:
         writer = csv.DictWriter(f, fieldnames=PLAN_COLUMNS, extrasaction="ignore")
         writer.writeheader()
         writer.writerows(rows)
+
+
+def _ensure_columns(fieldnames: set[str], label: str) -> None:
+    missing_columns = [column for column in PLAN_COLUMNS if column not in fieldnames]
+    if missing_columns:
+        raise ValueError(f"{label} missing columns: {', '.join(missing_columns)}")
+
+
+def _rows_by_task_id(rows: list[dict[str, Any]], label: str) -> dict[str, dict[str, Any]]:
+    by_id: dict[str, dict[str, Any]] = {}
+    duplicate_count = 0
+    for row in rows:
+        task_id = str(row.get("task_id") or "").strip()
+        if task_id in by_id:
+            duplicate_count += 1
+            continue
+        by_id[task_id] = row
+    if duplicate_count:
+        raise ValueError(f"{label} duplicate task_id rows: {duplicate_count}")
+    return by_id

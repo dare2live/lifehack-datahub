@@ -19,7 +19,10 @@ from .builders.policy_tables import (
 from .builders.score_history_from_projection import build_score_history_from_projection_package
 from .builders.score_history_package_audit import audit_score_history_package_against_core
 from .builders.score_history_reconciliation_audit import audit_score_history_reconciliation_plan
-from .builders.score_history_reconciliation_batch import build_score_history_reconciliation_review_batch
+from .builders.score_history_reconciliation_batch import (
+    build_score_history_reconciliation_review_batch,
+    merge_score_history_reconciliation_review_batch,
+)
 from .builders.score_history_reconciliation_plan import build_score_history_reconciliation_plan
 from .builders.score_history_snapshot import build_score_history_snapshot_package
 from .builders.school_identity import build_school_identity_package
@@ -193,6 +196,15 @@ def main() -> int:
     build_score_reconciliation_batch.add_argument("--output-dir", required=True, type=Path)
     build_score_reconciliation_batch.add_argument("--issue-type", action="append", dest="issue_types")
     build_score_reconciliation_batch.add_argument("--limit-per-issue", type=int)
+
+    merge_score_reconciliation_batch = sub.add_parser(
+        "merge-score-history-reconciliation-review-batch",
+        help="Merge edited score-history review batch rows back into a full reconciliation plan",
+    )
+    merge_score_reconciliation_batch.add_argument("--plan-csv", required=True, type=Path)
+    merge_score_reconciliation_batch.add_argument("--batch-csv", required=True, type=Path)
+    merge_score_reconciliation_batch.add_argument("--output", required=True, type=Path)
+    merge_score_reconciliation_batch.add_argument("--report", type=Path)
 
     build_policy_industry = sub.add_parser(
         "build-policy-industry-map",
@@ -490,6 +502,17 @@ def main() -> int:
             limit_per_issue=args.limit_per_issue,
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+    if args.cmd == "merge-score-history-reconciliation-review-batch":
+        report = merge_score_history_reconciliation_review_batch(
+            plan_csv=args.plan_csv,
+            batch_csv=args.batch_csv,
+            output=args.output,
+        )
+        if args.report:
+            args.report.parent.mkdir(parents=True, exist_ok=True)
+            args.report.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        print(json.dumps(report, ensure_ascii=False, indent=2))
         return 0
     if args.cmd == "build-policy-industry-map":
         result = build_policy_industry_map_package(

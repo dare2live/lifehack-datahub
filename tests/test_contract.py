@@ -21,7 +21,10 @@ from datahub.builders.policy_tables import (
 from datahub.builders.score_history_from_projection import build_score_history_from_projection_package
 from datahub.builders.score_history_package_audit import audit_score_history_package_against_core
 from datahub.builders.score_history_reconciliation_audit import audit_score_history_reconciliation_plan
-from datahub.builders.score_history_reconciliation_batch import build_score_history_reconciliation_review_batch
+from datahub.builders.score_history_reconciliation_batch import (
+    build_score_history_reconciliation_review_batch,
+    merge_score_history_reconciliation_review_batch,
+)
 from datahub.builders.score_history_reconciliation_plan import PLAN_COLUMNS, build_score_history_reconciliation_plan
 from datahub.builders.score_history_snapshot import build_score_history_snapshot_package
 from datahub.builders.score_distribution_review_workspace import (
@@ -1538,6 +1541,100 @@ def test_build_score_history_reconciliation_review_batch_limits_pending_rows(tmp
         batch_rows = list(csv.DictReader(f))
     assert {row["status"] for row in batch_rows} == {"todo"}
     assert [row["issue_type"] for row in batch_rows] == ["major_code_drift_candidate", "value_drift"]
+
+
+def test_merge_score_history_reconciliation_review_batch_updates_only_editable_columns(tmp_path: Path):
+    plan = tmp_path / "score_history_reconciliation_plan.csv"
+    rows = [
+        {
+            "task_id": "major-1",
+            "issue_type": "major_code_drift_candidate",
+            "priority": "1",
+            "status": "todo",
+            "suggested_action": "review_major_code_alignment",
+            "match_confidence": "high",
+            "score_year": "2024",
+            "batch": "本科批",
+            "subject_cat": "物理类",
+            "school_code": "1001",
+            "package_major_code": "04",
+            "core_major_code": "03",
+            "package_min_score": "570",
+            "core_min_score": "570",
+            "package_min_rank": "3000",
+            "core_min_rank": "3000",
+            "package_key_json": "{}",
+            "core_key_json": "{}",
+            "core_candidates_json": "[]",
+            "matching_values_json": "{}",
+            "differences_json": "[]",
+            "review_decision": "",
+            "reviewer": "",
+            "reviewed_at": "",
+            "notes": "",
+        },
+        {
+            "task_id": "value-1",
+            "issue_type": "value_drift",
+            "priority": "2",
+            "status": "todo",
+            "suggested_action": "review_source_value_conflict",
+            "match_confidence": "primary_key_match",
+            "score_year": "2024",
+            "batch": "本科批",
+            "subject_cat": "物理类",
+            "school_code": "1002",
+            "package_major_code": "02",
+            "core_major_code": "02",
+            "package_min_score": "580",
+            "core_min_score": "580",
+            "package_min_rank": "1990",
+            "core_min_rank": "2000",
+            "package_key_json": "{}",
+            "core_key_json": "{}",
+            "core_candidates_json": "[]",
+            "matching_values_json": "{}",
+            "differences_json": "[]",
+            "review_decision": "",
+            "reviewer": "",
+            "reviewed_at": "",
+            "notes": "",
+        },
+    ]
+    with plan.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=PLAN_COLUMNS, extrasaction="ignore")
+        writer.writeheader()
+        writer.writerows(rows)
+
+    batch = tmp_path / "score_history_reconciliation_review_batch.csv"
+    edited_rows = [dict(rows[0])]
+    edited_rows[0].update({
+        "status": "reviewed",
+        "review_decision": "map_package_to_core_major_code",
+        "reviewer": "tester",
+        "reviewed_at": "2026-05-13",
+        "notes": "matched by official source",
+        "school_code": "9999",
+    })
+    with batch.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=PLAN_COLUMNS, extrasaction="ignore")
+        writer.writeheader()
+        writer.writerows(edited_rows)
+
+    output = tmp_path / "merged.csv"
+    report = merge_score_history_reconciliation_review_batch(
+        plan_csv=plan,
+        batch_csv=batch,
+        output=output,
+    )
+
+    assert report["updated_rows"] == 1
+    with output.open(encoding="utf-8", newline="") as f:
+        merged = {row["task_id"]: row for row in csv.DictReader(f)}
+    assert merged["major-1"]["status"] == "reviewed"
+    assert merged["major-1"]["review_decision"] == "map_package_to_core_major_code"
+    assert merged["major-1"]["school_code"] == "1001"
+    assert merged["value-1"]["status"] == "todo"
 
 
 def test_build_policy_industry_map_package_from_config(tmp_path: Path):

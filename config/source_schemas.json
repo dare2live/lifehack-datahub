@@ -72,6 +72,7 @@
               "needs_source_research"
             ],
             "required_ready_columns": ["review_decision", "reviewer", "reviewed_at"],
+            "batch_editable_columns": ["status", "review_decision", "reviewer", "reviewed_at", "notes"],
             "batch_limit_per_issue": 50
           },
           "issue_types": {

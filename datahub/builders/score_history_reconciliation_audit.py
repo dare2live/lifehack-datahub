@@ -99,6 +99,7 @@ def _review_config(schema: dict[str, Any]) -> dict[str, Any]:
         "blocked_statuses",
         "allowed_review_decisions",
         "required_ready_columns",
+        "batch_editable_columns",
     ]
     missing = [key for key in required_lists if not isinstance(review.get(key), list)]
     if missing:
@@ -111,6 +112,7 @@ def _review_config(schema: dict[str, Any]) -> dict[str, Any]:
         "blocked_statuses": {str(item) for item in review["blocked_statuses"]},
         "allowed_review_decisions": {str(item) for item in review["allowed_review_decisions"]},
         "required_ready_columns": [str(item) for item in review["required_ready_columns"]],
+        "batch_editable_columns": [str(item) for item in review["batch_editable_columns"]],
         "batch_limit_per_issue": int(review.get("batch_limit_per_issue") or 50),
     }
 

@@ -216,6 +216,18 @@ python3 scripts/build_package.py build-score-history-reconciliation-review-batch
 
 真实 smoke 已生成初始 80 行 review batch，四类 issue type 各 20 行。该 batch 是本地工作文件，复核结果必须合并回完整 reconciliation plan 后再跑 readiness audit。
 
+合并复核结果：
+
+```bash
+python3 scripts/build_package.py merge-score-history-reconciliation-review-batch \
+  --plan-csv staging/score_history_reconciliation_2023_2024/score_history_reconciliation_plan.csv \
+  --batch-csv staging/score_history_reconciliation_2023_2024/review_batch_initial/score_history_reconciliation_review_batch.csv \
+  --output staging/score_history_reconciliation_2023_2024/score_history_reconciliation_plan_merged.csv \
+  --report staging/score_history_reconciliation_2023_2024/merge_report.json
+```
+
+合并按 `task_id` 定位，只回写 `batch_editable_columns` 配置列，不能通过 batch 修改主键、分数、位次和来源证据。真实 smoke 已对未编辑初始 batch 合并验证：输入 24,478 行、batch 80 行、`updated_rows=0`，再次 readiness audit 仍为 `todo=24,478`、`package_ready=false`。
+
 2022/2023/2024 官方图片页和 2022 镜像图片页可先用 `download-page-images` 采集图片并生成 manifest。manifest 兼容 `build-local --intake-manifest`，后续无论使用 OCR 还是人工转录，发布包都能追溯到原始图片 SHA-256：
 
 ```bash

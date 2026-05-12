@@ -173,6 +173,16 @@ python3 scripts/build_package.py build-score-history-reconciliation-review-batch
   --limit-per-issue 20
 ```
 
+复核者编辑 batch CSV 后，用 task_id 合并回完整 plan。合并只回写配置允许的复核列，不会修改主键、分数、位次等证据字段：
+
+```bash
+python3 scripts/build_package.py merge-score-history-reconciliation-review-batch \
+  --plan-csv staging/score_history_reconciliation_2023_2024/score_history_reconciliation_plan.csv \
+  --batch-csv staging/score_history_reconciliation_2023_2024/review_batch_initial/score_history_reconciliation_review_batch.csv \
+  --output staging/score_history_reconciliation_2023_2024/score_history_reconciliation_plan_merged.csv \
+  --report staging/score_history_reconciliation_2023_2024/merge_report.json
+```
+
 2023/2024 已补充可文本解析的转载 PDF 镜像，配置为 `mirror_pdf`，不能冒充辽宁官网原始长期来源。真实 smoke 已解析 2023 年 1,076 行、2024 年 1,086 行，并通过 `fa_fact_ln_score_distribution` 质量闸门：
 
 ```bash
