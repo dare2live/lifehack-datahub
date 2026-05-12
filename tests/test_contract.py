@@ -11,6 +11,7 @@ from datahub.builders.major_mapping_review import build_major_mapping_review_pac
 from datahub.builders.local_package import build_local_package
 from datahub.config import get_table_schema, load_source_schemas
 from datahub.builders.school_identity import build_school_identity_package
+from datahub.connectors.manual_files import intake_manual_assets
 from datahub.connectors.remote_files import download_remote_assets
 from datahub.connectors.registry import discover_assets
 from datahub.parsers.ln_projection_score import parse_ln_projection_score_file
@@ -79,6 +80,55 @@ def test_discover_assets_from_source_config(tmp_path: Path):
     assert assets[0].source_key == "ln_admission_plan"
     assert assets[0].source_date == "2026-05-12"
     assert assets[0].path == source
+
+
+def test_intake_manual_assets_records_provenance(tmp_path: Path):
+    source = tmp_path / "2026_plan.xlsx"
+    source.write_bytes(b"manual excel placeholder")
+    digest = hashlib.sha256(source.read_bytes()).hexdigest()
+
+    result = intake_manual_assets(
+        "ln_admission_plan",
+        [source],
+        tmp_path / "raw",
+        source_date="2026-06-20",
+        acquired_by="fixture",
+        official_distribution="网报志愿系统",
+        evidence_urls=["https://example.edu/evidence"],
+        notes="fixture intake",
+    )
+
+    target = tmp_path / "raw" / "ln_admission_plan" / "2026-06-20" / "2026_plan.xlsx"
+    manifest = target.parent / "_intake_manifest.json"
+    assert target.exists()
+    assert result["file_count"] == 1
+    assert result["files"][0]["sha256"] == digest
+
+    manifest_data = json.loads(manifest.read_text(encoding="utf-8"))
+    assert manifest_data["source_key"] == "ln_admission_plan"
+    assert manifest_data["acquired_by"] == "fixture"
+    assert manifest_data["official_distribution"] == "网报志愿系统"
+    assert manifest_data["files"][0]["sha256"] == digest
+
+    assets = discover_assets("ln_admission_plan", project_root=tmp_path)
+    assert any(asset.path == target for asset in assets)
+
+
+def test_intake_manual_assets_rejects_remote_configured_source(tmp_path: Path):
+    source = tmp_path / "catalog.pdf"
+    source.write_bytes(b"placeholder")
+    try:
+        intake_manual_assets(
+            "moe_major_catalog",
+            [source],
+            tmp_path / "raw",
+            source_date="2025-04-22",
+            acquired_by="fixture",
+        )
+        rejected = False
+    except ValueError as exc:
+        rejected = "not configured for manual intake" in str(exc)
+    assert rejected
 
 
 def test_audit_sources_marks_admission_plan_manual():

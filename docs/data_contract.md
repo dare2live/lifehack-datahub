@@ -71,6 +71,24 @@ python3 scripts/build_package.py audit-sources
 python3 scripts/build_package.py download --source-key ln_admission_plan --output-root raw
 ```
 
+## 受控手工文件入口
+
+对 `manual_required`、`source_collection_required`、`curation_required`、`research_required` 状态的数据源，DataHub 使用 `intake-manual` 登记原始文件。它只复制文件到 raw 区并写入 `_intake_manifest.json`，记录采集人、来源说明、证据链接、文件大小和 SHA-256；不解析文件，不导入 core，也不允许把 raw 文件提交到 Git。
+
+示例：
+
+```bash
+python3 scripts/build_package.py intake-manual \
+  --source-key ln_admission_plan \
+  --input ~/Downloads/2026_liaoning_plan.xlsx \
+  --output-root raw \
+  --source-date 2026-06-20 \
+  --acquired-by consultant \
+  --official-distribution 网报志愿系统 \
+  --evidence-url https://jyt.ln.gov.cn/jyt/jyzx/jyyw/2025062010482638109/index.shtml \
+  --notes "从官方志愿系统导出，未人工改列名"
+```
+
 教育部本科专业目录 PDF 通过 source-specific parser 生成 `fa_dim_major_catalog` 清洗 CSV：
 
 ```bash
