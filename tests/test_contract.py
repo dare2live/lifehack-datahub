@@ -14,6 +14,7 @@ from datahub.connectors.remote_files import download_remote_assets
 from datahub.connectors.registry import discover_assets
 from datahub.parsers.ln_projection_score import parse_ln_projection_score_file
 from datahub.parsers.moe_major_catalog import parse_moe_major_catalog_lines
+from datahub.parsers.moe_school_profile import parse_moe_school_profile_rows
 from datahub.source_audit import audit_sources
 from datahub.validators.package_validator import validate_manifest
 
@@ -87,7 +88,7 @@ def test_audit_sources_marks_admission_plan_manual():
     assert by_key["ln_projection_score"]["status"] == "remote_configured"
     assert by_key["ln_score_history"]["status"] == "research_required"
     assert by_key["major_mapping_review"]["status"] == "local_db_configured"
-    assert by_key["school_profile"]["status"] == "source_collection_required"
+    assert by_key["school_profile"]["status"] == "remote_configured"
     assert by_key["school_outcome"]["target_tables"] == ["fa_fact_school_outcome"]
     assert by_key["major_outcome"]["status"] == "source_collection_required"
     assert by_key["policy_industry_map"]["status"] == "curation_required"
@@ -110,6 +111,31 @@ def test_evidence_domain_schemas_are_package_ready():
         assert "built_at" in schema["columns"]
         assert set(schema["required"]).issubset(set(schema["columns"]))
         assert schema["primary_key"]
+
+
+def test_parse_moe_school_profile_rows():
+    rows = parse_moe_school_profile_rows(
+        [
+            ["附件1：", "", "", "", "", "", ""],
+            ["全国普通高等学校名单\n（截至2025年6月20日）", "", "", "", "", "", ""],
+            ["序号", "学校名称", "学校标识码", "主管部门", "所在地", "办学层次", "备注"],
+            ["北京市（92所）", "", "", "", "", "", ""],
+            [1, "北京大学", 4111010001, "教育部", "北京市", "本科", ""],
+            [2, "北京城市学院", 4111011418, "北京市教委", "北京市", "本科", "民办"],
+            ["辽宁省（116所）", "", "", "", "", "", ""],
+            [180, "东北大学", 4121010145, "教育部", "沈阳市", "本科", ""],
+        ],
+        source_date="2025-06-20",
+        availability_date="2025-06-27",
+        built_at="2026-05-13T00:00:00",
+    )
+
+    assert rows[0]["national_school_code"] == "4111010001"
+    assert rows[0]["province"] == "北京市"
+    assert rows[1]["ownership"] == "民办"
+    assert rows[2]["school_name"] == "东北大学"
+    assert rows[2]["province"] == "辽宁省"
+    assert rows[2]["competent_authority"] == "教育部"
 
 
 def test_build_school_outcome_package_from_cleaned_csv(tmp_path: Path):

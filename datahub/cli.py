@@ -13,6 +13,7 @@ from .connectors.registry import discover_assets, list_source_keys
 from .connectors.remote_files import download_remote_assets
 from .parsers.ln_projection_score import parse_ln_projection_score_files
 from .parsers.moe_major_catalog import parse_moe_major_catalog_pdf
+from .parsers.moe_school_profile import parse_moe_school_profile_xls
 from .source_audit import audit_sources
 from .validators.package_validator import validate_manifest
 
@@ -68,6 +69,12 @@ def main() -> int:
     parse_projection.add_argument("--batch", required=True)
     parse_projection.add_argument("--source-date", required=True)
     parse_projection.add_argument("--password", action="append", dest="passwords", default=[])
+
+    parse_school = sub.add_parser("parse-moe-school-profile", help="Parse MOE school list XLS to cleaned CSV")
+    parse_school.add_argument("--input", required=True, type=Path)
+    parse_school.add_argument("--output", required=True, type=Path)
+    parse_school.add_argument("--source-date", required=True)
+    parse_school.add_argument("--availability-date", required=True)
 
     args = parser.parse_args()
     if args.cmd == "validate":
@@ -132,6 +139,20 @@ def main() -> int:
             password_candidates=args.passwords,
         )
         schema = get_table_schema("fa_fact_ln_projection_score")
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        with args.output.open("w", encoding="utf-8", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=schema["columns"], extrasaction="ignore")
+            writer.writeheader()
+            writer.writerows(rows)
+        print(json.dumps({"output": str(args.output), "rows": len(rows)}, ensure_ascii=False, indent=2))
+        return 0
+    if args.cmd == "parse-moe-school-profile":
+        rows = parse_moe_school_profile_xls(
+            args.input,
+            source_date=args.source_date,
+            availability_date=args.availability_date,
+        )
+        schema = get_table_schema("fa_dim_school_profile")
         args.output.parent.mkdir(parents=True, exist_ok=True)
         with args.output.open("w", encoding="utf-8", newline="") as f:
             writer = csv.DictWriter(f, fieldnames=schema["columns"], extrasaction="ignore")

@@ -136,12 +136,24 @@
       "kind": "official_catalog_or_verified_profile",
       "owner": "lifehack-datahub",
       "raw_glob": "raw/school_profile/**/*",
-      "remote_files": [],
+      "remote_files": [
+        {
+          "url": "https://www.moe.gov.cn/jyb_xxgk/s5743/s5744/202506/W020250729615142156867.xls",
+          "file_name": "moe_school_profile_2025.xls",
+          "source_date": "2025-06-20",
+          "sha256": "af6f0192c29fb412b441fb55a13311479d08f861d68257960c5edb2e4dfb55af",
+          "headers": {
+            "User-Agent": "Mozilla/5.0"
+          }
+        }
+      ],
       "acquisition": {
-        "status": "source_collection_required",
-        "official_distribution": "教育部/阳光高考/学校官网公开资料",
-        "evidence_urls": [],
-        "notes": "用于生成 fa_dim_school_profile。DataHub 负责汇总学校所在地、层级、类型、主管部门、官网等稳定字段，core 只导入标准包。"
+        "status": "remote_configured",
+        "official_distribution": "教育部全国高等学校名单",
+        "evidence_urls": [
+          "https://www.moe.gov.cn/jyb_xxgk/s5743/s5744/202506/t20250627_1195683.html"
+        ],
+        "notes": "用于生成 fa_dim_school_profile。教育部学校标识码不是辽宁招生计划本地院校代码，后续需用 fa_bridge_school_identity 对齐。"
       },
       "target_tables": ["fa_dim_school_profile"]
     },

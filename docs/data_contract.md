@@ -98,13 +98,25 @@ python3 scripts/build_package.py parse-ln-projection-score \
 
 推荐和报告需要的学校、专业、政策证据由 DataHub 产出标准包，core 只消费：
 
-- `fa_dim_school_profile`：高校基础画像，主键 `school_code`。
+- `fa_dim_school_profile`：高校基础画像，主键 `national_school_code`。
 - `fa_fact_school_outcome`：高校出口指标，主键 `school_code, metric_key, metric_year, source_url`。
 - `fa_fact_major_outcome`：专业出口指标，主键 `major_code, metric_key, metric_year, source_url`。
 - `fa_dim_policy_industry_map`：政策到 TDX 行业映射，主键 `tdx_l2`。
 - `fa_dim_policy_plan_history`：十三五/十四五兑现回测，主键 `plan_period, tdx_l2`。
 
 这些表的字段、别名、必填列、数字列维护在 `config/source_schemas.json`；来源状态维护在 `config/sources.json`。没有明确来源 URL 或证据摘录的主观判断不得发布为 outcome 数据包。
+
+教育部全国高等学校名单通过 `school_profile` source 下载，并用 parser 生成 `fa_dim_school_profile`：
+
+```bash
+python3 scripts/build_package.py parse-moe-school-profile \
+  --input raw/school_profile/2025-06-20/moe_school_profile_2025.xls \
+  --output cleaned/moe_school_profile_2025.csv \
+  --source-date 2025-06-20 \
+  --availability-date 2025-06-27
+```
+
+注意：教育部“学校标识码”不是辽宁招生计划里的本地院校代码。`fa_dim_school_profile` 以 `national_school_code` 为主键；后续需要单独发布 `fa_bridge_school_identity` 才能把辽宁本地院校代码稳定对齐到全国学校标识码。
 
 ## 专业映射复核数据包
 
