@@ -19,6 +19,7 @@ from datahub.builders.policy_tables import (
 )
 from datahub.builders.score_history_from_projection import build_score_history_from_projection_package
 from datahub.builders.score_history_package_audit import audit_score_history_package_against_core
+from datahub.builders.score_history_reconciliation_plan import build_score_history_reconciliation_plan
 from datahub.builders.score_history_snapshot import build_score_history_snapshot_package
 from datahub.builders.score_distribution_review_workspace import (
     build_score_distribution_review_workspace,
@@ -1227,6 +1228,129 @@ def test_audit_score_history_package_against_core_reports_overlap_drift(tmp_path
     assert report["samples"]["different_rows"][0]["differences"] == [
         {"column": "min_rank", "package_value": 1990, "core_value": 2000}
     ]
+
+
+def test_build_score_history_reconciliation_plan_from_audit_inputs(tmp_path: Path):
+    db = tmp_path / "core.duckdb"
+    con = duckdb.connect(str(db))
+    try:
+        con.execute("""
+            CREATE TABLE fa_fact_ln_score_history (
+                school_code VARCHAR,
+                major_code VARCHAR,
+                batch VARCHAR,
+                subject_cat VARCHAR,
+                score_year INTEGER,
+                min_score DOUBLE,
+                min_rank INTEGER
+            )
+        """)
+        con.execute("""
+            INSERT INTO fa_fact_ln_score_history VALUES
+                ('1001', '01', '本科批', '物理类', 2024, 600, 1000),
+                ('1002', '02', '本科批', '物理类', 2024, 580, 2000),
+                ('1003', '03', '本科批', '物理类', 2024, 570, 3000),
+                ('1007', '07', '本科批', '物理类', 2024, 540, 7000),
+                ('2001', '01', '本科批', '物理类', 2023, 610, 900)
+        """)
+    finally:
+        con.close()
+
+    package_dir = tmp_path / "exports" / "pkg-score-history-reconciliation"
+    package_dir.mkdir(parents=True)
+    with (package_dir / "fa_fact_ln_score_history.csv").open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(
+            f,
+            fieldnames=[
+                "school_code",
+                "major_code",
+                "batch",
+                "subject_cat",
+                "score_year",
+                "min_score",
+                "min_rank",
+                "plan_count",
+            ],
+        )
+        writer.writeheader()
+        writer.writerows([
+            {
+                "school_code": "1001",
+                "major_code": "01",
+                "batch": "本科批",
+                "subject_cat": "物理类",
+                "score_year": "2024",
+                "min_score": "600",
+                "min_rank": "1000",
+                "plan_count": "10",
+            },
+            {
+                "school_code": "1002",
+                "major_code": "02",
+                "batch": "本科批",
+                "subject_cat": "物理类",
+                "score_year": "2024",
+                "min_score": "580",
+                "min_rank": "1990",
+                "plan_count": "8",
+            },
+            {
+                "school_code": "1003",
+                "major_code": "04",
+                "batch": "本科批",
+                "subject_cat": "物理类",
+                "score_year": "2024",
+                "min_score": "570",
+                "min_rank": "3000",
+                "plan_count": "6",
+            },
+            {
+                "school_code": "1006",
+                "major_code": "06",
+                "batch": "本科批",
+                "subject_cat": "物理类",
+                "score_year": "2024",
+                "min_score": "550",
+                "min_rank": "6000",
+                "plan_count": "4",
+            },
+        ])
+    (package_dir / "quality_report.json").write_text('{"errors":[]}\n', encoding="utf-8")
+    (package_dir / "manifest.json").write_text(json.dumps({
+        "package_id": "pkg-score-history-reconciliation",
+        "built_at": "2026-05-13T00:00:00",
+        "source_version": "fixture",
+        "tables": [{"name": "fa_fact_ln_score_history", "file": "fa_fact_ln_score_history.csv"}],
+        "files": ["fa_fact_ln_score_history.csv"],
+        "hashes": {},
+        "quality_report": "quality_report.json",
+    }, ensure_ascii=False), encoding="utf-8")
+
+    result = build_score_history_reconciliation_plan(
+        core_db=db,
+        package_dirs=[package_dir],
+        output_dir=tmp_path / "reconciliation",
+    )
+
+    assert result["rows"] == 4
+    assert result["issue_counts"] == {
+        "core_only_unmatched": 1,
+        "major_code_drift_candidate": 1,
+        "package_only_unmatched": 1,
+        "value_drift": 1,
+    }
+    with Path(result["csv"]).open(encoding="utf-8", newline="") as f:
+        tasks = list(csv.DictReader(f))
+    by_type = {task["issue_type"]: task for task in tasks}
+    assert by_type["major_code_drift_candidate"]["status"] == "todo"
+    assert by_type["major_code_drift_candidate"]["suggested_action"] == "review_major_code_alignment"
+    assert by_type["major_code_drift_candidate"]["package_major_code"] == "04"
+    assert by_type["major_code_drift_candidate"]["core_major_code"] == "03"
+    assert by_type["value_drift"]["differences_json"] == json.dumps([
+        {"column": "min_rank", "package_value": 1990, "core_value": 2000}
+    ], ensure_ascii=False, sort_keys=True)
+    manifest = json.loads(Path(result["manifest"]).read_text(encoding="utf-8"))
+    assert manifest["notes"].startswith("Review plan only")
 
 
 def test_build_policy_industry_map_package_from_config(tmp_path: Path):

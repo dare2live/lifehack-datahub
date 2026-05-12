@@ -170,6 +170,18 @@ python3 scripts/build_package.py audit-score-history-package-against-core \
 
 该命令只读 core DB。报告中 `decision.reconciliation_required=true` 时，先处理 `different_rows`、`package_only_rows`、`core_only_rows` 的来源和代码差异，再决定导入策略。报告会额外输出 `reconciliation_hints.same_values_different_key_candidates`，用配置化匹配列识别“同校同年同分同位次但专业代码不同”的疑似代码漂移。
 
+对账后生成可复核任务表：
+
+```bash
+python3 scripts/build_package.py build-score-history-reconciliation-plan \
+  --core-db ../lifehack/backend/data/university.db \
+  --package-dir exports/2023_ln_score_history_derived_pdf_mirror \
+  --package-dir exports/2024_ln_score_history_derived_pdf_mirror \
+  --output-dir staging/score_history_reconciliation_2023_2024
+```
+
+输出 `score_history_reconciliation_plan.csv/json`。CSV 任务类型包括 `major_code_drift_candidate`、`value_drift`、`package_only_unmatched`、`core_only_unmatched`；任务状态、优先级、建议动作和匹配置信度均由 `config/source_schemas.json` 维护。它是人工复核计划，不是 data package，不能导入 core。
+
 2022/2023/2024 官方图片页和 2022 镜像图片页可先用 `download-page-images` 采集图片并生成 manifest。manifest 兼容 `build-local --intake-manifest`，后续无论使用 OCR 还是人工转录，发布包都能追溯到原始图片 SHA-256：
 
 ```bash

@@ -58,6 +58,31 @@
         "compare_columns": ["min_score", "min_rank"],
         "alignment_match_columns": ["school_code", "batch", "subject_cat", "score_year", "min_score", "min_rank"],
         "alignment_variant_columns": ["major_code"],
+        "reconciliation": {
+          "default_status": "todo",
+          "issue_types": {
+            "major_code_drift_candidate": {
+              "priority": 1,
+              "match_confidence": "high",
+              "suggested_action": "review_major_code_alignment"
+            },
+            "value_drift": {
+              "priority": 2,
+              "match_confidence": "primary_key_match",
+              "suggested_action": "review_source_value_conflict"
+            },
+            "package_only_unmatched": {
+              "priority": 3,
+              "match_confidence": "none",
+              "suggested_action": "review_package_only_row"
+            },
+            "core_only_unmatched": {
+              "priority": 4,
+              "match_confidence": "none",
+              "suggested_action": "review_core_only_row"
+            }
+          }
+        },
         "sample_limit": 20
       },
       "aliases": {

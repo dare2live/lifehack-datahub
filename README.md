@@ -137,6 +137,16 @@ python3 scripts/build_package.py audit-score-history-package-against-core \
 
 若报告出现 `different_rows`、`core_only_rows` 或重叠作用域下的 `package_only_rows`，先做代码体系/来源体系 reconciliation，不直接覆盖实际工作库。报告中的 `reconciliation_hints.same_values_different_key_candidates` 会按配置化匹配列提示“同校同年同分同位次但专业代码不同”的疑似代码漂移。
 
+审计之后可生成可复核任务表。任务状态、优先级、建议动作和匹配置信度由同一份 schema 配置维护，输出只是本地 review plan，不能导入 core：
+
+```bash
+python3 scripts/build_package.py build-score-history-reconciliation-plan \
+  --core-db ../lifehack/backend/data/university.db \
+  --package-dir exports/2023_ln_score_history_derived_pdf_mirror \
+  --package-dir exports/2024_ln_score_history_derived_pdf_mirror \
+  --output-dir staging/score_history_reconciliation_2023_2024
+```
+
 2023/2024 已补充可文本解析的转载 PDF 镜像，配置为 `mirror_pdf`，不能冒充辽宁官网原始长期来源。真实 smoke 已解析 2023 年 1,076 行、2024 年 1,086 行，并通过 `fa_fact_ln_score_distribution` 质量闸门：
 
 ```bash
