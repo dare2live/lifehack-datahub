@@ -311,6 +311,17 @@ python3 scripts/build_package.py audit-outcome-collection-plan \
 
 真实 smoke：用 core DB 生成学校 5 个、专业 5 个的小样本采集队列，共 40 条任务；审计结果为 `todo=40`、`complete_rows=0`、`errors=[]`，说明当前仍是采集计划，不能作为 outcome 数据包导入 core。
 
+当采集任务被人工核对并标记为完成状态后，才可从采集表生成标准 outcome 数据包：
+
+```bash
+python3 scripts/build_package.py build-outcome-from-collection-plan \
+  --plan-csv staging/outcome_collection/outcome_collection_plan.csv \
+  --output-root exports \
+  --package-id 2026_outcome_collection
+```
+
+该入口只读取 `verified/ready/collected` 行，会先运行 outcome collection audit，再复用 `build-local` 的 schema、主键、metric key、单位和值域校验。真实 smoke：`/tmp` 中 1 条学校 verified outcome 和 1 条专业 verified outcome 成功生成 `fa_fact_school_outcome`、`fa_fact_major_outcome` 两个标准包，质量报告无错误。
+
 政策映射和规划兑现回测不再由 core 建表脚本生产。DataHub 用版本化配置生成标准包：
 
 ```bash

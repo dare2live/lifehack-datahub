@@ -30,6 +30,9 @@ PLAN_COLUMNS = [
     "evidence_quote",
     "metric_scope",
     "denominator",
+    "source_date",
+    "availability_date",
+    "built_at",
     "notes",
 ]
 
@@ -194,6 +197,9 @@ def _build_rows(
                 "evidence_quote": "",
                 "metric_scope": "",
                 "denominator": "",
+                "source_date": "",
+                "availability_date": "",
+                "built_at": "",
                 "notes": "",
             })
     return rows

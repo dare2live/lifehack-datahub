@@ -254,6 +254,15 @@ python3 scripts/build_package.py audit-outcome-collection-plan \
   --report staging/outcome_collection/outcome_collection_audit.json
 ```
 
+采集任务经过人工核对并标记为 `verified/ready/collected` 后，再从采集表生成标准 outcome 数据包。该入口会先运行采集审计，再复用 `build-local` 的 schema、主键、metric key、单位和值域校验：
+
+```bash
+python3 scripts/build_package.py build-outcome-from-collection-plan \
+  --plan-csv staging/outcome_collection/outcome_collection_plan.csv \
+  --output-root exports \
+  --package-id 2026_outcome_collection
+```
+
 ## 政策表数据包
 
 政策行业映射和规划兑现回测由 `config/policy_industry_map.json`、`config/policy_plan_history.json` 维护，不在 core 里硬编码生产：

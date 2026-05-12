@@ -7,6 +7,7 @@ import json
 from pathlib import Path
 
 from .builders.outcome_collection_audit import audit_outcome_collection_plan
+from .builders.outcome_collection_package import build_outcome_packages_from_collection_plan
 from .builders.major_mapping_review import build_major_mapping_review_package
 from .builders.local_package import build_local_package
 from .builders.outcome_collection_plan import build_outcome_collection_plan
@@ -180,6 +181,18 @@ def main() -> int:
     )
     audit_outcome_collection.add_argument("--plan-csv", required=True, type=Path)
     audit_outcome_collection.add_argument("--report", type=Path)
+
+    build_outcome_from_collection = sub.add_parser(
+        "build-outcome-from-collection-plan",
+        help="Build school/major outcome data packages from verified collection plan rows",
+    )
+    build_outcome_from_collection.add_argument("--plan-csv", required=True, type=Path)
+    build_outcome_from_collection.add_argument("--output-root", required=True, type=Path)
+    build_outcome_from_collection.add_argument("--domain", action="append", dest="domains")
+    build_outcome_from_collection.add_argument("--package-id")
+    build_outcome_from_collection.add_argument("--source-version")
+    build_outcome_from_collection.add_argument("--source-date")
+    build_outcome_from_collection.add_argument("--availability-date")
 
     parse_moe = sub.add_parser("parse-moe-major-catalog", help="Parse MOE major catalog PDF to cleaned CSV")
     parse_moe.add_argument("--input", required=True, type=Path)
@@ -421,6 +434,18 @@ def main() -> int:
             args.report.parent.mkdir(parents=True, exist_ok=True)
             args.report.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         print(json.dumps(report, ensure_ascii=False, indent=2))
+        return 0
+    if args.cmd == "build-outcome-from-collection-plan":
+        result = build_outcome_packages_from_collection_plan(
+            plan_csv=args.plan_csv,
+            output_root=args.output_root,
+            domains=args.domains,
+            package_id=args.package_id,
+            source_version=args.source_version,
+            source_date=args.source_date,
+            availability_date=args.availability_date,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
     if args.cmd == "parse-moe-major-catalog":
         rows = parse_moe_major_catalog_pdf(args.input)

@@ -9,6 +9,7 @@ from openpyxl import Workbook
 
 from datahub.connectors.page_images import download_page_images
 from datahub.builders.outcome_collection_audit import audit_outcome_collection_plan
+from datahub.builders.outcome_collection_package import build_outcome_packages_from_collection_plan
 from datahub.builders.major_mapping_review import build_major_mapping_review_package
 from datahub.builders.local_package import build_local_package
 from datahub.builders.outcome_collection_plan import build_outcome_collection_plan
@@ -1518,6 +1519,122 @@ def test_audit_outcome_collection_plan_reports_progress_and_errors(tmp_path: Pat
     assert any("unregistered outcome metric" in error for error in report["errors"])
     assert any("search_queries is not valid JSON" in error for error in report["errors"])
     assert any("complete status missing evidence" in error for error in report["errors"])
+
+
+def test_build_outcome_packages_from_verified_collection_plan(tmp_path: Path):
+    plan = tmp_path / "outcome_collection_plan.csv"
+    fieldnames = [
+        "domain",
+        "entity_code",
+        "entity_name",
+        "priority_rank",
+        "plan_rows",
+        "metric_key",
+        "metric_label",
+        "metric_unit",
+        "metric_year",
+        "search_queries",
+        "status",
+        "metric_value",
+        "source_title",
+        "source_url",
+        "evidence_quote",
+        "metric_scope",
+        "denominator",
+        "source_date",
+        "availability_date",
+        "built_at",
+        "notes",
+    ]
+    with plan.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerow({
+            "domain": "school",
+            "entity_code": "10145",
+            "entity_name": "东北大学",
+            "priority_rank": "1",
+            "plan_rows": "120",
+            "metric_key": "postgrad_rate",
+            "metric_label": "深造率",
+            "metric_unit": "ratio",
+            "metric_year": "2025",
+            "search_queries": json.dumps(["东北大学 2025 就业质量报告"], ensure_ascii=False),
+            "status": "verified",
+            "metric_value": "46.2%",
+            "source_title": "2025届毕业生就业质量报告",
+            "source_url": "https://example.edu/report.pdf",
+            "evidence_quote": "本科毕业生深造率为46.2%。",
+            "metric_scope": "本科毕业生",
+            "denominator": "1000",
+            "source_date": "2025-12-31",
+            "availability_date": "2026-01-05",
+            "built_at": "2026-05-13T00:00:00",
+            "notes": "",
+        })
+        writer.writerow({
+            "domain": "major",
+            "entity_code": "080901",
+            "entity_name": "计算机科学与技术",
+            "priority_rank": "1",
+            "plan_rows": "88",
+            "metric_key": "exam_friendly_score",
+            "metric_label": "考研友好度",
+            "metric_unit": "score",
+            "metric_year": "2025",
+            "search_queries": json.dumps(["计算机科学与技术 考研友好度"], ensure_ascii=False),
+            "status": "verified",
+            "metric_value": "82",
+            "source_title": "专业升学去向整理",
+            "source_url": "https://example.edu/major.html",
+            "evidence_quote": "计算机科学与技术专业升学方向延续性较强。",
+            "metric_scope": "本科专业",
+            "denominator": "",
+            "source_date": "2025-12-31",
+            "availability_date": "2026-01-05",
+            "built_at": "2026-05-13T00:00:00",
+            "notes": "",
+        })
+        writer.writerow({
+            "domain": "school",
+            "entity_code": "10145",
+            "entity_name": "东北大学",
+            "priority_rank": "1",
+            "plan_rows": "120",
+            "metric_key": "employment_rate",
+            "metric_label": "毕业去向落实率",
+            "metric_unit": "ratio",
+            "metric_year": "2025",
+            "search_queries": json.dumps(["东北大学 就业质量报告"], ensure_ascii=False),
+            "status": "todo",
+            "metric_value": "",
+            "source_title": "",
+            "source_url": "",
+            "evidence_quote": "",
+            "metric_scope": "",
+            "denominator": "",
+            "source_date": "",
+            "availability_date": "",
+            "built_at": "",
+            "notes": "",
+        })
+
+    result = build_outcome_packages_from_collection_plan(
+        plan_csv=plan,
+        output_root=tmp_path / "exports",
+        package_id="pkg-outcome-collection",
+    )
+
+    packages = {package["table"]: package for package in result["packages"]}
+    assert set(packages) == {"fa_fact_school_outcome", "fa_fact_major_outcome"}
+    assert packages["fa_fact_school_outcome"]["rows"] == 1
+    assert packages["fa_fact_major_outcome"]["rows"] == 1
+    school_package = Path(packages["fa_fact_school_outcome"]["package_dir"])
+    assert validate_manifest(school_package / "manifest.json")["errors"] == []
+    with (school_package / "fa_fact_school_outcome.csv").open(encoding="utf-8", newline="") as f:
+        rows = list(csv.DictReader(f))
+    assert rows[0]["school_code"] == "10145"
+    assert rows[0]["metric_value"] == "0.462"
 
 
 def test_build_school_identity_package_matches_unique_school_names(tmp_path: Path):
