@@ -49,6 +49,9 @@ REVIEW_TASK_COLUMNS = [
     "parse_status",
     "math_status",
     "raw_text",
+    "suggested_score",
+    "suggested_score_count",
+    "suggested_cumulative_rank",
     "review_status",
     "reviewer_notes",
     "corrected_score",
@@ -164,9 +167,11 @@ def build_score_distribution_review_tasks(
     source_key: str = "ln_score_distribution",
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     review_config = _load_ocr_review_config(source_key)
+    parser_config = _load_ocr_table_config(source_key)
     rows = _read_candidate_csv(candidate_csv)
+    suggestions = _build_review_suggestions(rows, parser_config)
     tasks = [
-        _review_task(row, index, review_config)
+        _review_task(row, index, review_config, suggestions.get(_candidate_key(row)))
         for index, row in enumerate(rows, start=1)
         if _needs_review(row, review_config)
     ]
@@ -182,6 +187,7 @@ def build_score_distribution_review_tasks(
         "candidate_csv": str(candidate_csv),
         "candidate_rows": len(rows),
         "review_task_rows": len(tasks),
+        "suggested_review_rows": sum(1 for task in tasks if str(task.get("suggested_score") or "").strip()),
         "issue_counts": dict(sorted(Counter(task["issue_type"] for task in tasks).items())),
         "notes": "Review task CSV only. Correct rows before build-local.",
     }
@@ -291,7 +297,25 @@ def _load_ocr_table_config(source_key: str) -> dict[str, Any]:
         "infer_missing_score": bool(config.get("infer_missing_score")),
         "infer_single_number_rows": bool(config.get("infer_single_number_rows")),
         "score_inference_min_anchor_rows": int(config.get("score_inference_min_anchor_rows", 2)),
+        "single_boundary_suggestion": _single_boundary_suggestion_config(config),
         "block_x_ranges": [(float(item[0]), float(item[1])) for item in block_ranges],
+    }
+
+
+def _single_boundary_suggestion_config(config: dict[str, Any]) -> dict[str, Any]:
+    suggestion = config.get("single_boundary_suggestion") or {}
+    if not isinstance(suggestion, dict):
+        raise ValueError("ocr_table.single_boundary_suggestion must be an object")
+    if not suggestion.get("enabled"):
+        return {"enabled": False}
+    required = ["min_group_rows", "max_anchor_score"]
+    missing = [key for key in required if key not in suggestion]
+    if missing:
+        raise ValueError(f"ocr_table.single_boundary_suggestion missing: {', '.join(missing)}")
+    return {
+        "enabled": True,
+        "min_group_rows": int(suggestion["min_group_rows"]),
+        "max_anchor_score": int(suggestion["max_anchor_score"]),
     }
 
 
@@ -340,7 +364,12 @@ def _needs_review(row: dict[str, Any], review_config: dict[str, Any]) -> bool:
     )
 
 
-def _review_task(row: dict[str, Any], index: int, review_config: dict[str, Any]) -> dict[str, Any]:
+def _review_task(
+    row: dict[str, Any],
+    index: int,
+    review_config: dict[str, Any],
+    suggestion: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     issue_type = _issue_type(row, review_config)
     action = review_config["issue_actions"].get(issue_type) or review_config["issue_actions"].get("not_checked")
     if not action:
@@ -367,6 +396,9 @@ def _review_task(row: dict[str, Any], index: int, review_config: dict[str, Any])
         "parse_status": row.get("parse_status"),
         "math_status": row.get("math_status"),
         "raw_text": row.get("raw_text"),
+        "suggested_score": "" if not suggestion else suggestion.get("score", ""),
+        "suggested_score_count": "" if not suggestion else suggestion.get("score_count", ""),
+        "suggested_cumulative_rank": "" if not suggestion else suggestion.get("cumulative_rank", ""),
         "review_status": "todo",
         "reviewer_notes": "",
         "corrected_score": "",
@@ -661,12 +693,90 @@ def _infer_missing_scores(rows: list[dict[str, Any]], config: dict[str, Any]) ->
             previous_cumulative = cumulative_rank
 
 
+def _build_review_suggestions(
+    rows: list[dict[str, Any]],
+    config: dict[str, Any],
+) -> dict[tuple[str, str, str, str, str, str, str], dict[str, int]]:
+    suggestion_config = config.get("single_boundary_suggestion") or {}
+    if not suggestion_config.get("enabled"):
+        return {}
+    min_group_rows = int(suggestion_config["min_group_rows"])
+    max_anchor_score = int(suggestion_config["max_anchor_score"])
+    grouped: dict[tuple[str, int, str, int], list[dict[str, Any]]] = {}
+    for row in rows:
+        subject = str(row.get("subject_cat") or "")
+        year = _as_int(row.get("score_year"))
+        image_file = str(row.get("image_file") or "")
+        block_index = _as_int(row.get("block_index") or 0)
+        grouped.setdefault((subject, year, image_file, block_index), []).append(row)
+
+    suggestions: dict[tuple[str, str, str, str, str, str, str], dict[str, int]] = {}
+    for group_rows in grouped.values():
+        indexed_rows = list(enumerate(sorted(group_rows, key=lambda item: float(item["row_y"]), reverse=True)))
+        if len(indexed_rows) < min_group_rows:
+            continue
+        anchor_score = _single_boundary_anchor_score(indexed_rows, max_anchor_score=max_anchor_score)
+        if anchor_score is None:
+            continue
+        if not _anchor_matches_complete_rows(indexed_rows, anchor_score):
+            continue
+        previous_cumulative: int | None = None
+        for index, row in indexed_rows:
+            if _complete_numeric_row(row):
+                previous_cumulative = _as_int(row["cumulative_rank"])
+                continue
+            expected_score = anchor_score - index
+            if not _valid_score(expected_score):
+                continue
+            numbers = _extract_numbers(str(row.get("raw_text") or ""))
+            inferred = _infer_counts_from_numbers(
+                numbers,
+                previous_cumulative=previous_cumulative,
+                allow_single_number=bool(config.get("infer_single_number_rows")),
+            )
+            if not inferred:
+                continue
+            score_count, cumulative_rank = inferred
+            if score_count <= 0 or cumulative_rank <= score_count:
+                continue
+            suggestions[_candidate_key(row)] = {
+                "score": expected_score,
+                "score_count": score_count,
+                "cumulative_rank": cumulative_rank,
+            }
+            previous_cumulative = cumulative_rank
+    return suggestions
+
+
+def _single_boundary_anchor_score(
+    indexed_rows: list[tuple[int, dict[str, Any]]],
+    *,
+    max_anchor_score: int,
+) -> int | None:
+    boundary_rows = [
+        (index, row)
+        for index, row in [indexed_rows[0], indexed_rows[-1]]
+        if _complete_numeric_row(row) and _as_int(row.get("score")) <= max_anchor_score
+    ]
+    if len(boundary_rows) != 1:
+        return None
+    index, row = boundary_rows[0]
+    return _as_int(row["score"]) + index
+
+
+def _anchor_matches_complete_rows(indexed_rows: list[tuple[int, dict[str, Any]]], anchor_score: int) -> bool:
+    for index, row in indexed_rows:
+        if _complete_numeric_row(row) and _as_int(row["score"]) + index != anchor_score:
+            return False
+    return True
+
+
 def _complete_numeric_row(row: dict[str, Any]) -> bool:
     return (
         row.get("parse_status") in COMPLETE_PARSE_STATUSES
-        and isinstance(row.get("score"), int)
-        and isinstance(row.get("score_count"), int)
-        and isinstance(row.get("cumulative_rank"), int)
+        and _int_like(row.get("score"))
+        and _int_like(row.get("score_count"))
+        and _int_like(row.get("cumulative_rank"))
     )
 
 
@@ -696,6 +806,16 @@ def _has_digit(text: str) -> bool:
 
 def _valid_score(value: Any) -> bool:
     return isinstance(value, int) and 0 <= value <= 750
+
+
+def _int_like(value: Any) -> bool:
+    if value in (None, ""):
+        return False
+    try:
+        int(float(str(value).replace(",", "").strip()))
+    except ValueError:
+        return False
+    return True
 
 
 def _as_int(value: Any) -> int:

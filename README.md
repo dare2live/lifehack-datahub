@@ -160,7 +160,7 @@ python3 scripts/build_package.py build-ln-score-distribution-review \
   --output staging/ln_score_distribution_2024_review_tasks.csv
 ```
 
-复核任务表会按失败原因和位置排序，并预留 `corrected_score`、`corrected_score_count`、`corrected_cumulative_rank` 给人工校对。
+复核任务表会按失败原因和位置排序，并预留 `corrected_score`、`corrected_score_count`、`corrected_cumulative_rank` 给人工校对。低分段页面如果只有一侧边界锚点，系统会按 `parser.ocr_table.single_boundary_suggestion` 预填 `suggested_score/suggested_score_count/suggested_cumulative_rank`，但这些建议不会自动进入 cleaned CSV，必须由人工复制到 corrected 字段并把状态改为 approved/corrected 后才会生效。
 
 为了让人工复核能按原图推进，可把总任务表拆成本地工作区。工作区会按图片生成批次 CSV、进度 manifest 和一个只引用本地原图的 HTML 核对页；状态和可编辑字段由 `config/sources.json` 的 `parser.ocr_review_workspace` 维护：
 

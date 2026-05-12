@@ -197,6 +197,8 @@ python3 scripts/build_package.py build-ln-score-distribution-review \
   --output staging/ln_score_distribution_2024_review_tasks.csv
 ```
 
+低分段页面如果只有一侧边界锚点，复核任务表会按 `parser.ocr_table.single_boundary_suggestion` 生成 `suggested_score/suggested_score_count/suggested_cumulative_rank`。这些字段只降低人工抄录成本，不会被 `apply-ln-score-distribution-review` 自动采信；必须由人工核对原图后复制到 `corrected_score/corrected_score_count/corrected_cumulative_rank`，并把 `review_status` 改为 `approved` 或 `corrected` 后才会进入 cleaned CSV。
+
 真实 smoke：2024 候选生成 1,181 条复核任务，失败原因分布为 `incomplete=803, duplicate_score=184, invalid_score=122, cumulative_mismatch=68, extra_tokens=4`；2023 候选生成 1,185 条复核任务，失败原因分布为 `incomplete=975, invalid_score=130, duplicate_score=49, cumulative_mismatch=31`；2022 镜像候选生成 1,225 条复核任务，失败原因分布为 `incomplete=999, invalid_score=106, duplicate_score=87, cumulative_mismatch=33`。复核任务表只用于校对，不是 data package。
 
 复核任务可继续拆成本地工作区。工作区按原图生成批次 CSV、进度 manifest 和 HTML 核对页；pending 状态和可编辑字段由 `config/sources.json` 的 `parser.ocr_review_workspace` 维护：

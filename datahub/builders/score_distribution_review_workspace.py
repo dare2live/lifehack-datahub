@@ -273,7 +273,7 @@ def _write_index_html(
             <thead>
               <tr>
                 <th>status</th><th>issue</th><th>block</th><th>y</th>
-                <th>score</th><th>count</th><th>cum</th><th>raw</th><th>correction</th>
+                <th>score</th><th>count</th><th>cum</th><th>raw</th><th>suggested</th><th>correction</th>
               </tr>
             </thead>
             <tbody>{body_rows}</tbody>
@@ -331,6 +331,10 @@ def _task_html(row: dict[str, Any], config: dict[str, Any]) -> str:
         html.escape(str(row.get(column) or ""))
         for column in ["corrected_score", "corrected_score_count", "corrected_cumulative_rank"]
     )
+    suggestion = " / ".join(
+        html.escape(str(row.get(column) or ""))
+        for column in ["suggested_score", "suggested_score_count", "suggested_cumulative_rank"]
+    )
     cells = [
         status,
         row.get("issue_type"),
@@ -340,6 +344,7 @@ def _task_html(row: dict[str, Any], config: dict[str, Any]) -> str:
         row.get("score_count"),
         row.get("cumulative_rank"),
         row.get("raw_text"),
+        suggestion,
         correction,
     ]
     rendered = "".join(

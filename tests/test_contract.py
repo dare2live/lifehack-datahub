@@ -535,6 +535,7 @@ def test_build_score_distribution_review_tasks_from_candidates(tmp_path: Path):
     assert tasks[0]["issue_type"] == "cumulative_mismatch"
     assert tasks[0]["priority"] == 2
     assert tasks[0]["review_status"] == "todo"
+    assert tasks[0]["suggested_score"] == ""
     assert "累计校验" in tasks[0]["suggested_action"]
 
     output = tmp_path / "review.csv"
@@ -542,7 +543,115 @@ def test_build_score_distribution_review_tasks_from_candidates(tmp_path: Path):
     with output.open(encoding="utf-8", newline="") as f:
         written = list(csv.DictReader(f))
     assert written[0]["corrected_score"] == ""
+    assert "suggested_score" in written[0]
     assert written[0]["issue_type"] == "cumulative_mismatch"
+
+
+def test_build_score_distribution_review_tasks_prefills_single_boundary_suggestions(tmp_path: Path):
+    candidates = tmp_path / "candidates.csv"
+    rows = []
+    for index in range(9):
+        rows.append({
+            "subject_cat": "物理类",
+            "score_year": "2024",
+            "score": str(index + 2),
+            "score_count": str((index + 2) * 2),
+            "cumulative_rank": "",
+            "source_date": "2024-06-25",
+            "image_file": "page-low-score.jpg",
+            "block_index": "3",
+            "row_y": f"{0.90 - index * 0.01:.2f}",
+            "ocr_confidence": "0.8",
+            "parse_status": "incomplete",
+            "math_status": "not_checked",
+            "raw_text": f"{index + 2} {(index + 2) * 2}",
+        })
+    rows.append({
+        "subject_cat": "物理类",
+        "score_year": "2024",
+        "score": "491",
+        "score_count": "12",
+        "cumulative_rank": "108",
+        "source_date": "2024-06-25",
+        "image_file": "page-low-score.jpg",
+        "block_index": "3",
+        "row_y": "0.81",
+        "ocr_confidence": "0.95",
+        "parse_status": "parsed",
+        "math_status": "ok",
+        "raw_text": "491 12 108",
+    })
+    write_candidate_csv(candidates, rows)
+
+    tasks, report = build_score_distribution_review_tasks(candidates)
+
+    assert report["review_task_rows"] == 9
+    assert report["suggested_review_rows"] == 9
+    first = next(task for task in tasks if task["raw_text"] == "2 4")
+    assert first["review_status"] == "todo"
+    assert first["corrected_score"] == ""
+    assert first["suggested_score"] == 500
+    assert first["suggested_score_count"] == 2
+    assert first["suggested_cumulative_rank"] == 4
+
+
+def test_build_score_distribution_review_tasks_skips_conflicting_boundary_suggestions(tmp_path: Path):
+    candidates = tmp_path / "candidates.csv"
+    rows = [
+        {
+            "subject_cat": "物理类",
+            "score_year": "2024",
+            "score": "530",
+            "score_count": "1",
+            "cumulative_rank": "1",
+            "source_date": "2024-06-25",
+            "image_file": "page-conflict.jpg",
+            "block_index": "3",
+            "row_y": "0.90",
+            "ocr_confidence": "0.95",
+            "parse_status": "parsed",
+            "math_status": "ok",
+            "raw_text": "530 1 1",
+        }
+    ]
+    for index in range(8):
+        rows.append({
+            "subject_cat": "物理类",
+            "score_year": "2024",
+            "score": str(index + 2),
+            "score_count": str((index + 2) * 2),
+            "cumulative_rank": "",
+            "source_date": "2024-06-25",
+            "image_file": "page-conflict.jpg",
+            "block_index": "3",
+            "row_y": f"{0.89 - index * 0.01:.2f}",
+            "ocr_confidence": "0.8",
+            "parse_status": "incomplete",
+            "math_status": "not_checked",
+            "raw_text": f"{index + 2} {(index + 2) * 2}",
+        })
+    rows.append({
+        "subject_cat": "物理类",
+        "score_year": "2024",
+        "score": "491",
+        "score_count": "12",
+        "cumulative_rank": "108",
+        "source_date": "2024-06-25",
+        "image_file": "page-conflict.jpg",
+        "block_index": "3",
+        "row_y": "0.81",
+        "ocr_confidence": "0.95",
+        "parse_status": "parsed",
+        "math_status": "ok",
+        "raw_text": "491 12 108",
+    })
+    write_candidate_csv(candidates, rows)
+
+    tasks, report = build_score_distribution_review_tasks(candidates)
+
+    assert report["review_task_rows"] == 8
+    assert report["suggested_review_rows"] == 0
+    assert all(task["suggested_score"] == "" for task in tasks)
 
 
 def test_build_and_merge_score_distribution_review_workspace(tmp_path: Path):

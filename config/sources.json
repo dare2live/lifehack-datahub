@@ -260,6 +260,11 @@
           "infer_missing_score": true,
           "infer_single_number_rows": true,
           "score_inference_min_anchor_rows": 2,
+          "single_boundary_suggestion": {
+            "enabled": true,
+            "min_group_rows": 10,
+            "max_anchor_score": 520
+          },
           "block_x_ranges": [
             [0.04, 0.27],
             [0.27, 0.49],
