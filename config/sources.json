@@ -195,6 +195,28 @@
             "User-Agent": "Mozilla/5.0"
           },
           "notes": "精华高考镜像 PDF，可文本解析；只作镜像候选源，不能冒充辽宁官网原始长期来源。"
+        },
+        {
+          "url": "https://gsimg.gengsan.com/ziyuan/wenjian/file/2023/06/1687654260441591.pdf",
+          "file_name": "ln_score_distribution_2023_physics_gengsan_mirror.pdf",
+          "source_date": "2023-06-24",
+          "sha256": "16f38d0cab027ba44f76630d3b7f3598a06696e7f9b9dd0b992f2a0611ef36c0",
+          "kind": "mirror_pdf",
+          "headers": {
+            "User-Agent": "Mozilla/5.0"
+          },
+          "notes": "更三高考镜像 PDF，可文本解析；只作镜像候选源，不能冒充辽宁官网原始长期来源。"
+        },
+        {
+          "url": "https://down.jiaoyuwu.com/m00/06/8a/585c1ef9c9962c6f7f480b5926f84fae.pdf",
+          "file_name": "ln_score_distribution_2023_history_jiaoyuwu_mirror.pdf",
+          "source_date": "2023-06-24",
+          "sha256": "35c1ae320a7b6b0c094d32582604281eea9e7b640364a933e226a526dd2906db",
+          "kind": "mirror_pdf",
+          "headers": {
+            "User-Agent": "Mozilla/5.0"
+          },
+          "notes": "教育屋镜像 PDF，可文本解析；只作镜像候选源，不能冒充辽宁官网原始长期来源。"
         }
       ],
       "page_image_sources": [
