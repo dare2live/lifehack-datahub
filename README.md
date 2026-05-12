@@ -83,6 +83,15 @@ python3 scripts/build_package.py build-local \
 
 字段别名和 schema 在 `config/source_schemas.json` 维护。`raw/` 和 `exports/` 默认被 `.gitignore` 排除。
 
+当前 core 已有的清洗招生计划可先生成过渡 snapshot，避免核心库成为唯一数据落点。该包会标注 `legacy_core_snapshot`，不能替代后续官方系统/杂志导出的受控 intake：
+
+```bash
+python3 scripts/build_package.py build-admission-plan-snapshot \
+  --core-db ../lifehack/backend/data/university.db \
+  --output-root exports \
+  --package-id legacy_ln_admission_plan_snapshot
+```
+
 教育部本科专业目录 PDF 可解析为标准 CSV：
 
 ```bash

@@ -6,6 +6,7 @@ import csv
 import json
 from pathlib import Path
 
+from .builders.admission_plan_snapshot import build_admission_plan_snapshot_package
 from .builders.outcome_collection_audit import audit_outcome_collection_plan
 from .builders.outcome_collection_package import build_outcome_packages_from_collection_plan
 from .builders.major_mapping_review import build_major_mapping_review_package
@@ -129,6 +130,15 @@ def main() -> int:
     build_school_identity.add_argument("--source-version")
     build_school_identity.add_argument("--source-date")
     build_school_identity.add_argument("--availability-date")
+
+    build_admission_snapshot = sub.add_parser(
+        "build-admission-plan-snapshot",
+        help="Build transitional fa_dim_ln_admission_plan package from current core DB",
+    )
+    build_admission_snapshot.add_argument("--core-db", required=True, type=Path)
+    build_admission_snapshot.add_argument("--output-root", required=True, type=Path)
+    build_admission_snapshot.add_argument("--package-id")
+    build_admission_snapshot.add_argument("--source-version")
 
     build_score_snapshot = sub.add_parser(
         "build-score-history-snapshot",
@@ -397,6 +407,15 @@ def main() -> int:
             source_version=args.source_version,
             source_date=args.source_date,
             availability_date=args.availability_date,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+    if args.cmd == "build-admission-plan-snapshot":
+        result = build_admission_plan_snapshot_package(
+            core_db=args.core_db,
+            output_root=args.output_root,
+            package_id=args.package_id,
+            source_version=args.source_version,
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0

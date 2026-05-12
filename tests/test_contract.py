@@ -7,6 +7,7 @@ from zipfile import ZipFile
 import duckdb
 from openpyxl import Workbook
 
+from datahub.builders.admission_plan_snapshot import build_admission_plan_snapshot_package
 from datahub.connectors.page_images import download_page_images
 from datahub.builders.outcome_collection_audit import audit_outcome_collection_plan
 from datahub.builders.outcome_collection_package import build_outcome_packages_from_collection_plan
@@ -2007,6 +2008,57 @@ def test_build_score_history_snapshot_filters_incomplete_rows(tmp_path: Path):
         rows = list(csv.DictReader(f))
     assert rows[0]["school_code"] == "0140"
     assert rows[0]["min_rank"] == "12000"
+
+
+def test_build_admission_plan_snapshot_filters_incomplete_rows(tmp_path: Path):
+    db = tmp_path / "core.duckdb"
+    con = duckdb.connect(str(db))
+    try:
+        con.execute("""
+            CREATE TABLE fa_dim_ln_admission_plan (
+                school_code VARCHAR,
+                school_name VARCHAR,
+                major_code VARCHAR,
+                major_full VARCHAR,
+                major_short VARCHAR,
+                batch VARCHAR,
+                subject_cat VARCHAR,
+                school_tier VARCHAR,
+                region VARCHAR,
+                plan_count INTEGER,
+                school_type VARCHAR,
+                city_level_tag VARCHAR,
+                postgrad_rate DOUBLE,
+                source_date VARCHAR
+            )
+        """)
+        con.execute("""
+            INSERT INTO fa_dim_ln_admission_plan VALUES
+                ('0140', '辽宁大学', '01', '汉语言文学', '汉语言文学', '本科批', '历史类',
+                 '211', '沈阳', 12, '综合', '省会城市', 0.12, '2026-05-12'),
+                ('0140', '辽宁大学', '02', NULL, '新闻学', '本科批', '历史类',
+                 '211', '沈阳', 8, '综合', '省会城市', 0.12, '2026-05-12')
+        """)
+    finally:
+        con.close()
+
+    result = build_admission_plan_snapshot_package(
+        core_db=db,
+        output_root=tmp_path / "exports",
+        package_id="pkg-admission-plan-snapshot-test",
+        source_version="fixture-admission-plan-snapshot",
+    )
+    package_dir = Path(result["package_dir"])
+    assert validate_manifest(package_dir / "manifest.json")["errors"] == []
+    assert result["rows"] == 1
+    assert result["excluded_rows"] == 1
+    assert result["quality_report"]["source_dates"] == ["2026-05-12"]
+    assert result["source_lineage"]["source_kind"] == "legacy_core_snapshot"
+
+    with (package_dir / "fa_dim_ln_admission_plan.csv").open(encoding="utf-8", newline="") as f:
+        rows = list(csv.DictReader(f))
+    assert rows[0]["school_code"] == "0140"
+    assert rows[0]["major_full"] == "汉语言文学"
 
 
 def test_download_remote_assets_from_config(tmp_path: Path, monkeypatch):

@@ -48,6 +48,19 @@ python3 scripts/build_package.py build-local \
 
 字段别名、主键、必填列和数字列维护在 `config/source_schemas.json`。
 
+### 招生计划过渡包
+
+`ln_admission_plan` 的完整官方分发目前是志愿填报系统和《辽宁招生考试》杂志，公开站点没有稳定完整附件。为了让 core 里现有清洗数据也进入 DataHub 包链路，可先生成过渡 snapshot：
+
+```bash
+python3 scripts/build_package.py build-admission-plan-snapshot \
+  --core-db /Users/dp/Documents/M/lifehack/backend/data/university.db \
+  --output-root exports \
+  --package-id legacy_ln_admission_plan_snapshot
+```
+
+该包只读 core，输出 `fa_dim_ln_admission_plan` 标准 data package，并在 `quality_report.warnings` 和 `manifest.source_lineage` 中标注 `legacy_core_snapshot`。它不能替代后续带 intake manifest 的官方导出文件。
+
 ## 远程文件下载入口
 
 先用 source audit 看清楚每个数据源的获取状态：
