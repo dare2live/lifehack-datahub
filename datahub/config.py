@@ -25,6 +25,11 @@ def load_outcome_metrics() -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def load_outcome_collection() -> dict[str, Any]:
+    path = CONFIG_DIR / "outcome_collection.json"
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
 def get_table_schema(table_name: str) -> dict[str, Any]:
     data = load_source_schemas()
     tables = data.get("tables", {})

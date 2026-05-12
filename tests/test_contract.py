@@ -10,6 +10,7 @@ from openpyxl import Workbook
 from datahub.connectors.page_images import download_page_images
 from datahub.builders.major_mapping_review import build_major_mapping_review_package
 from datahub.builders.local_package import build_local_package
+from datahub.builders.outcome_collection_plan import build_outcome_collection_plan
 from datahub.builders.policy_tables import (
     build_policy_industry_map_package,
     build_policy_plan_history_package,
@@ -695,6 +696,52 @@ def test_outcome_metric_registry_rejects_unknown_keys(tmp_path: Path):
     except ValueError as exc:
         rejected = "unregistered metric_key" in str(exc)
     assert rejected
+
+
+def test_build_outcome_collection_plan_from_core_admission_plan(tmp_path: Path):
+    db = tmp_path / "core.duckdb"
+    con = duckdb.connect(str(db))
+    try:
+        con.execute("""
+            CREATE TABLE fa_dim_ln_admission_plan (
+                school_code VARCHAR,
+                school_name VARCHAR,
+                major_full VARCHAR,
+                batch VARCHAR,
+                subject_cat VARCHAR
+            )
+        """)
+        con.execute("""
+            INSERT INTO fa_dim_ln_admission_plan VALUES
+                ('0140', '辽宁大学', '法学', '本科批', '历史类'),
+                ('0140', '辽宁大学', '汉语言文学', '本科批', '历史类'),
+                ('0183', '吉林大学', '计算机类', '本科批', '物理类'),
+                ('0183', '吉林大学', '计算机类', '本科批', '物理类'),
+                ('0300', '东北大学', '自动化', '本科批', '物理类'),
+                ('0177', '沈阳音乐学院', '音乐表演', '艺术类本科批', '历史类')
+        """)
+    finally:
+        con.close()
+
+    result = build_outcome_collection_plan(
+        core_db=db,
+        output_dir=tmp_path / "collection",
+        domains=["school", "major"],
+        school_limit=2,
+        major_limit=2,
+    )
+
+    assert result["rows"] == 16
+    with Path(result["csv"]).open(encoding="utf-8", newline="") as f:
+        rows = list(csv.DictReader(f))
+    assert rows[0]["domain"] == "school"
+    assert rows[0]["metric_key"] == "postgrad_rate"
+    assert "就业质量报告" in rows[0]["search_queries"]
+    assert any(row["domain"] == "major" and row["entity_name"] == "计算机类" for row in rows)
+
+    manifest = json.loads(Path(result["manifest"]).read_text(encoding="utf-8"))
+    assert manifest["notes"].startswith("Collection plan only")
+    assert manifest["rows"] == 16
 
 
 def test_build_school_identity_package_matches_unique_school_names(tmp_path: Path):

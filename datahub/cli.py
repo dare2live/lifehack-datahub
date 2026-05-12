@@ -8,6 +8,7 @@ from pathlib import Path
 
 from .builders.major_mapping_review import build_major_mapping_review_package
 from .builders.local_package import build_local_package
+from .builders.outcome_collection_plan import build_outcome_collection_plan
 from .builders.policy_tables import (
     build_policy_industry_map_package,
     build_policy_plan_history_package,
@@ -137,6 +138,16 @@ def main() -> int:
     build_policy_history.add_argument("--config", type=Path)
     build_policy_history.add_argument("--package-id")
     build_policy_history.add_argument("--source-version")
+
+    build_outcome_collection = sub.add_parser(
+        "build-outcome-collection-plan",
+        help="Build school/major outcome source-collection task CSVs from core DB",
+    )
+    build_outcome_collection.add_argument("--core-db", required=True, type=Path)
+    build_outcome_collection.add_argument("--output-dir", required=True, type=Path)
+    build_outcome_collection.add_argument("--domain", action="append", dest="domains")
+    build_outcome_collection.add_argument("--school-limit", type=int)
+    build_outcome_collection.add_argument("--major-limit", type=int)
 
     parse_moe = sub.add_parser("parse-moe-major-catalog", help="Parse MOE major catalog PDF to cleaned CSV")
     parse_moe.add_argument("--input", required=True, type=Path)
@@ -287,6 +298,16 @@ def main() -> int:
             config_path=args.config,
             package_id=args.package_id,
             source_version=args.source_version,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+    if args.cmd == "build-outcome-collection-plan":
+        result = build_outcome_collection_plan(
+            core_db=args.core_db,
+            output_dir=args.output_dir,
+            domains=args.domains,
+            school_limit=args.school_limit,
+            major_limit=args.major_limit,
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0

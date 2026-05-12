@@ -158,6 +158,20 @@ python3 scripts/build_package.py build-review-mapping \
 
 输出包仍需由 core 的 `backend/scripts/import_data_package.py` 导入。DataHub 不写 core 数据库。
 
+## Outcome 采集队列
+
+学校和专业 outcome 先生成采集任务队列，再由人工或后续采集器补证据 URL、摘录和指标值。队列由 `config/outcome_collection.json` 和 `config/outcome_metrics.json` 控制：
+
+```bash
+python3 scripts/build_package.py build-outcome-collection-plan \
+  --core-db /Users/dp/Documents/M/lifehack/backend/data/university.db \
+  --output-dir staging/outcome_collection \
+  --school-limit 80 \
+  --major-limit 80
+```
+
+该命令只读 core DB，默认按配置过滤普通类本科批，输出 CSV/JSON 采集计划，不是 data package，也不能导入 core。
+
 ## 政策表数据包
 
 政策行业映射和规划兑现回测由 `config/policy_industry_map.json`、`config/policy_plan_history.json` 维护，不在 core 里硬编码生产：

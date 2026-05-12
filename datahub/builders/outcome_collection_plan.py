@@ -1,0 +1,194 @@
+"""Build source-collection task lists for outcome metrics."""
+from __future__ import annotations
+
+import csv
+import json
+from datetime import datetime
+from pathlib import Path
+from typing import Any
+
+import duckdb
+
+from datahub.config import load_outcome_collection, load_outcome_metrics
+
+
+PLAN_COLUMNS = [
+    "domain",
+    "entity_code",
+    "entity_name",
+    "priority_rank",
+    "plan_rows",
+    "metric_key",
+    "metric_label",
+    "metric_unit",
+    "metric_year",
+    "search_queries",
+    "status",
+    "notes",
+]
+
+
+def build_outcome_collection_plan(
+    *,
+    core_db: Path,
+    output_dir: Path,
+    domains: list[str] | None = None,
+    school_limit: int | None = None,
+    major_limit: int | None = None,
+) -> dict[str, Any]:
+    config = load_outcome_collection()
+    metrics_config = load_outcome_metrics()
+    selected_domains = domains or list(config.get("domains", {}))
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    all_rows: list[dict[str, Any]] = []
+    for domain in selected_domains:
+        domain_config = _domain_config(config, domain)
+        limit = _domain_limit(config, domain, school_limit, major_limit)
+        entities = _read_domain_entities(core_db, domain_config, limit)
+        all_rows.extend(_build_rows(domain, domain_config, entities, metrics_config, config))
+
+    csv_path = output_dir / "outcome_collection_plan.csv"
+    manifest_path = output_dir / "outcome_collection_plan.json"
+    _write_csv(csv_path, all_rows)
+    manifest = {
+        "built_at": datetime.utcnow().isoformat(),
+        "core_db": str(core_db),
+        "config_version": config.get("version"),
+        "domains": selected_domains,
+        "rows": len(all_rows),
+        "csv": str(csv_path),
+        "notes": "Collection plan only. It is not a data package and must not be imported into core.",
+    }
+    manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return {
+        "output_dir": str(output_dir),
+        "csv": str(csv_path),
+        "manifest": str(manifest_path),
+        "rows": len(all_rows),
+        "domains": selected_domains,
+    }
+
+
+def _domain_config(config: dict[str, Any], domain: str) -> dict[str, Any]:
+    domains = config.get("domains", {})
+    if domain not in domains:
+        raise KeyError(f"unknown outcome collection domain: {domain}")
+    return domains[domain]
+
+
+def _domain_limit(
+    config: dict[str, Any],
+    domain: str,
+    school_limit: int | None,
+    major_limit: int | None,
+) -> int:
+    defaults = config.get("defaults", {})
+    if domain == "school":
+        value = school_limit or defaults.get("school_limit")
+    elif domain == "major":
+        value = major_limit or defaults.get("major_limit")
+    else:
+        value = defaults.get(f"{domain}_limit")
+    if value is None:
+        raise ValueError(f"outcome collection limit missing for domain: {domain}")
+    return int(value)
+
+
+def _read_domain_entities(core_db: Path, domain_config: dict[str, Any], limit: int) -> list[dict[str, Any]]:
+    table = domain_config["source_table"]
+    code_col = domain_config["entity_code_column"]
+    name_col = domain_config["entity_name_column"]
+    filters, params = _filter_sql(domain_config.get("filters") or {})
+    params.append(limit)
+    con = duckdb.connect(str(core_db), read_only=True)
+    try:
+        rows = con.execute(
+            f"""
+            SELECT
+              CAST({code_col} AS VARCHAR) AS entity_code,
+              CAST({name_col} AS VARCHAR) AS entity_name,
+              COUNT(*) AS plan_rows
+            FROM {table}
+            WHERE {code_col} IS NOT NULL
+              AND {name_col} IS NOT NULL
+              {filters}
+            GROUP BY 1, 2
+            ORDER BY plan_rows DESC, entity_name ASC
+            LIMIT ?
+            """,
+            params,
+        ).fetchall()
+    finally:
+        con.close()
+    return [
+        {
+            "entity_code": row[0],
+            "entity_name": row[1],
+            "plan_rows": int(row[2]),
+            "priority_rank": index,
+        }
+        for index, row in enumerate(rows, start=1)
+    ]
+
+
+def _filter_sql(filters: dict[str, Any]) -> tuple[str, list[Any]]:
+    clauses = []
+    params: list[Any] = []
+    for column, values in filters.items():
+        if not isinstance(values, list) or not values:
+            raise ValueError(f"outcome collection filter must be a non-empty list: {column}")
+        placeholders = ", ".join(["?"] * len(values))
+        clauses.append(f"AND {column} IN ({placeholders})")
+        params.extend(values)
+    return ("\n              " + "\n              ".join(clauses) if clauses else "", params)
+
+
+def _build_rows(
+    domain: str,
+    domain_config: dict[str, Any],
+    entities: list[dict[str, Any]],
+    metrics_config: dict[str, Any],
+    collection_config: dict[str, Any],
+) -> list[dict[str, Any]]:
+    metrics = metrics_config.get("domains", {}).get(domain, {})
+    metric_year = collection_config.get("defaults", {}).get("metric_year")
+    status = collection_config.get("defaults", {}).get("status")
+    rows = []
+    for entity in entities:
+        for metric_key in domain_config.get("metrics", []):
+            metric = metrics.get(metric_key)
+            if not metric:
+                raise KeyError(f"outcome metric not registered for {domain}: {metric_key}")
+            queries = [
+                template.format(
+                    entity_name=entity["entity_name"],
+                    entity_code=entity["entity_code"],
+                    metric_key=metric_key,
+                    metric_label=metric["label"],
+                    metric_year=metric_year,
+                )
+                for template in domain_config.get("query_templates", [])
+            ]
+            rows.append({
+                "domain": domain,
+                "entity_code": entity["entity_code"],
+                "entity_name": entity["entity_name"],
+                "priority_rank": entity["priority_rank"],
+                "plan_rows": entity["plan_rows"],
+                "metric_key": metric_key,
+                "metric_label": metric["label"],
+                "metric_unit": metric["unit"],
+                "metric_year": metric_year,
+                "search_queries": json.dumps(queries, ensure_ascii=False),
+                "status": status,
+                "notes": "",
+            })
+    return rows
+
+
+def _write_csv(path: Path, rows: list[dict[str, Any]]) -> None:
+    with path.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=PLAN_COLUMNS, extrasaction="ignore")
+        writer.writeheader()
+        writer.writerows(rows)

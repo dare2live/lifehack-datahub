@@ -194,6 +194,18 @@ python3 scripts/build_package.py build-local \
 
 学校和专业 outcome 的 `metric_key` 必须先登记到 `config/outcome_metrics.json`。`build-local` 会校验 metric key、单位和取值范围；未登记指标不会被打包发布。
 
+Outcome 数据采集不直接从搜索结果进 core。先用 core 招生计划生成高优先级采集队列：
+
+```bash
+python3 scripts/build_package.py build-outcome-collection-plan \
+  --core-db /Users/dp/Documents/M/lifehack/backend/data/university.db \
+  --output-dir staging/outcome_collection \
+  --school-limit 80 \
+  --major-limit 80
+```
+
+采集队列由 `config/outcome_collection.json` 维护：目标实体来自 `fa_dim_ln_admission_plan`，默认过滤普通类本科批，优先级按招生计划行数排序，指标必须在 `config/outcome_metrics.json` 注册，搜索 query 模板也在配置中维护。它只输出任务 CSV/JSON，不是 data package；人工或后续采集器补齐来源 URL、证据摘录和指标值后，才可通过 `build-local` 生成 `fa_fact_school_outcome` / `fa_fact_major_outcome` 包。
+
 政策映射和规划兑现回测不再由 core 建表脚本生产。DataHub 用版本化配置生成标准包：
 
 ```bash

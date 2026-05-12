@@ -1,0 +1,43 @@
+{
+  "version": "1",
+  "updated_at": "2026-05-13",
+  "notes": "学校/专业 outcome 采集任务配置。DataHub 只生成采集队列，不把无来源判断发布到 core。",
+  "defaults": {
+    "school_limit": 80,
+    "major_limit": 80,
+    "metric_year": 2025,
+    "status": "todo"
+  },
+  "domains": {
+    "school": {
+      "source_table": "fa_dim_ln_admission_plan",
+      "entity_code_column": "school_code",
+      "entity_name_column": "school_name",
+      "filters": {
+        "batch": ["本科批"],
+        "subject_cat": ["物理类", "历史类"]
+      },
+      "metrics": ["postgrad_rate", "employment_rate", "keep_research_rate", "civil_service_rate"],
+      "query_templates": [
+        "{entity_name} {metric_year} 就业质量报告",
+        "{entity_name} {metric_year} 毕业生就业质量报告 {metric_label}",
+        "{entity_name} {metric_year} 本科教学质量报告 {metric_label}"
+      ]
+    },
+    "major": {
+      "source_table": "fa_dim_ln_admission_plan",
+      "entity_code_column": "major_full",
+      "entity_name_column": "major_full",
+      "filters": {
+        "batch": ["本科批"],
+        "subject_cat": ["物理类", "历史类"]
+      },
+      "metrics": ["employment_rate", "postgrad_rate", "civil_service_fit_score", "exam_friendly_score"],
+      "query_templates": [
+        "{entity_name} 专业 {metric_year} 就业质量报告",
+        "{entity_name} 专业 就业方向 {metric_label}",
+        "{entity_name} 专业 考研 考公 {metric_label}"
+      ]
+    }
+  }
+}
