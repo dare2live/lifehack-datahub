@@ -10,10 +10,14 @@ from openpyxl import Workbook
 from datahub.builders.admission_plan_snapshot import build_admission_plan_snapshot_package
 from datahub.connectors.page_images import download_page_images
 from datahub.builders.outcome_collection_audit import audit_outcome_collection_plan
+from datahub.builders.outcome_collection_batch import (
+    build_outcome_collection_batch,
+    merge_outcome_collection_batch,
+)
 from datahub.builders.outcome_collection_package import build_outcome_packages_from_collection_plan
 from datahub.builders.major_mapping_review import build_major_mapping_review_package
 from datahub.builders.local_package import build_local_package
-from datahub.builders.outcome_collection_plan import build_outcome_collection_plan
+from datahub.builders.outcome_collection_plan import PLAN_COLUMNS as OUTCOME_PLAN_COLUMNS, build_outcome_collection_plan
 from datahub.builders.policy_tables import (
     build_policy_industry_map_package,
     build_policy_plan_history_package,
@@ -2438,6 +2442,78 @@ def test_audit_outcome_collection_plan_reports_progress_and_errors(tmp_path: Pat
     assert any("complete status missing evidence" in error for error in report["errors"])
 
 
+def test_build_outcome_collection_batch_limits_pending_rows(tmp_path: Path):
+    plan = tmp_path / "outcome_collection_plan.csv"
+    rows = [
+        _outcome_plan_row("school", "10145", "东北大学", "postgrad_rate", status="todo", priority_rank="1"),
+        _outcome_plan_row("school", "10145", "东北大学", "employment_rate", status="in_progress", priority_rank="1"),
+        _outcome_plan_row("school", "10140", "辽宁大学", "postgrad_rate", status="verified", priority_rank="2"),
+        _outcome_plan_row("major", "计算机类", "计算机类", "employment_rate", status="todo", priority_rank="1"),
+        _outcome_plan_row("major", "自动化", "自动化", "employment_rate", status="blocked", priority_rank="2"),
+    ]
+    _write_outcome_plan(plan, rows)
+
+    result = build_outcome_collection_batch(
+        plan_csv=plan,
+        output_dir=tmp_path / "batch",
+        limit_per_domain=1,
+    )
+
+    assert result["rows"] == 2
+    assert result["domain_counts"] == {"major": 1, "school": 1}
+    with Path(result["csv"]).open(encoding="utf-8", newline="") as f:
+        batch_rows = list(csv.DictReader(f))
+    assert {row["domain"] for row in batch_rows} == {"school", "major"}
+    assert {row["status"] for row in batch_rows} <= {"todo", "in_progress"}
+    manifest = json.loads(Path(result["manifest"]).read_text(encoding="utf-8"))
+    assert manifest["task_key_columns"] == ["domain", "entity_code", "metric_key", "metric_year"]
+    assert "source_url" in manifest["editable_columns"]
+
+
+def test_merge_outcome_collection_batch_updates_only_editable_columns(tmp_path: Path):
+    plan = tmp_path / "outcome_collection_plan.csv"
+    rows = [
+        _outcome_plan_row("school", "10145", "东北大学", "postgrad_rate", status="todo", priority_rank="1"),
+        _outcome_plan_row("major", "计算机类", "计算机类", "employment_rate", status="todo", priority_rank="2"),
+    ]
+    _write_outcome_plan(plan, rows)
+    batch = tmp_path / "outcome_collection_batch.csv"
+    edited_row = {**rows[0]}
+    edited_row.update({
+        "entity_name": "被篡改的学校名",
+        "status": "verified",
+        "metric_value": "46.2%",
+        "source_title": "2025届毕业生就业质量报告",
+        "source_url": "https://example.edu/report.pdf",
+        "evidence_quote": "本科毕业生深造率为46.2%。",
+        "metric_scope": "本科毕业生",
+        "denominator": "1000",
+        "source_date": "2025-12-31",
+        "availability_date": "2026-01-05",
+        "built_at": "2026-05-13T00:00:00",
+        "notes": "人工核验",
+    })
+    _write_outcome_plan(batch, [edited_row])
+
+    output = tmp_path / "outcome_collection_plan_merged.csv"
+    report = merge_outcome_collection_batch(
+        plan_csv=plan,
+        batch_csv=batch,
+        output=output,
+    )
+
+    assert report["updated_rows"] == 1
+    assert report["status_counts"] == {"todo": 1, "verified": 1}
+    with output.open(encoding="utf-8", newline="") as f:
+        merged_rows = list(csv.DictReader(f))
+    assert merged_rows[0]["entity_name"] == "东北大学"
+    assert merged_rows[0]["status"] == "verified"
+    assert merged_rows[0]["source_url"] == "https://example.edu/report.pdf"
+    assert merged_rows[0]["notes"] == "人工核验"
+    assert merged_rows[1]["entity_name"] == "计算机类"
+    assert merged_rows[1]["status"] == "todo"
+
+
 def test_build_outcome_packages_from_verified_collection_plan(tmp_path: Path):
     plan = tmp_path / "outcome_collection_plan.csv"
     fieldnames = [
@@ -2552,6 +2628,51 @@ def test_build_outcome_packages_from_verified_collection_plan(tmp_path: Path):
         rows = list(csv.DictReader(f))
     assert rows[0]["school_code"] == "10145"
     assert rows[0]["metric_value"] == "0.462"
+
+
+def _outcome_plan_row(
+    domain: str,
+    entity_code: str,
+    entity_name: str,
+    metric_key: str,
+    *,
+    status: str,
+    priority_rank: str,
+) -> dict[str, str]:
+    metric_label = {
+        "postgrad_rate": "深造率",
+        "employment_rate": "毕业去向落实率",
+    }.get(metric_key, metric_key)
+    return {
+        "domain": domain,
+        "entity_code": entity_code,
+        "entity_name": entity_name,
+        "priority_rank": priority_rank,
+        "plan_rows": "20",
+        "metric_key": metric_key,
+        "metric_label": metric_label,
+        "metric_unit": "ratio",
+        "metric_year": "2025",
+        "search_queries": json.dumps([f"{entity_name} 2025 {metric_label}"], ensure_ascii=False),
+        "status": status,
+        "metric_value": "",
+        "source_title": "",
+        "source_url": "",
+        "evidence_quote": "",
+        "metric_scope": "",
+        "denominator": "",
+        "source_date": "",
+        "availability_date": "",
+        "built_at": "",
+        "notes": "",
+    }
+
+
+def _write_outcome_plan(path: Path, rows: list[dict[str, str]]) -> None:
+    with path.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=OUTCOME_PLAN_COLUMNS, extrasaction="ignore")
+        writer.writeheader()
+        writer.writerows(rows)
 
 
 def test_build_school_identity_package_matches_unique_school_names(tmp_path: Path):

@@ -7,6 +7,10 @@ import json
 from pathlib import Path
 
 from .builders.admission_plan_snapshot import build_admission_plan_snapshot_package
+from .builders.outcome_collection_batch import (
+    build_outcome_collection_batch,
+    merge_outcome_collection_batch,
+)
 from .builders.outcome_collection_audit import audit_outcome_collection_plan
 from .builders.outcome_collection_package import build_outcome_packages_from_collection_plan
 from .builders.major_mapping_review import build_major_mapping_review_package
@@ -258,6 +262,24 @@ def main() -> int:
     )
     audit_outcome_collection.add_argument("--plan-csv", required=True, type=Path)
     audit_outcome_collection.add_argument("--report", type=Path)
+
+    build_outcome_collection_batch_parser = sub.add_parser(
+        "build-outcome-collection-batch",
+        help="Build a small editable CSV batch of pending outcome collection tasks",
+    )
+    build_outcome_collection_batch_parser.add_argument("--plan-csv", required=True, type=Path)
+    build_outcome_collection_batch_parser.add_argument("--output-dir", required=True, type=Path)
+    build_outcome_collection_batch_parser.add_argument("--domain", action="append", dest="domains")
+    build_outcome_collection_batch_parser.add_argument("--limit-per-domain", type=int)
+
+    merge_outcome_collection_batch_parser = sub.add_parser(
+        "merge-outcome-collection-batch",
+        help="Merge edited outcome collection batch rows back into a full collection plan",
+    )
+    merge_outcome_collection_batch_parser.add_argument("--plan-csv", required=True, type=Path)
+    merge_outcome_collection_batch_parser.add_argument("--batch-csv", required=True, type=Path)
+    merge_outcome_collection_batch_parser.add_argument("--output", required=True, type=Path)
+    merge_outcome_collection_batch_parser.add_argument("--report", type=Path)
 
     build_outcome_from_collection = sub.add_parser(
         "build-outcome-from-collection-plan",
@@ -578,6 +600,26 @@ def main() -> int:
         return 0
     if args.cmd == "audit-outcome-collection-plan":
         report = audit_outcome_collection_plan(args.plan_csv)
+        if args.report:
+            args.report.parent.mkdir(parents=True, exist_ok=True)
+            args.report.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        print(json.dumps(report, ensure_ascii=False, indent=2))
+        return 0
+    if args.cmd == "build-outcome-collection-batch":
+        result = build_outcome_collection_batch(
+            plan_csv=args.plan_csv,
+            output_dir=args.output_dir,
+            domains=args.domains,
+            limit_per_domain=args.limit_per_domain,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+    if args.cmd == "merge-outcome-collection-batch":
+        report = merge_outcome_collection_batch(
+            plan_csv=args.plan_csv,
+            batch_csv=args.batch_csv,
+            output=args.output,
+        )
         if args.report:
             args.report.parent.mkdir(parents=True, exist_ok=True)
             args.report.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

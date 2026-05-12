@@ -355,6 +355,21 @@ python3 scripts/build_package.py build-outcome-collection-plan \
 
 该命令只读 core DB，默认按配置过滤普通类本科批，输出 CSV/JSON 采集计划，不是 data package，也不能导入 core。采集计划 CSV 预留 `metric_value/source_url/evidence_quote/metric_scope` 等证据列，人工或后续采集器补齐后，可先跑审计报告确认指标、状态和证据完整度：
 
+采集执行时不要直接多人编辑总计划。先按配置中的 `review_batch.limit_per_domain`、`selection_statuses` 和 `editable_columns` 拆出本地批次；人工、浏览器自动化或后续采集器只编辑批次中的证据列，再受控合并回总计划：
+
+```bash
+python3 scripts/build_package.py build-outcome-collection-batch \
+  --plan-csv staging/outcome_collection/outcome_collection_plan.csv \
+  --output-dir staging/outcome_collection/batch_001 \
+  --limit-per-domain 20
+
+python3 scripts/build_package.py merge-outcome-collection-batch \
+  --plan-csv staging/outcome_collection/outcome_collection_plan.csv \
+  --batch-csv staging/outcome_collection/batch_001/outcome_collection_batch.csv \
+  --output staging/outcome_collection/outcome_collection_plan_merged.csv \
+  --report staging/outcome_collection/outcome_collection_merge.json
+```
+
 ```bash
 python3 scripts/build_package.py audit-outcome-collection-plan \
   --plan-csv staging/outcome_collection/outcome_collection_plan.csv \

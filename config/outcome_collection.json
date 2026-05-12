@@ -14,6 +14,23 @@
     "blocked_statuses": ["blocked", "not_found", "not_applicable"],
     "required_evidence_columns": ["metric_value", "source_url", "evidence_quote"]
   },
+  "review_batch": {
+    "selection_statuses": ["todo", "in_progress", "needs_review"],
+    "limit_per_domain": 20,
+    "editable_columns": [
+      "status",
+      "metric_value",
+      "source_title",
+      "source_url",
+      "evidence_quote",
+      "metric_scope",
+      "denominator",
+      "source_date",
+      "availability_date",
+      "built_at",
+      "notes"
+    ]
+  },
   "domains": {
     "school": {
       "source_table": "fa_dim_ln_admission_plan",
