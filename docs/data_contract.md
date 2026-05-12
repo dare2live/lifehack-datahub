@@ -170,7 +170,7 @@ python3 scripts/build_package.py parse-ln-score-distribution-ocr \
   --source-date 2024-06-25
 ```
 
-真实 smoke：2024 OCR JSONL 生成 1,861 条候选、407 条完整 parsed 行；2023 OCR JSONL 生成 1,450 条候选、252 条完整 parsed 行。该结果说明 OCR 候选仍需要人工复核或更强表格结构识别，不能跳过 `build-local` 质量闸门。
+真实 smoke：2024 OCR JSONL 生成 1,861 条候选、650 条完整 parsed 行、492 条累计校验 OK；2023 OCR JSONL 生成 1,450 条候选、227 条完整 parsed 行、161 条累计校验 OK。该结果说明 OCR 候选仍需要人工复核或更强表格结构识别，不能跳过 `build-local` 质量闸门。
 
 OCR 或人工转录后的 cleaned CSV 不允许直接进入 core，必须通过 `build-local` 生成标准包。`build-local` 对 `fa_fact_ln_score_distribution` 会强制校验：
 

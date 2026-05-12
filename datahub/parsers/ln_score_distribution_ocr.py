@@ -267,9 +267,11 @@ def _extract_numbers(text: str) -> list[int]:
 
 def _coerce_numeric_token(value: str) -> list[int]:
     if "," in value:
-        stuck = re.fullmatch(r"(\d{1,3})(\d{2}),(\d{3})", value)
-        if stuck:
-            return [int(stuck.group(1)), int(f"{stuck.group(2)}{stuck.group(3)}")]
+        prefix = value.split(",", 1)[0]
+        if len(prefix) > 3:
+            stuck = re.fullmatch(r"(\d{1,3})(\d{2}),(\d{3})", value)
+            if stuck:
+                return [int(stuck.group(1)), int(f"{stuck.group(2)}{stuck.group(3)}")]
         return [int(value.replace(",", ""))]
     if len(value) >= 6:
         return _split_stuck_numbers(value)
