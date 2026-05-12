@@ -3,6 +3,7 @@ import csv
 import json
 
 from datahub.builders.local_package import build_local_package
+from datahub.connectors.registry import discover_assets
 from datahub.validators.package_validator import validate_manifest
 
 
@@ -52,3 +53,16 @@ def test_build_local_package_from_cleaned_csv(tmp_path: Path):
     quality = json.loads((package_dir / "quality_report.json").read_text(encoding="utf-8"))
     assert quality["errors"] == []
     assert result["rows"] == 1
+
+
+def test_discover_assets_from_source_config(tmp_path: Path):
+    raw_dir = tmp_path / "raw" / "ln_admission_plan" / "2026"
+    raw_dir.mkdir(parents=True)
+    source = raw_dir / "2026-05-12_cleaned.xlsx"
+    source.write_bytes(b"placeholder")
+
+    assets = discover_assets("ln_admission_plan", project_root=tmp_path)
+    assert len(assets) == 1
+    assert assets[0].source_key == "ln_admission_plan"
+    assert assets[0].source_date == "2026-05-12"
+    assert assets[0].path == source

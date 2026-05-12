@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 
 from .builders.local_package import build_local_package
+from .connectors.registry import discover_assets, list_source_keys
 from .validators.package_validator import validate_manifest
 
 
@@ -25,6 +26,10 @@ def main() -> int:
     build_local.add_argument("--source-version")
     build_local.add_argument("--sheet")
 
+    discover = sub.add_parser("discover", help="Discover local raw assets for a configured source")
+    discover.add_argument("--source-key")
+    discover.add_argument("--project-root", type=Path, default=Path.cwd())
+
     args = parser.parse_args()
     if args.cmd == "validate":
         report = validate_manifest(args.manifest)
@@ -41,6 +46,13 @@ def main() -> int:
             sheet=args.sheet,
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+    if args.cmd == "discover":
+        if not args.source_key:
+            print(json.dumps({"sources": list_source_keys()}, ensure_ascii=False, indent=2))
+            return 0
+        assets = [asset.to_dict() for asset in discover_assets(args.source_key, args.project_root)]
+        print(json.dumps({"source_key": args.source_key, "assets": assets}, ensure_ascii=False, indent=2))
         return 0
     return 1
 

@@ -12,6 +12,14 @@ class RawAsset:
     source_date: str
     notes: str = ""
 
+    def to_dict(self) -> dict[str, str]:
+        return {
+            "source_key": self.source_key,
+            "path": str(self.path),
+            "source_date": self.source_date,
+            "notes": self.notes,
+        }
+
 
 class Connector:
     source_key: str

@@ -42,6 +42,14 @@ Phase 5 原型：已固化数据包契约和模块边界，并提供本地已清
 
 ## 本地数据包生成
 
+先按 `config/sources.json` 发现本地文件：
+
+```bash
+python3 scripts/build_package.py discover --source-key ln_admission_plan
+```
+
+再把已清洗文件生成 data package：
+
 ```bash
 python3 scripts/build_package.py build-local \
   --source-key ln_admission_plan \

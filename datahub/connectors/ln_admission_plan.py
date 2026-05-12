@@ -1,19 +1,16 @@
-"""辽宁招生计划 connector placeholder."""
+"""辽宁招生计划 connector."""
 from __future__ import annotations
 
 from pathlib import Path
 
-from .base import Connector, RawAsset
+from datahub.config import load_sources
+
+from .base import RawAsset
+from .local_files import LocalGlobConnector
 
 
-class LiaoningAdmissionPlanConnector(Connector):
+class LiaoningAdmissionPlanConnector(LocalGlobConnector):
     source_key = "ln_admission_plan"
 
     def __init__(self, raw_root: Path):
-        self.raw_root = raw_root
-
-    def discover(self) -> list[RawAsset]:
-        return [
-            RawAsset(self.source_key, path, path.stem[:10], "manual downloaded admission plan")
-            for path in sorted(self.raw_root.glob("**/*.xlsx"))
-        ]
+        super().__init__(self.source_key, load_sources()["sources"][self.source_key], raw_root)
