@@ -65,6 +65,14 @@ python3 scripts/build_package.py build-local \
 python3 scripts/build_package.py download --source-key ln_admission_plan --output-root raw
 ```
 
+教育部本科专业目录 PDF 通过 source-specific parser 生成 `fa_dim_major_catalog` 清洗 CSV：
+
+```bash
+python3 scripts/build_package.py parse-moe-major-catalog \
+  --input raw/moe_major_catalog/2025-04-22/moe_major_catalog_2025.pdf \
+  --output cleaned/moe_major_catalog_2025.csv
+```
+
 ## 专业映射复核数据包
 
 `major_mapping_review` source 从 core 的 `university.db` 只读读取：

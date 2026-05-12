@@ -2,13 +2,16 @@
 from __future__ import annotations
 
 import argparse
+import csv
 import json
 from pathlib import Path
 
 from .builders.major_mapping_review import build_major_mapping_review_package
 from .builders.local_package import build_local_package
+from .config import get_table_schema
 from .connectors.registry import discover_assets, list_source_keys
 from .connectors.remote_files import download_remote_assets
+from .parsers.moe_major_catalog import parse_moe_major_catalog_pdf
 from .validators.package_validator import validate_manifest
 
 
@@ -46,6 +49,10 @@ def main() -> int:
     build_review.add_argument("--package-id")
     build_review.add_argument("--source-version")
     build_review.add_argument("--approved-status", action="append", dest="approved_statuses")
+
+    parse_moe = sub.add_parser("parse-moe-major-catalog", help="Parse MOE major catalog PDF to cleaned CSV")
+    parse_moe.add_argument("--input", required=True, type=Path)
+    parse_moe.add_argument("--output", required=True, type=Path)
 
     args = parser.parse_args()
     if args.cmd == "validate":
@@ -87,6 +94,16 @@ def main() -> int:
             approved_statuses=args.approved_statuses,
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+    if args.cmd == "parse-moe-major-catalog":
+        rows = parse_moe_major_catalog_pdf(args.input)
+        schema = get_table_schema("fa_dim_major_catalog")
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        with args.output.open("w", encoding="utf-8", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=schema["columns"], extrasaction="ignore")
+            writer.writeheader()
+            writer.writerows(rows)
+        print(json.dumps({"output": str(args.output), "rows": len(rows)}, ensure_ascii=False, indent=2))
         return 0
     return 1
 

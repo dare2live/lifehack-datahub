@@ -9,6 +9,7 @@ from datahub.builders.major_mapping_review import build_major_mapping_review_pac
 from datahub.builders.local_package import build_local_package
 from datahub.connectors.remote_files import download_remote_assets
 from datahub.connectors.registry import discover_assets
+from datahub.parsers.moe_major_catalog import parse_moe_major_catalog_lines
 from datahub.validators.package_validator import validate_manifest
 
 
@@ -102,6 +103,35 @@ def test_download_remote_assets_from_config(tmp_path: Path, monkeypatch):
     assert assets[0].path.read_text(encoding="utf-8") == "id,name\n1,alpha\n"
     assert assets[0].path.name == "demo.csv"
     assert assets[0].source_date == "2026-05-13"
+
+
+def test_parse_moe_major_catalog_lines():
+    rows = parse_moe_major_catalog_lines([
+        "01  学科门类：哲学",
+        "0101 哲学类",
+        "010101  哲学",
+        "010103K  宗教学",
+        "02",
+        "学科门类：经济学",
+        "0203 金融学类",
+        "020306T  信用管理（注：可授经济学或管理学学士学位）",
+        "0502 外国语言文学类",
+        "0502100T 语言学",
+    ])
+
+    assert rows[0] == {
+        "major_code": "010101",
+        "major_name": "哲学",
+        "major_category": "哲学",
+        "major_class": "哲学类",
+        "degree_type": "哲学学士",
+        "study_years": None,
+    }
+    assert rows[2]["major_code"] == "020306T"
+    assert rows[2]["major_name"] == "信用管理"
+    assert rows[2]["degree_type"] == "可授经济学或管理学学士学位"
+    assert rows[3]["major_code"] == "0502100T"
+    assert rows[3]["major_name"] == "语言学"
 
 
 def test_build_major_mapping_review_package_promotes_approved_rows(tmp_path: Path):
