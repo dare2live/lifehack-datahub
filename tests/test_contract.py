@@ -25,6 +25,7 @@ from datahub.builders.score_history_reconciliation_batch import (
     build_score_history_reconciliation_review_batch,
     merge_score_history_reconciliation_review_batch,
 )
+from datahub.builders.score_history_reconciliation_package import build_score_history_package_from_reconciliation_plan
 from datahub.builders.score_history_reconciliation_plan import PLAN_COLUMNS, build_score_history_reconciliation_plan
 from datahub.builders.score_history_snapshot import build_score_history_snapshot_package
 from datahub.builders.score_distribution_review_workspace import (
@@ -1458,6 +1459,47 @@ def test_audit_score_history_reconciliation_plan_reports_progress(tmp_path: Path
     assert report["ready"]["package_ready"] is False
 
 
+def test_audit_score_history_reconciliation_plan_blocks_source_research_decision(tmp_path: Path):
+    plan = tmp_path / "score_history_reconciliation_plan.csv"
+    with plan.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=PLAN_COLUMNS, extrasaction="ignore")
+        writer.writeheader()
+        writer.writerow({
+            "task_id": "research-1",
+            "issue_type": "value_drift",
+            "priority": "2",
+            "status": "reviewed",
+            "suggested_action": "review_source_value_conflict",
+            "match_confidence": "primary_key_match",
+            "score_year": "2024",
+            "batch": "本科批",
+            "subject_cat": "物理类",
+            "school_code": "1002",
+            "package_major_code": "02",
+            "core_major_code": "02",
+            "package_min_score": "580",
+            "core_min_score": "580",
+            "package_min_rank": "1990",
+            "core_min_rank": "2000",
+            "package_key_json": "{}",
+            "core_key_json": "{}",
+            "core_candidates_json": "[]",
+            "matching_values_json": "{}",
+            "differences_json": "[]",
+            "review_decision": "needs_source_research",
+            "reviewer": "tester",
+            "reviewed_at": "2026-05-13",
+            "notes": "needs official source check",
+        })
+
+    report = audit_score_history_reconciliation_plan(plan)
+
+    assert report["errors"] == []
+    assert report["ready"]["review_complete"] is True
+    assert report["progress"]["blocking_decision_rows"] == 1
+    assert report["ready"]["package_ready"] is False
+
+
 def test_build_score_history_reconciliation_review_batch_limits_pending_rows(tmp_path: Path):
     plan = tmp_path / "score_history_reconciliation_plan.csv"
     rows = []
@@ -1635,6 +1677,187 @@ def test_merge_score_history_reconciliation_review_batch_updates_only_editable_c
     assert merged["major-1"]["review_decision"] == "map_package_to_core_major_code"
     assert merged["major-1"]["school_code"] == "1001"
     assert merged["value-1"]["status"] == "todo"
+
+
+def test_build_score_history_from_reconciliation_plan_rejects_unready(tmp_path: Path):
+    plan = tmp_path / "score_history_reconciliation_plan.csv"
+    with plan.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=PLAN_COLUMNS, extrasaction="ignore")
+        writer.writeheader()
+        writer.writerow({
+            "task_id": "todo-1",
+            "issue_type": "value_drift",
+            "priority": "2",
+            "status": "todo",
+            "suggested_action": "review_source_value_conflict",
+            "match_confidence": "primary_key_match",
+            "score_year": "2024",
+            "batch": "本科批",
+            "subject_cat": "物理类",
+            "school_code": "1002",
+            "package_major_code": "02",
+            "core_major_code": "02",
+            "package_min_score": "580",
+            "core_min_score": "580",
+            "package_min_rank": "1990",
+            "core_min_rank": "2000",
+            "package_key_json": "{}",
+            "core_key_json": "{}",
+            "core_candidates_json": "[]",
+            "matching_values_json": "{}",
+            "differences_json": "[]",
+            "review_decision": "",
+            "reviewer": "",
+            "reviewed_at": "",
+            "notes": "",
+        })
+
+    try:
+        build_score_history_package_from_reconciliation_plan(
+            plan_csv=plan,
+            output_root=tmp_path / "exports",
+            package_id="pkg-reconciled-reject",
+        )
+        rejected = False
+    except ValueError as exc:
+        rejected = "not package-ready" in str(exc)
+    assert rejected
+
+
+def test_build_score_history_from_reconciliation_plan_exports_reviewed_rows(tmp_path: Path):
+    plan = tmp_path / "score_history_reconciliation_plan.csv"
+    rows = [
+        {
+            "task_id": "value-1",
+            "issue_type": "value_drift",
+            "priority": "2",
+            "status": "reviewed",
+            "suggested_action": "review_source_value_conflict",
+            "match_confidence": "primary_key_match",
+            "score_year": "2024",
+            "batch": "本科批",
+            "subject_cat": "物理类",
+            "school_code": "1002",
+            "package_major_code": "02",
+            "core_major_code": "02",
+            "package_min_score": "580",
+            "core_min_score": "580",
+            "package_min_rank": "1990",
+            "core_min_rank": "2000",
+            "package_key_json": "{}",
+            "core_key_json": json.dumps({"school_code": "1002", "major_code": "02"}, ensure_ascii=False),
+            "core_candidates_json": "[]",
+            "matching_values_json": "{}",
+            "differences_json": "[]",
+            "review_decision": "keep_core_row",
+            "reviewer": "tester",
+            "reviewed_at": "2026-05-13",
+            "notes": "core value verified",
+        },
+        {
+            "task_id": "package-1",
+            "issue_type": "package_only_unmatched",
+            "priority": "3",
+            "status": "reviewed",
+            "suggested_action": "review_package_only_row",
+            "match_confidence": "none",
+            "score_year": "2024",
+            "batch": "本科批",
+            "subject_cat": "物理类",
+            "school_code": "1006",
+            "package_major_code": "06",
+            "core_major_code": "",
+            "package_min_score": "550",
+            "core_min_score": "",
+            "package_min_rank": "6000",
+            "core_min_rank": "",
+            "package_key_json": json.dumps({"school_code": "1006", "major_code": "06"}, ensure_ascii=False),
+            "core_key_json": "{}",
+            "core_candidates_json": "[]",
+            "matching_values_json": "{}",
+            "differences_json": "[]",
+            "review_decision": "use_package_row",
+            "reviewer": "tester",
+            "reviewed_at": "2026-05-13",
+            "notes": "package row verified",
+        },
+        {
+            "task_id": "major-1",
+            "issue_type": "major_code_drift_candidate",
+            "priority": "1",
+            "status": "reviewed",
+            "suggested_action": "review_major_code_alignment",
+            "match_confidence": "high",
+            "score_year": "2024",
+            "batch": "本科批",
+            "subject_cat": "物理类",
+            "school_code": "1003",
+            "package_major_code": "04",
+            "core_major_code": "03",
+            "package_min_score": "570",
+            "core_min_score": "570",
+            "package_min_rank": "3000",
+            "core_min_rank": "3000",
+            "package_key_json": json.dumps({"school_code": "1003", "major_code": "04"}, ensure_ascii=False),
+            "core_key_json": json.dumps({"school_code": "1003", "major_code": "03"}, ensure_ascii=False),
+            "core_candidates_json": json.dumps([{"key": {"school_code": "1003", "major_code": "03"}}], ensure_ascii=False),
+            "matching_values_json": "{}",
+            "differences_json": "[]",
+            "review_decision": "map_package_to_core_major_code",
+            "reviewer": "tester",
+            "reviewed_at": "2026-05-13",
+            "notes": "major code aligned",
+        },
+        {
+            "task_id": "core-1",
+            "issue_type": "core_only_unmatched",
+            "priority": "4",
+            "status": "reviewed",
+            "suggested_action": "review_core_only_row",
+            "match_confidence": "none",
+            "score_year": "2024",
+            "batch": "本科批",
+            "subject_cat": "物理类",
+            "school_code": "1007",
+            "package_major_code": "",
+            "core_major_code": "07",
+            "package_min_score": "",
+            "core_min_score": "540",
+            "package_min_rank": "",
+            "core_min_rank": "7000",
+            "package_key_json": "{}",
+            "core_key_json": json.dumps({"school_code": "1007", "major_code": "07"}, ensure_ascii=False),
+            "core_candidates_json": "[]",
+            "matching_values_json": "{}",
+            "differences_json": "[]",
+            "review_decision": "exclude_row",
+            "reviewer": "tester",
+            "reviewed_at": "2026-05-13",
+            "notes": "excluded from patch package",
+        },
+    ]
+    with plan.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=PLAN_COLUMNS, extrasaction="ignore")
+        writer.writeheader()
+        writer.writerows(rows)
+
+    result = build_score_history_package_from_reconciliation_plan(
+        plan_csv=plan,
+        output_root=tmp_path / "exports",
+        package_id="pkg-reconciled-score-history",
+    )
+
+    package_dir = Path(result["package_dir"])
+    assert validate_manifest(package_dir / "manifest.json")["errors"] == []
+    assert result["rows"] == 3
+    assert result["skipped_rows"] == 1
+    assert result["quality_report"]["decision_counts"]["exclude_row"] == 1
+    with (package_dir / "fa_fact_ln_score_history.csv").open(encoding="utf-8", newline="") as f:
+        output_rows = list(csv.DictReader(f))
+    by_key = {(row["school_code"], row["major_code"]): row for row in output_rows}
+    assert by_key[("1002", "02")]["min_rank"] == "2000"
+    assert by_key[("1006", "06")]["min_rank"] == "6000"
+    assert by_key[("1003", "03")]["min_rank"] == "3000"
 
 
 def test_build_policy_industry_map_package_from_config(tmp_path: Path):

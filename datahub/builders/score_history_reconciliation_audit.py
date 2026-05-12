@@ -53,8 +53,12 @@ def audit_score_history_reconciliation_plan(plan_csv: Path) -> dict[str, Any]:
     pending_rows = sum(count for status, count in status_counts.items() if status in config["pending_statuses"])
     blocked_rows = sum(count for status, count in status_counts.items() if status in config["blocked_statuses"])
     unknown_status_rows = len(rows) - ready_rows - pending_rows - blocked_rows
+    blocking_decision_rows = sum(
+        count for decision, count in decision_counts.items()
+        if decision in config["blocking_review_decisions"]
+    )
     review_complete = len(rows) > 0 and pending_rows == 0 and unknown_status_rows == 0
-    package_ready = review_complete and blocked_rows == 0 and not errors
+    package_ready = review_complete and blocked_rows == 0 and blocking_decision_rows == 0 and not errors
     return {
         "plan_csv": str(plan_csv),
         "rows": len(rows),
@@ -73,6 +77,7 @@ def audit_score_history_reconciliation_plan(plan_csv: Path) -> dict[str, Any]:
             "ready_rows": ready_rows,
             "pending_rows": pending_rows,
             "blocked_rows": blocked_rows,
+            "blocking_decision_rows": blocking_decision_rows,
             "unknown_status_rows": unknown_status_rows,
             "completion_rate": round(ready_rows / len(rows), 4) if rows else 0,
         },
@@ -98,6 +103,7 @@ def _review_config(schema: dict[str, Any]) -> dict[str, Any]:
         "ready_statuses",
         "blocked_statuses",
         "allowed_review_decisions",
+        "blocking_review_decisions",
         "required_ready_columns",
         "batch_editable_columns",
     ]
@@ -111,6 +117,7 @@ def _review_config(schema: dict[str, Any]) -> dict[str, Any]:
         "ready_statuses": {str(item) for item in review["ready_statuses"]},
         "blocked_statuses": {str(item) for item in review["blocked_statuses"]},
         "allowed_review_decisions": {str(item) for item in review["allowed_review_decisions"]},
+        "blocking_review_decisions": {str(item) for item in review["blocking_review_decisions"]},
         "required_ready_columns": [str(item) for item in review["required_ready_columns"]],
         "batch_editable_columns": [str(item) for item in review["batch_editable_columns"]],
         "batch_limit_per_issue": int(review.get("batch_limit_per_issue") or 50),

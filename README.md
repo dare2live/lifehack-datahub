@@ -183,6 +183,17 @@ python3 scripts/build_package.py merge-score-history-reconciliation-review-batch
   --report staging/score_history_reconciliation_2023_2024/merge_report.json
 ```
 
+只有完整 plan 的 readiness audit 返回 `package_ready=true` 后，才能构建可导入的 `fa_fact_ln_score_history` 包：
+
+```bash
+python3 scripts/build_package.py build-score-history-from-reconciliation-plan \
+  --plan-csv staging/score_history_reconciliation_2023_2024/score_history_reconciliation_plan_merged.csv \
+  --output-root exports \
+  --package-id 2024_2023_ln_score_history_reconciled
+```
+
+当前真实 2023/2024 队列仍会被拒绝：`pending=24478`，不会生成 package。
+
 2023/2024 已补充可文本解析的转载 PDF 镜像，配置为 `mirror_pdf`，不能冒充辽宁官网原始长期来源。真实 smoke 已解析 2023 年 1,076 行、2024 年 1,086 行，并通过 `fa_fact_ln_score_distribution` 质量闸门：
 
 ```bash

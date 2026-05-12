@@ -23,6 +23,7 @@ from .builders.score_history_reconciliation_batch import (
     build_score_history_reconciliation_review_batch,
     merge_score_history_reconciliation_review_batch,
 )
+from .builders.score_history_reconciliation_package import build_score_history_package_from_reconciliation_plan
 from .builders.score_history_reconciliation_plan import build_score_history_reconciliation_plan
 from .builders.score_history_snapshot import build_score_history_snapshot_package
 from .builders.school_identity import build_school_identity_package
@@ -205,6 +206,15 @@ def main() -> int:
     merge_score_reconciliation_batch.add_argument("--batch-csv", required=True, type=Path)
     merge_score_reconciliation_batch.add_argument("--output", required=True, type=Path)
     merge_score_reconciliation_batch.add_argument("--report", type=Path)
+
+    build_score_reconciliation_package = sub.add_parser(
+        "build-score-history-from-reconciliation-plan",
+        help="Build fa_fact_ln_score_history package from a package-ready reviewed reconciliation plan",
+    )
+    build_score_reconciliation_package.add_argument("--plan-csv", required=True, type=Path)
+    build_score_reconciliation_package.add_argument("--output-root", required=True, type=Path)
+    build_score_reconciliation_package.add_argument("--package-id")
+    build_score_reconciliation_package.add_argument("--source-version")
 
     build_policy_industry = sub.add_parser(
         "build-policy-industry-map",
@@ -513,6 +523,15 @@ def main() -> int:
             args.report.parent.mkdir(parents=True, exist_ok=True)
             args.report.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         print(json.dumps(report, ensure_ascii=False, indent=2))
+        return 0
+    if args.cmd == "build-score-history-from-reconciliation-plan":
+        result = build_score_history_package_from_reconciliation_plan(
+            plan_csv=args.plan_csv,
+            output_root=args.output_root,
+            package_id=args.package_id,
+            source_version=args.source_version,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
     if args.cmd == "build-policy-industry-map":
         result = build_policy_industry_map_package(
