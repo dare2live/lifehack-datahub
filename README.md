@@ -171,6 +171,8 @@ python3 scripts/build_package.py build-ln-score-distribution-review-workspace \
   --output-dir staging/ln_score_distribution_2024_review_workspace
 ```
 
+HTML 核对页会根据 `ocr_table.block_x_ranges` 和每条任务的 `row_y/block_index` 在原图上显示行定位框。定位框只用于人工找行，不参与数据合并；行高和开关由 `parser.ocr_review_workspace.row_locator` 配置。
+
 分批 CSV 修正后，再合并回完整复核表：
 
 ```bash

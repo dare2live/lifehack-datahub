@@ -52,6 +52,7 @@ def build_score_distribution_review_workspace(
             "image_path": image_paths.get(image_file),
             "task_rows": len(rows),
             "unresolved_rows": _unresolved_count(rows, config),
+            "locator_rows": sum(1 for row in rows if _row_locator_style(row, config)),
             "issue_counts": dict(sorted(Counter(row.get("issue_type") or "" for row in rows).items())),
             "status_counts": dict(sorted(Counter(_review_status(row) for row in rows).items())),
         })
@@ -148,25 +149,39 @@ def _load_workspace_config(source_key: str) -> dict[str, Any]:
     if not isinstance(review_config, dict):
         raise ValueError(f"{source_key}.parser.ocr_review is required")
     config = source.get("parser", {}).get("ocr_review_workspace")
+    table_config = source.get("parser", {}).get("ocr_table")
     if not isinstance(config, dict):
         raise ValueError(f"{source_key}.parser.ocr_review_workspace is required")
+    if not isinstance(table_config, dict):
+        raise ValueError(f"{source_key}.parser.ocr_table is required")
     pending = config.get("pending_review_statuses")
     editable = config.get("editable_columns")
+    row_locator = config.get("row_locator") or {}
     approved = review_config.get("approved_review_statuses")
     dropped = review_config.get("drop_review_statuses")
     if not isinstance(pending, list):
         raise ValueError(f"{source_key}.parser.ocr_review_workspace.pending_review_statuses must be a list")
     if not isinstance(editable, list) or not editable:
         raise ValueError(f"{source_key}.parser.ocr_review_workspace.editable_columns must be a non-empty list")
+    if not isinstance(row_locator, dict):
+        raise ValueError(f"{source_key}.parser.ocr_review_workspace.row_locator must be an object")
     if not isinstance(approved, list) or not isinstance(dropped, list):
         raise ValueError(f"{source_key}.parser.ocr_review approved/drop statuses must be lists")
     invalid_editable = [column for column in editable if column not in REVIEW_TASK_COLUMNS]
     if invalid_editable:
         raise ValueError(f"unknown editable review columns: {', '.join(invalid_editable)}")
+    block_ranges = table_config.get("block_x_ranges")
+    if row_locator.get("enabled") and (not isinstance(block_ranges, list) or not block_ranges):
+        raise ValueError(f"{source_key}.parser.ocr_table.block_x_ranges is required for row locator")
     return {
         "pending_review_statuses": {str(item) for item in pending},
         "complete_review_statuses": {str(item) for item in [*approved, *dropped]},
         "editable_columns": [str(item) for item in editable],
+        "row_locator": {
+            "enabled": bool(row_locator.get("enabled")),
+            "row_height_percent": float(row_locator.get("row_height_percent", 2.4)),
+            "block_x_ranges": [(float(item[0]), float(item[1])) for item in block_ranges or []],
+        },
     }
 
 
@@ -260,7 +275,13 @@ def _write_index_html(
         image_path = image_paths.get(image_file)
         image_html = ""
         if image_path:
-            image_html = f'<img src="{html.escape(Path(image_path).resolve().as_uri())}" alt="{html.escape(image_file)}">'
+            marker_html = "\n".join(_locator_html(row, config) for row in rows)
+            image_html = (
+                f'<div class="image-stage">'
+                f'<img src="{html.escape(Path(image_path).resolve().as_uri())}" alt="{html.escape(image_file)}">'
+                f'{marker_html}'
+                f'</div>'
+            )
         body_rows = "\n".join(_task_html(row, config) for row in rows)
         sections.append(f"""
         <section>
@@ -297,7 +318,13 @@ def _write_index_html(
     .section-head {{ display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 14px; border-bottom: 1px solid #e7ebf0; }}
     .section-head a {{ color: #1f6feb; text-decoration: none; font-size: 13px; }}
     .image-frame {{ overflow: auto; max-height: 720px; border-bottom: 1px solid #e7ebf0; background: #eef1f5; }}
+    .image-stage {{ position: relative; display: inline-block; max-width: 100%; }}
     img {{ display: block; max-width: 100%; height: auto; }}
+    .row-marker {{ position: absolute; box-sizing: border-box; border: 2px solid rgba(31, 111, 235, 0.82); background: rgba(31, 111, 235, 0.08); border-radius: 4px; }}
+    .row-marker:hover {{ background: rgba(31, 111, 235, 0.20); }}
+    .row-marker.incomplete, .row-marker.invalid_score {{ border-color: rgba(203, 74, 59, 0.88); background: rgba(203, 74, 59, 0.10); }}
+    .row-marker.cumulative_mismatch {{ border-color: rgba(190, 120, 35, 0.88); background: rgba(190, 120, 35, 0.12); }}
+    .row-marker.duplicate_score {{ border-color: rgba(116, 74, 188, 0.88); background: rgba(116, 74, 188, 0.12); }}
     table {{ width: 100%; border-collapse: collapse; font-size: 12px; table-layout: fixed; }}
     th, td {{ padding: 7px 8px; border-bottom: 1px solid #edf0f4; vertical-align: top; word-break: break-word; }}
     th {{ text-align: left; color: #53606f; background: #fbfcfd; }}
@@ -327,6 +354,7 @@ def _write_index_html(
 def _task_html(row: dict[str, Any], config: dict[str, Any]) -> str:
     status = _review_status(row)
     css = "" if _is_unresolved(row, config) else "done"
+    review_id = _dom_id(str(row.get("review_id") or "review-row"))
     correction = " / ".join(
         html.escape(str(row.get(column) or ""))
         for column in ["corrected_score", "corrected_score_count", "corrected_cumulative_rank"]
@@ -351,4 +379,53 @@ def _task_html(row: dict[str, Any], config: dict[str, Any]) -> str:
         f'<td class="{"raw" if index == 7 else ""}">{html.escape(str(value or ""))}</td>'
         for index, value in enumerate(cells)
     )
-    return f'<tr class="{css}">{rendered}</tr>'
+    return f'<tr id="{review_id}" class="{css}">{rendered}</tr>'
+
+
+def _locator_html(row: dict[str, Any], config: dict[str, Any]) -> str:
+    style = _row_locator_style(row, config)
+    if not style:
+        return ""
+    review_id = str(row.get("review_id") or "")
+    issue_type = str(row.get("issue_type") or "issue")
+    title_parts = [
+        issue_type,
+        str(row.get("raw_text") or ""),
+        "suggested "
+        + " / ".join(str(row.get(column) or "") for column in ["suggested_score", "suggested_score_count", "suggested_cumulative_rank"]),
+    ]
+    return (
+        f'<a class="row-marker {html.escape(_css_class(issue_type))}" '
+        f'id="mark-{html.escape(_dom_id(review_id))}" '
+        f'href="#{html.escape(_dom_id(review_id))}" '
+        f'data-review-id="{html.escape(review_id)}" '
+        f'style="{html.escape(style)}" '
+        f'title="{html.escape(" | ".join(part for part in title_parts if part.strip()))}"></a>'
+    )
+
+
+def _row_locator_style(row: dict[str, Any], config: dict[str, Any]) -> str:
+    locator = config.get("row_locator") or {}
+    if not locator.get("enabled"):
+        return ""
+    try:
+        block_index = int(str(row.get("block_index") or "0"))
+        row_y = float(str(row.get("row_y") or ""))
+    except ValueError:
+        return ""
+    ranges = locator.get("block_x_ranges") or []
+    if block_index < 1 or block_index > len(ranges):
+        return ""
+    left, right = ranges[block_index - 1]
+    row_height = max(0.5, float(locator.get("row_height_percent") or 2.4))
+    top = max(0.0, min(100.0 - row_height, (1.0 - row_y) * 100.0 - row_height / 2.0))
+    return f"left:{left * 100:.3f}%;top:{top:.3f}%;width:{(right - left) * 100:.3f}%;height:{row_height:.3f}%;"
+
+
+def _dom_id(value: str) -> str:
+    text = re.sub(r"[^A-Za-z0-9_.-]+", "_", value).strip("_")
+    return text or "row"
+
+
+def _css_class(value: str) -> str:
+    return re.sub(r"[^A-Za-z0-9_-]+", "_", value).strip("_") or "issue"

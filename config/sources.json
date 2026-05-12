@@ -313,6 +313,10 @@
         },
         "ocr_review_workspace": {
           "pending_review_statuses": ["", "todo"],
+          "row_locator": {
+            "enabled": true,
+            "row_height_percent": 2.4
+          },
           "editable_columns": [
             "review_status",
             "reviewer_notes",

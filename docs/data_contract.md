@@ -231,6 +231,8 @@ python3 scripts/build_package.py prefill-ln-score-distribution-review-suggestion
 
 真实 smoke：2024 工作区生成 21 个图片批次、1,181 条待复核任务；2023 工作区生成 20 个图片批次、1,185 条待复核任务；2022 镜像工作区生成 19 个图片批次、1,225 条待复核任务。未修改批次可无损合并回总表，`updated_rows=0`。
 
+工作区 HTML 会用 `ocr_table.block_x_ranges` 和任务中的 `row_y/block_index` 在原图上绘制定位框，帮助人工快速找到待核对行。定位框参数由 `parser.ocr_review_workspace.row_locator` 维护，只影响复核体验，不进入 cleaned CSV 或 package。真实 smoke：2022 镜像 prefilled review 生成 19 个图片批次，1,225 条任务均有 locator row。
+
 复核完成后，使用 review task 中的 `corrected_score/corrected_score_count/corrected_cumulative_rank` 合并出 cleaned CSV：
 
 ```bash

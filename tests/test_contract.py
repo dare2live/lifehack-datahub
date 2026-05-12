@@ -788,8 +788,13 @@ def test_build_and_merge_score_distribution_review_workspace(tmp_path: Path):
     assert report["task_rows"] == 2
     assert report["unresolved_rows"] == 2
     assert len(report["batches"]) == 2
+    assert report["batches"][0]["locator_rows"] == 1
     assert (workspace / "index.html").exists()
     assert (workspace / "review_workspace_manifest.json").exists()
+    html_text = (workspace / "index.html").read_text(encoding="utf-8")
+    assert "row-marker cumulative_mismatch" in html_text
+    assert 'data-review-id="r1"' in html_text
+    assert "image-stage" in html_text
 
     page1_batch = Path(report["batches"][0]["csv"])
     with page1_batch.open(encoding="utf-8", newline="") as f:
