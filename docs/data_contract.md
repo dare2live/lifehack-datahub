@@ -156,6 +156,8 @@ python3 scripts/build_package.py build-score-history-from-projection \
 
 注意：派生的 `min_rank` 是最低分对应的一分一段累计人数，不是同分排序后的精确投档位次。`quality_report.warnings` 会保留 `rank_is_score_cumulative_rank`。2023/2024 已补充转载 PDF 镜像，登记为 `mirror_pdf`，可文本解析但不能冒充辽宁官网原始长期来源；真实 smoke 已解析 2023 年 1,076 行、2024 年 1,086 行 `fa_fact_ln_score_distribution` 并通过质量闸门。2022 已补充辽宁招生考试之窗官方图片页，仍需 OCR 或受控人工复核；中新网辽宁转载图片页保留为兜底镜像候选源。
 
+真实派生 smoke：2023 投档最低分 14,435 行 + 2023 一分一段 PDF 镜像 1,076 行，生成 14,435 行 `fa_fact_ln_score_history`，unmatched=0、质量错误为空；2024 投档最低分 14,298 行 + 2024 一分一段 PDF 镜像 1,086 行，生成 14,298 行，unmatched=0、质量错误为空。core importer 修复 `upsert_or_replace_package` 后，连续导入 2023/2024 两个数据包的临时库同时保留两年数据，且 `min_rank` 无空值。
+
 2022/2023/2024 官方图片页和 2022 镜像图片页可先用 `download-page-images` 采集图片并生成 manifest。manifest 兼容 `build-local --intake-manifest`，后续无论使用 OCR 还是人工转录，发布包都能追溯到原始图片 SHA-256：
 
 ```bash
