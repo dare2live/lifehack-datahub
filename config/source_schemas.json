@@ -60,6 +60,19 @@
         "alignment_variant_columns": ["major_code"],
         "reconciliation": {
           "default_status": "todo",
+          "review": {
+            "pending_statuses": ["todo"],
+            "ready_statuses": ["reviewed"],
+            "blocked_statuses": ["blocked"],
+            "allowed_review_decisions": [
+              "use_package_row",
+              "keep_core_row",
+              "map_package_to_core_major_code",
+              "exclude_row",
+              "needs_source_research"
+            ],
+            "required_ready_columns": ["review_decision", "reviewer", "reviewed_at"]
+          },
           "issue_types": {
             "major_code_drift_candidate": {
               "priority": 1,

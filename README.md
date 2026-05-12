@@ -156,6 +156,14 @@ python3 scripts/build_package.py build-score-history-reconciliation-plan \
   --output-dir staging/score_history_reconciliation_2023_2024
 ```
 
+复核推进过程中先跑 readiness audit，确认还有多少任务未处理、哪些 review decision 不合规、是否可以进入后续可导入包构建：
+
+```bash
+python3 scripts/build_package.py audit-score-history-reconciliation-plan \
+  --plan-csv staging/score_history_reconciliation_2023_2024/score_history_reconciliation_plan.csv \
+  --report staging/score_history_reconciliation_2023_2024/readiness_report.json
+```
+
 2023/2024 已补充可文本解析的转载 PDF 镜像，配置为 `mirror_pdf`，不能冒充辽宁官网原始长期来源。真实 smoke 已解析 2023 年 1,076 行、2024 年 1,086 行，并通过 `fa_fact_ln_score_distribution` 质量闸门：
 
 ```bash

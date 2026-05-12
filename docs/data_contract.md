@@ -195,6 +195,16 @@ python3 scripts/build_package.py build-score-history-reconciliation-plan \
 
 输出 `score_history_reconciliation_plan.csv/json`。CSV 任务类型包括 `major_code_drift_candidate`、`value_drift`、`package_only_unmatched`、`core_only_unmatched`；任务状态、优先级、建议动作和匹配置信度均由 `config/source_schemas.json` 维护。它是人工复核计划，不是 data package，不能导入 core。
 
+复核推进中用 readiness audit 做门禁：
+
+```bash
+python3 scripts/build_package.py audit-score-history-reconciliation-plan \
+  --plan-csv staging/score_history_reconciliation_2023_2024/score_history_reconciliation_plan.csv \
+  --report staging/score_history_reconciliation_2023_2024/readiness_report.json
+```
+
+审计会校验任务列、任务 ID、issue type、状态、review decision、JSON 字段和 ready 状态必填列。只有 `ready.package_ready=true` 时，后续才可以进入可导入 package 构建；当前真实 2023/2024 队列仍是 `todo=24,478`，`package_ready=false`。
+
 2022/2023/2024 官方图片页和 2022 镜像图片页可先用 `download-page-images` 采集图片并生成 manifest。manifest 兼容 `build-local --intake-manifest`，后续无论使用 OCR 还是人工转录，发布包都能追溯到原始图片 SHA-256：
 
 ```bash

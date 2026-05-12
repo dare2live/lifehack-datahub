@@ -20,6 +20,7 @@ from datahub.builders.policy_tables import (
 )
 from datahub.builders.score_history_from_projection import build_score_history_from_projection_package
 from datahub.builders.score_history_package_audit import audit_score_history_package_against_core
+from datahub.builders.score_history_reconciliation_audit import audit_score_history_reconciliation_plan
 from datahub.builders.score_history_reconciliation_plan import build_score_history_reconciliation_plan
 from datahub.builders.score_history_snapshot import build_score_history_snapshot_package
 from datahub.builders.score_distribution_review_workspace import (
@@ -1352,6 +1353,105 @@ def test_build_score_history_reconciliation_plan_from_audit_inputs(tmp_path: Pat
     ], ensure_ascii=False, sort_keys=True)
     manifest = json.loads(Path(result["manifest"]).read_text(encoding="utf-8"))
     assert manifest["notes"].startswith("Review plan only")
+
+
+def test_audit_score_history_reconciliation_plan_reports_progress(tmp_path: Path):
+    plan = tmp_path / "score_history_reconciliation_plan.csv"
+    fieldnames = [
+        "task_id",
+        "issue_type",
+        "priority",
+        "status",
+        "suggested_action",
+        "match_confidence",
+        "score_year",
+        "batch",
+        "subject_cat",
+        "school_code",
+        "package_major_code",
+        "core_major_code",
+        "package_min_score",
+        "core_min_score",
+        "package_min_rank",
+        "core_min_rank",
+        "package_key_json",
+        "core_key_json",
+        "core_candidates_json",
+        "matching_values_json",
+        "differences_json",
+        "review_decision",
+        "reviewer",
+        "reviewed_at",
+        "notes",
+    ]
+    with plan.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerow({
+            "task_id": "t1",
+            "issue_type": "major_code_drift_candidate",
+            "priority": "1",
+            "status": "reviewed",
+            "suggested_action": "review_major_code_alignment",
+            "match_confidence": "high",
+            "score_year": "2024",
+            "batch": "本科批",
+            "subject_cat": "物理类",
+            "school_code": "1003",
+            "package_major_code": "04",
+            "core_major_code": "03",
+            "package_min_score": "570",
+            "core_min_score": "570",
+            "package_min_rank": "3000",
+            "core_min_rank": "3000",
+            "package_key_json": "{}",
+            "core_key_json": "{}",
+            "core_candidates_json": "[]",
+            "matching_values_json": "{}",
+            "differences_json": "[]",
+            "review_decision": "map_package_to_core_major_code",
+            "reviewer": "tester",
+            "reviewed_at": "2026-05-13",
+            "notes": "fixture",
+        })
+        writer.writerow({
+            "task_id": "t2",
+            "issue_type": "value_drift",
+            "priority": "2",
+            "status": "todo",
+            "suggested_action": "review_source_value_conflict",
+            "match_confidence": "primary_key_match",
+            "score_year": "2024",
+            "batch": "本科批",
+            "subject_cat": "物理类",
+            "school_code": "1002",
+            "package_major_code": "02",
+            "core_major_code": "02",
+            "package_min_score": "580",
+            "core_min_score": "580",
+            "package_min_rank": "1990",
+            "core_min_rank": "2000",
+            "package_key_json": "{}",
+            "core_key_json": "{}",
+            "core_candidates_json": "[]",
+            "matching_values_json": "{}",
+            "differences_json": "[]",
+            "review_decision": "",
+            "reviewer": "",
+            "reviewed_at": "",
+            "notes": "",
+        })
+
+    report = audit_score_history_reconciliation_plan(plan)
+
+    assert report["errors"] == []
+    assert report["rows"] == 2
+    assert report["status_counts"] == {"reviewed": 1, "todo": 1}
+    assert report["decision_counts"] == {"map_package_to_core_major_code": 1}
+    assert report["progress"]["ready_rows"] == 1
+    assert report["progress"]["pending_rows"] == 1
+    assert report["ready"]["review_complete"] is False
+    assert report["ready"]["package_ready"] is False
 
 
 def test_build_policy_industry_map_package_from_config(tmp_path: Path):

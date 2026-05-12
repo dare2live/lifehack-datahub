@@ -18,6 +18,7 @@ from .builders.policy_tables import (
 )
 from .builders.score_history_from_projection import build_score_history_from_projection_package
 from .builders.score_history_package_audit import audit_score_history_package_against_core
+from .builders.score_history_reconciliation_audit import audit_score_history_reconciliation_plan
 from .builders.score_history_reconciliation_plan import build_score_history_reconciliation_plan
 from .builders.score_history_snapshot import build_score_history_snapshot_package
 from .builders.school_identity import build_school_identity_package
@@ -175,6 +176,13 @@ def main() -> int:
     build_score_reconciliation.add_argument("--core-db", required=True, type=Path)
     build_score_reconciliation.add_argument("--package-dir", required=True, action="append", dest="package_dirs", type=Path)
     build_score_reconciliation.add_argument("--output-dir", required=True, type=Path)
+
+    audit_score_reconciliation = sub.add_parser(
+        "audit-score-history-reconciliation-plan",
+        help="Audit review progress and package readiness for score-history reconciliation tasks",
+    )
+    audit_score_reconciliation.add_argument("--plan-csv", required=True, type=Path)
+    audit_score_reconciliation.add_argument("--report", type=Path)
 
     build_policy_industry = sub.add_parser(
         "build-policy-industry-map",
@@ -457,6 +465,13 @@ def main() -> int:
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
+    if args.cmd == "audit-score-history-reconciliation-plan":
+        report = audit_score_history_reconciliation_plan(args.plan_csv)
+        if args.report:
+            args.report.parent.mkdir(parents=True, exist_ok=True)
+            args.report.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        print(json.dumps(report, ensure_ascii=False, indent=2))
+        return 0 if not report["errors"] else 1
     if args.cmd == "build-policy-industry-map":
         result = build_policy_industry_map_package(
             output_root=args.output_root,
