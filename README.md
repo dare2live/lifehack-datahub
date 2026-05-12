@@ -246,7 +246,13 @@ python3 scripts/build_package.py build-outcome-collection-plan \
   --major-limit 80
 ```
 
-该命令只读 core DB，默认按配置过滤普通类本科批，输出 CSV/JSON 采集计划，不是 data package，也不能导入 core。
+该命令只读 core DB，默认按配置过滤普通类本科批，输出 CSV/JSON 采集计划，不是 data package，也不能导入 core。采集计划 CSV 预留 `metric_value/source_url/evidence_quote/metric_scope` 等证据列，人工或后续采集器补齐后，可先跑审计报告确认指标、状态和证据完整度：
+
+```bash
+python3 scripts/build_package.py audit-outcome-collection-plan \
+  --plan-csv staging/outcome_collection/outcome_collection_plan.csv \
+  --report staging/outcome_collection/outcome_collection_audit.json
+```
 
 ## 政策表数据包
 

@@ -24,6 +24,12 @@ PLAN_COLUMNS = [
     "metric_year",
     "search_queries",
     "status",
+    "metric_value",
+    "source_title",
+    "source_url",
+    "evidence_quote",
+    "metric_scope",
+    "denominator",
     "notes",
 ]
 
@@ -182,6 +188,12 @@ def _build_rows(
                 "metric_year": metric_year,
                 "search_queries": json.dumps(queries, ensure_ascii=False),
                 "status": status,
+                "metric_value": "",
+                "source_title": "",
+                "source_url": "",
+                "evidence_quote": "",
+                "metric_scope": "",
+                "denominator": "",
                 "notes": "",
             })
     return rows

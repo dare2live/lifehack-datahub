@@ -6,6 +6,7 @@ import csv
 import json
 from pathlib import Path
 
+from .builders.outcome_collection_audit import audit_outcome_collection_plan
 from .builders.major_mapping_review import build_major_mapping_review_package
 from .builders.local_package import build_local_package
 from .builders.outcome_collection_plan import build_outcome_collection_plan
@@ -172,6 +173,13 @@ def main() -> int:
     build_outcome_collection.add_argument("--domain", action="append", dest="domains")
     build_outcome_collection.add_argument("--school-limit", type=int)
     build_outcome_collection.add_argument("--major-limit", type=int)
+
+    audit_outcome_collection = sub.add_parser(
+        "audit-outcome-collection-plan",
+        help="Audit outcome collection task status, registered metrics, and evidence readiness",
+    )
+    audit_outcome_collection.add_argument("--plan-csv", required=True, type=Path)
+    audit_outcome_collection.add_argument("--report", type=Path)
 
     parse_moe = sub.add_parser("parse-moe-major-catalog", help="Parse MOE major catalog PDF to cleaned CSV")
     parse_moe.add_argument("--input", required=True, type=Path)
@@ -406,6 +414,13 @@ def main() -> int:
             major_limit=args.major_limit,
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+    if args.cmd == "audit-outcome-collection-plan":
+        report = audit_outcome_collection_plan(args.plan_csv)
+        if args.report:
+            args.report.parent.mkdir(parents=True, exist_ok=True)
+            args.report.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        print(json.dumps(report, ensure_ascii=False, indent=2))
         return 0
     if args.cmd == "parse-moe-major-catalog":
         rows = parse_moe_major_catalog_pdf(args.input)

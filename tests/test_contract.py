@@ -8,6 +8,7 @@ import duckdb
 from openpyxl import Workbook
 
 from datahub.connectors.page_images import download_page_images
+from datahub.builders.outcome_collection_audit import audit_outcome_collection_plan
 from datahub.builders.major_mapping_review import build_major_mapping_review_package
 from datahub.builders.local_package import build_local_package
 from datahub.builders.outcome_collection_plan import build_outcome_collection_plan
@@ -1432,11 +1433,91 @@ def test_build_outcome_collection_plan_from_core_admission_plan(tmp_path: Path):
     assert rows[0]["domain"] == "school"
     assert rows[0]["metric_key"] == "postgrad_rate"
     assert "就业质量报告" in rows[0]["search_queries"]
+    assert "metric_value" in rows[0]
+    assert "source_url" in rows[0]
     assert any(row["domain"] == "major" and row["entity_name"] == "计算机类" for row in rows)
 
     manifest = json.loads(Path(result["manifest"]).read_text(encoding="utf-8"))
     assert manifest["notes"].startswith("Collection plan only")
     assert manifest["rows"] == 16
+
+
+def test_audit_outcome_collection_plan_reports_progress_and_errors(tmp_path: Path):
+    plan = tmp_path / "outcome_collection_plan.csv"
+    with plan.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(
+            f,
+            fieldnames=[
+                "domain",
+                "entity_code",
+                "entity_name",
+                "priority_rank",
+                "plan_rows",
+                "metric_key",
+                "metric_label",
+                "metric_unit",
+                "metric_year",
+                "search_queries",
+                "status",
+                "metric_value",
+                "source_title",
+                "source_url",
+                "evidence_quote",
+                "metric_scope",
+                "denominator",
+                "notes",
+            ],
+        )
+        writer.writeheader()
+        writer.writerow({
+            "domain": "school",
+            "entity_code": "10145",
+            "entity_name": "东北大学",
+            "priority_rank": "1",
+            "plan_rows": "120",
+            "metric_key": "postgrad_rate",
+            "metric_label": "深造率",
+            "metric_unit": "ratio",
+            "metric_year": "2025",
+            "search_queries": json.dumps(["东北大学 2025 就业质量报告"], ensure_ascii=False),
+            "status": "verified",
+            "metric_value": "46.2%",
+            "source_title": "2025届毕业生就业质量报告",
+            "source_url": "https://example.edu/report.pdf",
+            "evidence_quote": "本科毕业生深造率为46.2%。",
+            "metric_scope": "本科毕业生",
+            "denominator": "",
+            "notes": "",
+        })
+        writer.writerow({
+            "domain": "school",
+            "entity_code": "10145",
+            "entity_name": "东北大学",
+            "priority_rank": "1",
+            "plan_rows": "120",
+            "metric_key": "made_up_metric",
+            "metric_label": "未知指标",
+            "metric_unit": "ratio",
+            "metric_year": "2025",
+            "search_queries": "not-json",
+            "status": "verified",
+            "metric_value": "1",
+            "source_title": "",
+            "source_url": "",
+            "evidence_quote": "",
+            "metric_scope": "",
+            "denominator": "",
+            "notes": "",
+        })
+
+    report = audit_outcome_collection_plan(plan)
+
+    assert report["rows"] == 2
+    assert report["progress"]["complete_rows"] == 2
+    assert report["evidence_counts"]["rows_with_source_url"] == 1
+    assert any("unregistered outcome metric" in error for error in report["errors"])
+    assert any("search_queries is not valid JSON" in error for error in report["errors"])
+    assert any("complete status missing evidence" in error for error in report["errors"])
 
 
 def test_build_school_identity_package_matches_unique_school_names(tmp_path: Path):

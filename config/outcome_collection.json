@@ -8,6 +8,12 @@
     "metric_year": 2025,
     "status": "todo"
   },
+  "audit": {
+    "pending_statuses": ["todo", "in_progress", "needs_review"],
+    "complete_statuses": ["collected", "verified", "ready"],
+    "blocked_statuses": ["blocked", "not_found", "not_applicable"],
+    "required_evidence_columns": ["metric_value", "source_url", "evidence_quote"]
+  },
   "domains": {
     "school": {
       "source_table": "fa_dim_ln_admission_plan",

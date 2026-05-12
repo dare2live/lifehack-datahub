@@ -301,6 +301,16 @@ python3 scripts/build_package.py build-outcome-collection-plan \
 
 采集队列由 `config/outcome_collection.json` 维护：目标实体来自 `fa_dim_ln_admission_plan`，默认过滤普通类本科批，优先级按招生计划行数排序，指标必须在 `config/outcome_metrics.json` 注册，搜索 query 模板也在配置中维护。它只输出任务 CSV/JSON，不是 data package；人工或后续采集器补齐来源 URL、证据摘录和指标值后，才可通过 `build-local` 生成 `fa_fact_school_outcome` / `fa_fact_major_outcome` 包。
 
+采集推进过程中应先审计任务表，而不是直接打包。`audit-outcome-collection-plan` 会检查 metric 是否登记、单位和值域是否匹配、完成状态是否有 `metric_value/source_url/evidence_quote`，并输出 domain/metric/status 进度：
+
+```bash
+python3 scripts/build_package.py audit-outcome-collection-plan \
+  --plan-csv staging/outcome_collection/outcome_collection_plan.csv \
+  --report staging/outcome_collection/outcome_collection_audit.json
+```
+
+真实 smoke：用 core DB 生成学校 5 个、专业 5 个的小样本采集队列，共 40 条任务；审计结果为 `todo=40`、`complete_rows=0`、`errors=[]`，说明当前仍是采集计划，不能作为 outcome 数据包导入 core。
+
 政策映射和规划兑现回测不再由 core 建表脚本生产。DataHub 用版本化配置生成标准包：
 
 ```bash
