@@ -38,7 +38,7 @@ exports/YYYY-MM-DD_ln_admission_plan/
 
 ## 当前阶段
 
-Phase 5 原型：已固化数据包契约和模块边界，并提供本地已清洗 CSV/TSV/XLSX 到 data package 的生成入口。下一步逐步接入辽宁招生计划、辽宁历史分数线、教育部专业目录等数据源。
+Phase 5 原型：已固化数据包契约和模块边界，提供本地已清洗 CSV/TSV/XLSX 到 data package 的生成入口，并支持从 core 的专业映射复核队列生成正式 `fa_bridge_major_tdx` 数据包。下一步逐步接入辽宁招生计划、辽宁历史分数线、教育部专业目录等远程数据源。
 
 ## 本地数据包生成
 
@@ -60,3 +60,16 @@ python3 scripts/build_package.py build-local \
 ```
 
 字段别名和 schema 在 `config/source_schemas.json` 维护。`raw/` 和 `exports/` 默认被 `.gitignore` 排除。
+
+## 专业映射复核晋级
+
+core 负责生成和维护人工复核队列，DataHub 只读读取其中已批准的结果，并输出完整 `fa_bridge_major_tdx` 数据包：
+
+```bash
+python3 scripts/build_package.py build-review-mapping \
+  --core-db /Users/dp/Documents/M/lifehack/backend/data/university.db \
+  --output-root exports \
+  --package-id 2026_major_mapping_review
+```
+
+输出包仍需由 core 的 `backend/scripts/import_data_package.py` 导入。DataHub 不写 core 数据库。

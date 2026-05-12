@@ -22,6 +22,13 @@
       "owner": "lifehack-datahub",
       "raw_glob": "raw/moe_major_catalog/**/*",
       "target_tables": ["fa_dim_major_catalog"]
+    },
+    "major_mapping_review": {
+      "name": "专业行业映射人工复核结果",
+      "kind": "core_review_db",
+      "owner": "lifehack-datahub",
+      "raw_glob": "raw/major_mapping_review/**/*",
+      "target_tables": ["fa_bridge_major_tdx"]
     }
   }
 }

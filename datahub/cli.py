@@ -5,6 +5,7 @@ import argparse
 import json
 from pathlib import Path
 
+from .builders.major_mapping_review import build_major_mapping_review_package
 from .builders.local_package import build_local_package
 from .connectors.registry import discover_assets, list_source_keys
 from .validators.package_validator import validate_manifest
@@ -30,6 +31,16 @@ def main() -> int:
     discover.add_argument("--source-key")
     discover.add_argument("--project-root", type=Path, default=Path.cwd())
 
+    build_review = sub.add_parser(
+        "build-review-mapping",
+        help="Build fa_bridge_major_tdx from approved core review rows",
+    )
+    build_review.add_argument("--core-db", required=True, type=Path)
+    build_review.add_argument("--output-root", required=True, type=Path)
+    build_review.add_argument("--package-id")
+    build_review.add_argument("--source-version")
+    build_review.add_argument("--approved-status", action="append", dest="approved_statuses")
+
     args = parser.parse_args()
     if args.cmd == "validate":
         report = validate_manifest(args.manifest)
@@ -53,6 +64,16 @@ def main() -> int:
             return 0
         assets = [asset.to_dict() for asset in discover_assets(args.source_key, args.project_root)]
         print(json.dumps({"source_key": args.source_key, "assets": assets}, ensure_ascii=False, indent=2))
+        return 0
+    if args.cmd == "build-review-mapping":
+        result = build_major_mapping_review_package(
+            core_db=args.core_db,
+            output_root=args.output_root,
+            package_id=args.package_id,
+            source_version=args.source_version,
+            approved_statuses=args.approved_statuses,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
     return 1
 

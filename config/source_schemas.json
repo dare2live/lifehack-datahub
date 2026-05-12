@@ -85,6 +85,50 @@
         "degree_type": ["degree_type", "授予学位"],
         "study_years": ["study_years", "修业年限", "学制"]
       }
+    },
+    "fa_bridge_major_tdx": {
+      "source_key": "major_mapping_review",
+      "primary_key": ["major_code", "tdx_l2", "mapping_type"],
+      "required": [
+        "major_code",
+        "major_name",
+        "tdx_l2",
+        "tdx_l2_name",
+        "tdx_l1_name",
+        "mapping_type",
+        "confidence",
+        "rationale",
+        "source_date",
+        "availability_date",
+        "built_at"
+      ],
+      "columns": [
+        "major_code",
+        "major_name",
+        "tdx_l2",
+        "tdx_l2_name",
+        "tdx_l1_name",
+        "mapping_type",
+        "confidence",
+        "rationale",
+        "source_date",
+        "availability_date",
+        "built_at"
+      ],
+      "numeric": [],
+      "aliases": {
+        "major_code": ["major_code", "专业代码"],
+        "major_name": ["major_name", "专业名称"],
+        "tdx_l2": ["tdx_l2", "通达信二级行业代码"],
+        "tdx_l2_name": ["tdx_l2_name", "通达信二级行业"],
+        "tdx_l1_name": ["tdx_l1_name", "通达信一级行业"],
+        "mapping_type": ["mapping_type", "映射类型"],
+        "confidence": ["confidence", "置信度"],
+        "rationale": ["rationale", "理由"],
+        "source_date": ["source_date", "来源日期"],
+        "availability_date": ["availability_date", "可用日期"],
+        "built_at": ["built_at", "构建时间"]
+      }
     }
   }
 }
