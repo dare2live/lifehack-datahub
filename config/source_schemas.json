@@ -60,6 +60,12 @@
         "alignment_variant_columns": ["major_code"],
         "reconciliation": {
           "default_status": "todo",
+          "zero_placeholder": {
+            "side": "core",
+            "columns": ["min_score", "min_rank"],
+            "values": [0],
+            "issue_type": "core_only_zero_placeholder"
+          },
           "review": {
             "pending_statuses": ["todo"],
             "ready_statuses": ["reviewed"],
@@ -96,6 +102,11 @@
               "priority": 4,
               "match_confidence": "none",
               "suggested_action": "review_core_only_row"
+            },
+            "core_only_zero_placeholder": {
+              "priority": 5,
+              "match_confidence": "zero_placeholder",
+              "suggested_action": "review_core_zero_placeholder_for_delete_plan"
             }
           }
         },

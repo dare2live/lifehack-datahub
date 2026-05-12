@@ -158,7 +158,7 @@ python3 scripts/build_package.py audit-score-history-package-against-core \
 
 若报告出现 `different_rows`、`core_only_rows` 或重叠作用域下的 `package_only_rows`，先做代码体系/来源体系 reconciliation，不直接覆盖实际工作库。报告中的 `reconciliation_hints.same_values_different_key_candidates` 会按配置化匹配列提示“同校同年同分同位次但专业代码不同”的疑似代码漂移。
 
-审计之后可生成可复核任务表。任务状态、优先级、建议动作和匹配置信度由同一份 schema 配置维护，输出只是本地 review plan，不能导入 core：
+审计之后可生成可复核任务表。任务状态、优先级、建议动作、匹配置信度和 0 分/0 位次占位识别由同一份 schema 配置维护，输出只是本地 review plan，不能导入 core。core-only 且 `min_score/min_rank` 均为 0 的旧占位记录会标成 `core_only_zero_placeholder`，便于人工确认后进入 delete plan；它仍不会自动删除 core 数据：
 
 ```bash
 python3 scripts/build_package.py build-score-history-reconciliation-plan \

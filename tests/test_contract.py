@@ -1266,7 +1266,7 @@ def test_build_score_history_reconciliation_plan_from_audit_inputs(tmp_path: Pat
                 ('1001', '01', '本科批', '物理类', 2024, 600, 1000),
                 ('1002', '02', '本科批', '物理类', 2024, 580, 2000),
                 ('1003', '03', '本科批', '物理类', 2024, 570, 3000),
-                ('1007', '07', '本科批', '物理类', 2024, 540, 7000),
+                ('1007', '07', '本科批', '物理类', 2024, 0, 0),
                 ('2001', '01', '本科批', '物理类', 2023, 610, 900)
         """)
     finally:
@@ -1350,7 +1350,7 @@ def test_build_score_history_reconciliation_plan_from_audit_inputs(tmp_path: Pat
 
     assert result["rows"] == 4
     assert result["issue_counts"] == {
-        "core_only_unmatched": 1,
+        "core_only_zero_placeholder": 1,
         "major_code_drift_candidate": 1,
         "package_only_unmatched": 1,
         "value_drift": 1,
@@ -1365,6 +1365,9 @@ def test_build_score_history_reconciliation_plan_from_audit_inputs(tmp_path: Pat
     assert by_type["value_drift"]["differences_json"] == json.dumps([
         {"column": "min_rank", "package_value": 1990, "core_value": 2000}
     ], ensure_ascii=False, sort_keys=True)
+    assert by_type["core_only_zero_placeholder"]["suggested_action"] == "review_core_zero_placeholder_for_delete_plan"
+    assert by_type["core_only_zero_placeholder"]["core_min_score"] == "0"
+    assert by_type["core_only_zero_placeholder"]["core_min_rank"] == "0"
     manifest = json.loads(Path(result["manifest"]).read_text(encoding="utf-8"))
     assert manifest["notes"].startswith("Review plan only")
 

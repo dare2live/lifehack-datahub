@@ -271,8 +271,9 @@ def _unmatched_tasks(
     tasks = []
     for key in _sorted_keys(keys):
         row = index[key]
+        task_issue_type = _unmatched_issue_type(issue_type, row, reconciliation_config, side)
         tasks.append(_task_row(
-            issue_type=issue_type,
+            issue_type=task_issue_type,
             package_row=row if side == "package" else None,
             core_row=row if side == "core" else None,
             package_key=_key_dict(key, primary_key) if side == "package" else {},
@@ -280,6 +281,22 @@ def _unmatched_tasks(
             reconciliation_config=reconciliation_config,
         ))
     return tasks
+
+
+def _unmatched_issue_type(
+    default_issue_type: str,
+    row: dict[str, Any],
+    reconciliation_config: dict[str, Any],
+    side: str,
+) -> str:
+    placeholder = reconciliation_config.get("zero_placeholder") or {}
+    if not placeholder or placeholder.get("side") != side:
+        return default_issue_type
+    columns = placeholder["columns"]
+    values = {str(value) for value in placeholder["values"]}
+    if all(_normalized_placeholder_value(row.get(column)) in values for column in columns):
+        return placeholder["issue_type"]
+    return default_issue_type
 
 
 def _task_row(
@@ -313,10 +330,10 @@ def _task_row(
         "school_code": scope_source.get("school_code") or "",
         "package_major_code": package_row.get("major_code") or "",
         "core_major_code": _core_major_code(core_row, core_candidates),
-        "package_min_score": package_row.get("min_score") or "",
-        "core_min_score": core_row.get("min_score") or "",
-        "package_min_rank": package_row.get("min_rank") or "",
-        "core_min_rank": core_row.get("min_rank") or "",
+        "package_min_score": _csv_value(package_row.get("min_score")),
+        "core_min_score": _csv_value(core_row.get("min_score")),
+        "package_min_rank": _csv_value(package_row.get("min_rank")),
+        "core_min_rank": _csv_value(core_row.get("min_rank")),
         "package_key_json": _json(package_key),
         "core_key_json": _json(core_key),
         "core_candidates_json": _json(core_candidates or []),
@@ -367,7 +384,32 @@ def _reconciliation_config(schema: dict[str, Any]) -> dict[str, Any]:
         raise ValueError("fa_fact_ln_score_history audit.reconciliation.default_status is required")
     if not isinstance(issue_types, dict):
         raise ValueError("fa_fact_ln_score_history audit.reconciliation.issue_types is required")
-    return {"default_status": default_status, "issue_types": issue_types}
+    config: dict[str, Any] = {"default_status": default_status, "issue_types": issue_types}
+    zero_placeholder = reconciliation.get("zero_placeholder")
+    if zero_placeholder:
+        if not isinstance(zero_placeholder, dict):
+            raise ValueError("fa_fact_ln_score_history audit.reconciliation.zero_placeholder must be an object")
+        columns = zero_placeholder.get("columns")
+        values = zero_placeholder.get("values")
+        issue_type = str(zero_placeholder.get("issue_type") or "").strip()
+        side = str(zero_placeholder.get("side") or "").strip()
+        if not isinstance(columns, list) or not columns:
+            raise ValueError("zero_placeholder.columns must be a non-empty list")
+        if not isinstance(values, list) or not values:
+            raise ValueError("zero_placeholder.values must be a non-empty list")
+        if not issue_type:
+            raise ValueError("zero_placeholder.issue_type is required")
+        if issue_type not in issue_types:
+            raise ValueError(f"zero_placeholder.issue_type is not configured: {issue_type}")
+        if side not in {"core", "package"}:
+            raise ValueError("zero_placeholder.side must be core or package")
+        config["zero_placeholder"] = {
+            "columns": [str(column) for column in columns],
+            "values": [_normalized_placeholder_value(value) for value in values],
+            "issue_type": issue_type,
+            "side": side,
+        }
+    return config
 
 
 def _issue_config(reconciliation_config: dict[str, Any], issue_type: str) -> dict[str, Any]:
@@ -401,6 +443,16 @@ def _task_id(issue_type: str, package_key: dict[str, Any], core_key: dict[str, A
         "candidates": candidates,
     })
     return hashlib.sha1(payload.encode("utf-8")).hexdigest()[:16]
+
+
+def _normalized_placeholder_value(value: Any) -> str:
+    if isinstance(value, float) and value.is_integer():
+        return str(int(value))
+    return str(value)
+
+
+def _csv_value(value: Any) -> Any:
+    return "" if value in (None, "") else value
 
 
 def _json(value: Any) -> str:

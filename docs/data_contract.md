@@ -207,7 +207,7 @@ python3 scripts/build_package.py build-score-history-reconciliation-plan \
   --output-dir staging/score_history_reconciliation_2023_2024
 ```
 
-输出 `score_history_reconciliation_plan.csv/json`。CSV 任务类型包括 `major_code_drift_candidate`、`value_drift`、`package_only_unmatched`、`core_only_unmatched`；任务状态、优先级、建议动作和匹配置信度均由 `config/source_schemas.json` 维护。它是人工复核计划，不是 data package，不能导入 core。
+输出 `score_history_reconciliation_plan.csv/json`。CSV 任务类型包括 `major_code_drift_candidate`、`value_drift`、`package_only_unmatched`、`core_only_unmatched`、`core_only_zero_placeholder`；任务状态、优先级、建议动作、匹配置信度和 0 分/0 位次占位识别均由 `config/source_schemas.json` 维护。它是人工复核计划，不是 data package，不能导入 core。
 
 复核推进中用 readiness audit 做门禁：
 
