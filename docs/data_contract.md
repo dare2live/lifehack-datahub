@@ -161,7 +161,7 @@ python3 scripts/build_package.py ocr-page-images \
 
 OCR manifest 会保留输入图片 manifest、证据 URL、目标表、识别语言、识别等级、图片 SHA-256 和每张图的 observation 数；JSONL 每行是一张图片的文本 observation 和归一化坐标，后续表格解析或人工复核都从这个中间产物继续。
 
-OCR JSONL 下一步先进入候选解析，不直接发布为正式表。候选 CSV 会保留解析状态、累计校验状态、原始 OCR 文本和最低置信度：
+OCR JSONL 下一步先进入候选解析，不直接发布为正式表。候选 CSV 会保留解析状态、累计校验状态、原始 OCR 文本和最低置信度；若同一图片同一表格块有足够锚点，解析器会把漏识别分数列但人数/累计齐全的行标为 `inferred_score`：
 
 ```bash
 python3 scripts/build_package.py parse-ln-score-distribution-ocr \
@@ -170,7 +170,7 @@ python3 scripts/build_package.py parse-ln-score-distribution-ocr \
   --source-date 2024-06-25
 ```
 
-真实 smoke：2024 OCR JSONL 生成 1,861 条候选、650 条完整 parsed 行、492 条累计校验 OK；2023 OCR JSONL 生成 1,450 条候选、227 条完整 parsed 行、161 条累计校验 OK。该结果说明 OCR 候选仍需要人工复核或更强表格结构识别，不能跳过 `build-local` 质量闸门。
+真实 smoke：2024 OCR JSONL 生成 1,861 条候选、650 条直接 parsed 行、194 条 inferred_score 行、598 条累计校验 OK；2023 OCR JSONL 生成 1,450 条候选、227 条直接 parsed 行、114 条 inferred_score 行、262 条累计校验 OK。该结果说明 OCR 候选仍需要人工复核或更强表格结构识别，不能跳过 `build-local` 质量闸门。
 
 OCR 或人工转录后的 cleaned CSV 不允许直接进入 core，必须通过 `build-local` 生成标准包。`build-local` 对 `fa_fact_ln_score_distribution` 会强制校验：
 

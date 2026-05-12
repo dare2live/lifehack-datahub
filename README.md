@@ -133,7 +133,7 @@ python3 scripts/build_package.py ocr-page-images \
   --manifest raw/ln_score_distribution/2024-06-25/_page_images_index.json
 ```
 
-OCR JSONL 不能直接发布为正式数据。先生成带解析状态、累计校验状态、原始文本和置信度的候选 CSV：
+OCR JSONL 不能直接发布为正式数据。先生成带解析状态、累计校验状态、原始文本和置信度的候选 CSV。若同一图片同一表格块有足够锚点，解析器会把漏识别分数列的行标为 `inferred_score`，仍需后续复核：
 
 ```bash
 python3 scripts/build_package.py parse-ln-score-distribution-ocr \

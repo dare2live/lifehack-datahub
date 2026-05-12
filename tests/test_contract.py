@@ -371,8 +371,9 @@ def test_parse_ln_score_distribution_ocr_jsonl_candidates(tmp_path: Path):
             {"text": "675", "confidence": 1, "x": 0.08, "y": 0.86, "width": 0.03, "height": 0.01},
             {"text": "3", "confidence": 1, "x": 0.16, "y": 0.86, "width": 0.01, "height": 0.01},
             {"text": "15", "confidence": 1, "x": 0.22, "y": 0.86, "width": 0.02, "height": 0.01},
-            {"text": "674及以上17", "confidence": 0.8, "x": 0.30, "y": 0.84, "width": 0.1, "height": 0.01},
-            {"text": "404 463 100,014", "confidence": 0.9, "x": 0.30, "y": 0.82, "width": 0.1, "height": 0.01},
+            {"text": "674及以上17", "confidence": 0.8, "x": 0.08, "y": 0.84, "width": 0.1, "height": 0.01},
+            {"text": "2 19", "confidence": 0.9, "x": 0.08, "y": 0.82, "width": 0.1, "height": 0.01},
+            {"text": "404 463 100,014", "confidence": 0.9, "x": 0.30, "y": 0.80, "width": 0.1, "height": 0.01},
             {"text": "150 22,006", "confidence": 0.7, "x": 0.60, "y": 0.50, "width": 0.1, "height": 0.01},
         ],
     }
@@ -384,8 +385,12 @@ def test_parse_ln_score_distribution_ocr_jsonl_candidates(tmp_path: Path):
     assert by_score[675]["cumulative_rank"] == 15
     assert by_score[674]["cumulative_rank"] == 17
     assert by_score[404]["cumulative_rank"] == 100014
+    inferred = next(row for row in rows if row["parse_status"] == "inferred_score")
+    assert inferred["score"] == 673
+    assert inferred["math_status"] == "ok"
     assert by_score[676]["math_status"] == "ok"
     assert by_score[675]["math_status"] == "ok"
+    assert report["inferred_score_rows"] == 1
     assert report["subjects"] == ["历史类"]
     assert report["candidate_rows"] >= 2
 

@@ -4,6 +4,7 @@ from __future__ import annotations
 import csv
 import json
 import re
+from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
 from statistics import mean
@@ -27,6 +28,9 @@ CANDIDATE_COLUMNS = [
     "math_status",
     "raw_text",
 ]
+
+
+COMPLETE_PARSE_STATUSES = {"parsed", "inferred_score"}
 
 
 NOISE_MARKERS = [
@@ -88,6 +92,7 @@ def parse_ln_score_distribution_ocr_jsonl(
                 if row:
                     rows.append(row)
 
+    _infer_missing_scores(rows, parser_config)
     _mark_math_status(rows)
     report = {
         "source_date": source_date,
@@ -96,7 +101,11 @@ def parse_ln_score_distribution_ocr_jsonl(
         "observation_count": observation_count,
         "candidate_rows": len(rows),
         "parsed_rows": sum(1 for row in rows if row["parse_status"] == "parsed"),
-        "needs_review_rows": sum(1 for row in rows if row["parse_status"] != "parsed" or row["math_status"] != "ok"),
+        "inferred_score_rows": sum(1 for row in rows if row["parse_status"] == "inferred_score"),
+        "complete_rows": sum(1 for row in rows if row["parse_status"] in COMPLETE_PARSE_STATUSES),
+        "needs_review_rows": sum(
+            1 for row in rows if row["parse_status"] not in COMPLETE_PARSE_STATUSES or row["math_status"] != "ok"
+        ),
         "subjects": sorted(inferred_subjects),
         "notes": "Candidate OCR parse only. Review rows before build-local.",
     }
@@ -129,6 +138,8 @@ def _load_ocr_table_config(source_key: str) -> dict[str, Any]:
         "row_y_tolerance": float(config["row_y_tolerance"]),
         "table_y_min": float(config["table_y_min"]),
         "table_y_max": float(config["table_y_max"]),
+        "infer_missing_score": bool(config.get("infer_missing_score")),
+        "score_inference_min_anchor_rows": int(config.get("score_inference_min_anchor_rows", 2)),
         "block_x_ranges": [(float(item[0]), float(item[1])) for item in block_ranges],
     }
 
@@ -289,7 +300,7 @@ def _split_stuck_numbers(value: str) -> list[int]:
 def _mark_math_status(rows: list[dict[str, Any]]) -> None:
     parsed = [
         row for row in rows
-        if row["parse_status"] == "parsed"
+        if row["parse_status"] in COMPLETE_PARSE_STATUSES
         and isinstance(row.get("score"), int)
         and isinstance(row.get("score_count"), int)
         and isinstance(row.get("cumulative_rank"), int)
@@ -313,6 +324,45 @@ def _mark_math_status(rows: list[dict[str, Any]]) -> None:
             else:
                 row["math_status"] = "cumulative_mismatch"
             previous_cumulative = int(row["cumulative_rank"])
+
+
+def _infer_missing_scores(rows: list[dict[str, Any]], config: dict[str, Any]) -> None:
+    if not config.get("infer_missing_score"):
+        return
+    min_anchor_rows = int(config["score_inference_min_anchor_rows"])
+    grouped: dict[tuple[str, int, str, int], list[dict[str, Any]]] = {}
+    for row in rows:
+        key = (row["subject_cat"], int(row["score_year"]), row["image_file"], int(row["block_index"]))
+        grouped.setdefault(key, []).append(row)
+
+    for group_rows in grouped.values():
+        indexed_rows = list(enumerate(sorted(group_rows, key=lambda item: float(item["row_y"]), reverse=True)))
+        anchors = [
+            int(row["score"]) + index
+            for index, row in indexed_rows
+            if row["parse_status"] == "parsed" and _valid_score(row.get("score"))
+        ]
+        if len(anchors) < min_anchor_rows:
+            continue
+        [(anchor_score, anchor_count)] = Counter(anchors).most_common(1)
+        if anchor_count < min_anchor_rows or not _valid_score(anchor_score):
+            continue
+        for index, row in indexed_rows:
+            if row["parse_status"] != "incomplete":
+                continue
+            expected_score = anchor_score - index
+            if not _valid_score(expected_score):
+                continue
+            numbers = _extract_numbers(row["raw_text"])
+            if len(numbers) != 2:
+                continue
+            score_count, cumulative_rank = numbers
+            if score_count <= 0 or cumulative_rank <= score_count:
+                continue
+            row["score"] = expected_score
+            row["score_count"] = score_count
+            row["cumulative_rank"] = cumulative_rank
+            row["parse_status"] = "inferred_score"
 
 
 def _is_noise(text: str) -> bool:

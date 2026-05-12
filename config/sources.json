@@ -161,6 +161,8 @@
           "row_y_tolerance": 0.009,
           "table_y_min": 0.045,
           "table_y_max": 0.91,
+          "infer_missing_score": true,
+          "score_inference_min_anchor_rows": 2,
           "block_x_ranges": [
             [0.04, 0.27],
             [0.27, 0.49],
