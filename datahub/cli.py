@@ -17,6 +17,7 @@ from .builders.score_history_snapshot import build_score_history_snapshot_packag
 from .builders.school_identity import build_school_identity_package
 from .config import get_table_schema
 from .connectors.manual_files import intake_manual_assets
+from .connectors.page_images import download_page_images
 from .connectors.registry import discover_assets, list_source_keys
 from .connectors.remote_files import download_remote_assets
 from .parsers.ln_projection_score import parse_ln_projection_score_files
@@ -54,6 +55,11 @@ def main() -> int:
     download.add_argument("--source-key", required=True)
     download.add_argument("--output-root", required=True, type=Path)
     download.add_argument("--timeout", type=int, default=60)
+
+    download_images = sub.add_parser("download-page-images", help="Download images linked from configured pages")
+    download_images.add_argument("--source-key", required=True)
+    download_images.add_argument("--output-root", required=True, type=Path)
+    download_images.add_argument("--timeout", type=int, default=60)
 
     intake = sub.add_parser("intake-manual", help="Register controlled manual source files in raw storage")
     intake.add_argument("--source-key", required=True)
@@ -189,6 +195,10 @@ def main() -> int:
             for asset in download_remote_assets(args.source_key, args.output_root, timeout=args.timeout)
         ]
         print(json.dumps({"source_key": args.source_key, "assets": assets}, ensure_ascii=False, indent=2))
+        return 0
+    if args.cmd == "download-page-images":
+        result = download_page_images(args.source_key, args.output_root, timeout=args.timeout)
+        print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
     if args.cmd == "intake-manual":
         result = intake_manual_assets(

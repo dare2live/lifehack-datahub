@@ -127,8 +127,34 @@
           }
         }
       ],
+      "page_image_sources": [
+        {
+          "page_url": "https://jyt.ln.gov.cn/jyt/gk/zfxxgk/fdzdgknr/zdmsxx/ssqk/2023080814064098030/index.shtml",
+          "source_date": "2023-06-24",
+          "score_year": 2023,
+          "file_prefix": "ln_score_distribution_2023",
+          "include": "/jyt/imageDir/2023/06/img_pc_site/",
+          "headers": {
+            "User-Agent": "Mozilla/5.0"
+          },
+          "notes": "2023 辽宁成绩统计表官方图片页，需 OCR 或受控人工转录后进入 cleaned CSV。"
+        },
+        {
+          "page_url": "https://jyt.ln.gov.cn/jyt/jyzx/jyyw/2024062510394164694/index.shtml",
+          "source_date": "2024-06-25",
+          "score_year": 2024,
+          "file_prefix": "ln_score_distribution_2024",
+          "include": "/jyt/imageDir/2024/06/img_pc_site/",
+          "headers": {
+            "User-Agent": "Mozilla/5.0"
+          },
+          "notes": "2024 辽宁成绩统计表官方图片页，需 OCR 或受控人工转录后进入 cleaned CSV。"
+        }
+      ],
       "parser": {
         "score_year_by_source_date": {
+          "2023-06-24": 2023,
+          "2024-06-25": 2024,
           "2025-06-24": 2025
         }
       },
@@ -136,9 +162,11 @@
         "status": "remote_configured",
         "official_distribution": "辽宁招生考试之窗成绩统计表（辽宁省教育厅转载页面）",
         "evidence_urls": [
+          "https://jyt.ln.gov.cn/jyt/gk/zfxxgk/fdzdgknr/zdmsxx/ssqk/2023080814064098030/index.shtml",
+          "https://jyt.ln.gov.cn/jyt/jyzx/jyyw/2024062510394164694/index.shtml",
           "https://jyt.ln.gov.cn/jyt/jyzx/jyyw/2025062418040445891/index.shtml"
         ],
-        "notes": "用于把官方投档最低分转换为同分段累计位次。该累计位次不是同分排序后的精确投档位次。2023/2024 官方页面目前以图片发布，需另建图片/OCR或人工复核链路。"
+        "notes": "用于把官方投档最低分转换为同分段累计位次。该累计位次不是同分排序后的精确投档位次。2023/2024 官方页面以图片发布，download-page-images 可重复采集原图并生成来源 manifest，后续由 OCR 或受控人工转录进入 cleaned CSV。"
       },
       "target_tables": ["fa_fact_ln_score_distribution"]
     },

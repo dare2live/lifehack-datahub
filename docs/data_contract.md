@@ -139,6 +139,16 @@ python3 scripts/build_package.py build-score-history-from-projection \
 
 注意：派生的 `min_rank` 是最低分对应的一分一段累计人数，不是同分排序后的精确投档位次。`quality_report.warnings` 会保留 `rank_is_score_cumulative_rank`。2023/2024 成绩统计表在辽宁官方页面目前以图片发布，仍需后续图片解析或受控人工复核。
 
+2023/2024 官方图片页可先用 `download-page-images` 采集原图并生成 manifest。manifest 兼容 `build-local --intake-manifest`，后续无论使用 OCR 还是人工转录，发布包都能追溯到原始图片 SHA-256：
+
+```bash
+python3 scripts/build_package.py download-page-images \
+  --source-key ln_score_distribution \
+  --output-root raw
+```
+
+真实 smoke 已验证该命令可从 2023 官方页面采集 20 张图、从 2024 官方页面采集 21 张图。
+
 ## 证据域数据包
 
 推荐和报告需要的学校、专业、政策证据由 DataHub 产出标准包，core 只消费：

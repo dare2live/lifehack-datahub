@@ -115,6 +115,14 @@ python3 scripts/build_package.py build-score-history-from-projection \
 
 派生位次是最低分对应的一分一段累计人数，不是同分排序后的精确投档位次，质量报告会保留 warning。
 
+2023/2024 成绩统计表目前是官方图片页，可先采集原图和 SHA-256 manifest，后续再 OCR 或受控人工转录：
+
+```bash
+python3 scripts/build_package.py download-page-images \
+  --source-key ln_score_distribution \
+  --output-root raw
+```
+
 ## 专业映射复核晋级
 
 core 负责生成和维护人工复核队列，DataHub 只读读取其中已批准的结果，并输出完整 `fa_bridge_major_tdx` 数据包：

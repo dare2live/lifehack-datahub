@@ -7,6 +7,7 @@ from zipfile import ZipFile
 import duckdb
 from openpyxl import Workbook
 
+from datahub.connectors.page_images import download_page_images
 from datahub.builders.major_mapping_review import build_major_mapping_review_package
 from datahub.builders.local_package import build_local_package
 from datahub.builders.policy_tables import (
@@ -197,6 +198,7 @@ def test_audit_sources_marks_admission_plan_manual():
     assert by_key["ln_projection_score"]["status"] == "remote_configured"
     assert by_key["ln_score_history"]["status"] == "partial_official_derivation_configured"
     assert by_key["ln_score_distribution"]["status"] == "remote_configured"
+    assert by_key["ln_score_distribution"]["page_image_source_count"] == 2
     assert by_key["major_mapping_review"]["status"] == "local_db_configured"
     assert by_key["school_profile"]["status"] == "remote_configured"
     assert by_key["school_identity_bridge"]["status"] == "local_db_configured"
@@ -759,6 +761,46 @@ def test_download_remote_assets_from_config(tmp_path: Path, monkeypatch):
     assert assets[0].path.read_text(encoding="utf-8") == "id,name\n1,alpha\n"
     assert assets[0].path.name == "demo.csv"
     assert assets[0].source_date == "2026-05-13"
+
+
+def test_download_page_images_from_config(tmp_path: Path, monkeypatch):
+    image = tmp_path / "table.png"
+    image.write_bytes(b"image-bytes")
+    html = tmp_path / "page.html"
+    html.write_text(f'<html><body><img src="{image.name}"></body></html>', encoding="utf-8")
+
+    monkeypatch.setattr(
+        "datahub.connectors.page_images.load_sources",
+        lambda: {
+            "sources": {
+                "demo_images": {
+                    "name": "demo images",
+                    "kind": "official_page_images",
+                    "target_tables": ["fa_fact_ln_score_distribution"],
+                    "acquisition": {
+                        "status": "remote_configured",
+                        "official_distribution": "fixture page",
+                        "evidence_urls": [html.as_uri()],
+                    },
+                    "page_image_sources": [
+                        {
+                            "page_url": html.as_uri(),
+                            "source_date": "2024-06-25",
+                            "file_prefix": "fixture",
+                        }
+                    ],
+                }
+            }
+        },
+    )
+
+    result = download_page_images("demo_images", tmp_path / "raw")
+    assert result["file_count"] == 1
+    manifest = Path(result["pages"][0]["manifest_path"])
+    data = json.loads(manifest.read_text(encoding="utf-8"))
+    assert data["source_kind"] == "official_page_images"
+    assert data["files"][0]["sha256"] == hashlib.sha256(b"image-bytes").hexdigest()
+    assert Path(data["files"][0]["path"]).read_bytes() == b"image-bytes"
 
 
 def test_parse_moe_major_catalog_lines():
