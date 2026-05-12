@@ -15,10 +15,17 @@ def file_sha256(path: Path) -> str:
     return h.hexdigest()
 
 
-def write_manifest(package_dir: Path, package_id: str, files: list[str], tables: list[dict]) -> Path:
+def write_manifest(
+    package_dir: Path,
+    package_id: str,
+    files: list[str],
+    tables: list[dict],
+    source_version: str | None = None,
+) -> Path:
     manifest = {
         "package_id": package_id,
         "built_at": datetime.utcnow().isoformat(),
+        "source_version": source_version,
         "tables": tables,
         "files": files,
         "hashes": {name: file_sha256(package_dir / name) for name in files if (package_dir / name).exists()},

@@ -3,7 +3,7 @@ name = "lifehack-datahub"
 version = "0.1.0"
 description = "Data acquisition and packaging project for LifeHack"
 requires-python = ">=3.9"
-dependencies = []
+dependencies = ["openpyxl>=3.1"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

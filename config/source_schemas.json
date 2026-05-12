@@ -1,0 +1,90 @@
+{
+  "version": "1",
+  "updated_at": "2026-05-12",
+  "tables": {
+    "fa_dim_ln_admission_plan": {
+      "source_key": "ln_admission_plan",
+      "primary_key": ["school_code", "major_code", "batch", "subject_cat"],
+      "required": ["school_code", "school_name", "major_code", "major_full", "batch", "subject_cat"],
+      "columns": [
+        "school_code",
+        "school_name",
+        "major_code",
+        "major_full",
+        "major_short",
+        "batch",
+        "subject_cat",
+        "school_tier",
+        "region",
+        "plan_count",
+        "school_type",
+        "city_level_tag",
+        "postgrad_rate"
+      ],
+      "numeric": ["plan_count", "postgrad_rate"],
+      "aliases": {
+        "school_code": ["school_code", "院校代码", "学校代码", "院校专业组代码"],
+        "school_name": ["school_name", "院校名称", "学校名称"],
+        "major_code": ["major_code", "专业代码", "专业组代码"],
+        "major_full": ["major_full", "专业名称", "专业全称"],
+        "major_short": ["major_short", "专业简称"],
+        "batch": ["batch", "批次", "录取批次"],
+        "subject_cat": ["subject_cat", "科类", "首选科目", "选科"],
+        "school_tier": ["school_tier", "院校层次", "学校层次"],
+        "region": ["region", "地区", "城市", "院校所在地"],
+        "plan_count": ["plan_count", "计划数", "招生计划", "招生人数"],
+        "school_type": ["school_type", "院校类型", "学校类型"],
+        "city_level_tag": ["city_level_tag", "城市标签"],
+        "postgrad_rate": ["postgrad_rate", "保研率"]
+      }
+    },
+    "fa_fact_ln_score_history": {
+      "source_key": "ln_score_history",
+      "primary_key": ["school_code", "major_code", "batch", "subject_cat", "score_year"],
+      "required": ["school_code", "major_code", "batch", "subject_cat", "score_year", "min_score", "min_rank"],
+      "columns": [
+        "school_code",
+        "major_code",
+        "batch",
+        "subject_cat",
+        "score_year",
+        "min_score",
+        "min_rank",
+        "plan_count"
+      ],
+      "numeric": ["score_year", "min_score", "min_rank", "plan_count"],
+      "aliases": {
+        "school_code": ["school_code", "院校代码", "学校代码", "院校专业组代码"],
+        "major_code": ["major_code", "专业代码", "专业组代码"],
+        "batch": ["batch", "批次", "录取批次"],
+        "subject_cat": ["subject_cat", "科类", "首选科目", "选科"],
+        "score_year": ["score_year", "年份", "录取年份"],
+        "min_score": ["min_score", "最低分", "最低录取分"],
+        "min_rank": ["min_rank", "最低位次", "最低排名"],
+        "plan_count": ["plan_count", "计划数", "招生计划", "招生人数"]
+      }
+    },
+    "fa_dim_major_catalog": {
+      "source_key": "moe_major_catalog",
+      "primary_key": ["major_code"],
+      "required": ["major_code", "major_name", "degree_type"],
+      "columns": [
+        "major_code",
+        "major_name",
+        "major_category",
+        "major_class",
+        "degree_type",
+        "study_years"
+      ],
+      "numeric": ["study_years"],
+      "aliases": {
+        "major_code": ["major_code", "专业代码"],
+        "major_name": ["major_name", "专业名称"],
+        "major_category": ["major_category", "门类"],
+        "major_class": ["major_class", "专业类"],
+        "degree_type": ["degree_type", "授予学位"],
+        "study_years": ["study_years", "修业年限", "学制"]
+      }
+    }
+  }
+}

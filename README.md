@@ -38,4 +38,17 @@ exports/YYYY-MM-DD_ln_admission_plan/
 
 ## 当前阶段
 
-Phase 5 原型：先固化数据包契约和模块边界，再逐步接入辽宁招生计划、辽宁历史分数线、教育部专业目录等数据源。
+Phase 5 原型：已固化数据包契约和模块边界，并提供本地已清洗 CSV/TSV/XLSX 到 data package 的生成入口。下一步逐步接入辽宁招生计划、辽宁历史分数线、教育部专业目录等数据源。
+
+## 本地数据包生成
+
+```bash
+python3 scripts/build_package.py build-local \
+  --source-key ln_admission_plan \
+  --table fa_dim_ln_admission_plan \
+  --input raw/ln_admission_plan/2026_cleaned.csv \
+  --output-root exports \
+  --package-id 2026_ln_admission_plan
+```
+
+字段别名和 schema 在 `config/source_schemas.json` 维护。`raw/` 和 `exports/` 默认被 `.gitignore` 排除。
