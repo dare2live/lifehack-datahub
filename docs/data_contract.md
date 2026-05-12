@@ -237,7 +237,7 @@ python3 scripts/build_package.py build-score-history-from-reconciliation-plan \
   --package-id 2024_2023_ln_score_history_reconciled
 ```
 
-构建器按 `review_decision` 输出选择后的 `fa_fact_ln_score_history` 行：`use_package_row` 使用 package 侧数据，`keep_core_row` 保留 core 侧数据，`map_package_to_core_major_code` 使用 core 专业代码对齐 package 分数/位次，`exclude_row` 跳过；`needs_source_research` 属于 blocking decision，readiness 不会通过。真实未复核 2023/2024 plan 已验证会被拒绝：`pending=24478`，不会生成 data package。
+构建器按 `review_decision` 输出选择后的 `fa_fact_ln_score_history` 行：`use_package_row` 使用 package 侧数据，`keep_core_row` 保留 core 侧数据，`map_package_to_core_major_code` 使用 core 专业代码对齐 package 分数/位次，package-only 的 `exclude_row` 会跳过；`needs_source_research` 属于 blocking decision，readiness 不会通过。带 core 侧证据的 `exclude_row` 会被拒绝，因为当前 core importer 不能通过 CSV package 删除已有行，删除语义必须另行设计。真实未复核 2023/2024 plan 已验证会被拒绝：`pending=24478`，不会生成 data package。
 
 2022/2023/2024 官方图片页和 2022 镜像图片页可先用 `download-page-images` 采集图片并生成 manifest。manifest 兼容 `build-local --intake-manifest`，后续无论使用 OCR 还是人工转录，发布包都能追溯到原始图片 SHA-256：
 

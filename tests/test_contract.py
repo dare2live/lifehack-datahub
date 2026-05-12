@@ -1809,24 +1809,24 @@ def test_build_score_history_from_reconciliation_plan_exports_reviewed_rows(tmp_
             "notes": "major code aligned",
         },
         {
-            "task_id": "core-1",
-            "issue_type": "core_only_unmatched",
-            "priority": "4",
+            "task_id": "package-exclude-1",
+            "issue_type": "package_only_unmatched",
+            "priority": "3",
             "status": "reviewed",
-            "suggested_action": "review_core_only_row",
+            "suggested_action": "review_package_only_row",
             "match_confidence": "none",
             "score_year": "2024",
             "batch": "本科批",
             "subject_cat": "物理类",
-            "school_code": "1007",
-            "package_major_code": "",
-            "core_major_code": "07",
-            "package_min_score": "",
-            "core_min_score": "540",
-            "package_min_rank": "",
-            "core_min_rank": "7000",
-            "package_key_json": "{}",
-            "core_key_json": json.dumps({"school_code": "1007", "major_code": "07"}, ensure_ascii=False),
+            "school_code": "1008",
+            "package_major_code": "08",
+            "core_major_code": "",
+            "package_min_score": "530",
+            "core_min_score": "",
+            "package_min_rank": "8000",
+            "core_min_rank": "",
+            "package_key_json": json.dumps({"school_code": "1008", "major_code": "08"}, ensure_ascii=False),
+            "core_key_json": "{}",
             "core_candidates_json": "[]",
             "matching_values_json": "{}",
             "differences_json": "[]",
@@ -1858,6 +1858,51 @@ def test_build_score_history_from_reconciliation_plan_exports_reviewed_rows(tmp_
     assert by_key[("1002", "02")]["min_rank"] == "2000"
     assert by_key[("1006", "06")]["min_rank"] == "6000"
     assert by_key[("1003", "03")]["min_rank"] == "3000"
+
+
+def test_build_score_history_from_reconciliation_plan_rejects_core_delete_semantics(tmp_path: Path):
+    plan = tmp_path / "score_history_reconciliation_plan.csv"
+    with plan.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=PLAN_COLUMNS, extrasaction="ignore")
+        writer.writeheader()
+        writer.writerow({
+            "task_id": "core-delete-1",
+            "issue_type": "core_only_unmatched",
+            "priority": "4",
+            "status": "reviewed",
+            "suggested_action": "review_core_only_row",
+            "match_confidence": "none",
+            "score_year": "2024",
+            "batch": "本科批",
+            "subject_cat": "物理类",
+            "school_code": "1007",
+            "package_major_code": "",
+            "core_major_code": "07",
+            "package_min_score": "",
+            "core_min_score": "540",
+            "package_min_rank": "",
+            "core_min_rank": "7000",
+            "package_key_json": "{}",
+            "core_key_json": json.dumps({"school_code": "1007", "major_code": "07"}, ensure_ascii=False),
+            "core_candidates_json": "[]",
+            "matching_values_json": "{}",
+            "differences_json": "[]",
+            "review_decision": "exclude_row",
+            "reviewer": "tester",
+            "reviewed_at": "2026-05-13",
+            "notes": "delete required",
+        })
+
+    try:
+        build_score_history_package_from_reconciliation_plan(
+            plan_csv=plan,
+            output_root=tmp_path / "exports",
+            package_id="pkg-reconciled-core-delete",
+        )
+        rejected = False
+    except ValueError as exc:
+        rejected = "cannot delete existing core rows" in str(exc)
+    assert rejected
 
 
 def test_build_policy_industry_map_package_from_config(tmp_path: Path):

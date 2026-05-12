@@ -97,6 +97,11 @@ def _build_rows(
             continue
         decision = str(row.get("review_decision") or "").strip()
         if decision == "exclude_row":
+            if _has_core_side(row):
+                raise ValueError(
+                    f"task {row.get('task_id')} excludes a core-backed row; "
+                    "the package importer cannot delete existing core rows"
+                )
             skipped += 1
             continue
         if decision in review_config["blocking_review_decisions"]:
@@ -154,6 +159,16 @@ def _core_major_code(row: dict[str, Any]) -> str:
     if "|" in value:
         raise ValueError(f"task {row.get('task_id')} has ambiguous core_major_code: {value}")
     return value
+
+
+def _has_core_side(row: dict[str, Any]) -> bool:
+    core_key = _json_value(row.get("core_key_json"), {})
+    if isinstance(core_key, dict) and any(value not in (None, "") for value in core_key.values()):
+        return True
+    return any(
+        str(row.get(column) or "").strip()
+        for column in ("core_major_code", "core_min_score", "core_min_rank")
+    )
 
 
 def _quality_report(
