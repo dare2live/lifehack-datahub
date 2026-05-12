@@ -123,7 +123,24 @@ python3 scripts/build_package.py build-score-history-from-projection \
 
 派生位次是最低分对应的一分一段累计人数，不是同分排序后的精确投档位次，质量报告会保留 warning。
 
-2023/2024 成绩统计表目前是官方图片页，2022 已记录中新网辽宁转载镜像图片页作为候选来源。可先采集图片和 SHA-256 manifest，后续再 OCR 或受控人工转录；2022 镜像不能冒充辽宁官网原始长期来源：
+2024 已补充可文本解析的精华高考转载 PDF 镜像，配置为 `mirror_pdf`，不能冒充辽宁官网原始长期来源。真实 smoke 已解析 1,086 行并通过 `fa_fact_ln_score_distribution` 质量闸门：
+
+```bash
+python3 scripts/build_package.py download \
+  --source-key ln_score_distribution \
+  --output-root raw
+
+python3 scripts/build_package.py parse-ln-score-distribution \
+  --input raw/ln_score_distribution/2024-06-24/ln_score_distribution_2024_physics_jhgk_mirror.pdf \
+  --input raw/ln_score_distribution/2024-06-24/ln_score_distribution_2024_history_jhgk_mirror.pdf \
+  --output cleaned/ln_score_distribution_2024_jhgk_mirror.csv \
+  --score-year 2024 \
+  --source-date 2024-06-24 \
+  --subject-cat 物理类 \
+  --subject-cat 历史类
+```
+
+2023/2024 成绩统计表仍保留官方图片页，2022 已记录中新网辽宁转载镜像图片页作为候选来源。可先采集图片和 SHA-256 manifest，后续再 OCR 或受控人工转录；2022 镜像不能冒充辽宁官网原始长期来源：
 
 ```bash
 python3 scripts/build_package.py download-page-images \

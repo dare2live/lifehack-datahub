@@ -173,6 +173,28 @@
           "headers": {
             "User-Agent": "Mozilla/5.0"
           }
+        },
+        {
+          "url": "https://www.jhgk.cn/upload/file/20240624/1719226142288062421.pdf",
+          "file_name": "ln_score_distribution_2024_physics_jhgk_mirror.pdf",
+          "source_date": "2024-06-24",
+          "sha256": "ec244daa2eaa01603ead719832b68369f756d7543127ce34b02082e61bddf584",
+          "kind": "mirror_pdf",
+          "headers": {
+            "User-Agent": "Mozilla/5.0"
+          },
+          "notes": "精华高考镜像 PDF，可文本解析；只作镜像候选源，不能冒充辽宁官网原始长期来源。"
+        },
+        {
+          "url": "https://www.jhgk.cn/upload/file/20240624/1719226127068013430.pdf",
+          "file_name": "ln_score_distribution_2024_history_jhgk_mirror.pdf",
+          "source_date": "2024-06-24",
+          "sha256": "77c043509e46905f8ffc8873e1f0fd7a29b2b474e36069cee0e4b8fb2bbd405b",
+          "kind": "mirror_pdf",
+          "headers": {
+            "User-Agent": "Mozilla/5.0"
+          },
+          "notes": "精华高考镜像 PDF，可文本解析；只作镜像候选源，不能冒充辽宁官网原始长期来源。"
         }
       ],
       "page_image_sources": [
@@ -250,6 +272,7 @@
         "score_year_by_source_date": {
           "2022-06-24": 2022,
           "2023-06-24": 2023,
+          "2024-06-24": 2024,
           "2024-06-25": 2024,
           "2025-06-24": 2025
         },
