@@ -48,6 +48,14 @@ Phase 5 原型：已固化数据包契约和模块边界，提供本地已清洗
 python3 scripts/build_package.py discover --source-key ln_admission_plan
 ```
 
+如果 `config/sources.json` 为某个 source 配置了 `remote_files`，可以先下载到 raw 目录：
+
+```bash
+python3 scripts/build_package.py download \
+  --source-key ln_admission_plan \
+  --output-root raw
+```
+
 再把已清洗文件生成 data package：
 
 ```bash

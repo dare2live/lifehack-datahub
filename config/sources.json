@@ -7,6 +7,7 @@
       "kind": "manual_download",
       "owner": "lifehack-datahub",
       "raw_glob": "raw/ln_admission_plan/**/*.xlsx",
+      "remote_files": [],
       "target_tables": ["fa_dim_ln_admission_plan"]
     },
     "ln_score_history": {
@@ -14,6 +15,7 @@
       "kind": "manual_download",
       "owner": "lifehack-datahub",
       "raw_glob": "raw/ln_score_history/**/*.xlsx",
+      "remote_files": [],
       "target_tables": ["fa_fact_ln_score_history"]
     },
     "moe_major_catalog": {
@@ -21,6 +23,7 @@
       "kind": "public_catalog",
       "owner": "lifehack-datahub",
       "raw_glob": "raw/moe_major_catalog/**/*",
+      "remote_files": [],
       "target_tables": ["fa_dim_major_catalog"]
     },
     "major_mapping_review": {
@@ -28,6 +31,7 @@
       "kind": "core_review_db",
       "owner": "lifehack-datahub",
       "raw_glob": "raw/major_mapping_review/**/*",
+      "remote_files": [],
       "target_tables": ["fa_bridge_major_tdx"]
     }
   }

@@ -46,6 +46,25 @@ python3 scripts/build_package.py build-local \
 
 字段别名、主键、必填列和数字列维护在 `config/source_schemas.json`。
 
+## 远程文件下载入口
+
+`config/sources.json` 的每个 source 可以维护 `remote_files`：
+
+```json
+{
+  "url": "https://example.com/file.xlsx",
+  "file_name": "2026.xlsx",
+  "source_date": "2026-05-13",
+  "sha256": "optional"
+}
+```
+
+下载命令只把文件写入 raw 目录，不解析、不导入 core：
+
+```bash
+python3 scripts/build_package.py download --source-key ln_admission_plan --output-root raw
+```
+
 ## 专业映射复核数据包
 
 `major_mapping_review` source 从 core 的 `university.db` 只读读取：

@@ -1,11 +1,13 @@
 from pathlib import Path
 import csv
+import hashlib
 import json
 
 import duckdb
 
 from datahub.builders.major_mapping_review import build_major_mapping_review_package
 from datahub.builders.local_package import build_local_package
+from datahub.connectors.remote_files import download_remote_assets
 from datahub.connectors.registry import discover_assets
 from datahub.validators.package_validator import validate_manifest
 
@@ -69,6 +71,37 @@ def test_discover_assets_from_source_config(tmp_path: Path):
     assert assets[0].source_key == "ln_admission_plan"
     assert assets[0].source_date == "2026-05-12"
     assert assets[0].path == source
+
+
+def test_download_remote_assets_from_config(tmp_path: Path, monkeypatch):
+    remote = tmp_path / "remote.csv"
+    remote.write_text("id,name\n1,alpha\n", encoding="utf-8")
+    digest = hashlib.sha256(remote.read_bytes()).hexdigest()
+
+    monkeypatch.setattr(
+        "datahub.connectors.remote_files.load_sources",
+        lambda: {
+            "sources": {
+                "demo_remote": {
+                    "name": "demo",
+                    "remote_files": [
+                        {
+                            "url": remote.as_uri(),
+                            "file_name": "demo.csv",
+                            "source_date": "2026-05-13",
+                            "sha256": digest,
+                        }
+                    ],
+                }
+            }
+        },
+    )
+
+    assets = download_remote_assets("demo_remote", tmp_path / "raw")
+    assert len(assets) == 1
+    assert assets[0].path.read_text(encoding="utf-8") == "id,name\n1,alpha\n"
+    assert assets[0].path.name == "demo.csv"
+    assert assets[0].source_date == "2026-05-13"
 
 
 def test_build_major_mapping_review_package_promotes_approved_rows(tmp_path: Path):

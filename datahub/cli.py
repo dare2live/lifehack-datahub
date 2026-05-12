@@ -8,6 +8,7 @@ from pathlib import Path
 from .builders.major_mapping_review import build_major_mapping_review_package
 from .builders.local_package import build_local_package
 from .connectors.registry import discover_assets, list_source_keys
+from .connectors.remote_files import download_remote_assets
 from .validators.package_validator import validate_manifest
 
 
@@ -30,6 +31,11 @@ def main() -> int:
     discover = sub.add_parser("discover", help="Discover local raw assets for a configured source")
     discover.add_argument("--source-key")
     discover.add_argument("--project-root", type=Path, default=Path.cwd())
+
+    download = sub.add_parser("download", help="Download configured remote files into raw storage")
+    download.add_argument("--source-key", required=True)
+    download.add_argument("--output-root", required=True, type=Path)
+    download.add_argument("--timeout", type=int, default=60)
 
     build_review = sub.add_parser(
         "build-review-mapping",
@@ -63,6 +69,13 @@ def main() -> int:
             print(json.dumps({"sources": list_source_keys()}, ensure_ascii=False, indent=2))
             return 0
         assets = [asset.to_dict() for asset in discover_assets(args.source_key, args.project_root)]
+        print(json.dumps({"source_key": args.source_key, "assets": assets}, ensure_ascii=False, indent=2))
+        return 0
+    if args.cmd == "download":
+        assets = [
+            asset.to_dict()
+            for asset in download_remote_assets(args.source_key, args.output_root, timeout=args.timeout)
+        ]
         print(json.dumps({"source_key": args.source_key, "assets": assets}, ensure_ascii=False, indent=2))
         return 0
     if args.cmd == "build-review-mapping":
