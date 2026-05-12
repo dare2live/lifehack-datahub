@@ -158,6 +158,12 @@
           "2025-06-24": 2025
         }
       },
+      "ocr": {
+        "engine": "macos_vision",
+        "recognition_languages": ["zh-Hans", "en-US"],
+        "recognition_level": "accurate",
+        "uses_language_correction": false
+      },
       "acquisition": {
         "status": "remote_configured",
         "official_distribution": "辽宁招生考试之窗成绩统计表（辽宁省教育厅转载页面）",

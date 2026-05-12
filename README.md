@@ -123,6 +123,16 @@ python3 scripts/build_package.py download-page-images \
   --output-root raw
 ```
 
+macOS 环境可使用系统 Vision OCR 生成可复查的 JSONL 中间产物，识别语言和等级由 `config/sources.json` 维护：
+
+```bash
+python3 scripts/build_package.py ocr-page-images \
+  --source-key ln_score_distribution \
+  --input-root raw \
+  --output-root ocr \
+  --manifest raw/ln_score_distribution/2024-06-25/_page_images_index.json
+```
+
 OCR 或人工转录后的 `fa_fact_ln_score_distribution` CSV 必须再经过 `build-local`。该入口会校验分数范围、单分人数、累计排名，以及“上一累计 + 本分人数 = 当前累计”，避免错误转录进入 core：
 
 ```bash
@@ -132,7 +142,7 @@ python3 scripts/build_package.py build-local \
   --input cleaned/ln_score_distribution_2024.csv \
   --output-root exports \
   --package-id 2024_ln_score_distribution \
-  --intake-manifest raw/ln_score_distribution/2024-06-25/_page_images_manifest.json
+  --intake-manifest raw/ln_score_distribution/2024-06-25/_page_images_index.json
 ```
 
 ## 专业映射复核晋级

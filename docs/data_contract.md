@@ -149,6 +149,18 @@ python3 scripts/build_package.py download-page-images \
 
 真实 smoke 已验证该命令可从 2023 官方页面采集 20 张图、从 2024 官方页面采集 21 张图。
 
+macOS 环境可使用系统 Vision OCR 生成可复查的 JSONL 中间产物。OCR 参数不写在代码里，由 `config/sources.json` 的 `ln_score_distribution.ocr` 维护：
+
+```bash
+python3 scripts/build_package.py ocr-page-images \
+  --source-key ln_score_distribution \
+  --input-root raw \
+  --output-root ocr \
+  --manifest raw/ln_score_distribution/2024-06-25/_page_images_index.json
+```
+
+OCR manifest 会保留输入图片 manifest、证据 URL、目标表、识别语言、识别等级、图片 SHA-256 和每张图的 observation 数；JSONL 每行是一张图片的文本 observation 和归一化坐标，后续表格解析或人工复核都从这个中间产物继续。
+
 OCR 或人工转录后的 cleaned CSV 不允许直接进入 core，必须通过 `build-local` 生成标准包。`build-local` 对 `fa_fact_ln_score_distribution` 会强制校验：
 
 - `score` 在 0-750 分范围内。
@@ -162,7 +174,7 @@ python3 scripts/build_package.py build-local \
   --input cleaned/ln_score_distribution_2024.csv \
   --output-root exports \
   --package-id 2024_ln_score_distribution \
-  --intake-manifest raw/ln_score_distribution/2024-06-25/_page_images_manifest.json
+  --intake-manifest raw/ln_score_distribution/2024-06-25/_page_images_index.json
 ```
 
 该 package 的 `manifest.source_lineage` 会保留图片采集 manifest 中的 evidence URL、采集人、来源日期和每张原图 SHA-256。

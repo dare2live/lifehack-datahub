@@ -19,6 +19,7 @@ from datahub.builders.score_history_snapshot import build_score_history_snapshot
 from datahub.config import get_table_schema, load_outcome_metrics, load_source_schemas
 from datahub.builders.school_identity import build_school_identity_package
 from datahub.connectors.manual_files import intake_manual_assets
+from datahub.connectors.macos_vision_ocr import ocr_page_images
 from datahub.connectors.remote_files import download_remote_assets
 from datahub.connectors.registry import discover_assets
 from datahub.parsers.ln_projection_score import parse_ln_projection_score_file
@@ -295,6 +296,7 @@ def test_audit_sources_marks_admission_plan_manual():
     assert by_key["ln_score_history"]["status"] == "partial_official_derivation_configured"
     assert by_key["ln_score_distribution"]["status"] == "remote_configured"
     assert by_key["ln_score_distribution"]["page_image_source_count"] == 2
+    assert by_key["ln_score_distribution"]["ocr_engine"] == "macos_vision"
     assert by_key["major_mapping_review"]["status"] == "local_db_configured"
     assert by_key["school_profile"]["status"] == "remote_configured"
     assert by_key["school_identity_bridge"]["status"] == "local_db_configured"
@@ -900,6 +902,72 @@ def test_download_page_images_from_config(tmp_path: Path, monkeypatch):
     assert data["source_kind"] == "official_page_images"
     assert data["files"][0]["sha256"] == hashlib.sha256(b"image-bytes").hexdigest()
     assert Path(data["files"][0]["path"]).read_bytes() == b"image-bytes"
+
+
+def test_ocr_page_images_writes_configured_manifest(tmp_path: Path, monkeypatch):
+    image = tmp_path / "table.png"
+    image.write_bytes(b"image-bytes")
+    input_manifest = tmp_path / "raw" / "ln_score_distribution" / "2024-06-25" / "_page_images_index.json"
+    input_manifest.parent.mkdir(parents=True)
+    input_manifest.write_text(json.dumps({
+        "source_key": "ln_score_distribution",
+        "source_name": "辽宁普通高考成绩统计表",
+        "source_kind": "official_page_images",
+        "source_date": "2024-06-25",
+        "evidence_urls": ["https://jyt.ln.gov.cn/example/index.shtml"],
+        "target_tables": ["fa_fact_ln_score_distribution"],
+        "files": [
+            {
+                "file_name": "table.png",
+                "path": str(image),
+                "sha256": "image-sha256-fixture",
+            }
+        ],
+    }, ensure_ascii=False), encoding="utf-8")
+
+    monkeypatch.setattr(
+        "datahub.connectors.macos_vision_ocr.load_sources",
+        lambda: {
+            "sources": {
+                "ln_score_distribution": {
+                    "ocr": {
+                        "engine": "macos_vision",
+                        "recognition_languages": ["zh-Hans", "en-US"],
+                        "recognition_level": "accurate",
+                        "uses_language_correction": False,
+                    }
+                }
+            }
+        },
+    )
+    monkeypatch.setattr("datahub.connectors.macos_vision_ocr._compile_swift_ocr", lambda swiftc, binary_path: None)
+    monkeypatch.setattr(
+        "datahub.connectors.macos_vision_ocr._run_vision_ocr",
+        lambda binary_path, image_paths, ocr_config: [
+            {
+                "image_path": str(image_paths[0]),
+                "observations": [
+                    {"text": "676及以上12", "confidence": 0.91, "x": 0.1, "y": 0.9, "width": 0.2, "height": 0.03}
+                ],
+            }
+        ],
+    )
+
+    result = ocr_page_images(
+        "ln_score_distribution",
+        tmp_path / "raw",
+        tmp_path / "ocr",
+        manifest_paths=[input_manifest],
+    )
+
+    assert result["file_count"] == 1
+    assert result["observation_count"] == 1
+    ocr_manifest = json.loads(Path(result["pages"][0]["ocr_manifest"]).read_text(encoding="utf-8"))
+    assert ocr_manifest["source_kind"] == "official_page_image_ocr"
+    assert ocr_manifest["recognition_languages"] == ["zh-Hans", "en-US"]
+    assert ocr_manifest["files"][0]["sha256"] == "image-sha256-fixture"
+    jsonl = Path(result["pages"][0]["ocr_jsonl"]).read_text(encoding="utf-8")
+    assert "676及以上12" in jsonl
 
 
 def test_parse_moe_major_catalog_lines():
