@@ -5,7 +5,7 @@ import io
 import json
 from pathlib import Path
 from typing import Any
-from zipfile import BadZipFile
+from zipfile import BadZipFile, ZipFile
 
 import msoffcrypto
 from openpyxl import load_workbook
@@ -50,7 +50,13 @@ def parse_ln_projection_score_file(
     source_date: str,
     password_candidates: list[str],
 ) -> list[dict[str, Any]]:
-    wb = _load_workbook(path, password_candidates)
+    rows: list[dict[str, Any]] = []
+    for wb in _load_workbooks(path, password_candidates):
+        rows.extend(_rows_from_workbook(wb, score_year=score_year, batch=batch, source_date=source_date))
+    return rows
+
+
+def _rows_from_workbook(wb, *, score_year: int, batch: str, source_date: str) -> list[dict[str, Any]]:
     ws = wb.active
     subject_cat = _subject_from_worksheet(ws)
     rows: list[dict[str, Any]] = []
@@ -73,7 +79,21 @@ def parse_ln_projection_score_file(
     return rows
 
 
-def _load_workbook(path: Path, password_candidates: list[str]):
+def _load_workbooks(path: Path, password_candidates: list[str]):
+    if path.suffix.lower() == ".zip":
+        with ZipFile(path) as z:
+            workbooks = []
+            for name in z.namelist():
+                if name.startswith("__MACOSX/") or not name.lower().endswith((".xlsx", ".xlsm")):
+                    continue
+                workbooks.append(_load_workbook_bytes(z.read(name), path, password_candidates))
+            if not workbooks:
+                raise ValueError(f"zip contains no xlsx workbook: {path}")
+            return workbooks
+    return [_load_workbook_path(path, password_candidates)]
+
+
+def _load_workbook_path(path: Path, password_candidates: list[str]):
     try:
         return load_workbook(path, read_only=True, data_only=True)
     except BadZipFile:
@@ -94,6 +114,27 @@ def _load_workbook(path: Path, password_candidates: list[str]):
                 f.seek(0)
                 office = msoffcrypto.OfficeFile(f)
         raise ValueError(f"encrypted workbook cannot be decrypted: {path}")
+
+
+def _load_workbook_bytes(data: bytes, source_path: Path, password_candidates: list[str]):
+    try:
+        return load_workbook(io.BytesIO(data), read_only=True, data_only=True)
+    except BadZipFile:
+        pass
+
+    office = msoffcrypto.OfficeFile(io.BytesIO(data))
+    if not office.is_encrypted():
+        raise ValueError(f"workbook in zip is not readable as xlsx and is not encrypted: {source_path}")
+    for password in password_candidates:
+        out = io.BytesIO()
+        try:
+            office.load_key(password=password)
+            office.decrypt(out)
+            out.seek(0)
+            return load_workbook(out, read_only=True, data_only=True)
+        except Exception:
+            office = msoffcrypto.OfficeFile(io.BytesIO(data))
+    raise ValueError(f"encrypted workbook in zip cannot be decrypted: {source_path}")
 
 
 def _subject_from_worksheet(ws) -> str:

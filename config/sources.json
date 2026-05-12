@@ -39,6 +39,18 @@
       "raw_glob": "raw/ln_projection_score/**/*.xlsx",
       "remote_files": [
         {
+          "url": "https://www.lnzsks.com/lnzkbfiles/2024/2024gkbkptdxosiexie01w.zip",
+          "file_name": "ln_projection_score_2024_history.zip",
+          "source_date": "2024-07-20",
+          "sha256": "ace7041320cb1a2cf9a894adb2b083316b88489e28e90166e086e0aabaa54ec8"
+        },
+        {
+          "url": "https://www.lnzsks.com/lnzkbfiles/2024/2024gkbktdxsiexieft02l.zip",
+          "file_name": "ln_projection_score_2024_physics.zip",
+          "source_date": "2024-07-20",
+          "sha256": "7e87b674c0e4a896c60b7098fcf0032325b4cf9db3628a7a8938e14415ef4d65"
+        },
+        {
           "url": "https://www.lnzsks.com/lnzkbfiles/2025/2025gklqfsxbkdiedcpade0720w.xlsx",
           "file_name": "ln_projection_score_2025_history.xlsx",
           "source_date": "2025-07-20",

@@ -15,5 +15,6 @@ exports/
 *.csv
 *.tsv
 *.parquet
+*.zip
 *.duckdb
 *.db
