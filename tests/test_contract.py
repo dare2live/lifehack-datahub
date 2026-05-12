@@ -10,6 +10,7 @@ from openpyxl import Workbook
 from datahub.builders.major_mapping_review import build_major_mapping_review_package
 from datahub.builders.local_package import build_local_package
 from datahub.config import get_table_schema, load_source_schemas
+from datahub.builders.school_identity import build_school_identity_package
 from datahub.connectors.remote_files import download_remote_assets
 from datahub.connectors.registry import discover_assets
 from datahub.parsers.ln_projection_score import parse_ln_projection_score_file
@@ -89,6 +90,7 @@ def test_audit_sources_marks_admission_plan_manual():
     assert by_key["ln_score_history"]["status"] == "research_required"
     assert by_key["major_mapping_review"]["status"] == "local_db_configured"
     assert by_key["school_profile"]["status"] == "remote_configured"
+    assert by_key["school_identity_bridge"]["status"] == "local_db_configured"
     assert by_key["school_outcome"]["target_tables"] == ["fa_fact_school_outcome"]
     assert by_key["major_outcome"]["status"] == "source_collection_required"
     assert by_key["policy_industry_map"]["status"] == "curation_required"
@@ -99,6 +101,7 @@ def test_evidence_domain_schemas_are_package_ready():
     schemas = load_source_schemas()["tables"]
     for table_name in [
         "fa_dim_school_profile",
+        "fa_bridge_school_identity",
         "fa_fact_school_outcome",
         "fa_fact_major_outcome",
         "fa_dim_policy_industry_map",
@@ -196,6 +199,98 @@ def test_build_school_outcome_package_from_cleaned_csv(tmp_path: Path):
     assert rows[0]["metric_key"] == "postgrad_rate"
     assert float(rows[0]["metric_value"]) == 0.462
     assert set(rows[0]).issuperset(schema["required"])
+
+
+def test_build_school_identity_package_matches_unique_school_names(tmp_path: Path):
+    db = tmp_path / "core.duckdb"
+    con = duckdb.connect(str(db))
+    try:
+        con.execute("""
+            CREATE TABLE fa_dim_ln_admission_plan (
+                school_code VARCHAR,
+                school_name VARCHAR,
+                major_code VARCHAR,
+                major_full VARCHAR,
+                batch VARCHAR,
+                subject_cat VARCHAR
+            )
+        """)
+        con.execute("""
+            INSERT INTO fa_dim_ln_admission_plan VALUES
+                ('0140', '辽宁大学', '01', '法学', '本科批', '历史类'),
+                ('0140', '辽宁大学', '02', '汉语言文学', '本科批', '历史类'),
+                ('0183', '吉林大学', '01', '计算机类', '本科批', '物理类'),
+                ('9999', '不存在大学', '01', '测试专业', '本科批', '物理类')
+        """)
+    finally:
+        con.close()
+
+    school_profile = tmp_path / "school_profile.csv"
+    with school_profile.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(
+            f,
+            fieldnames=[
+                "national_school_code",
+                "school_name",
+                "province",
+                "city",
+                "school_tier",
+                "school_type",
+                "ownership",
+                "official_site",
+                "competent_authority",
+                "source_date",
+                "availability_date",
+                "built_at",
+            ],
+        )
+        writer.writeheader()
+        writer.writerow({
+            "national_school_code": "4121010140",
+            "school_name": "辽宁大学",
+            "province": "辽宁省",
+            "city": "沈阳市",
+            "school_tier": "本科",
+            "school_type": "",
+            "ownership": "",
+            "official_site": "",
+            "competent_authority": "辽宁省",
+            "source_date": "2025-06-20",
+            "availability_date": "2025-06-27",
+            "built_at": "2026-05-13T00:00:00",
+        })
+        writer.writerow({
+            "national_school_code": "4122010183",
+            "school_name": "吉林大学",
+            "province": "吉林省",
+            "city": "长春市",
+            "school_tier": "本科",
+            "school_type": "",
+            "ownership": "",
+            "official_site": "",
+            "competent_authority": "教育部",
+            "source_date": "2025-06-20",
+            "availability_date": "2025-06-27",
+            "built_at": "2026-05-13T00:00:00",
+        })
+
+    result = build_school_identity_package(
+        core_db=db,
+        school_profile_csv=school_profile,
+        output_root=tmp_path / "exports",
+        package_id="pkg-school-identity-test",
+        source_version="fixture-school-identity",
+    )
+    package_dir = Path(result["package_dir"])
+    assert validate_manifest(package_dir / "manifest.json")["errors"] == []
+    assert result["rows"] == 2
+    assert result["unmatched_rows"] == 1
+
+    with (package_dir / "fa_bridge_school_identity.csv").open(encoding="utf-8", newline="") as f:
+        rows = list(csv.DictReader(f))
+    by_local_code = {row["local_school_code"]: row for row in rows}
+    assert by_local_code["0140"]["national_school_code"] == "4121010140"
+    assert by_local_code["0183"]["match_method"] == "unique_exact_school_name"
 
 
 def test_download_remote_assets_from_config(tmp_path: Path, monkeypatch):

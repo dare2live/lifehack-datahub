@@ -190,6 +190,51 @@
         "built_at": ["built_at", "构建时间"]
       }
     },
+    "fa_bridge_school_identity": {
+      "source_key": "school_identity_bridge",
+      "primary_key": ["local_system", "local_school_code"],
+      "required": [
+        "local_system",
+        "local_school_code",
+        "local_school_name",
+        "national_school_code",
+        "national_school_name",
+        "match_method",
+        "match_confidence",
+        "source_date",
+        "availability_date",
+        "built_at"
+      ],
+      "columns": [
+        "local_system",
+        "local_school_code",
+        "local_school_name",
+        "national_school_code",
+        "national_school_name",
+        "province",
+        "city",
+        "match_method",
+        "match_confidence",
+        "source_date",
+        "availability_date",
+        "built_at"
+      ],
+      "numeric": [],
+      "aliases": {
+        "local_system": ["local_system", "本地代码体系"],
+        "local_school_code": ["local_school_code", "本地院校代码"],
+        "local_school_name": ["local_school_name", "本地院校名称"],
+        "national_school_code": ["national_school_code", "学校标识码", "全国学校标识码"],
+        "national_school_name": ["national_school_name", "全国学校名称"],
+        "province": ["province", "省份"],
+        "city": ["city", "城市"],
+        "match_method": ["match_method", "匹配方法"],
+        "match_confidence": ["match_confidence", "匹配置信度"],
+        "source_date": ["source_date", "来源日期"],
+        "availability_date": ["availability_date", "可用日期"],
+        "built_at": ["built_at", "构建时间"]
+      }
+    },
     "fa_fact_major_outcome": {
       "source_key": "major_outcome",
       "primary_key": ["major_code", "metric_key", "metric_year", "source_url"],

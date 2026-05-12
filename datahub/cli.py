@@ -8,6 +8,7 @@ from pathlib import Path
 
 from .builders.major_mapping_review import build_major_mapping_review_package
 from .builders.local_package import build_local_package
+from .builders.school_identity import build_school_identity_package
 from .config import get_table_schema
 from .connectors.registry import discover_assets, list_source_keys
 from .connectors.remote_files import download_remote_assets
@@ -54,6 +55,18 @@ def main() -> int:
     build_review.add_argument("--package-id")
     build_review.add_argument("--source-version")
     build_review.add_argument("--approved-status", action="append", dest="approved_statuses")
+
+    build_school_identity = sub.add_parser(
+        "build-school-identity",
+        help="Build fa_bridge_school_identity from core admission plan and MOE school profile CSV",
+    )
+    build_school_identity.add_argument("--core-db", required=True, type=Path)
+    build_school_identity.add_argument("--school-profile", required=True, type=Path)
+    build_school_identity.add_argument("--output-root", required=True, type=Path)
+    build_school_identity.add_argument("--package-id")
+    build_school_identity.add_argument("--source-version")
+    build_school_identity.add_argument("--source-date")
+    build_school_identity.add_argument("--availability-date")
 
     parse_moe = sub.add_parser("parse-moe-major-catalog", help="Parse MOE major catalog PDF to cleaned CSV")
     parse_moe.add_argument("--input", required=True, type=Path)
@@ -117,6 +130,18 @@ def main() -> int:
             package_id=args.package_id,
             source_version=args.source_version,
             approved_statuses=args.approved_statuses,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+    if args.cmd == "build-school-identity":
+        result = build_school_identity_package(
+            core_db=args.core_db,
+            school_profile_csv=args.school_profile,
+            output_root=args.output_root,
+            package_id=args.package_id,
+            source_version=args.source_version,
+            source_date=args.source_date,
+            availability_date=args.availability_date,
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0

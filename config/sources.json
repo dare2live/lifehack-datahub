@@ -157,6 +157,22 @@
       },
       "target_tables": ["fa_dim_school_profile"]
     },
+    "school_identity_bridge": {
+      "name": "辽宁院校代码与教育部学校标识码桥表",
+      "kind": "core_db_plus_official_catalog",
+      "owner": "lifehack-datahub",
+      "raw_glob": "raw/school_identity_bridge/**/*",
+      "remote_files": [],
+      "acquisition": {
+        "status": "local_db_configured",
+        "official_distribution": "core fa_dim_ln_admission_plan + 教育部 fa_dim_school_profile",
+        "evidence_urls": [
+          "https://www.moe.gov.cn/jyb_xxgk/s5743/s5744/202506/t20250627_1195683.html"
+        ],
+        "notes": "辽宁招生计划院校代码是本地代码体系，不能等同教育部学校标识码。DataHub 通过学校名精确匹配生成桥表，未匹配项进入质量报告，人工复核后再扩展匹配规则。"
+      },
+      "target_tables": ["fa_bridge_school_identity"]
+    },
     "school_outcome": {
       "name": "高校出口指标",
       "kind": "annual_report_metrics",
