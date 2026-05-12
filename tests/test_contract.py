@@ -348,7 +348,7 @@ def test_audit_sources_marks_admission_plan_manual():
     assert by_key["ln_projection_score"]["research_candidate_count"] >= 4
     assert by_key["ln_score_history"]["status"] == "partial_official_derivation_configured"
     assert by_key["ln_score_distribution"]["status"] == "remote_configured"
-    assert by_key["ln_score_distribution"]["page_image_source_count"] == 3
+    assert by_key["ln_score_distribution"]["page_image_source_count"] == 5
     assert by_key["ln_score_distribution"]["research_candidate_count"] >= 3
     assert by_key["ln_score_distribution"]["ocr_engine"] == "macos_vision"
     assert by_key["major_mapping_review"]["status"] == "local_db_configured"

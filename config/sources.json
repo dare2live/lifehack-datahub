@@ -221,6 +221,30 @@
       ],
       "page_image_sources": [
         {
+          "page_url": "https://www.lnzsks.com/newsinfo/IMS_20220623_41568_OVgeDzS0TC.htm",
+          "kind": "official_page_images",
+          "source_date": "2022-06-23",
+          "score_year": 2022,
+          "file_prefix": "ln_score_distribution_2022_physics_official",
+          "include": "/up_img/advimg/2022-06-23_",
+          "headers": {
+            "User-Agent": "Mozilla/5.0"
+          },
+          "notes": "2022 辽宁成绩统计表物理学科类官方图片页；需 OCR 或受控人工转录后进入 cleaned CSV。"
+        },
+        {
+          "page_url": "https://www.lnzsks.com/newsinfo/IMS_20220623_41570_xa6ntsEqH5.htm",
+          "kind": "official_page_images",
+          "source_date": "2022-06-23",
+          "score_year": 2022,
+          "file_prefix": "ln_score_distribution_2022_history_official",
+          "include": "/up_img/advimg/2022-06-23_",
+          "headers": {
+            "User-Agent": "Mozilla/5.0"
+          },
+          "notes": "2022 辽宁成绩统计表历史学科类官方图片页；需 OCR 或受控人工转录后进入 cleaned CSV。"
+        },
+        {
           "page_url": "https://www.ln.chinanews.com.cn/news/2022/0627/324221.html",
           "kind": "mirror_page_images",
           "source_date": "2022-06-24",
@@ -292,6 +316,7 @@
       ],
       "parser": {
         "score_year_by_source_date": {
+          "2022-06-23": 2022,
           "2022-06-24": 2022,
           "2023-06-24": 2023,
           "2024-06-24": 2024,

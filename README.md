@@ -149,7 +149,7 @@ python3 scripts/build_package.py parse-ln-score-distribution \
   --subject-cat 历史类
 ```
 
-2023/2024 成绩统计表仍保留官方图片页，2022 已记录中新网辽宁转载镜像图片页作为候选来源。可先采集图片和 SHA-256 manifest，后续再 OCR 或受控人工转录；所有镜像都不能冒充辽宁官网原始长期来源：
+2022/2023/2024 成绩统计表仍保留官方图片页，2022 另保留中新网辽宁转载镜像作为兜底候选来源。可先采集图片和 SHA-256 manifest，后续再 OCR 或受控人工转录；所有镜像都不能冒充辽宁官网原始长期来源：
 
 ```bash
 python3 scripts/build_package.py download-page-images \
