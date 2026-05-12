@@ -12,6 +12,7 @@ from datahub.exporters.package_exporter import write_manifest
 from datahub.normalizers.admission import normalize_rows_for_schema
 from datahub.parsers.tabular_parser import parse_tabular
 from datahub.validators.outcome_metrics import validate_outcome_metrics
+from datahub.validators.score_distribution import validate_score_distribution
 
 
 def build_local_package(
@@ -93,6 +94,10 @@ def build_quality_report(rows: list[dict[str, Any]], schema: dict[str, Any], tab
     outcome_report = validate_outcome_metrics(rows, table_name)
     errors.extend(outcome_report["errors"])
     warnings.extend(outcome_report["warnings"])
+
+    score_distribution_report = validate_score_distribution(rows, schema, table_name)
+    errors.extend(score_distribution_report["errors"])
+    warnings.extend(score_distribution_report["warnings"])
 
     return {
         "row_counts": {table_name: len(rows)},

@@ -38,7 +38,7 @@ exports/YYYY-MM-DD_ln_admission_plan/
 
 ## 当前阶段
 
-Phase 5+：已固化数据包契约和模块边界，提供本地已清洗 CSV/TSV/XLSX 到 data package 的生成入口，支持远程文件下载、受控手工 intake、教育部目录解析、辽宁投档分解析、学校身份桥表、历史位次 legacy snapshot、专业映射复核晋级，以及配置驱动的政策表数据包生成。
+Phase 5+：已固化数据包契约和模块边界，提供本地已清洗 CSV/TSV/XLSX 到 data package 的生成入口，支持远程文件下载、受控手工 intake、教育部目录解析、辽宁投档分解析、辽宁一分一段转录校验、学校身份桥表、历史位次 legacy snapshot、专业映射复核晋级，以及配置驱动的政策表数据包生成。
 
 ## 本地数据包生成
 
@@ -121,6 +121,18 @@ python3 scripts/build_package.py build-score-history-from-projection \
 python3 scripts/build_package.py download-page-images \
   --source-key ln_score_distribution \
   --output-root raw
+```
+
+OCR 或人工转录后的 `fa_fact_ln_score_distribution` CSV 必须再经过 `build-local`。该入口会校验分数范围、单分人数、累计排名，以及“上一累计 + 本分人数 = 当前累计”，避免错误转录进入 core：
+
+```bash
+python3 scripts/build_package.py build-local \
+  --source-key ln_score_distribution \
+  --table fa_fact_ln_score_distribution \
+  --input cleaned/ln_score_distribution_2024.csv \
+  --output-root exports \
+  --package-id 2024_ln_score_distribution \
+  --intake-manifest raw/ln_score_distribution/2024-06-25/_page_images_manifest.json
 ```
 
 ## 专业映射复核晋级

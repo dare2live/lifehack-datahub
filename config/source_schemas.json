@@ -107,6 +107,14 @@
         "source_date"
       ],
       "numeric": ["score_year", "score", "score_count", "cumulative_rank"],
+      "quality_checks": {
+        "score_distribution": {
+          "score_min": 0,
+          "score_max": 750,
+          "min_rows_per_subject_year": 100,
+          "require_cumulative_sum": true
+        }
+      },
       "aliases": {
         "subject_cat": ["subject_cat", "科类", "首选科目"],
         "score_year": ["score_year", "年份"],

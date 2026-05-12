@@ -128,6 +128,102 @@ def test_build_local_package_includes_intake_lineage(tmp_path: Path):
     assert result["source_lineage"]["source_date"] == "2026-06-20"
 
 
+def test_build_local_score_distribution_package_from_transcript_with_image_lineage(tmp_path: Path):
+    source = tmp_path / "score_distribution.csv"
+    with source.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(
+            f,
+            fieldnames=["科类", "年份", "分数", "人数", "累计", "来源日期"],
+        )
+        writer.writeheader()
+        writer.writerow({"科类": "物理类", "年份": "2024", "分数": "676", "人数": "12", "累计": "12", "来源日期": "2024-06-25"})
+        writer.writerow({"科类": "物理类", "年份": "2024", "分数": "675", "人数": "2", "累计": "14", "来源日期": "2024-06-25"})
+        writer.writerow({"科类": "物理类", "年份": "2024", "分数": "672", "人数": "5", "累计": "19", "来源日期": "2024-06-25"})
+    intake_manifest = tmp_path / "_page_images_manifest.json"
+    intake_manifest.write_text(json.dumps({
+        "source_key": "ln_score_distribution",
+        "source_name": "辽宁一分一段表图片",
+        "source_kind": "official_page_images",
+        "source_date": "2024-06-25",
+        "intake_at": "2026-05-13T00:00:00",
+        "acquired_by": "datahub.download_page_images",
+        "official_distribution": "辽宁省教育厅官网图片",
+        "evidence_urls": ["https://jyt.ln.gov.cn/example/index.shtml"],
+        "target_tables": ["fa_fact_ln_score_distribution"],
+        "files": [
+            {
+                "file_name": "ln_score_distribution_2024_001.png",
+                "path": "/tmp/ln_score_distribution_2024_001.png",
+                "size_bytes": 1024,
+                "sha256": "image-sha256-fixture",
+            }
+        ],
+    }, ensure_ascii=False), encoding="utf-8")
+
+    result = build_local_package(
+        source_key="ln_score_distribution",
+        table_name="fa_fact_ln_score_distribution",
+        input_path=source,
+        output_root=tmp_path / "exports",
+        package_id="pkg-score-distribution-transcript-test",
+        source_version="fixture-score-distribution-transcript",
+        intake_manifest=intake_manifest,
+    )
+    package_dir = Path(result["package_dir"])
+    assert validate_manifest(package_dir / "manifest.json")["errors"] == []
+    assert result["quality_report"]["errors"] == []
+    assert any("has few score rows" in warning for warning in result["quality_report"]["warnings"])
+
+    manifest = json.loads((package_dir / "manifest.json").read_text(encoding="utf-8"))
+    assert manifest["source_lineage"]["source_kind"] == "official_page_images"
+    assert manifest["source_lineage"]["files"][0]["sha256"] == "image-sha256-fixture"
+
+    with (package_dir / "fa_fact_ln_score_distribution.csv").open(encoding="utf-8", newline="") as f:
+        rows = list(csv.DictReader(f))
+    assert rows[0]["subject_cat"] == "物理类"
+    assert rows[0]["cumulative_rank"] == "12"
+
+
+def test_build_local_score_distribution_package_rejects_cumulative_mismatch(tmp_path: Path):
+    source = tmp_path / "score_distribution_bad.csv"
+    with source.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(
+            f,
+            fieldnames=["subject_cat", "score_year", "score", "score_count", "cumulative_rank", "source_date"],
+        )
+        writer.writeheader()
+        writer.writerow({
+            "subject_cat": "历史类",
+            "score_year": "2023",
+            "score": "665",
+            "score_count": "3",
+            "cumulative_rank": "3",
+            "source_date": "2023-06-24",
+        })
+        writer.writerow({
+            "subject_cat": "历史类",
+            "score_year": "2023",
+            "score": "664",
+            "score_count": "2",
+            "cumulative_rank": "6",
+            "source_date": "2023-06-24",
+        })
+
+    try:
+        build_local_package(
+            source_key="ln_score_distribution",
+            table_name="fa_fact_ln_score_distribution",
+            input_path=source,
+            output_root=tmp_path / "exports",
+            package_id="pkg-score-distribution-bad-test",
+            source_version="fixture-score-distribution-bad",
+        )
+        rejected = False
+    except ValueError as exc:
+        rejected = "cumulative mismatch" in str(exc)
+    assert rejected
+
+
 def test_discover_assets_from_source_config(tmp_path: Path):
     raw_dir = tmp_path / "raw" / "ln_admission_plan" / "2026"
     raw_dir.mkdir(parents=True)
@@ -230,6 +326,9 @@ def test_evidence_domain_schemas_are_package_ready():
     assert score_distribution["source_key"] == "ln_score_distribution"
     assert score_distribution["primary_key"] == ["subject_cat", "score_year", "score"]
     assert "cumulative_rank" in score_distribution["columns"]
+    quality_config = score_distribution["quality_checks"]["score_distribution"]
+    assert quality_config["score_max"] == 750
+    assert quality_config["require_cumulative_sum"] is True
 
 
 def test_parse_ln_score_distribution_lines():

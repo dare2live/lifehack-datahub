@@ -149,6 +149,24 @@ python3 scripts/build_package.py download-page-images \
 
 真实 smoke 已验证该命令可从 2023 官方页面采集 20 张图、从 2024 官方页面采集 21 张图。
 
+OCR 或人工转录后的 cleaned CSV 不允许直接进入 core，必须通过 `build-local` 生成标准包。`build-local` 对 `fa_fact_ln_score_distribution` 会强制校验：
+
+- `score` 在 0-750 分范围内。
+- `score_count` 和 `cumulative_rank` 为正数。
+- 同一科类、同一年份内，按分数从高到低累计时，当前 `cumulative_rank = previous_cumulative_rank + score_count`。
+
+```bash
+python3 scripts/build_package.py build-local \
+  --source-key ln_score_distribution \
+  --table fa_fact_ln_score_distribution \
+  --input cleaned/ln_score_distribution_2024.csv \
+  --output-root exports \
+  --package-id 2024_ln_score_distribution \
+  --intake-manifest raw/ln_score_distribution/2024-06-25/_page_images_manifest.json
+```
+
+该 package 的 `manifest.source_lineage` 会保留图片采集 manifest 中的 evidence URL、采集人、来源日期和每张原图 SHA-256。
+
 ## 证据域数据包
 
 推荐和报告需要的学校、专业、政策证据由 DataHub 产出标准包，core 只消费：
