@@ -69,6 +69,57 @@ def test_build_local_package_from_cleaned_csv(tmp_path: Path):
     assert result["rows"] == 1
 
 
+def test_build_local_package_includes_intake_lineage(tmp_path: Path):
+    source = tmp_path / "cleaned.csv"
+    with source.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=["院校代码", "院校名称", "专业代码", "专业名称", "批次", "科类"])
+        writer.writeheader()
+        writer.writerow({
+            "院校代码": "0140",
+            "院校名称": "辽宁大学",
+            "专业代码": "01",
+            "专业名称": "法学",
+            "批次": "本科批",
+            "科类": "历史类",
+        })
+    intake_manifest = tmp_path / "_intake_manifest.json"
+    intake_manifest.write_text(json.dumps({
+        "source_key": "ln_admission_plan",
+        "source_name": "辽宁招生计划",
+        "source_kind": "controlled_manual_export",
+        "source_date": "2026-06-20",
+        "intake_at": "2026-06-21T00:00:00",
+        "acquired_by": "fixture",
+        "official_distribution": "网报志愿系统",
+        "evidence_urls": ["https://example.edu/evidence"],
+        "target_tables": ["fa_dim_ln_admission_plan"],
+        "files": [
+            {
+                "file_name": "raw_plan.xlsx",
+                "path": "/tmp/raw_plan.xlsx",
+                "size_bytes": 128,
+                "sha256": "abc123",
+            }
+        ],
+    }, ensure_ascii=False), encoding="utf-8")
+
+    result = build_local_package(
+        source_key="ln_admission_plan",
+        table_name="fa_dim_ln_admission_plan",
+        input_path=source,
+        output_root=tmp_path / "exports",
+        package_id="pkg-local-lineage-test",
+        source_version="fixture-lineage",
+        intake_manifest=intake_manifest,
+    )
+    package_dir = Path(result["package_dir"])
+    manifest = json.loads((package_dir / "manifest.json").read_text(encoding="utf-8"))
+    assert manifest["source_lineage"]["acquired_by"] == "fixture"
+    assert manifest["source_lineage"]["files"][0]["sha256"] == "abc123"
+    assert manifest["source_lineage"]["evidence_urls"] == ["https://example.edu/evidence"]
+    assert result["source_lineage"]["source_date"] == "2026-06-20"
+
+
 def test_discover_assets_from_source_config(tmp_path: Path):
     raw_dir = tmp_path / "raw" / "ln_admission_plan" / "2026"
     raw_dir.mkdir(parents=True)

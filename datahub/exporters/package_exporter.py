@@ -21,6 +21,7 @@ def write_manifest(
     files: list[str],
     tables: list[dict],
     source_version: str | None = None,
+    source_lineage: dict | None = None,
 ) -> Path:
     manifest = {
         "package_id": package_id,
@@ -31,6 +32,8 @@ def write_manifest(
         "hashes": {name: file_sha256(package_dir / name) for name in files if (package_dir / name).exists()},
         "quality_report": "quality_report.json",
     }
+    if source_lineage:
+        manifest["source_lineage"] = source_lineage
     path = package_dir / "manifest.json"
     path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return path

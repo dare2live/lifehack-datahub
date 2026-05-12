@@ -23,6 +23,7 @@ def build_local_package(
     package_id: str | None = None,
     source_version: str | None = None,
     sheet: str | None = None,
+    intake_manifest: Path | None = None,
 ) -> dict[str, Any]:
     if not table_name.startswith("fa_"):
         raise ValueError(f"table must use fa_ prefix: {table_name}")
@@ -35,6 +36,7 @@ def build_local_package(
     quality = build_quality_report(normalized, schema, table_name)
     if quality["errors"]:
         raise ValueError("; ".join(quality["errors"]))
+    source_lineage = _load_intake_lineage(intake_manifest, source_key, table_name) if intake_manifest else None
 
     package_id = package_id or f"{datetime.utcnow().date().isoformat()}_{source_key}"
     package_dir = output_root / package_id
@@ -49,6 +51,7 @@ def build_local_package(
         files=[table_file],
         tables=[{"name": table_name, "file": table_file}],
         source_version=source_version or input_path.name,
+        source_lineage=source_lineage,
     )
     return {
         "package_id": package_id,
@@ -56,6 +59,7 @@ def build_local_package(
         "table": table_name,
         "rows": len(normalized),
         "quality_report": quality,
+        "source_lineage": source_lineage,
     }
 
 
@@ -109,3 +113,38 @@ def _write_csv(path: Path, rows: list[dict[str, Any]], columns: list[str]) -> No
         writer = csv.DictWriter(f, fieldnames=columns, extrasaction="ignore")
         writer.writeheader()
         writer.writerows(rows)
+
+
+def _load_intake_lineage(path: Path, source_key: str, table_name: str) -> dict[str, Any]:
+    if not path.exists():
+        raise ValueError(f"intake manifest not found: {path}")
+    data = json.loads(path.read_text(encoding="utf-8"))
+    if data.get("source_key") != source_key:
+        raise ValueError(f"intake manifest source_key mismatch: {data.get('source_key')} != {source_key}")
+    target_tables = data.get("target_tables") or []
+    if target_tables and table_name not in target_tables:
+        raise ValueError(f"intake manifest does not target {table_name}: {target_tables}")
+    files = []
+    for item in data.get("files", []):
+        sha256 = item.get("sha256")
+        file_name = item.get("file_name")
+        if not sha256 or not file_name:
+            raise ValueError("intake manifest file entries need file_name and sha256")
+        files.append({
+            "file_name": file_name,
+            "sha256": sha256,
+            "size_bytes": item.get("size_bytes"),
+            "path": item.get("path"),
+        })
+    return {
+        "source_key": source_key,
+        "source_name": data.get("source_name"),
+        "source_kind": data.get("source_kind"),
+        "source_date": data.get("source_date"),
+        "intake_at": data.get("intake_at"),
+        "acquired_by": data.get("acquired_by"),
+        "official_distribution": data.get("official_distribution"),
+        "evidence_urls": data.get("evidence_urls") or data.get("configured_evidence_urls") or [],
+        "intake_manifest": str(path),
+        "files": files,
+    }

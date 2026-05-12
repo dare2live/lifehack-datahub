@@ -9,6 +9,7 @@ DataHub 向 core 发布的是不可变数据包。
 - `package_id`
 - `built_at`
 - `source_version`
+- `source_lineage`（可选，来自 `_intake_manifest.json` 的受控手工来源链路）
 - `tables`
 - `files`
 - `hashes`
@@ -41,7 +42,8 @@ python3 scripts/build_package.py build-local \
   --table fa_dim_ln_admission_plan \
   --input raw/ln_admission_plan/2026_cleaned.csv \
   --output-root exports \
-  --package-id 2026_ln_admission_plan
+  --package-id 2026_ln_admission_plan \
+  --intake-manifest raw/ln_admission_plan/2026-06-20/_intake_manifest.json
 ```
 
 字段别名、主键、必填列和数字列维护在 `config/source_schemas.json`。

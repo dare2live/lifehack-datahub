@@ -37,6 +37,7 @@ def main() -> int:
     build_local.add_argument("--package-id")
     build_local.add_argument("--source-version")
     build_local.add_argument("--sheet")
+    build_local.add_argument("--intake-manifest", type=Path)
 
     discover = sub.add_parser("discover", help="Discover local raw assets for a configured source")
     discover.add_argument("--source-key")
@@ -117,6 +118,7 @@ def main() -> int:
             package_id=args.package_id,
             source_version=args.source_version,
             sheet=args.sheet,
+            intake_manifest=args.intake_manifest,
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
