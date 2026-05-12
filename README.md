@@ -62,6 +62,14 @@ python3 scripts/build_package.py download \
   --output-root raw
 ```
 
+如果某个来源还没有达到可晋级为 `remote_files` 的稳定程度，先放入 `research_candidates`，再用探测命令记录可访问性、HTTP 状态、文件大小和 SHA-256。探测报告只用于来源研究，不会写入 raw，也不能导入 core：
+
+```bash
+python3 scripts/build_package.py probe-source-candidates \
+  --source-key ln_projection_score \
+  --output staging/source_research/ln_projection_score_candidates.json
+```
+
 再把已清洗文件生成 data package：
 
 ```bash
@@ -115,7 +123,7 @@ python3 scripts/build_package.py build-score-history-from-projection \
 
 派生位次是最低分对应的一分一段累计人数，不是同分排序后的精确投档位次，质量报告会保留 warning。
 
-2023/2024 成绩统计表目前是官方图片页，可先采集原图和 SHA-256 manifest，后续再 OCR 或受控人工转录：
+2023/2024 成绩统计表目前是官方图片页，2022 已记录中新网辽宁转载镜像图片页作为候选来源。可先采集图片和 SHA-256 manifest，后续再 OCR 或受控人工转录；2022 镜像不能冒充辽宁官网原始长期来源：
 
 ```bash
 python3 scripts/build_package.py download-page-images \

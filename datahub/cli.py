@@ -26,6 +26,7 @@ from .connectors.macos_vision_ocr import ocr_page_images
 from .connectors.page_images import download_page_images
 from .connectors.registry import discover_assets, list_source_keys
 from .connectors.remote_files import download_remote_assets
+from .connectors.source_candidates import probe_source_candidates
 from .parsers.ln_projection_score import parse_ln_projection_score_files
 from .parsers.ln_score_distribution_ocr import (
     apply_score_distribution_review,
@@ -69,6 +70,15 @@ def main() -> int:
     download.add_argument("--source-key", required=True)
     download.add_argument("--output-root", required=True, type=Path)
     download.add_argument("--timeout", type=int, default=60)
+
+    probe_candidates = sub.add_parser(
+        "probe-source-candidates",
+        help="Probe configured research candidate URLs without promoting them to remote_files",
+    )
+    probe_candidates.add_argument("--source-key", required=True)
+    probe_candidates.add_argument("--output", type=Path)
+    probe_candidates.add_argument("--timeout", type=int, default=60)
+    probe_candidates.add_argument("--max-bytes", type=int, default=50 * 1024 * 1024)
 
     download_images = sub.add_parser("download-page-images", help="Download images linked from configured pages")
     download_images.add_argument("--source-key", required=True)
@@ -272,6 +282,15 @@ def main() -> int:
             for asset in download_remote_assets(args.source_key, args.output_root, timeout=args.timeout)
         ]
         print(json.dumps({"source_key": args.source_key, "assets": assets}, ensure_ascii=False, indent=2))
+        return 0
+    if args.cmd == "probe-source-candidates":
+        report = probe_source_candidates(
+            args.source_key,
+            output=args.output,
+            timeout=args.timeout,
+            max_bytes=args.max_bytes,
+        )
+        print(json.dumps(report, ensure_ascii=False, indent=2))
         return 0
     if args.cmd == "download-page-images":
         result = download_page_images(args.source_key, args.output_root, timeout=args.timeout)

@@ -64,7 +64,7 @@ def _download_one_page(
     manifest = {
         "source_key": source_key,
         "source_name": source_config.get("name", source_key),
-        "source_kind": "official_page_images",
+        "source_kind": page_source.get("kind") or "official_page_images",
         "source_date": source_date,
         "intake_at": datetime.utcnow().isoformat(),
         "acquired_by": "lifehack-datahub",

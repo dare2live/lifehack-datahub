@@ -12,6 +12,7 @@ def audit_sources() -> dict[str, Any]:
     for source_key, source in sorted(data.get("sources", {}).items()):
         remote_files = source.get("remote_files") or []
         page_image_sources = source.get("page_image_sources") or []
+        research_candidates = source.get("research_candidates") or []
         ocr = source.get("ocr") or {}
         acquisition = source.get("acquisition") or {}
         if remote_files:
@@ -27,6 +28,7 @@ def audit_sources() -> dict[str, Any]:
             "status": status,
             "remote_file_count": len(remote_files),
             "page_image_source_count": len(page_image_sources),
+            "research_candidate_count": len(research_candidates),
             "ocr_engine": ocr.get("engine"),
             "target_tables": source.get("target_tables", []),
             "official_distribution": acquisition.get("official_distribution"),

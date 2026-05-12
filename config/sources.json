@@ -83,6 +83,54 @@
           "sha256": "74a4f8993ada43ad90e8b05b0e182eab271cea6af12237d8adff87ca657fcdf2"
         }
       ],
+      "research_candidates": [
+        {
+          "label": "2022 EOL转载说明页",
+          "kind": "evidence_page",
+          "url": "https://gaokao.eol.cn/liao_ning/dongtai/202207/t20220721_2238836.shtml",
+          "source_date": "2022-07-21",
+          "expected_table": "fa_fact_ln_projection_score",
+          "headers": {
+            "User-Agent": "Mozilla/5.0"
+          },
+          "notes": "页面标注来源为辽宁招生考试之窗，并链接学信网历史/物理附件；仅作候选证据页。"
+        },
+        {
+          "label": "2022 大连科技学院转载说明页",
+          "kind": "evidence_page",
+          "url": "https://sub2.dlust.edu.cn/kjzs/detail-3124.html",
+          "source_date": "2022-07-21",
+          "expected_table": "fa_fact_ln_projection_score",
+          "headers": {
+            "User-Agent": "Mozilla/5.0"
+          },
+          "notes": "页面标注来源为辽宁招生考试之窗，并链接同一组学信网附件；仅作候选证据页。"
+        },
+        {
+          "label": "2022 历史学科类投档最低分学信网附件",
+          "kind": "candidate_attachment",
+          "url": "https://gaokao.chsi.com.cn/news/file.do?attach=true&hist=false&id=2203988521&method=downFile",
+          "source_date": "2022-07-21",
+          "expected_table": "fa_fact_ln_projection_score",
+          "headers": {
+            "User-Agent": "Mozilla/5.0",
+            "Referer": "https://gaokao.eol.cn/liao_ning/dongtai/202207/t20220721_2238836.shtml"
+          },
+          "notes": "当前直连返回 412，不能晋级为 remote_files；需找到稳定官方或镜像附件后配置 sha256。"
+        },
+        {
+          "label": "2022 物理学科类投档最低分学信网附件",
+          "kind": "candidate_attachment",
+          "url": "https://gaokao.chsi.com.cn/news/file.do?attach=true&hist=false&id=2203988522&method=downFile",
+          "source_date": "2022-07-21",
+          "expected_table": "fa_fact_ln_projection_score",
+          "headers": {
+            "User-Agent": "Mozilla/5.0",
+            "Referer": "https://gaokao.eol.cn/liao_ning/dongtai/202207/t20220721_2238836.shtml"
+          },
+          "notes": "当前直连返回 412，不能晋级为 remote_files；需找到稳定官方或镜像附件后配置 sha256。"
+        }
+      ],
       "parser": {
         "batch": "本科批",
         "score_year_by_source_date": {
@@ -129,6 +177,18 @@
       ],
       "page_image_sources": [
         {
+          "page_url": "https://www.ln.chinanews.com.cn/news/2022/0627/324221.html",
+          "kind": "mirror_page_images",
+          "source_date": "2022-06-24",
+          "score_year": 2022,
+          "file_prefix": "ln_score_distribution_2022",
+          "include": "i2.chinanews.com.cn/simg/cmshd/2022/06/27/",
+          "headers": {
+            "User-Agent": "Mozilla/5.0"
+          },
+          "notes": "中新网辽宁转载 2022 辽宁一分一段图片页；学信网原始页面当前直连 412。该来源只作为可追踪镜像候选，不能冒充辽宁官网原始长期来源。"
+        },
+        {
           "page_url": "https://jyt.ln.gov.cn/jyt/gk/zfxxgk/fdzdgknr/zdmsxx/ssqk/2023080814064098030/index.shtml",
           "source_date": "2023-06-24",
           "score_year": 2023,
@@ -151,8 +211,44 @@
           "notes": "2024 辽宁成绩统计表官方图片页，需 OCR 或受控人工转录后进入 cleaned CSV。"
         }
       ],
+      "research_candidates": [
+        {
+          "label": "2022 学信网成绩统计表页面",
+          "kind": "candidate_page",
+          "url": "https://gaokao.chsi.com.cn/gkxx/zc/ss/202206/20220624/2197680852.html",
+          "source_date": "2022-06-24",
+          "expected_table": "fa_fact_ln_score_distribution",
+          "headers": {
+            "User-Agent": "Mozilla/5.0"
+          },
+          "notes": "搜索结果显示 2022 辽宁普通高校招生考试成绩统计表；当前直连返回 412，需继续寻找可重复采集形式。"
+        },
+        {
+          "label": "2022 新浪转载历史学科类成绩统计表",
+          "kind": "mirror_page",
+          "url": "https://finance.sina.com.cn/tech/2022-06-24/doc-imizirav0240447.shtml",
+          "source_date": "2022-06-24",
+          "expected_table": "fa_fact_ln_score_distribution",
+          "headers": {
+            "User-Agent": "Mozilla/5.0"
+          },
+          "notes": "转载页面，仅作候选证据；不得冒充辽宁官网长期源。"
+        },
+        {
+          "label": "2022 中新网辽宁转载成绩统计表",
+          "kind": "mirror_page",
+          "url": "https://www.ln.chinanews.com.cn/news/2022/0627/324221.html",
+          "source_date": "2022-06-24",
+          "expected_table": "fa_fact_ln_score_distribution",
+          "headers": {
+            "User-Agent": "Mozilla/5.0"
+          },
+          "notes": "转载页面，仅作候选证据；需确认是否包含完整历史/物理表格或原图。"
+        }
+      ],
       "parser": {
         "score_year_by_source_date": {
+          "2022-06-24": 2022,
           "2023-06-24": 2023,
           "2024-06-25": 2024,
           "2025-06-24": 2025

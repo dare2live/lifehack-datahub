@@ -73,6 +73,23 @@ python3 scripts/build_package.py audit-sources
 python3 scripts/build_package.py download --source-key ln_admission_plan --output-root raw
 ```
 
+## 候选来源探测入口
+
+尚未稳定到可配置为 `remote_files` 的 URL 必须先放在 `research_candidates`。探测命令只检查候选 URL 的可访问性、HTTP 状态、文件大小和 SHA-256，不写 raw，也不晋级来源：
+
+```bash
+python3 scripts/build_package.py probe-source-candidates \
+  --source-key ln_projection_score \
+  --output staging/source_research/ln_projection_score_candidates.json
+```
+
+候选来源晋级为 `remote_files` 前必须满足：
+
+- 来源页面或附件可重复访问。
+- 下载物有稳定 SHA-256。
+- 来源说明能区分官方原始来源、官方转载、第三方镜像。
+- 已有 source-specific parser 或受控人工 intake 流程。
+
 ## 受控手工文件入口
 
 对 `manual_required`、`source_collection_required`、`curation_required`、`curated_seed_configured`、`research_required` 状态的数据源，DataHub 使用 `intake-manual` 登记原始文件。它只复制文件到 raw 区并写入 `_intake_manifest.json`，记录采集人、来源说明、证据链接、文件大小和 SHA-256；不解析文件，不导入 core，也不允许把 raw 文件提交到 Git。
@@ -137,9 +154,9 @@ python3 scripts/build_package.py build-score-history-from-projection \
   --package-id 2025_ln_score_history_derived
 ```
 
-注意：派生的 `min_rank` 是最低分对应的一分一段累计人数，不是同分排序后的精确投档位次。`quality_report.warnings` 会保留 `rank_is_score_cumulative_rank`。2023/2024 成绩统计表在辽宁官方页面目前以图片发布，仍需后续图片解析或受控人工复核。
+注意：派生的 `min_rank` 是最低分对应的一分一段累计人数，不是同分排序后的精确投档位次。`quality_report.warnings` 会保留 `rank_is_score_cumulative_rank`。2023/2024 成绩统计表在辽宁官方页面目前以图片发布，仍需后续图片解析或受控人工复核；2022 学信网成绩统计表页面当前直连返回 412，DataHub 已把中新网辽宁转载图片页登记为镜像候选源，不能冒充辽宁官网原始长期来源。
 
-2023/2024 官方图片页可先用 `download-page-images` 采集原图并生成 manifest。manifest 兼容 `build-local --intake-manifest`，后续无论使用 OCR 还是人工转录，发布包都能追溯到原始图片 SHA-256：
+2022 镜像图片页和 2023/2024 官方图片页可先用 `download-page-images` 采集图片并生成 manifest。manifest 兼容 `build-local --intake-manifest`，后续无论使用 OCR 还是人工转录，发布包都能追溯到原始图片 SHA-256：
 
 ```bash
 python3 scripts/build_package.py download-page-images \
@@ -147,7 +164,7 @@ python3 scripts/build_package.py download-page-images \
   --output-root raw
 ```
 
-真实 smoke 已验证该命令可从 2023 官方页面采集 20 张图、从 2024 官方页面采集 21 张图。
+真实 smoke 已验证该命令可采集 2022 镜像页 20 张图、2023 官方页 20 张图、2024 官方页 21 张图。
 
 macOS 环境可使用系统 Vision OCR 生成可复查的 JSONL 中间产物。OCR 参数不写在代码里，由 `config/sources.json` 的 `ln_score_distribution.ocr` 维护：
 
@@ -170,7 +187,7 @@ python3 scripts/build_package.py parse-ln-score-distribution-ocr \
   --source-date 2024-06-25
 ```
 
-真实 smoke：2024 OCR JSONL 生成 1,861 条候选、650 条直接 parsed 行、194 条 inferred_score 行、88 条 inferred_row 行、680 条累计校验 OK；2023 OCR JSONL 生成 1,450 条候选、227 条直接 parsed 行、116 条 inferred_score 行、2 条 inferred_row 行、265 条累计校验 OK。`inferred_row` 使用同图同块锚点和连续累计规则补齐单数字行，参数由 `parser.ocr_table.infer_single_number_rows` 控制。该结果说明 OCR 候选仍需要人工复核或更强表格结构识别，不能跳过 `build-local` 质量闸门。
+真实 smoke：2024 OCR JSONL 生成 1,861 条候选、650 条直接 parsed 行、194 条 inferred_score 行、88 条 inferred_row 行、680 条累计校验 OK；2023 OCR JSONL 生成 1,450 条候选、227 条直接 parsed 行、116 条 inferred_score 行、2 条 inferred_row 行、265 条累计校验 OK；2022 镜像 OCR JSONL 生成 1,705 条候选、271 条直接 parsed 行、286 条 inferred_score 行、43 条 inferred_row 行、480 条累计校验 OK。`inferred_row` 使用同图同块锚点和连续累计规则补齐单数字行，参数由 `parser.ocr_table.infer_single_number_rows` 控制。该结果说明 OCR 候选仍需要人工复核或更强表格结构识别，不能跳过 `build-local` 质量闸门。
 
 候选 CSV 可以继续转成可分派的复核任务表，优先级和建议动作由 `config/sources.json` 的 `parser.ocr_review.issue_actions` 维护：
 
@@ -180,7 +197,7 @@ python3 scripts/build_package.py build-ln-score-distribution-review \
   --output staging/ln_score_distribution_2024_review_tasks.csv
 ```
 
-真实 smoke：2024 候选生成 1,181 条复核任务，失败原因分布为 `incomplete=803, duplicate_score=184, invalid_score=122, cumulative_mismatch=68, extra_tokens=4`；2023 候选生成 1,185 条复核任务，失败原因分布为 `incomplete=975, invalid_score=130, duplicate_score=49, cumulative_mismatch=31`。复核任务表只用于校对，不是 data package。
+真实 smoke：2024 候选生成 1,181 条复核任务，失败原因分布为 `incomplete=803, duplicate_score=184, invalid_score=122, cumulative_mismatch=68, extra_tokens=4`；2023 候选生成 1,185 条复核任务，失败原因分布为 `incomplete=975, invalid_score=130, duplicate_score=49, cumulative_mismatch=31`；2022 镜像候选生成 1,225 条复核任务，失败原因分布为 `incomplete=999, invalid_score=106, duplicate_score=87, cumulative_mismatch=33`。复核任务表只用于校对，不是 data package。
 
 复核任务可继续拆成本地工作区。工作区按原图生成批次 CSV、进度 manifest 和 HTML 核对页；pending 状态和可编辑字段由 `config/sources.json` 的 `parser.ocr_review_workspace` 维护：
 
@@ -200,7 +217,7 @@ python3 scripts/build_package.py merge-ln-score-distribution-review-workspace \
   --output staging/ln_score_distribution_2024_review_tasks_merged.csv
 ```
 
-真实 smoke：2024 工作区生成 21 个图片批次、1,181 条待复核任务；2023 工作区生成 20 个图片批次、1,185 条待复核任务。未修改批次可无损合并回总表，`updated_rows=0`。
+真实 smoke：2024 工作区生成 21 个图片批次、1,181 条待复核任务；2023 工作区生成 20 个图片批次、1,185 条待复核任务；2022 镜像工作区生成 19 个图片批次、1,225 条待复核任务。未修改批次可无损合并回总表，`updated_rows=0`。
 
 复核完成后，使用 review task 中的 `corrected_score/corrected_score_count/corrected_cumulative_rank` 合并出 cleaned CSV：
 

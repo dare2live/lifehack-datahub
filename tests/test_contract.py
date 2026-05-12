@@ -27,6 +27,7 @@ from datahub.connectors.manual_files import intake_manual_assets
 from datahub.connectors.macos_vision_ocr import ocr_page_images
 from datahub.connectors.remote_files import download_remote_assets
 from datahub.connectors.registry import discover_assets
+from datahub.connectors.source_candidates import probe_source_candidates
 from datahub.parsers.ln_projection_score import parse_ln_projection_score_file
 from datahub.parsers.ln_score_distribution_ocr import (
     apply_score_distribution_review,
@@ -300,15 +301,51 @@ def test_intake_manual_assets_rejects_remote_configured_source(tmp_path: Path):
     assert rejected
 
 
+def test_probe_source_candidates_reports_accessible_file(tmp_path: Path, monkeypatch):
+    source = tmp_path / "candidate.html"
+    source.write_text("fixture candidate", encoding="utf-8")
+
+    def fake_sources():
+        return {
+            "sources": {
+                "fixture_source": {
+                    "name": "Fixture Source",
+                    "research_candidates": [
+                        {
+                            "label": "local fixture",
+                            "kind": "fixture_page",
+                            "url": source.resolve().as_uri(),
+                            "source_date": "2026-05-13",
+                            "expected_table": "fa_fact_fixture",
+                        }
+                    ],
+                }
+            }
+        }
+
+    monkeypatch.setattr("datahub.connectors.source_candidates.load_sources", fake_sources)
+
+    output = tmp_path / "probe.json"
+    report = probe_source_candidates("fixture_source", output=output)
+    assert report["candidate_count"] == 1
+    assert report["accessible_count"] == 1
+    assert report["candidates"][0]["probe_status"] == "accessible"
+    assert report["candidates"][0]["size_bytes"] == len("fixture candidate")
+    assert report["candidates"][0]["sha256"] == hashlib.sha256(b"fixture candidate").hexdigest()
+    assert output.exists()
+
+
 def test_audit_sources_marks_admission_plan_manual():
     report = audit_sources()
     by_key = {item["source_key"]: item for item in report["sources"]}
     assert by_key["ln_admission_plan"]["status"] == "manual_required"
     assert by_key["ln_admission_plan"]["official_distribution"]
     assert by_key["ln_projection_score"]["status"] == "remote_configured"
+    assert by_key["ln_projection_score"]["research_candidate_count"] >= 4
     assert by_key["ln_score_history"]["status"] == "partial_official_derivation_configured"
     assert by_key["ln_score_distribution"]["status"] == "remote_configured"
-    assert by_key["ln_score_distribution"]["page_image_source_count"] == 2
+    assert by_key["ln_score_distribution"]["page_image_source_count"] == 3
+    assert by_key["ln_score_distribution"]["research_candidate_count"] >= 3
     assert by_key["ln_score_distribution"]["ocr_engine"] == "macos_vision"
     assert by_key["major_mapping_review"]["status"] == "local_db_configured"
     assert by_key["school_profile"]["status"] == "remote_configured"
@@ -1351,6 +1388,7 @@ def test_download_page_images_from_config(tmp_path: Path, monkeypatch):
                     "page_image_sources": [
                         {
                             "page_url": html.as_uri(),
+                            "kind": "mirror_page_images",
                             "source_date": "2024-06-25",
                             "file_prefix": "fixture",
                         }
@@ -1364,7 +1402,7 @@ def test_download_page_images_from_config(tmp_path: Path, monkeypatch):
     assert result["file_count"] == 1
     manifest = Path(result["pages"][0]["manifest_path"])
     data = json.loads(manifest.read_text(encoding="utf-8"))
-    assert data["source_kind"] == "official_page_images"
+    assert data["source_kind"] == "mirror_page_images"
     assert data["files"][0]["sha256"] == hashlib.sha256(b"image-bytes").hexdigest()
     assert Path(data["files"][0]["path"]).read_bytes() == b"image-bytes"
 
