@@ -166,6 +166,8 @@ python3 scripts/build_package.py download-page-images \
 
 真实 smoke 已验证该命令可采集 2022 辽宁招生考试之窗官方页 8 张图、2022 中新网镜像页 20 张图、2023 官方页 20 张图、2024 官方页 21 张图，共 69 张图。
 
+2022 官方图片源 smoke：8 张官方图经 macOS Vision 生成 1,302 条 OCR observation；物理类解析 400 条候选，其中 337 条完整、71 条待复核；历史类解析 295 条候选，其中 131 条完整、177 条待复核。readiness audit 仍报告严格合并不可通过，必须人工核对 248 条复核任务后才能生成 cleaned CSV。相比此前 2022 中新网镜像 1,225 条待复核任务，官方图显著降低人工复核量。
+
 macOS 环境可使用系统 Vision OCR 生成可复查的 JSONL 中间产物。OCR 参数不写在代码里，由 `config/sources.json` 的 `ln_score_distribution.ocr` 维护：
 
 ```bash
