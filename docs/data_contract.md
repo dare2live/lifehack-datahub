@@ -48,6 +48,12 @@ python3 scripts/build_package.py build-local \
 
 ## 远程文件下载入口
 
+先用 source audit 看清楚每个数据源的获取状态：
+
+```bash
+python3 scripts/build_package.py audit-sources
+```
+
 `config/sources.json` 的每个 source 可以维护 `remote_files`：
 
 ```json

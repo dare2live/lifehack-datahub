@@ -42,6 +42,12 @@ Phase 5 原型：已固化数据包契约和模块边界，提供本地已清洗
 
 ## 本地数据包生成
 
+先审计数据源获取状态：
+
+```bash
+python3 scripts/build_package.py audit-sources
+```
+
 先按 `config/sources.json` 发现本地文件：
 
 ```bash

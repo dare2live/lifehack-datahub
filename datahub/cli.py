@@ -13,6 +13,7 @@ from .connectors.registry import discover_assets, list_source_keys
 from .connectors.remote_files import download_remote_assets
 from .parsers.ln_projection_score import parse_ln_projection_score_files
 from .parsers.moe_major_catalog import parse_moe_major_catalog_pdf
+from .source_audit import audit_sources
 from .validators.package_validator import validate_manifest
 
 
@@ -22,6 +23,8 @@ def main() -> int:
 
     validate = sub.add_parser("validate", help="Validate an exported data package manifest")
     validate.add_argument("manifest", type=Path)
+
+    sub.add_parser("audit-sources", help="Audit configured source acquisition readiness")
 
     build_local = sub.add_parser("build-local", help="Build a data package from a local cleaned table")
     build_local.add_argument("--source-key", required=True)
@@ -71,6 +74,9 @@ def main() -> int:
         report = validate_manifest(args.manifest)
         print(json.dumps(report, ensure_ascii=False, indent=2))
         return 0 if not report["errors"] else 1
+    if args.cmd == "audit-sources":
+        print(json.dumps(audit_sources(), ensure_ascii=False, indent=2))
+        return 0
     if args.cmd == "build-local":
         result = build_local_package(
             source_key=args.source_key,

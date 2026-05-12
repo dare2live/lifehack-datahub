@@ -4,18 +4,32 @@
   "sources": {
     "ln_admission_plan": {
       "name": "辽宁招生计划",
-      "kind": "manual_download",
+      "kind": "controlled_manual_export",
       "owner": "lifehack-datahub",
       "raw_glob": "raw/ln_admission_plan/**/*.xlsx",
       "remote_files": [],
+      "acquisition": {
+        "status": "manual_required",
+        "official_distribution": "网报志愿系统和《辽宁招生考试》杂志",
+        "evidence_urls": [
+          "https://jyt.ln.gov.cn/jyt/jyzx/jyyw/2025062010482638109/index.shtml"
+        ],
+        "notes": "辽宁官方说明完整招生计划在志愿填报系统和杂志公布；辽宁招生考试之窗公开站点主要发布计划更正和征集剩余计划。DataHub 只接收从官方系统/杂志导出的清洗文件并生成标准数据包。"
+      },
       "target_tables": ["fa_dim_ln_admission_plan"]
     },
     "ln_score_history": {
       "name": "辽宁历史分数线",
-      "kind": "manual_download",
+      "kind": "official_source_research",
       "owner": "lifehack-datahub",
       "raw_glob": "raw/ln_score_history/**/*.xlsx",
       "remote_files": [],
+      "acquisition": {
+        "status": "research_required",
+        "official_distribution": "待确认官方多年份录取位次/最低分可重复来源",
+        "evidence_urls": [],
+        "notes": "当前 core 已有历史分数线数据，但 DataHub 尚未确认可重复下载的官方多年份录取位次数据源；不能用 2025 投档最低分替代多年份录取位次表。"
+      },
       "target_tables": ["fa_fact_ln_score_history"]
     },
     "ln_projection_score": {
@@ -65,6 +79,12 @@
       "owner": "lifehack-datahub",
       "raw_glob": "raw/major_mapping_review/**/*",
       "remote_files": [],
+      "acquisition": {
+        "status": "local_db_configured",
+        "official_distribution": "core university.db 中的 fa_mart_major_mapping_review_queue",
+        "evidence_urls": [],
+        "notes": "DataHub 只读读取 core 复核队列，把 approved 映射晋级为 fa_bridge_major_tdx 数据包。"
+      },
       "target_tables": ["fa_bridge_major_tdx"]
     }
   }

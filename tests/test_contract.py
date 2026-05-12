@@ -12,6 +12,7 @@ from datahub.connectors.remote_files import download_remote_assets
 from datahub.connectors.registry import discover_assets
 from datahub.parsers.ln_projection_score import parse_ln_projection_score_file
 from datahub.parsers.moe_major_catalog import parse_moe_major_catalog_lines
+from datahub.source_audit import audit_sources
 from datahub.validators.package_validator import validate_manifest
 
 
@@ -74,6 +75,16 @@ def test_discover_assets_from_source_config(tmp_path: Path):
     assert assets[0].source_key == "ln_admission_plan"
     assert assets[0].source_date == "2026-05-12"
     assert assets[0].path == source
+
+
+def test_audit_sources_marks_admission_plan_manual():
+    report = audit_sources()
+    by_key = {item["source_key"]: item for item in report["sources"]}
+    assert by_key["ln_admission_plan"]["status"] == "manual_required"
+    assert by_key["ln_admission_plan"]["official_distribution"]
+    assert by_key["ln_projection_score"]["status"] == "remote_configured"
+    assert by_key["ln_score_history"]["status"] == "research_required"
+    assert by_key["major_mapping_review"]["status"] == "local_db_configured"
 
 
 def test_download_remote_assets_from_config(tmp_path: Path, monkeypatch):
