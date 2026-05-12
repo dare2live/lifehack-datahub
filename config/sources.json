@@ -23,7 +23,14 @@
       "kind": "public_catalog",
       "owner": "lifehack-datahub",
       "raw_glob": "raw/moe_major_catalog/**/*",
-      "remote_files": [],
+      "remote_files": [
+        {
+          "url": "https://www.moe.gov.cn/srcsite/A08/moe_1034/s4930/202504/W020250422312780837078.pdf",
+          "file_name": "moe_major_catalog_2025.pdf",
+          "source_date": "2025-04-22",
+          "sha256": "d5cf24154bc6f48f1ea9683e959aa4e292837b2610889171ee157851a443c736"
+        }
+      ],
       "target_tables": ["fa_dim_major_catalog"]
     },
     "major_mapping_review": {
