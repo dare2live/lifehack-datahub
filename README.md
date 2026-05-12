@@ -38,7 +38,7 @@ exports/YYYY-MM-DD_ln_admission_plan/
 
 ## 当前阶段
 
-Phase 5 原型：已固化数据包契约和模块边界，提供本地已清洗 CSV/TSV/XLSX 到 data package 的生成入口，并支持从 core 的专业映射复核队列生成正式 `fa_bridge_major_tdx` 数据包。下一步逐步接入辽宁招生计划、辽宁历史分数线、教育部专业目录等远程数据源。
+Phase 5+：已固化数据包契约和模块边界，提供本地已清洗 CSV/TSV/XLSX 到 data package 的生成入口，支持远程文件下载、受控手工 intake、教育部目录解析、辽宁投档分解析、学校身份桥表、历史位次 legacy snapshot、专业映射复核晋级，以及配置驱动的政策表数据包生成。
 
 ## 本地数据包生成
 
@@ -108,3 +108,19 @@ python3 scripts/build_package.py build-review-mapping \
 ```
 
 输出包仍需由 core 的 `backend/scripts/import_data_package.py` 导入。DataHub 不写 core 数据库。
+
+## 政策表数据包
+
+政策行业映射和规划兑现回测由 `config/policy_industry_map.json`、`config/policy_plan_history.json` 维护，不在 core 里硬编码生产：
+
+```bash
+python3 scripts/build_package.py build-policy-industry-map \
+  --output-root exports \
+  --package-id 2026_policy_industry_map
+
+python3 scripts/build_package.py build-policy-plan-history \
+  --output-root exports \
+  --package-id 2026_policy_plan_history
+```
+
+builder 会输出 `manifest.json`、`quality_report.json` 和对应 `fa_` 表 CSV，后续仍由 core importer 导入。

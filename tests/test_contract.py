@@ -9,6 +9,10 @@ from openpyxl import Workbook
 
 from datahub.builders.major_mapping_review import build_major_mapping_review_package
 from datahub.builders.local_package import build_local_package
+from datahub.builders.policy_tables import (
+    build_policy_industry_map_package,
+    build_policy_plan_history_package,
+)
 from datahub.builders.score_history_snapshot import build_score_history_snapshot_package
 from datahub.config import get_table_schema, load_outcome_metrics, load_source_schemas
 from datahub.builders.school_identity import build_school_identity_package
@@ -195,8 +199,8 @@ def test_audit_sources_marks_admission_plan_manual():
     assert by_key["school_identity_bridge"]["status"] == "local_db_configured"
     assert by_key["school_outcome"]["target_tables"] == ["fa_fact_school_outcome"]
     assert by_key["major_outcome"]["status"] == "source_collection_required"
-    assert by_key["policy_industry_map"]["status"] == "curation_required"
-    assert by_key["policy_plan_history"]["status"] == "curation_required"
+    assert by_key["policy_industry_map"]["status"] == "curated_seed_configured"
+    assert by_key["policy_plan_history"]["status"] == "curated_seed_configured"
 
 
 def test_evidence_domain_schemas_are_package_ready():
@@ -216,6 +220,151 @@ def test_evidence_domain_schemas_are_package_ready():
         assert "built_at" in schema["columns"]
         assert set(schema["required"]).issubset(set(schema["columns"]))
         assert schema["primary_key"]
+
+
+def test_build_policy_industry_map_package_from_config(tmp_path: Path):
+    config = tmp_path / "policy_industry_map.json"
+    config.write_text(json.dumps({
+        "version": "fixture-policy-map",
+        "source_date": "2026-03-16",
+        "availability_date": "2026-05-13",
+        "policy_period": "十五五(2026-2030)",
+        "source_lineage": {
+            "source_key": "policy_industry_map",
+            "source_kind": "curated_policy_config",
+            "evidence_urls": ["https://example.gov/policy"],
+        },
+        "validation": {
+            "allowed_policy_labels": ["重点扶持", "中性", "收缩"],
+            "policy_intensity_min": 1,
+            "policy_intensity_max": 3,
+        },
+        "rows": [
+            {
+                "tdx_l2": "T1205",
+                "tdx_l2_name": "软件服务",
+                "tdx_l1_name": "信息产业",
+                "policy_label": "重点扶持",
+                "policy_intensity": 3,
+                "key_themes": ["人工智能", "国产软件替代"],
+                "rationale": "fixture rationale",
+            }
+        ],
+    }, ensure_ascii=False), encoding="utf-8")
+
+    result = build_policy_industry_map_package(
+        output_root=tmp_path / "exports",
+        config_path=config,
+        package_id="pkg-policy-map-test",
+    )
+    package_dir = Path(result["package_dir"])
+    assert validate_manifest(package_dir / "manifest.json")["errors"] == []
+    assert result["rows"] == 1
+    assert result["source_lineage"]["config_file"] == "config/policy_industry_map.json"
+
+    with (package_dir / "fa_dim_policy_industry_map.csv").open(encoding="utf-8", newline="") as f:
+        rows = list(csv.DictReader(f))
+    assert rows[0]["policy_period"] == "十五五(2026-2030)"
+    assert json.loads(rows[0]["key_themes_json"]) == ["人工智能", "国产软件替代"]
+
+
+def test_build_policy_plan_history_package_rejects_duplicate_keys(tmp_path: Path):
+    config = tmp_path / "policy_plan_history.json"
+    config.write_text(json.dumps({
+        "version": "fixture-policy-history",
+        "source_date": "2026-05-13",
+        "availability_date": "2026-05-13",
+        "source_lineage": {
+            "source_key": "policy_plan_history",
+            "source_kind": "curated_policy_backtest_config",
+            "evidence_urls": ["https://example.gov/history"],
+        },
+        "validation": {
+            "allowed_policy_labels": ["重点扶持", "中性", "收缩"],
+            "allowed_actual_outcomes": ["超预期兑现", "基本兑现", "部分兑现", "未兑现"],
+            "outcome_score_min": 1,
+            "outcome_score_max": 5,
+        },
+        "rows": [
+            {
+                "plan_period": "十四五(2021-2025)",
+                "tdx_l2": "T0706",
+                "tdx_l2_name": "电气设备",
+                "tdx_l1_name": "装备制造",
+                "policy_label": "重点扶持",
+                "actual_outcome": "超预期兑现",
+                "outcome_score": 5,
+                "evidence": "fixture evidence",
+            },
+            {
+                "plan_period": "十四五(2021-2025)",
+                "tdx_l2": "T0706",
+                "tdx_l2_name": "电气设备",
+                "tdx_l1_name": "装备制造",
+                "policy_label": "重点扶持",
+                "actual_outcome": "基本兑现",
+                "outcome_score": 4,
+                "evidence": "duplicate fixture evidence",
+            },
+        ],
+    }, ensure_ascii=False), encoding="utf-8")
+
+    try:
+        build_policy_plan_history_package(
+            output_root=tmp_path / "exports",
+            config_path=config,
+            package_id="pkg-policy-history-bad-test",
+        )
+        rejected = False
+    except ValueError as exc:
+        rejected = "duplicate primary keys" in str(exc)
+    assert rejected
+
+
+def test_build_policy_plan_history_package_from_config(tmp_path: Path):
+    config = tmp_path / "policy_plan_history.json"
+    config.write_text(json.dumps({
+        "version": "fixture-policy-history",
+        "source_date": "2026-05-13",
+        "availability_date": "2026-05-13",
+        "source_lineage": {
+            "source_key": "policy_plan_history",
+            "source_kind": "curated_policy_backtest_config",
+            "evidence_urls": ["https://example.gov/history"],
+        },
+        "validation": {
+            "allowed_policy_labels": ["重点扶持", "中性", "收缩"],
+            "allowed_actual_outcomes": ["超预期兑现", "基本兑现", "部分兑现", "未兑现"],
+            "outcome_score_min": 1,
+            "outcome_score_max": 5,
+        },
+        "rows": [
+            {
+                "plan_period": "十四五(2021-2025)",
+                "tdx_l2": "T0706",
+                "tdx_l2_name": "电气设备",
+                "tdx_l1_name": "装备制造",
+                "policy_label": "重点扶持",
+                "actual_outcome": "超预期兑现",
+                "outcome_score": 5,
+                "evidence": "fixture evidence",
+            }
+        ],
+    }, ensure_ascii=False), encoding="utf-8")
+
+    result = build_policy_plan_history_package(
+        output_root=tmp_path / "exports",
+        config_path=config,
+        package_id="pkg-policy-history-test",
+    )
+    package_dir = Path(result["package_dir"])
+    assert validate_manifest(package_dir / "manifest.json")["errors"] == []
+    assert result["rows"] == 1
+
+    with (package_dir / "fa_dim_policy_plan_history.csv").open(encoding="utf-8", newline="") as f:
+        rows = list(csv.DictReader(f))
+    assert rows[0]["plan_period"] == "十四五(2021-2025)"
+    assert rows[0]["outcome_score"] == "5"
 
 
 def test_parse_moe_school_profile_rows():

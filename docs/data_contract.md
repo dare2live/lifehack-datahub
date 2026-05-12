@@ -75,7 +75,7 @@ python3 scripts/build_package.py download --source-key ln_admission_plan --outpu
 
 ## 受控手工文件入口
 
-对 `manual_required`、`source_collection_required`、`curation_required`、`research_required` 状态的数据源，DataHub 使用 `intake-manual` 登记原始文件。它只复制文件到 raw 区并写入 `_intake_manifest.json`，记录采集人、来源说明、证据链接、文件大小和 SHA-256；不解析文件，不导入 core，也不允许把 raw 文件提交到 Git。
+对 `manual_required`、`source_collection_required`、`curation_required`、`curated_seed_configured`、`research_required` 状态的数据源，DataHub 使用 `intake-manual` 登记原始文件。它只复制文件到 raw 区并写入 `_intake_manifest.json`，记录采集人、来源说明、证据链接、文件大小和 SHA-256；不解析文件，不导入 core，也不允许把 raw 文件提交到 Git。
 
 示例：
 
@@ -128,6 +128,20 @@ python3 scripts/build_package.py parse-ln-projection-score \
 这些表的字段、别名、必填列、数字列维护在 `config/source_schemas.json`；来源状态维护在 `config/sources.json`。没有明确来源 URL 或证据摘录的主观判断不得发布为 outcome 数据包。
 
 学校和专业 outcome 的 `metric_key` 必须先登记到 `config/outcome_metrics.json`。`build-local` 会校验 metric key、单位和取值范围；未登记指标不会被打包发布。
+
+政策映射和规划兑现回测不再由 core 建表脚本生产。DataHub 用版本化配置生成标准包：
+
+```bash
+python3 scripts/build_package.py build-policy-industry-map \
+  --output-root exports \
+  --package-id 2026_policy_industry_map
+
+python3 scripts/build_package.py build-policy-plan-history \
+  --output-root exports \
+  --package-id 2026_policy_plan_history
+```
+
+配置文件分别是 `config/policy_industry_map.json` 和 `config/policy_plan_history.json`。builder 会校验主键、必填列、政策标签、强度/兑现分范围和 `key_themes_json` 格式，并把官方规划页面写入 `manifest.source_lineage`。
 
 教育部全国高等学校名单通过 `school_profile` source 下载，并用 parser 生成 `fa_dim_school_profile`：
 

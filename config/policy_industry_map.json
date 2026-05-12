@@ -1,0 +1,756 @@
+{
+  "version": "2026-05-13.seed1",
+  "updated_at": "2026-05-13",
+  "source_date": "2026-03-16",
+  "availability_date": "2026-05-13",
+  "policy_period": "十五五(2026-2030)",
+  "source_lineage": {
+    "source_key": "policy_industry_map",
+    "source_name": "十五五政策行业映射",
+    "source_kind": "curated_policy_config",
+    "source_date": "2026-03-16",
+    "acquired_by": "lifehack-datahub",
+    "official_distribution": "中华人民共和国国民经济和社会发展第十五个五年规划纲要及公开产业政策文件",
+    "evidence_urls": [
+      "https://www.npc.gov.cn/npc/c2/c30834/202603/t20260316_453274.html"
+    ],
+    "notes": "Seed migrated from core build_policy_map.py into versioned DataHub config. Row-level policy evidence should be expanded before production consulting use."
+  },
+  "validation": {
+    "allowed_policy_labels": [
+      "重点扶持",
+      "中性",
+      "收缩"
+    ],
+    "policy_intensity_min": 1,
+    "policy_intensity_max": 3
+  },
+  "rows": [
+    {
+      "tdx_l2": "T0101",
+      "tdx_l2_name": "煤炭",
+      "tdx_l1_name": "能源",
+      "policy_label": "收缩",
+      "policy_intensity": 3,
+      "key_themes": [
+        "双碳目标",
+        "煤炭减量替代",
+        "能源结构转型"
+      ],
+      "rationale": "2030碳达峰/2060碳中和明确要求减煤，新增煤矿审批严格收紧，存量就业岗位持续萎缩"
+    },
+    {
+      "tdx_l2": "T0102",
+      "tdx_l2_name": "电力",
+      "tdx_l1_name": "能源",
+      "policy_label": "中性",
+      "policy_intensity": 1,
+      "key_themes": [
+        "电力市场化改革",
+        "新能源并网消纳"
+      ],
+      "rationale": "管制属性强，新能源装机带来并网压力，电价改革带来结构性变化，整体中性"
+    },
+    {
+      "tdx_l2": "T0103",
+      "tdx_l2_name": "石油",
+      "tdx_l1_name": "能源",
+      "policy_label": "中性",
+      "policy_intensity": 1,
+      "key_themes": [
+        "能源保供",
+        "油气体制改革",
+        "化工高端化"
+      ],
+      "rationale": "短期保供需求维持规模，但双碳路径确定替代压力，化工高端化是主要出路"
+    },
+    {
+      "tdx_l2": "T0201",
+      "tdx_l2_name": "钢铁",
+      "tdx_l1_name": "材料",
+      "policy_label": "中性",
+      "policy_intensity": 1,
+      "key_themes": [
+        "产能整合",
+        "绿色钢铁",
+        "去产能"
+      ],
+      "rationale": "去产能政策持续收紧总量，绿色电弧炉转型获支持，整体压缩而非消亡"
+    },
+    {
+      "tdx_l2": "T0202",
+      "tdx_l2_name": "有色",
+      "tdx_l1_name": "材料",
+      "policy_label": "重点扶持",
+      "policy_intensity": 2,
+      "key_themes": [
+        "战略金属保供",
+        "新能源原材料",
+        "资源安全"
+      ],
+      "rationale": "锂/钴/稀土为新能源产业链关键原材料，国家战略储备和供应链安全优先保障"
+    },
+    {
+      "tdx_l2": "T0203",
+      "tdx_l2_name": "化纤",
+      "tdx_l1_name": "材料",
+      "policy_label": "中性",
+      "policy_intensity": 1,
+      "key_themes": [
+        "传统制造升级",
+        "高性能纤维"
+      ],
+      "rationale": "传统化纤产能过剩压力大，碳纤维等高性能纤维有扶持，整体中性"
+    },
+    {
+      "tdx_l2": "T0204",
+      "tdx_l2_name": "化工",
+      "tdx_l1_name": "材料",
+      "policy_label": "重点扶持",
+      "policy_intensity": 2,
+      "key_themes": [
+        "新材料",
+        "精细化工",
+        "半导体化学品",
+        "化工替代进口"
+      ],
+      "rationale": "新材料是十五五战略新兴产业之一，半导体/新能源化学品替代进口空间大"
+    },
+    {
+      "tdx_l2": "T0206",
+      "tdx_l2_name": "建材",
+      "tdx_l1_name": "材料",
+      "policy_label": "收缩",
+      "policy_intensity": 2,
+      "key_themes": [
+        "房地产链下行",
+        "水泥产能过剩",
+        "去产能"
+      ],
+      "rationale": "强依赖房地产链，水泥/玻璃产能严重过剩，去产能政策明确且无替代增量"
+    },
+    {
+      "tdx_l2": "T0207",
+      "tdx_l2_name": "造纸",
+      "tdx_l1_name": "材料",
+      "policy_label": "中性",
+      "policy_intensity": 1,
+      "key_themes": [
+        "绿色制造",
+        "再生纤维"
+      ],
+      "rationale": "传统制造，政策无特殊扶持，环保压力促进产业整合，供需趋于平衡"
+    },
+    {
+      "tdx_l2": "T0208",
+      "tdx_l2_name": "矿物制品",
+      "tdx_l1_name": "材料",
+      "policy_label": "中性",
+      "policy_intensity": 1,
+      "key_themes": [
+        "建筑材料升级",
+        "新型材料"
+      ],
+      "rationale": "与建筑地产相关，房地产下行有压力，高性能矿物材料有小幅扶持"
+    },
+    {
+      "tdx_l2": "T0301",
+      "tdx_l2_name": "日用化工",
+      "tdx_l1_name": "日常消费",
+      "policy_label": "中性",
+      "policy_intensity": 1,
+      "key_themes": [
+        "国货品牌",
+        "绿色化工"
+      ],
+      "rationale": "内需消费，无重大政策加码，国货替代进口品牌有机会，监管合规要求提升"
+    },
+    {
+      "tdx_l2": "T0302",
+      "tdx_l2_name": "农林牧渔",
+      "tdx_l1_name": "日常消费",
+      "policy_label": "重点扶持",
+      "policy_intensity": 2,
+      "key_themes": [
+        "粮食安全",
+        "种业振兴",
+        "农业科技",
+        "乡村振兴"
+      ],
+      "rationale": "粮食安全上升为国家战略底线，种业「卡脖子」攻关和农业数字化列为重大任务"
+    },
+    {
+      "tdx_l2": "T0303",
+      "tdx_l2_name": "纺织服饰",
+      "tdx_l1_name": "日常消费",
+      "policy_label": "中性",
+      "policy_intensity": 1,
+      "key_themes": [
+        "传统制造升级",
+        "国潮消费",
+        "出口韧性"
+      ],
+      "rationale": "传统制造业，政策无特殊扶持，国潮品牌升级和出口基地效应是主要机会"
+    },
+    {
+      "tdx_l2": "T0304",
+      "tdx_l2_name": "食品饮料",
+      "tdx_l1_name": "日常消费",
+      "policy_label": "中性",
+      "policy_intensity": 1,
+      "key_themes": [
+        "食品安全监管",
+        "消费升级"
+      ],
+      "rationale": "消费必需品，政策无明显加码，监管趋严维护行业健康发展，内需稳定"
+    },
+    {
+      "tdx_l2": "T0305",
+      "tdx_l2_name": "酿酒",
+      "tdx_l1_name": "日常消费",
+      "policy_label": "中性",
+      "policy_intensity": 1,
+      "key_themes": [
+        "消费升级",
+        "品牌集中"
+      ],
+      "rationale": "高端化消费升级趋势持续，无政策直接扶持或压制，头部品牌护城河稳固"
+    },
+    {
+      "tdx_l2": "T0401",
+      "tdx_l2_name": "家用电器",
+      "tdx_l1_name": "可选消费",
+      "policy_label": "中性",
+      "policy_intensity": 1,
+      "key_themes": [
+        "以旧换新",
+        "智能家居",
+        "出口"
+      ],
+      "rationale": "受益于以旧换新政策但属短期刺激而非长期战略扶持，出口韧性是关键变量"
+    },
+    {
+      "tdx_l2": "T0402",
+      "tdx_l2_name": "汽车类",
+      "tdx_l1_name": "可选消费",
+      "policy_label": "重点扶持",
+      "policy_intensity": 2,
+      "key_themes": [
+        "新能源汽车",
+        "智能网联",
+        "出海战略",
+        "充电基础设施"
+      ],
+      "rationale": "新能源汽车为支柱产业之一，智能驾驶纳入国家标准推进，全球出口布局政策护航"
+    },
+    {
+      "tdx_l2": "T0403",
+      "tdx_l2_name": "医疗保健",
+      "tdx_l1_name": "可选消费",
+      "policy_label": "重点扶持",
+      "policy_intensity": 2,
+      "key_themes": [
+        "医疗器械国产化",
+        "老龄化应对",
+        "健康中国"
+      ],
+      "rationale": "医疗设备国产替代进口为攻关方向，老龄化带来持续需求，政策保障供给扩张"
+    },
+    {
+      "tdx_l2": "T0404",
+      "tdx_l2_name": "家居用品",
+      "tdx_l1_name": "可选消费",
+      "policy_label": "中性",
+      "policy_intensity": 1,
+      "key_themes": [
+        "房地产链",
+        "消费升级",
+        "出口"
+      ],
+      "rationale": "强依赖房地产竣工端，短期房地产政策对冲有一定效果，出口基本盘稳固"
+    },
+    {
+      "tdx_l2": "T0405",
+      "tdx_l2_name": "医药",
+      "tdx_l1_name": "可选消费",
+      "policy_label": "重点扶持",
+      "policy_intensity": 3,
+      "key_themes": [
+        "创新药",
+        "生物安全",
+        "生命科学",
+        "老龄化应对"
+      ],
+      "rationale": "人口老龄化+生物安全双重驱动，创新药审批加速，医药产业集群政策密集支持"
+    },
+    {
+      "tdx_l2": "T0501",
+      "tdx_l2_name": "商业连锁",
+      "tdx_l1_name": "商贸",
+      "policy_label": "中性",
+      "policy_intensity": 1,
+      "key_themes": [
+        "促消费",
+        "电商冲击",
+        "全渠道零售"
+      ],
+      "rationale": "受益于促消费政策，但电商持续冲击线下，便利店/仓储会员店有结构性机会"
+    },
+    {
+      "tdx_l2": "T0502",
+      "tdx_l2_name": "商贸代理",
+      "tdx_l1_name": "商贸",
+      "policy_label": "中性",
+      "policy_intensity": 1,
+      "key_themes": [
+        "供应链优化",
+        "贸易摩擦应对"
+      ],
+      "rationale": "传统贸易代理面临电商和直接贸易替代压力，供应链服务转型是主要方向"
+    },
+    {
+      "tdx_l2": "T0601",
+      "tdx_l2_name": "传媒娱乐",
+      "tdx_l1_name": "社会服务",
+      "policy_label": "中性",
+      "policy_intensity": 1,
+      "key_themes": [
+        "内容监管",
+        "文化产业",
+        "国潮文化输出"
+      ],
+      "rationale": "内容监管趋严压制部分空间，国潮文化输出有扶持，正负抵消，整体中性"
+    },
+    {
+      "tdx_l2": "T0602",
+      "tdx_l2_name": "广告包装",
+      "tdx_l1_name": "社会服务",
+      "policy_label": "中性",
+      "policy_intensity": 1,
+      "key_themes": [
+        "数字营销转型",
+        "绿色包装"
+      ],
+      "rationale": "传统广告向数字化迁移，绿色包装政策要求提升合规成本，整体中性"
+    },
+    {
+      "tdx_l2": "T0603",
+      "tdx_l2_name": "文教休闲",
+      "tdx_l1_name": "社会服务",
+      "policy_label": "中性",
+      "policy_intensity": 1,
+      "key_themes": [
+        "教培监管",
+        "素质教育",
+        "文旅消费"
+      ],
+      "rationale": "校外培训严监管拖累板块，职业教育有扶持，文旅有政策激励，整体中性"
+    },
+    {
+      "tdx_l2": "T0604",
+      "tdx_l2_name": "酒店餐饮",
+      "tdx_l1_name": "社会服务",
+      "policy_label": "中性",
+      "policy_intensity": 1,
+      "key_themes": [
+        "消费恢复",
+        "文旅带动"
+      ],
+      "rationale": "疫后消费恢复期，旅游带动有增量，但连锁化竞争激烈，政策无特殊导向"
+    },
+    {
+      "tdx_l2": "T0605",
+      "tdx_l2_name": "旅游",
+      "tdx_l1_name": "社会服务",
+      "policy_label": "中性",
+      "policy_intensity": 1,
+      "key_themes": [
+        "文旅消费",
+        "入境旅游开放",
+        "乡村旅游"
+      ],
+      "rationale": "文旅消费政策积极支持，入境旅游放开带来增量，整体受益但非战略优先级"
+    },
+    {
+      "tdx_l2": "T0701",
+      "tdx_l2_name": "航空",
+      "tdx_l1_name": "装备制造",
+      "policy_label": "重点扶持",
+      "policy_intensity": 3,
+      "key_themes": [
+        "国防现代化",
+        "航空航天",
+        "大飞机C919",
+        "军民融合"
+      ],
+      "rationale": "国防装备现代化为长期主线，C919国产大飞机进入规模交付，航空航天预算增速稳定"
+    },
+    {
+      "tdx_l2": "T0702",
+      "tdx_l2_name": "船舶",
+      "tdx_l1_name": "装备制造",
+      "policy_label": "重点扶持",
+      "policy_intensity": 2,
+      "key_themes": [
+        "造船强国",
+        "绿色船舶",
+        "海洋强国",
+        "军民融合"
+      ],
+      "rationale": "中国造船份额全球第一，绿色甲醇/氨燃料船舶为新周期增量，军民两用驱动"
+    },
+    {
+      "tdx_l2": "T0703",
+      "tdx_l2_name": "运输设备",
+      "tdx_l1_name": "装备制造",
+      "policy_label": "中性",
+      "policy_intensity": 1,
+      "key_themes": [
+        "轨道交通",
+        "绿色交通"
+      ],
+      "rationale": "城轨/高铁装备有政策支持，但整体投资增速趋缓，出口是边际增量"
+    },
+    {
+      "tdx_l2": "T0704",
+      "tdx_l2_name": "通用机械",
+      "tdx_l1_name": "装备制造",
+      "policy_label": "重点扶持",
+      "policy_intensity": 1,
+      "key_themes": [
+        "高端装备制造",
+        "工业母机",
+        "制造业升级"
+      ],
+      "rationale": "工业母机纳入国家重大攻关，高端数控机床替代进口是战略方向"
+    },
+    {
+      "tdx_l2": "T0705",
+      "tdx_l2_name": "工业机械",
+      "tdx_l1_name": "装备制造",
+      "policy_label": "重点扶持",
+      "policy_intensity": 2,
+      "key_themes": [
+        "工业机器人",
+        "智能制造",
+        "人形机器人",
+        "自动化"
+      ],
+      "rationale": "制造业升级核心载体，人形机器人为十五五前沿方向，机器人密度提升空间大"
+    },
+    {
+      "tdx_l2": "T0706",
+      "tdx_l2_name": "电气设备",
+      "tdx_l1_name": "装备制造",
+      "policy_label": "重点扶持",
+      "policy_intensity": 3,
+      "key_themes": [
+        "新能源装备",
+        "风光储",
+        "特高压",
+        "2030碳达峰"
+      ],
+      "rationale": "双碳目标驱动风电/光伏/储能装备规模化建设，政策力度最高，全球出口竞争力强"
+    },
+    {
+      "tdx_l2": "T0707",
+      "tdx_l2_name": "工程机械",
+      "tdx_l1_name": "装备制造",
+      "policy_label": "中性",
+      "policy_intensity": 1,
+      "key_themes": [
+        "基础设施投资",
+        "出海战略",
+        "电动化转型"
+      ],
+      "rationale": "国内基建增速放缓，但出海布局持续深化，挖掘机/吊车电动化为新增量"
+    },
+    {
+      "tdx_l2": "T0708",
+      "tdx_l2_name": "电器仪表",
+      "tdx_l1_name": "装备制造",
+      "policy_label": "重点扶持",
+      "policy_intensity": 1,
+      "key_themes": [
+        "工业互联网",
+        "智能制造",
+        "仪器仪表国产化"
+      ],
+      "rationale": "高端仪器仪表国产替代进口是攻关方向，工业互联网传感器需求随智能制造扩大"
+    },
+    {
+      "tdx_l2": "T0801",
+      "tdx_l2_name": "电信运营",
+      "tdx_l1_name": "公用事业",
+      "policy_label": "中性",
+      "policy_intensity": 1,
+      "key_themes": [
+        "5G网络建设",
+        "数字基础设施",
+        "算力网络"
+      ],
+      "rationale": "国有运营商承担5G/算力网络建设职责，资本支出大但回报周期长，整体中性"
+    },
+    {
+      "tdx_l2": "T0802",
+      "tdx_l2_name": "公共交通",
+      "tdx_l1_name": "公用事业",
+      "policy_label": "中性",
+      "policy_intensity": 1,
+      "key_themes": [
+        "民生保障",
+        "绿色出行"
+      ],
+      "rationale": "民生保障属性强，政策稳定，新能源公交替换带来设备更新需求，整体稳健"
+    },
+    {
+      "tdx_l2": "T0803",
+      "tdx_l2_name": "水务",
+      "tdx_l1_name": "公用事业",
+      "policy_label": "中性",
+      "policy_intensity": 1,
+      "key_themes": [
+        "民生保障",
+        "水资源安全"
+      ],
+      "rationale": "民生基础设施，政策稳定，水价改革带来收益改善空间，整体防守性强"
+    },
+    {
+      "tdx_l2": "T0804",
+      "tdx_l2_name": "供气供热",
+      "tdx_l1_name": "公用事业",
+      "policy_label": "中性",
+      "policy_intensity": 1,
+      "key_themes": [
+        "清洁取暖",
+        "天然气替代",
+        "民生保障"
+      ],
+      "rationale": "煤改气政策带来天然气消费增量，但定价受监管，整体稳健中性"
+    },
+    {
+      "tdx_l2": "T0805",
+      "tdx_l2_name": "环境保护",
+      "tdx_l1_name": "公用事业",
+      "policy_label": "重点扶持",
+      "policy_intensity": 2,
+      "key_themes": [
+        "双碳目标",
+        "绿色低碳",
+        "碳市场扩容",
+        "循环经济"
+      ],
+      "rationale": "双碳政策倒逼环保产业扩容，碳交易市场扩大带动第三方监测/治理需求持续增长"
+    },
+    {
+      "tdx_l2": "T0901",
+      "tdx_l2_name": "运输服务",
+      "tdx_l1_name": "交通运输",
+      "policy_label": "中性",
+      "policy_intensity": 1,
+      "key_themes": [
+        "综合交通网络",
+        "一带一路"
+      ],
+      "rationale": "基础设施网络基本成熟，一带一路带来海外增量，整体稳健增长"
+    },
+    {
+      "tdx_l2": "T0902",
+      "tdx_l2_name": "仓储物流",
+      "tdx_l1_name": "交通运输",
+      "policy_label": "中性",
+      "policy_intensity": 1,
+      "key_themes": [
+        "供应链现代化",
+        "冷链物流",
+        "跨境电商"
+      ],
+      "rationale": "电商带动物流基础设施投资，冷链和跨境物流为增长点，无特殊政策压力"
+    },
+    {
+      "tdx_l2": "T0903",
+      "tdx_l2_name": "交通设施",
+      "tdx_l1_name": "交通运输",
+      "policy_label": "中性",
+      "policy_intensity": 1,
+      "key_themes": [
+        "基础设施成熟",
+        "智慧交通"
+      ],
+      "rationale": "交通基础设施基本成熟，新增投资趋缓，智慧交通改造是增量来源"
+    },
+    {
+      "tdx_l2": "T1001",
+      "tdx_l2_name": "银行",
+      "tdx_l1_name": "金融",
+      "policy_label": "中性",
+      "policy_intensity": 1,
+      "key_themes": [
+        "金融服务实体经济",
+        "银行监管",
+        "净息差管控"
+      ],
+      "rationale": "政策要求让利实体经济，净息差持续承压，但系统性重要性确保政策保护底线"
+    },
+    {
+      "tdx_l2": "T1002",
+      "tdx_l2_name": "证券",
+      "tdx_l1_name": "金融",
+      "policy_label": "中性",
+      "policy_intensity": 1,
+      "key_themes": [
+        "资本市场改革",
+        "注册制推进",
+        "投行监管"
+      ],
+      "rationale": "注册制改革利好券商长期业务空间，但监管趋严降佣压力，整体中性"
+    },
+    {
+      "tdx_l2": "T1003",
+      "tdx_l2_name": "保险",
+      "tdx_l1_name": "金融",
+      "policy_label": "中性",
+      "policy_intensity": 1,
+      "key_themes": [
+        "养老金融",
+        "健康险",
+        "保险监管"
+      ],
+      "rationale": "老龄化带来养老/健康险长期增量，但保险监管趋严，整体稳健中性"
+    },
+    {
+      "tdx_l2": "T1004",
+      "tdx_l2_name": "多元金融",
+      "tdx_l1_name": "金融",
+      "policy_label": "中性",
+      "policy_intensity": 1,
+      "key_themes": [
+        "金融严监管",
+        "融资租赁",
+        "产业基金"
+      ],
+      "rationale": "信托/网贷监管持续收紧，融资租赁和产业基金有政策空间，整体监管主导"
+    },
+    {
+      "tdx_l2": "T1101",
+      "tdx_l2_name": "建筑",
+      "tdx_l1_name": "建筑地产",
+      "policy_label": "中性",
+      "policy_intensity": 1,
+      "key_themes": [
+        "基础设施投资",
+        "城中村改造",
+        "绿色建筑"
+      ],
+      "rationale": "新基建和城中村改造提供增量，绿色建筑标准提升合规成本，整体中性"
+    },
+    {
+      "tdx_l2": "T1102",
+      "tdx_l2_name": "房地产",
+      "tdx_l1_name": "建筑地产",
+      "policy_label": "收缩",
+      "policy_intensity": 3,
+      "key_themes": [
+        "房住不炒",
+        "三道红线",
+        "去杠杆",
+        "保交楼"
+      ],
+      "rationale": "房住不炒为长期政策底线，行业去杠杆周期漫长，就业人口规模持续萎缩"
+    },
+    {
+      "tdx_l2": "T1201",
+      "tdx_l2_name": "IT设备",
+      "tdx_l1_name": "信息产业",
+      "policy_label": "重点扶持",
+      "policy_intensity": 2,
+      "key_themes": [
+        "信创替代",
+        "算力基础设施",
+        "国产化",
+        "数字中国"
+      ],
+      "rationale": "政务和央企信创替换进口服务器/存储是十五五强制推进项目，采购周期确定"
+    },
+    {
+      "tdx_l2": "T1202",
+      "tdx_l2_name": "通信设备",
+      "tdx_l1_name": "信息产业",
+      "policy_label": "重点扶持",
+      "policy_intensity": 2,
+      "key_themes": [
+        "5G/6G建设",
+        "卫星互联网",
+        "算力网络"
+      ],
+      "rationale": "5G规模部署+6G预研进入十五五周期，低轨卫星互联网为国家战略项目"
+    },
+    {
+      "tdx_l2": "T1203",
+      "tdx_l2_name": "半导体",
+      "tdx_l1_name": "信息产业",
+      "policy_label": "重点扶持",
+      "policy_intensity": 3,
+      "key_themes": [
+        "芯片自立自强",
+        "AI芯片",
+        "第三代半导体",
+        "大基金"
+      ],
+      "rationale": "芯片自立为十五五「卡脖子」攻关首要任务，大基金三期注入确定，人才缺口最大"
+    },
+    {
+      "tdx_l2": "T1204",
+      "tdx_l2_name": "元器件",
+      "tdx_l1_name": "信息产业",
+      "policy_label": "重点扶持",
+      "policy_intensity": 2,
+      "key_themes": [
+        "半导体产业链配套",
+        "被动元器件国产化",
+        "精密制造"
+      ],
+      "rationale": "半导体产业链本土化要求配套元器件同步升级，MLCC/连接器国产替代空间大"
+    },
+    {
+      "tdx_l2": "T1205",
+      "tdx_l2_name": "软件服务",
+      "tdx_l1_name": "信息产业",
+      "policy_label": "重点扶持",
+      "policy_intensity": 3,
+      "key_themes": [
+        "人工智能与大模型",
+        "数字经济",
+        "国产软件替代",
+        "数据安全"
+      ],
+      "rationale": "AI/大模型为十五五核心战略，算力基础设施和国产软件替代双重驱动，人才需求最旺"
+    },
+    {
+      "tdx_l2": "T1206",
+      "tdx_l2_name": "互联网",
+      "tdx_l1_name": "信息产业",
+      "policy_label": "中性",
+      "policy_intensity": 1,
+      "key_themes": [
+        "平台经济监管常态化",
+        "出海战略",
+        "AI应用"
+      ],
+      "rationale": "平台反垄断和数据安全监管常态化，出海和AI应用为增长新引擎，整体中性"
+    },
+    {
+      "tdx_l2": "T1301",
+      "tdx_l2_name": "综合类",
+      "tdx_l1_name": "综合类",
+      "policy_label": "收缩",
+      "policy_intensity": 1,
+      "key_themes": [
+        "壳公司监管",
+        "聚焦主业",
+        "退市加速"
+      ],
+      "rationale": "监管层推动上市公司聚焦主业，多元化壳公司被动收缩，退市制度趋严"
+    }
+  ]
+}

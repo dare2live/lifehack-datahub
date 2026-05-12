@@ -1,0 +1,487 @@
+{
+  "version": "2026-05-13.seed1",
+  "updated_at": "2026-05-13",
+  "source_date": "2026-05-13",
+  "availability_date": "2026-05-13",
+  "source_lineage": {
+    "source_key": "policy_plan_history",
+    "source_name": "规划兑现历史回测",
+    "source_kind": "curated_policy_backtest_config",
+    "source_date": "2026-05-13",
+    "acquired_by": "lifehack-datahub",
+    "official_distribution": "十三五/十四五规划纲要、公开统计公报、行业协会和上市公司公开数据",
+    "evidence_urls": [
+      "https://www.gov.cn/xinwen/2016-03/17/content_5054992.htm",
+      "https://www.gov.cn/xinwen/2021-03/13/content_5592681.htm"
+    ],
+    "notes": "Seed migrated from core build_policy_history.py into versioned DataHub config. Evidence strings are preserved; source URL coverage should be expanded by row."
+  },
+  "validation": {
+    "allowed_policy_labels": [
+      "重点扶持",
+      "中性",
+      "收缩"
+    ],
+    "allowed_actual_outcomes": [
+      "超预期兑现",
+      "基本兑现",
+      "部分兑现",
+      "未兑现",
+      "超预期收缩"
+    ],
+    "outcome_score_min": 1,
+    "outcome_score_max": 5
+  },
+  "rows": [
+    {
+      "plan_period": "十三五(2016-2020)",
+      "tdx_l2": "T0706",
+      "tdx_l2_name": "电气设备",
+      "tdx_l1_name": "装备制造",
+      "policy_label": "重点扶持",
+      "actual_outcome": "超预期兑现",
+      "evidence": "全国光伏累计装机从77GW增至253GW(+228%)，风电从129GW增至281GW，龙头企业利润CAGR超25%",
+      "outcome_score": 5
+    },
+    {
+      "plan_period": "十三五(2016-2020)",
+      "tdx_l2": "T0402",
+      "tdx_l2_name": "汽车类",
+      "tdx_l1_name": "可选消费",
+      "policy_label": "重点扶持",
+      "actual_outcome": "基本兑现",
+      "evidence": "新能源汽车产量从50万辆增至136万辆(+172%)，补贴+双积分政策驱动，2020年全球份额第一",
+      "outcome_score": 4
+    },
+    {
+      "plan_period": "十三五(2016-2020)",
+      "tdx_l2": "T1202",
+      "tdx_l2_name": "通信设备",
+      "tdx_l1_name": "信息产业",
+      "policy_label": "重点扶持",
+      "actual_outcome": "超预期兑现",
+      "evidence": "5G标准必要专利份额全球第一，华为5G设备全球市占率超30%，移动互联网流量CAGR+65%",
+      "outcome_score": 5
+    },
+    {
+      "plan_period": "十三五(2016-2020)",
+      "tdx_l2": "T1205",
+      "tdx_l2_name": "软件服务",
+      "tdx_l1_name": "信息产业",
+      "policy_label": "重点扶持",
+      "actual_outcome": "基本兑现",
+      "evidence": "软件业业务收入CAGR约+15%，从4.3万亿增至8.2万亿，云计算市场年均增速超30%",
+      "outcome_score": 4
+    },
+    {
+      "plan_period": "十三五(2016-2020)",
+      "tdx_l2": "T1203",
+      "tdx_l2_name": "半导体",
+      "tdx_l1_name": "信息产业",
+      "policy_label": "重点扶持",
+      "actual_outcome": "部分兑现",
+      "evidence": "国内IC产值CAGR+16%，中芯国际14nm量产，但先进制程（7nm以下）受制于光刻机短板",
+      "outcome_score": 3
+    },
+    {
+      "plan_period": "十三五(2016-2020)",
+      "tdx_l2": "T0405",
+      "tdx_l2_name": "医药",
+      "tdx_l1_name": "可选消费",
+      "policy_label": "重点扶持",
+      "actual_outcome": "基本兑现",
+      "evidence": "MAH制度落地，仿制药一致性评价完成4000+品种，创新药获批数量翻番，行业营收CAGR+9%",
+      "outcome_score": 4
+    },
+    {
+      "plan_period": "十三五(2016-2020)",
+      "tdx_l2": "T0805",
+      "tdx_l2_name": "环境保护",
+      "tdx_l1_name": "公用事业",
+      "policy_label": "重点扶持",
+      "actual_outcome": "基本兑现",
+      "evidence": "全国PM2.5平均浓度从46μg/m³降至33μg/m³(-28%)，环保投资年均+10%，污水处理能力翻倍",
+      "outcome_score": 4
+    },
+    {
+      "plan_period": "十三五(2016-2020)",
+      "tdx_l2": "T0705",
+      "tdx_l2_name": "工业机械",
+      "tdx_l1_name": "装备制造",
+      "policy_label": "重点扶持",
+      "actual_outcome": "基本兑现",
+      "evidence": "工业机器人装机量从7.2万台增至21.2万台(+195%)，密度达全球第九，国产品牌份额提升至30%",
+      "outcome_score": 4
+    },
+    {
+      "plan_period": "十三五(2016-2020)",
+      "tdx_l2": "T0701",
+      "tdx_l2_name": "航空",
+      "tdx_l1_name": "装备制造",
+      "policy_label": "重点扶持",
+      "actual_outcome": "基本兑现",
+      "evidence": "C919首飞成功(2017)，国防预算CAGR+8%，歼-20正式列装，大型运输机运-20批量交付",
+      "outcome_score": 4
+    },
+    {
+      "plan_period": "十三五(2016-2020)",
+      "tdx_l2": "T0302",
+      "tdx_l2_name": "农林牧渔",
+      "tdx_l1_name": "日常消费",
+      "policy_label": "重点扶持",
+      "actual_outcome": "基本兑现",
+      "evidence": "粮食产量稳定在6.5亿吨以上，农业科技进步贡献率达60%，高标准农田建成8亿亩",
+      "outcome_score": 4
+    },
+    {
+      "plan_period": "十三五(2016-2020)",
+      "tdx_l2": "T0204",
+      "tdx_l2_name": "化工",
+      "tdx_l1_name": "材料",
+      "policy_label": "重点扶持",
+      "actual_outcome": "基本兑现",
+      "evidence": "新材料产值从2.65万亿增至6万亿(+126%)，PVDF/NMP等锂电材料实现规模化国产",
+      "outcome_score": 4
+    },
+    {
+      "plan_period": "十三五(2016-2020)",
+      "tdx_l2": "T0202",
+      "tdx_l2_name": "有色",
+      "tdx_l1_name": "材料",
+      "policy_label": "重点扶持",
+      "actual_outcome": "基本兑现",
+      "evidence": "锂资源海外布局初步完成（宁德赣锋等控股多个南美矿山），稀土出口配额政策优化",
+      "outcome_score": 4
+    },
+    {
+      "plan_period": "十三五(2016-2020)",
+      "tdx_l2": "T0702",
+      "tdx_l2_name": "船舶",
+      "tdx_l1_name": "装备制造",
+      "policy_label": "重点扶持",
+      "actual_outcome": "部分兑现",
+      "evidence": "全球手持订单份额保持在30%-35%，但LNG船等高端船型仍落后韩国，利润率偏低",
+      "outcome_score": 3
+    },
+    {
+      "plan_period": "十三五(2016-2020)",
+      "tdx_l2": "T0101",
+      "tdx_l2_name": "煤炭",
+      "tdx_l1_name": "能源",
+      "policy_label": "收缩",
+      "actual_outcome": "超预期兑现",
+      "evidence": "五年累计退出煤炭产能超10亿吨，煤矿数量从1.08万处减至4700处，从业人员减少300万",
+      "outcome_score": 5
+    },
+    {
+      "plan_period": "十三五(2016-2020)",
+      "tdx_l2": "T0201",
+      "tdx_l2_name": "钢铁",
+      "tdx_l1_name": "材料",
+      "policy_label": "收缩",
+      "actual_outcome": "超预期兑现",
+      "evidence": "压减粗钢产能超1.5亿吨，地条钢全部出清，行业集中度CR10从36%升至41%",
+      "outcome_score": 5
+    },
+    {
+      "plan_period": "十三五(2016-2020)",
+      "tdx_l2": "T1102",
+      "tdx_l2_name": "房地产",
+      "tdx_l1_name": "建筑地产",
+      "policy_label": "收缩",
+      "actual_outcome": "未兑现",
+      "evidence": "房住不炒政策落地但多数城市房价持续上涨，2020年商品房销售面积再创历史新高",
+      "outcome_score": 1
+    },
+    {
+      "plan_period": "十三五(2016-2020)",
+      "tdx_l2": "T0304",
+      "tdx_l2_name": "食品饮料",
+      "tdx_l1_name": "日常消费",
+      "policy_label": "中性",
+      "actual_outcome": "基本兑现",
+      "evidence": "食品安全事件下降60%，高端白酒营收CAGR+18%，龙头品牌护城河持续加固",
+      "outcome_score": 4
+    },
+    {
+      "plan_period": "十三五(2016-2020)",
+      "tdx_l2": "T0401",
+      "tdx_l2_name": "家用电器",
+      "tdx_l1_name": "可选消费",
+      "policy_label": "中性",
+      "actual_outcome": "基本兑现",
+      "evidence": "家电出口规模稳居全球第一，智能家居渗透率从5%升至25%，龙头企业海外营收占比提升",
+      "outcome_score": 4
+    },
+    {
+      "plan_period": "十三五(2016-2020)",
+      "tdx_l2": "T1001",
+      "tdx_l2_name": "银行",
+      "tdx_l1_name": "金融",
+      "policy_label": "中性",
+      "actual_outcome": "基本兑现",
+      "evidence": "普惠小微贷款余额翻番，不良贷款率从1.74%降至1.84%基本可控，银行整体盈利保持增长",
+      "outcome_score": 4
+    },
+    {
+      "plan_period": "十三五(2016-2020)",
+      "tdx_l2": "T0601",
+      "tdx_l2_name": "传媒娱乐",
+      "tdx_l1_name": "社会服务",
+      "policy_label": "中性",
+      "actual_outcome": "部分兑现",
+      "evidence": "短视频用户规模超8亿，但游戏版号审批收紧压制行业，2018-2019年版号停发影响深远",
+      "outcome_score": 3
+    },
+    {
+      "plan_period": "十三五(2016-2020)",
+      "tdx_l2": "T0206",
+      "tdx_l2_name": "建材",
+      "tdx_l1_name": "材料",
+      "policy_label": "中性",
+      "actual_outcome": "未兑现",
+      "evidence": "水泥产能利用率长期低于70%，玻璃行业产能过剩20%以上，去产能目标未完成",
+      "outcome_score": 2
+    },
+    {
+      "plan_period": "十四五(2021-2025)",
+      "tdx_l2": "T0706",
+      "tdx_l2_name": "电气设备",
+      "tdx_l1_name": "装备制造",
+      "policy_label": "重点扶持",
+      "actual_outcome": "超预期兑现",
+      "evidence": "2024年底光伏累计装机超10亿千瓦，连续三年全球新增第一；隆基/晶科/阳光电源出口全球前五大市场",
+      "outcome_score": 5
+    },
+    {
+      "plan_period": "十四五(2021-2025)",
+      "tdx_l2": "T0402",
+      "tdx_l2_name": "汽车类",
+      "tdx_l1_name": "可选消费",
+      "policy_label": "重点扶持",
+      "actual_outcome": "超预期兑现",
+      "evidence": "2024年新能源汽车渗透率突破50%，中国成全球最大汽车出口国，比亚迪营收超万亿",
+      "outcome_score": 5
+    },
+    {
+      "plan_period": "十四五(2021-2025)",
+      "tdx_l2": "T1205",
+      "tdx_l2_name": "软件服务",
+      "tdx_l1_name": "信息产业",
+      "policy_label": "重点扶持",
+      "actual_outcome": "超预期兑现",
+      "evidence": "AI大模型赛道爆发，国内百模大战，数字经济占GDP比重超45%，政务信创替代批量推进",
+      "outcome_score": 5
+    },
+    {
+      "plan_period": "十四五(2021-2025)",
+      "tdx_l2": "T0701",
+      "tdx_l2_name": "航空",
+      "tdx_l1_name": "装备制造",
+      "policy_label": "重点扶持",
+      "actual_outcome": "超预期兑现",
+      "evidence": "C919取证交付商飞(2023)，歼-35亮相，运-20批量服役，国防预算CAGR约+7%",
+      "outcome_score": 5
+    },
+    {
+      "plan_period": "十四五(2021-2025)",
+      "tdx_l2": "T0702",
+      "tdx_l2_name": "船舶",
+      "tdx_l1_name": "装备制造",
+      "policy_label": "重点扶持",
+      "actual_outcome": "超预期兑现",
+      "evidence": "2024年全球手持订单份额超55%，中国船厂首次主导LNG双燃料船市场，江南/沪东产能排期至2027年",
+      "outcome_score": 5
+    },
+    {
+      "plan_period": "十四五(2021-2025)",
+      "tdx_l2": "T0705",
+      "tdx_l2_name": "工业机械",
+      "tdx_l1_name": "装备制造",
+      "policy_label": "重点扶持",
+      "actual_outcome": "超预期兑现",
+      "evidence": "工业机器人密度从246台/万人升至470台/万人(全球第三)，人形机器人量产落地先于预期",
+      "outcome_score": 5
+    },
+    {
+      "plan_period": "十四五(2021-2025)",
+      "tdx_l2": "T1203",
+      "tdx_l2_name": "半导体",
+      "tdx_l1_name": "信息产业",
+      "policy_label": "重点扶持",
+      "actual_outcome": "部分兑现",
+      "evidence": "中芯国际28nm量产并在自研7nm取得突破，但美国对华芯片设备出口管制持续升级制约先进制程",
+      "outcome_score": 3
+    },
+    {
+      "plan_period": "十四五(2021-2025)",
+      "tdx_l2": "T1201",
+      "tdx_l2_name": "IT设备",
+      "tdx_l1_name": "信息产业",
+      "policy_label": "重点扶持",
+      "actual_outcome": "基本兑现",
+      "evidence": "政务信创替换计划推进，国产服务器市占率超40%，华为昇腾AI芯片在政企市场规模落地",
+      "outcome_score": 4
+    },
+    {
+      "plan_period": "十四五(2021-2025)",
+      "tdx_l2": "T1202",
+      "tdx_l2_name": "通信设备",
+      "tdx_l1_name": "信息产业",
+      "policy_label": "重点扶持",
+      "actual_outcome": "基本兑现",
+      "evidence": "5G基站累计建成超370万个(全球第一)，低轨卫星互联网首批星座启动部署",
+      "outcome_score": 4
+    },
+    {
+      "plan_period": "十四五(2021-2025)",
+      "tdx_l2": "T1204",
+      "tdx_l2_name": "元器件",
+      "tdx_l1_name": "信息产业",
+      "policy_label": "重点扶持",
+      "actual_outcome": "基本兑现",
+      "evidence": "MLCC/连接器/滤波器国产替代率显著提升，顺络/立讯等企业全球份额持续增长",
+      "outcome_score": 4
+    },
+    {
+      "plan_period": "十四五(2021-2025)",
+      "tdx_l2": "T0405",
+      "tdx_l2_name": "医药",
+      "tdx_l1_name": "可选消费",
+      "policy_label": "重点扶持",
+      "actual_outcome": "基本兑现",
+      "evidence": "国产创新药获批年均超40个，百济神州/君实等PD-1产品出海FDA，GLP-1赛道参与全球竞争",
+      "outcome_score": 4
+    },
+    {
+      "plan_period": "十四五(2021-2025)",
+      "tdx_l2": "T0403",
+      "tdx_l2_name": "医疗保健",
+      "tdx_l1_name": "可选消费",
+      "policy_label": "重点扶持",
+      "actual_outcome": "基本兑现",
+      "evidence": "国产CT/MRI等高端医疗设备国产替代率从30%升至55%以上，迈瑞/联影进入全球头部行列",
+      "outcome_score": 4
+    },
+    {
+      "plan_period": "十四五(2021-2025)",
+      "tdx_l2": "T0805",
+      "tdx_l2_name": "环境保护",
+      "tdx_l1_name": "公用事业",
+      "policy_label": "重点扶持",
+      "actual_outcome": "基本兑现",
+      "evidence": "全国碳市场扩容至钢铁/化工/建材行业，绿色债券发行量全球第二，EOD模式推动环保项目落地",
+      "outcome_score": 4
+    },
+    {
+      "plan_period": "十四五(2021-2025)",
+      "tdx_l2": "T0302",
+      "tdx_l2_name": "农林牧渔",
+      "tdx_l1_name": "日常消费",
+      "policy_label": "重点扶持",
+      "actual_outcome": "基本兑现",
+      "evidence": "种业振兴三年行动落地，转基因玉米/大豆商业化推广，粮食自给率维持在95%以上",
+      "outcome_score": 4
+    },
+    {
+      "plan_period": "十四五(2021-2025)",
+      "tdx_l2": "T0202",
+      "tdx_l2_name": "有色",
+      "tdx_l1_name": "材料",
+      "policy_label": "重点扶持",
+      "actual_outcome": "超预期兑现",
+      "evidence": "中国锂电正负极材料全球份额超70%，稀土永磁全球份额超85%，宁德/赣锋等企业跻身全球前五",
+      "outcome_score": 5
+    },
+    {
+      "plan_period": "十四五(2021-2025)",
+      "tdx_l2": "T0204",
+      "tdx_l2_name": "化工",
+      "tdx_l1_name": "材料",
+      "policy_label": "重点扶持",
+      "actual_outcome": "基本兑现",
+      "evidence": "碳纤维T700国产自给率超80%，硅料产能全球占比超80%，半导体化学品持续实现国产替代",
+      "outcome_score": 4
+    },
+    {
+      "plan_period": "十四五(2021-2025)",
+      "tdx_l2": "T1102",
+      "tdx_l2_name": "房地产",
+      "tdx_l1_name": "建筑地产",
+      "policy_label": "收缩",
+      "actual_outcome": "超预期收缩",
+      "evidence": "恒大/碧桂园相继暴雷，2024年商品房销售面积较峰值下降45%，百强房企从业人员减少超200万",
+      "outcome_score": 5
+    },
+    {
+      "plan_period": "十四五(2021-2025)",
+      "tdx_l2": "T0206",
+      "tdx_l2_name": "建材",
+      "tdx_l1_name": "材料",
+      "policy_label": "收缩",
+      "actual_outcome": "超预期收缩",
+      "evidence": "水泥需求较峰值下降近30%，熟料产能利用率降至55%以下，头部企业持续亏损并裁员",
+      "outcome_score": 5
+    },
+    {
+      "plan_period": "十四五(2021-2025)",
+      "tdx_l2": "T0101",
+      "tdx_l2_name": "煤炭",
+      "tdx_l1_name": "能源",
+      "policy_label": "收缩",
+      "actual_outcome": "部分兑现",
+      "evidence": "双碳方向确立，但2022年能源保供压力下新批煤矿超百个，产能短期扩张，长期去化趋势不变",
+      "outcome_score": 3
+    },
+    {
+      "plan_period": "十四五(2021-2025)",
+      "tdx_l2": "T0305",
+      "tdx_l2_name": "酿酒",
+      "tdx_l1_name": "日常消费",
+      "policy_label": "中性",
+      "actual_outcome": "基本兑现",
+      "evidence": "酱酒热推动高端化，茅台营收超1500亿，但2023年后消费降级压力显现，白酒分化加剧",
+      "outcome_score": 4
+    },
+    {
+      "plan_period": "十四五(2021-2025)",
+      "tdx_l2": "T1001",
+      "tdx_l2_name": "银行",
+      "tdx_l1_name": "金融",
+      "policy_label": "中性",
+      "actual_outcome": "基本兑现",
+      "evidence": "普惠小微贷款余额超30万亿，但净息差收窄至1.5%以下历史低位，ROE中枢持续下移",
+      "outcome_score": 3
+    },
+    {
+      "plan_period": "十四五(2021-2025)",
+      "tdx_l2": "T0601",
+      "tdx_l2_name": "传媒娱乐",
+      "tdx_l1_name": "社会服务",
+      "policy_label": "中性",
+      "actual_outcome": "未兑现",
+      "evidence": "游戏版号常态化恢复但总量低于预期，教培双减落地，板块头部公司市值较峰值回撤超60%",
+      "outcome_score": 1
+    },
+    {
+      "plan_period": "十四五(2021-2025)",
+      "tdx_l2": "T1206",
+      "tdx_l2_name": "互联网",
+      "tdx_l1_name": "信息产业",
+      "policy_label": "中性",
+      "actual_outcome": "部分兑现",
+      "evidence": "平台反垄断整改基本完成，出海业务高增长(TikTok/SHEIN/Temu)，但国内监管常态化压制估值",
+      "outcome_score": 3
+    },
+    {
+      "plan_period": "十四五(2021-2025)",
+      "tdx_l2": "T0901",
+      "tdx_l2_name": "运输服务",
+      "tdx_l1_name": "交通运输",
+      "policy_label": "中性",
+      "actual_outcome": "基本兑现",
+      "evidence": "航运运价经历疫情红利后回归正常，国际航线航班量2024年恢复至2019年水平",
+      "outcome_score": 4
+    }
+  ]
+}

@@ -208,10 +208,12 @@
       "raw_glob": "raw/policy_industry_map/**/*",
       "remote_files": [],
       "acquisition": {
-        "status": "curation_required",
+        "status": "curated_seed_configured",
         "official_distribution": "国家和辽宁省规划、产业政策、部委公开文件",
-        "evidence_urls": [],
-        "notes": "core 现有脚本中的政策映射应迁出为 DataHub 可审计数据包；每个标签需要 rationale 与可追踪政策文件证据。"
+        "evidence_urls": [
+          "https://www.npc.gov.cn/npc/c2/c30834/202603/t20260316_453274.html"
+        ],
+        "notes": "已迁出为 DataHub 配置驱动数据包；当前为 seed 配置，每个标签后续仍需补齐行级政策文件证据。"
       },
       "target_tables": ["fa_dim_policy_industry_map"]
     },
@@ -222,10 +224,13 @@
       "raw_glob": "raw/policy_plan_history/**/*",
       "remote_files": [],
       "acquisition": {
-        "status": "curation_required",
+        "status": "curated_seed_configured",
         "official_distribution": "十三五/十四五规划原文、统计公报、行业协会和上市公司公开数据",
-        "evidence_urls": [],
-        "notes": "core 现有脚本中的历史兑现结论应迁出为 DataHub 可审计数据包；actual_outcome 与 outcome_score 必须由证据字段支撑。"
+        "evidence_urls": [
+          "https://www.gov.cn/xinwen/2016-03/17/content_5054992.htm",
+          "https://www.gov.cn/xinwen/2021-03/13/content_5592681.htm"
+        ],
+        "notes": "已迁出为 DataHub 配置驱动数据包；当前保留 seed evidence 字段，后续仍需补齐行级统计/行业来源 URL。"
       },
       "target_tables": ["fa_dim_policy_plan_history"]
     }

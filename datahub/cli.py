@@ -8,6 +8,10 @@ from pathlib import Path
 
 from .builders.major_mapping_review import build_major_mapping_review_package
 from .builders.local_package import build_local_package
+from .builders.policy_tables import (
+    build_policy_industry_map_package,
+    build_policy_plan_history_package,
+)
 from .builders.score_history_snapshot import build_score_history_snapshot_package
 from .builders.school_identity import build_school_identity_package
 from .config import get_table_schema
@@ -89,6 +93,24 @@ def main() -> int:
     build_score_snapshot.add_argument("--output-root", required=True, type=Path)
     build_score_snapshot.add_argument("--package-id")
     build_score_snapshot.add_argument("--source-version")
+
+    build_policy_industry = sub.add_parser(
+        "build-policy-industry-map",
+        help="Build fa_dim_policy_industry_map from curated config",
+    )
+    build_policy_industry.add_argument("--output-root", required=True, type=Path)
+    build_policy_industry.add_argument("--config", type=Path)
+    build_policy_industry.add_argument("--package-id")
+    build_policy_industry.add_argument("--source-version")
+
+    build_policy_history = sub.add_parser(
+        "build-policy-plan-history",
+        help="Build fa_dim_policy_plan_history from curated config",
+    )
+    build_policy_history.add_argument("--output-root", required=True, type=Path)
+    build_policy_history.add_argument("--config", type=Path)
+    build_policy_history.add_argument("--package-id")
+    build_policy_history.add_argument("--source-version")
 
     parse_moe = sub.add_parser("parse-moe-major-catalog", help="Parse MOE major catalog PDF to cleaned CSV")
     parse_moe.add_argument("--input", required=True, type=Path)
@@ -185,6 +207,24 @@ def main() -> int:
         result = build_score_history_snapshot_package(
             core_db=args.core_db,
             output_root=args.output_root,
+            package_id=args.package_id,
+            source_version=args.source_version,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+    if args.cmd == "build-policy-industry-map":
+        result = build_policy_industry_map_package(
+            output_root=args.output_root,
+            config_path=args.config,
+            package_id=args.package_id,
+            source_version=args.source_version,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+    if args.cmd == "build-policy-plan-history":
+        result = build_policy_plan_history_package(
+            output_root=args.output_root,
+            config_path=args.config,
             package_id=args.package_id,
             source_version=args.source_version,
         )

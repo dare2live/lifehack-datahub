@@ -17,6 +17,7 @@ ALLOWED_MANUAL_STATUSES = {
     "manual_required",
     "source_collection_required",
     "curation_required",
+    "curated_seed_configured",
     "research_required",
 }
 
