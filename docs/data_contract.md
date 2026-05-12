@@ -73,6 +73,19 @@ python3 scripts/build_package.py parse-moe-major-catalog \
   --output cleaned/moe_major_catalog_2025.csv
 ```
 
+辽宁本科批投档最低分官方 XLSX 通过 source-specific parser 生成 `fa_fact_ln_projection_score` 清洗 CSV。官方附件是 Office 加密容器，parser 需要显式传入配置中维护的候选密码：
+
+```bash
+python3 scripts/build_package.py parse-ln-projection-score \
+  --input raw/ln_projection_score/2025-07-20/ln_projection_score_2025_history.xlsx \
+  --input raw/ln_projection_score/2025-07-20/ln_projection_score_2025_physics.xlsx \
+  --output cleaned/ln_projection_score_2025.csv \
+  --score-year 2025 \
+  --batch 本科批 \
+  --source-date 2025-07-20 \
+  --password VelvetSweatshop
+```
+
 ## 专业映射复核数据包
 
 `major_mapping_review` source 从 core 的 `university.db` 只读读取：

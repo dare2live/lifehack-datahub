@@ -11,6 +11,7 @@ from .builders.local_package import build_local_package
 from .config import get_table_schema
 from .connectors.registry import discover_assets, list_source_keys
 from .connectors.remote_files import download_remote_assets
+from .parsers.ln_projection_score import parse_ln_projection_score_files
 from .parsers.moe_major_catalog import parse_moe_major_catalog_pdf
 from .validators.package_validator import validate_manifest
 
@@ -53,6 +54,17 @@ def main() -> int:
     parse_moe = sub.add_parser("parse-moe-major-catalog", help="Parse MOE major catalog PDF to cleaned CSV")
     parse_moe.add_argument("--input", required=True, type=Path)
     parse_moe.add_argument("--output", required=True, type=Path)
+
+    parse_projection = sub.add_parser(
+        "parse-ln-projection-score",
+        help="Parse Liaoning projection score XLSX files to cleaned CSV",
+    )
+    parse_projection.add_argument("--input", required=True, action="append", type=Path)
+    parse_projection.add_argument("--output", required=True, type=Path)
+    parse_projection.add_argument("--score-year", required=True, type=int)
+    parse_projection.add_argument("--batch", required=True)
+    parse_projection.add_argument("--source-date", required=True)
+    parse_projection.add_argument("--password", action="append", dest="passwords", default=[])
 
     args = parser.parse_args()
     if args.cmd == "validate":
@@ -98,6 +110,22 @@ def main() -> int:
     if args.cmd == "parse-moe-major-catalog":
         rows = parse_moe_major_catalog_pdf(args.input)
         schema = get_table_schema("fa_dim_major_catalog")
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        with args.output.open("w", encoding="utf-8", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=schema["columns"], extrasaction="ignore")
+            writer.writeheader()
+            writer.writerows(rows)
+        print(json.dumps({"output": str(args.output), "rows": len(rows)}, ensure_ascii=False, indent=2))
+        return 0
+    if args.cmd == "parse-ln-projection-score":
+        rows = parse_ln_projection_score_files(
+            args.input,
+            score_year=args.score_year,
+            batch=args.batch,
+            source_date=args.source_date,
+            password_candidates=args.passwords,
+        )
+        schema = get_table_schema("fa_fact_ln_projection_score")
         args.output.parent.mkdir(parents=True, exist_ok=True)
         with args.output.open("w", encoding="utf-8", newline="") as f:
             writer = csv.DictWriter(f, fieldnames=schema["columns"], extrasaction="ignore")

@@ -77,6 +77,19 @@ python3 scripts/build_package.py parse-moe-major-catalog \
   --output cleaned/moe_major_catalog_2025.csv
 ```
 
+辽宁本科批投档最低分 XLSX 可解析为标准 CSV：
+
+```bash
+python3 scripts/build_package.py parse-ln-projection-score \
+  --input raw/ln_projection_score/2025-07-20/ln_projection_score_2025_history.xlsx \
+  --input raw/ln_projection_score/2025-07-20/ln_projection_score_2025_physics.xlsx \
+  --output cleaned/ln_projection_score_2025.csv \
+  --score-year 2025 \
+  --batch 本科批 \
+  --source-date 2025-07-20 \
+  --password VelvetSweatshop
+```
+
 ## 专业映射复核晋级
 
 core 负责生成和维护人工复核队列，DataHub 只读读取其中已批准的结果，并输出完整 `fa_bridge_major_tdx` 数据包：

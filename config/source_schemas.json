@@ -64,6 +64,36 @@
         "plan_count": ["plan_count", "计划数", "招生计划", "招生人数"]
       }
     },
+    "fa_fact_ln_projection_score": {
+      "source_key": "ln_projection_score",
+      "primary_key": ["school_code", "major_code", "batch", "subject_cat", "score_year"],
+      "required": ["school_code", "major_code", "batch", "subject_cat", "score_year", "min_score"],
+      "columns": [
+        "school_code",
+        "school_name",
+        "major_code",
+        "major_full",
+        "batch",
+        "subject_cat",
+        "score_year",
+        "min_score",
+        "tie_breaker_json",
+        "source_date"
+      ],
+      "numeric": ["score_year", "min_score"],
+      "aliases": {
+        "school_code": ["school_code", "院校编号", "院校代码"],
+        "school_name": ["school_name", "招生院校", "院校名称"],
+        "major_code": ["major_code", "专业编号", "专业代码"],
+        "major_full": ["major_full", "招生专业", "专业名称"],
+        "batch": ["batch", "批次"],
+        "subject_cat": ["subject_cat", "科类", "学科类"],
+        "score_year": ["score_year", "年份"],
+        "min_score": ["min_score", "投档最低分", "最低分"],
+        "tie_breaker_json": ["tie_breaker_json", "同分排序项"],
+        "source_date": ["source_date", "来源日期"]
+      }
+    },
     "fa_dim_major_catalog": {
       "source_key": "moe_major_catalog",
       "primary_key": ["major_code"],

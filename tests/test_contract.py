@@ -4,11 +4,13 @@ import hashlib
 import json
 
 import duckdb
+from openpyxl import Workbook
 
 from datahub.builders.major_mapping_review import build_major_mapping_review_package
 from datahub.builders.local_package import build_local_package
 from datahub.connectors.remote_files import download_remote_assets
 from datahub.connectors.registry import discover_assets
+from datahub.parsers.ln_projection_score import parse_ln_projection_score_file
 from datahub.parsers.moe_major_catalog import parse_moe_major_catalog_lines
 from datahub.validators.package_validator import validate_manifest
 
@@ -132,6 +134,35 @@ def test_parse_moe_major_catalog_lines():
     assert rows[2]["degree_type"] == "可授经济学或管理学学士学位"
     assert rows[3]["major_code"] == "0502100T"
     assert rows[3]["major_name"] == "语言学"
+
+
+def test_parse_ln_projection_score_xlsx(tmp_path: Path):
+    path = tmp_path / "projection.xlsx"
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "物理学科类"
+    ws.append(["2025年辽宁省普通高等学校招生录取普通类本科批（物理学科类）投档最低分"])
+    ws.append(["说明"])
+    ws.append(["院校\n编号", "招生院校", "专业\n编号", "招生专业", "投档\n最低分"])
+    ws.append([None, None, None, None, None, "（一）", "（二）", "（三）", "（四）", "（五）", "（六）", "（七）"])
+    ws.append([None, None, None, None, None, "语数\n成绩", "语数\n最高\n成绩", "外语\n成绩", "首选\n科目\n成绩", "再选\n科目\n最高\n成绩", "再选\n科目\n次高\n成绩", "志\n愿\n号"])
+    ws.append(["0378", "安徽财经大学", "13", "计算机类", "574", "229", "126", "130", "61", "82", "72", "10"])
+    wb.save(path)
+
+    rows = parse_ln_projection_score_file(
+        path,
+        score_year=2025,
+        batch="本科批",
+        source_date="2025-07-20",
+        password_candidates=[],
+    )
+
+    assert len(rows) == 1
+    assert rows[0]["subject_cat"] == "物理类"
+    assert rows[0]["school_code"] == "0378"
+    assert rows[0]["major_code"] == "13"
+    assert rows[0]["min_score"] == 574
+    assert "语数成绩" in rows[0]["tie_breaker_json"]
 
 
 def test_build_major_mapping_review_package_promotes_approved_rows(tmp_path: Path):
