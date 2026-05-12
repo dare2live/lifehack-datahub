@@ -36,8 +36,28 @@
       "name": "辽宁普通类本科批投档最低分",
       "kind": "official_attachment",
       "owner": "lifehack-datahub",
-      "raw_glob": "raw/ln_projection_score/**/*.xlsx",
+      "raw_glob": "raw/ln_projection_score/**/*",
       "remote_files": [
+        {
+          "url": "https://gaokao.eol.cn/liao_ning/dongtai/202307/W020230721364135487901.xlsx",
+          "file_name": "ln_projection_score_2023_history.xlsx",
+          "source_date": "2023-07-21",
+          "sha256": "6e24bf8344504805cc804b4099fb8c8e2faa5c88a30e8d1d845e9b8b357f2cf8",
+          "headers": {
+            "User-Agent": "Mozilla/5.0"
+          },
+          "notes": "中国教育在线转载附件，页面标注来源为辽宁招生考试之窗；作为可追踪镜像来源保存，不替代辽宁官网原始长期源。"
+        },
+        {
+          "url": "https://gaokao.eol.cn/liao_ning/dongtai/202307/W020230721364135490483.xlsx",
+          "file_name": "ln_projection_score_2023_physics.xlsx",
+          "source_date": "2023-07-21",
+          "sha256": "20673c0427506fe21b08d7c322d848ae013040f83d6d58a096c871096dec457d",
+          "headers": {
+            "User-Agent": "Mozilla/5.0"
+          },
+          "notes": "中国教育在线转载附件，页面标注来源为辽宁招生考试之窗；作为可追踪镜像来源保存，不替代辽宁官网原始长期源。"
+        },
         {
           "url": "https://www.lnzsks.com/lnzkbfiles/2024/2024gkbkptdxosiexie01w.zip",
           "file_name": "ln_projection_score_2024_history.zip",
@@ -64,9 +84,21 @@
         }
       ],
       "parser": {
-        "score_year": 2025,
         "batch": "本科批",
+        "score_year_by_source_date": {
+          "2023-07-21": 2023,
+          "2024-07-20": 2024,
+          "2025-07-20": 2025
+        },
         "office_password_candidates": ["VelvetSweatshop"]
+      },
+      "acquisition": {
+        "status": "remote_configured",
+        "official_distribution": "辽宁招生考试之窗官网附件；2023 年目前保留中国教育在线转载镜像",
+        "evidence_urls": [
+          "https://gaokao.eol.cn/liao_ning/dongtai/202307/t20230721_2453642.shtml"
+        ],
+        "notes": "投档最低分是年度投档结果，不包含最低位次，不能替代 fa_fact_ln_score_history。2022 学信网转载附件需要进一步处理 412 下载限制，暂不纳入自动下载。"
       },
       "target_tables": ["fa_fact_ln_projection_score"]
     },
@@ -98,6 +130,76 @@
         "notes": "DataHub 只读读取 core 复核队列，把 approved 映射晋级为 fa_bridge_major_tdx 数据包。"
       },
       "target_tables": ["fa_bridge_major_tdx"]
+    },
+    "school_profile": {
+      "name": "高校基础画像",
+      "kind": "official_catalog_or_verified_profile",
+      "owner": "lifehack-datahub",
+      "raw_glob": "raw/school_profile/**/*",
+      "remote_files": [],
+      "acquisition": {
+        "status": "source_collection_required",
+        "official_distribution": "教育部/阳光高考/学校官网公开资料",
+        "evidence_urls": [],
+        "notes": "用于生成 fa_dim_school_profile。DataHub 负责汇总学校所在地、层级、类型、主管部门、官网等稳定字段，core 只导入标准包。"
+      },
+      "target_tables": ["fa_dim_school_profile"]
+    },
+    "school_outcome": {
+      "name": "高校出口指标",
+      "kind": "annual_report_metrics",
+      "owner": "lifehack-datahub",
+      "raw_glob": "raw/school_outcome/**/*",
+      "remote_files": [],
+      "acquisition": {
+        "status": "source_collection_required",
+        "official_distribution": "学校就业质量报告、升学质量报告、教育质量报告",
+        "evidence_urls": [],
+        "notes": "只采集可引用来源中的结构化指标，如升学率、就业落实率、深造率、保研率等；指标口径必须进入 metric_scope 和 evidence_quote。"
+      },
+      "target_tables": ["fa_fact_school_outcome"]
+    },
+    "major_outcome": {
+      "name": "专业出口指标",
+      "kind": "curated_outcome_metrics",
+      "owner": "lifehack-datahub",
+      "raw_glob": "raw/major_outcome/**/*",
+      "remote_files": [],
+      "acquisition": {
+        "status": "source_collection_required",
+        "official_distribution": "教育部目录、学校培养方案、就业质量报告、公开行业统计",
+        "evidence_urls": [],
+        "notes": "专业层数据优先保留有明确来源的就业方向、升学去向、考公适配、薪资或需求指标；没有来源的主观判断不得进入数据包。"
+      },
+      "target_tables": ["fa_fact_major_outcome"]
+    },
+    "policy_industry_map": {
+      "name": "十五五政策行业映射",
+      "kind": "curated_policy_mapping",
+      "owner": "lifehack-datahub",
+      "raw_glob": "raw/policy_industry_map/**/*",
+      "remote_files": [],
+      "acquisition": {
+        "status": "curation_required",
+        "official_distribution": "国家和辽宁省规划、产业政策、部委公开文件",
+        "evidence_urls": [],
+        "notes": "core 现有脚本中的政策映射应迁出为 DataHub 可审计数据包；每个标签需要 rationale 与可追踪政策文件证据。"
+      },
+      "target_tables": ["fa_dim_policy_industry_map"]
+    },
+    "policy_plan_history": {
+      "name": "规划兑现历史回测",
+      "kind": "curated_policy_backtest",
+      "owner": "lifehack-datahub",
+      "raw_glob": "raw/policy_plan_history/**/*",
+      "remote_files": [],
+      "acquisition": {
+        "status": "curation_required",
+        "official_distribution": "十三五/十四五规划原文、统计公报、行业协会和上市公司公开数据",
+        "evidence_urls": [],
+        "notes": "core 现有脚本中的历史兑现结论应迁出为 DataHub 可审计数据包；actual_outcome 与 outcome_score 必须由证据字段支撑。"
+      },
+      "target_tables": ["fa_dim_policy_plan_history"]
     }
   }
 }

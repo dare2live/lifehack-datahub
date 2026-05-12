@@ -9,6 +9,7 @@ from openpyxl import Workbook
 
 from datahub.builders.major_mapping_review import build_major_mapping_review_package
 from datahub.builders.local_package import build_local_package
+from datahub.config import get_table_schema, load_source_schemas
 from datahub.connectors.remote_files import download_remote_assets
 from datahub.connectors.registry import discover_assets
 from datahub.parsers.ln_projection_score import parse_ln_projection_score_file
@@ -86,6 +87,89 @@ def test_audit_sources_marks_admission_plan_manual():
     assert by_key["ln_projection_score"]["status"] == "remote_configured"
     assert by_key["ln_score_history"]["status"] == "research_required"
     assert by_key["major_mapping_review"]["status"] == "local_db_configured"
+    assert by_key["school_profile"]["status"] == "source_collection_required"
+    assert by_key["school_outcome"]["target_tables"] == ["fa_fact_school_outcome"]
+    assert by_key["major_outcome"]["status"] == "source_collection_required"
+    assert by_key["policy_industry_map"]["status"] == "curation_required"
+    assert by_key["policy_plan_history"]["status"] == "curation_required"
+
+
+def test_evidence_domain_schemas_are_package_ready():
+    schemas = load_source_schemas()["tables"]
+    for table_name in [
+        "fa_dim_school_profile",
+        "fa_fact_school_outcome",
+        "fa_fact_major_outcome",
+        "fa_dim_policy_industry_map",
+        "fa_dim_policy_plan_history",
+    ]:
+        schema = schemas[table_name]
+        assert table_name.startswith("fa_")
+        assert "source_date" in schema["columns"]
+        assert "availability_date" in schema["columns"]
+        assert "built_at" in schema["columns"]
+        assert set(schema["required"]).issubset(set(schema["columns"]))
+        assert schema["primary_key"]
+
+
+def test_build_school_outcome_package_from_cleaned_csv(tmp_path: Path):
+    source = tmp_path / "school_outcome.csv"
+    with source.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(
+            f,
+            fieldnames=[
+                "院校代码",
+                "院校名称",
+                "指标键",
+                "指标名称",
+                "指标值",
+                "单位",
+                "指标年份",
+                "统计口径",
+                "来源标题",
+                "来源链接",
+                "证据摘录",
+                "来源日期",
+                "可用日期",
+                "构建时间",
+            ],
+        )
+        writer.writeheader()
+        writer.writerow({
+            "院校代码": "10145",
+            "院校名称": "东北大学",
+            "指标键": "postgrad_rate",
+            "指标名称": "深造率",
+            "指标值": "46.2%",
+            "单位": "ratio",
+            "指标年份": "2025",
+            "统计口径": "本科毕业生",
+            "来源标题": "2025届毕业生就业质量报告",
+            "来源链接": "https://example.edu/report.pdf",
+            "证据摘录": "本科毕业生深造率为46.2%。",
+            "来源日期": "2025-12-31",
+            "可用日期": "2026-01-05",
+            "构建时间": "2026-05-13T00:00:00",
+        })
+
+    result = build_local_package(
+        source_key="school_outcome",
+        table_name="fa_fact_school_outcome",
+        input_path=source,
+        output_root=tmp_path / "exports",
+        package_id="pkg-school-outcome-test",
+        source_version="fixture-school-outcome",
+    )
+    package_dir = Path(result["package_dir"])
+    assert validate_manifest(package_dir / "manifest.json")["errors"] == []
+    assert result["rows"] == 1
+
+    schema = get_table_schema("fa_fact_school_outcome")
+    with (package_dir / "fa_fact_school_outcome.csv").open(encoding="utf-8", newline="") as f:
+        rows = list(csv.DictReader(f))
+    assert rows[0]["metric_key"] == "postgrad_rate"
+    assert float(rows[0]["metric_value"]) == 0.462
+    assert set(rows[0]).issuperset(schema["required"])
 
 
 def test_download_remote_assets_from_config(tmp_path: Path, monkeypatch):
