@@ -11,6 +11,7 @@ from datahub.config import get_table_schema
 from datahub.exporters.package_exporter import write_manifest
 from datahub.normalizers.admission import normalize_rows_for_schema
 from datahub.parsers.tabular_parser import parse_tabular
+from datahub.validators.outcome_metrics import validate_outcome_metrics
 
 
 def build_local_package(
@@ -84,6 +85,10 @@ def build_quality_report(rows: list[dict[str, Any]], schema: dict[str, Any], tab
         seen.add(key)
     if duplicate_count:
         errors.append(f"duplicate primary keys: {duplicate_count}")
+
+    outcome_report = validate_outcome_metrics(rows, table_name)
+    errors.extend(outcome_report["errors"])
+    warnings.extend(outcome_report["warnings"])
 
     return {
         "row_counts": {table_name: len(rows)},

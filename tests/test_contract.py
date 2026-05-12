@@ -9,7 +9,7 @@ from openpyxl import Workbook
 
 from datahub.builders.major_mapping_review import build_major_mapping_review_package
 from datahub.builders.local_package import build_local_package
-from datahub.config import get_table_schema, load_source_schemas
+from datahub.config import get_table_schema, load_outcome_metrics, load_source_schemas
 from datahub.builders.school_identity import build_school_identity_package
 from datahub.connectors.manual_files import intake_manual_assets
 from datahub.connectors.remote_files import download_remote_assets
@@ -249,6 +249,54 @@ def test_build_school_outcome_package_from_cleaned_csv(tmp_path: Path):
     assert rows[0]["metric_key"] == "postgrad_rate"
     assert float(rows[0]["metric_value"]) == 0.462
     assert set(rows[0]).issuperset(schema["required"])
+
+
+def test_outcome_metric_registry_rejects_unknown_keys(tmp_path: Path):
+    metrics = load_outcome_metrics()
+    assert "postgrad_rate" in metrics["domains"]["school"]
+    source = tmp_path / "school_outcome_bad.csv"
+    with source.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(
+            f,
+            fieldnames=[
+                "院校代码",
+                "指标键",
+                "指标名称",
+                "指标值",
+                "单位",
+                "指标年份",
+                "来源链接",
+                "来源日期",
+                "可用日期",
+                "构建时间",
+            ],
+        )
+        writer.writeheader()
+        writer.writerow({
+            "院校代码": "10145",
+            "指标键": "made_up_metric",
+            "指标名称": "任意指标",
+            "指标值": "1",
+            "单位": "ratio",
+            "指标年份": "2025",
+            "来源链接": "https://example.edu/report.pdf",
+            "来源日期": "2025-12-31",
+            "可用日期": "2026-01-05",
+            "构建时间": "2026-05-13T00:00:00",
+        })
+    try:
+        build_local_package(
+            source_key="school_outcome",
+            table_name="fa_fact_school_outcome",
+            input_path=source,
+            output_root=tmp_path / "exports",
+            package_id="pkg-school-outcome-bad-test",
+            source_version="fixture-school-outcome-bad",
+        )
+        rejected = False
+    except ValueError as exc:
+        rejected = "unregistered metric_key" in str(exc)
+    assert rejected
 
 
 def test_build_school_identity_package_matches_unique_school_names(tmp_path: Path):

@@ -125,6 +125,8 @@ python3 scripts/build_package.py parse-ln-projection-score \
 
 这些表的字段、别名、必填列、数字列维护在 `config/source_schemas.json`；来源状态维护在 `config/sources.json`。没有明确来源 URL 或证据摘录的主观判断不得发布为 outcome 数据包。
 
+学校和专业 outcome 的 `metric_key` 必须先登记到 `config/outcome_metrics.json`。`build-local` 会校验 metric key、单位和取值范围；未登记指标不会被打包发布。
+
 教育部全国高等学校名单通过 `school_profile` source 下载，并用 parser 生成 `fa_dim_school_profile`：
 
 ```bash

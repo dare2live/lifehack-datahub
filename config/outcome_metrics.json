@@ -1,0 +1,73 @@
+{
+  "version": "1",
+  "updated_at": "2026-05-13",
+  "notes": "学校和专业 outcome 指标注册表。DataHub 只发布已登记 metric_key，避免清洗文件把任意口径带入 core。",
+  "domains": {
+    "school": {
+      "postgrad_rate": {
+        "label": "深造率",
+        "unit": "ratio",
+        "min_value": 0,
+        "max_value": 1,
+        "description": "毕业生升学、出国出境深造等继续学习比例，口径必须写入 metric_scope。"
+      },
+      "employment_rate": {
+        "label": "毕业去向落实率",
+        "unit": "ratio",
+        "min_value": 0,
+        "max_value": 1,
+        "description": "学校就业质量报告中的毕业去向落实率。"
+      },
+      "keep_research_rate": {
+        "label": "保研率",
+        "unit": "ratio",
+        "min_value": 0,
+        "max_value": 1,
+        "description": "推荐免试研究生名额或实际保研比例。"
+      },
+      "civil_service_rate": {
+        "label": "体制内去向比例",
+        "unit": "ratio",
+        "min_value": 0,
+        "max_value": 1,
+        "description": "党政机关、事业单位、国企等体制内去向比例，需说明统计口径。"
+      }
+    },
+    "major": {
+      "employment_rate": {
+        "label": "专业就业率",
+        "unit": "ratio",
+        "min_value": 0,
+        "max_value": 1,
+        "description": "专业或专业类毕业去向落实率。"
+      },
+      "postgrad_rate": {
+        "label": "专业深造率",
+        "unit": "ratio",
+        "min_value": 0,
+        "max_value": 1,
+        "description": "专业或专业类升学、出国出境深造比例。"
+      },
+      "salary_median": {
+        "label": "薪资中位数",
+        "unit": "cny_month",
+        "min_value": 0,
+        "description": "月薪中位数，需标明样本来源和统计年度。"
+      },
+      "civil_service_fit_score": {
+        "label": "考公适配分",
+        "unit": "score",
+        "min_value": 0,
+        "max_value": 100,
+        "description": "基于公开岗位需求或专业目录映射的确定性评分。"
+      },
+      "exam_friendly_score": {
+        "label": "考研友好度",
+        "unit": "score",
+        "min_value": 0,
+        "max_value": 100,
+        "description": "基于专业课延续性、招生规模、跨考难度等公开证据的确定性评分。"
+      }
+    }
+  }
+}
