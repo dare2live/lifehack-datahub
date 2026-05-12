@@ -25,10 +25,10 @@
       "raw_glob": "raw/ln_score_history/**/*.xlsx",
       "remote_files": [],
       "acquisition": {
-        "status": "research_required",
-        "official_distribution": "待确认官方多年份录取位次/最低分可重复来源",
+        "status": "partial_official_derivation_configured",
+        "official_distribution": "2025 可由辽宁招生考试之窗投档最低分 + 成绩统计表派生；多年份完整来源仍需继续确认",
         "evidence_urls": [],
-        "notes": "当前 core 已有历史分数线数据，但 DataHub 尚未确认可重复下载的官方多年份录取位次数据源；不能用 2025 投档最低分替代多年份录取位次表。"
+        "notes": "DataHub 已有 build-score-history-from-projection，可把官方投档最低分按一分一段累计人数派生为 min_rank。该 rank 是分数段累计位次，不是同分排序精确位次；2023/2024 成绩统计表仍需从官方图片页解析或人工复核。"
       },
       "target_tables": ["fa_fact_ln_score_history"]
     },
@@ -101,6 +101,46 @@
         "notes": "投档最低分是年度投档结果，不包含最低位次，不能替代 fa_fact_ln_score_history。2022 学信网转载附件需要进一步处理 412 下载限制，暂不纳入自动下载。"
       },
       "target_tables": ["fa_fact_ln_projection_score"]
+    },
+    "ln_score_distribution": {
+      "name": "辽宁普通高考成绩统计表",
+      "kind": "official_score_distribution",
+      "owner": "lifehack-datahub",
+      "raw_glob": "raw/ln_score_distribution/**/*",
+      "remote_files": [
+        {
+          "url": "https://www.lnzsks.com/lnzkbfiles/2025/2025gk1f1d0624wl001.pdf",
+          "file_name": "ln_score_distribution_2025_physics.pdf",
+          "source_date": "2025-06-24",
+          "sha256": "acf112a955da480b6d818036d5b5731ea4a937c43f94958eed1a3c68544be91b",
+          "headers": {
+            "User-Agent": "Mozilla/5.0"
+          }
+        },
+        {
+          "url": "https://www.lnzsks.com/lnzkbfiles/2025/2025gk1f1d0624ls002.pdf",
+          "file_name": "ln_score_distribution_2025_history.pdf",
+          "source_date": "2025-06-24",
+          "sha256": "b9e0ed80edda7206107d772bf62214aa8a4a169c6dec982c05a97426ec36b4e4",
+          "headers": {
+            "User-Agent": "Mozilla/5.0"
+          }
+        }
+      ],
+      "parser": {
+        "score_year_by_source_date": {
+          "2025-06-24": 2025
+        }
+      },
+      "acquisition": {
+        "status": "remote_configured",
+        "official_distribution": "辽宁招生考试之窗成绩统计表（辽宁省教育厅转载页面）",
+        "evidence_urls": [
+          "https://jyt.ln.gov.cn/jyt/jyzx/jyyw/2025062418040445891/index.shtml"
+        ],
+        "notes": "用于把官方投档最低分转换为同分段累计位次。该累计位次不是同分排序后的精确投档位次。2023/2024 官方页面目前以图片发布，需另建图片/OCR或人工复核链路。"
+      },
+      "target_tables": ["fa_fact_ln_score_distribution"]
     },
     "moe_major_catalog": {
       "name": "教育部本科专业目录",

@@ -96,6 +96,25 @@ python3 scripts/build_package.py parse-ln-projection-score \
   --password VelvetSweatshop
 ```
 
+辽宁官方成绩统计表 PDF 可解析为一分一段分布，并与投档最低分派生 `fa_fact_ln_score_history`：
+
+```bash
+python3 scripts/build_package.py parse-ln-score-distribution \
+  --input raw/ln_score_distribution/2025-06-24/ln_score_distribution_2025_history.pdf \
+  --input raw/ln_score_distribution/2025-06-24/ln_score_distribution_2025_physics.pdf \
+  --output cleaned/ln_score_distribution_2025.csv \
+  --score-year 2025 \
+  --source-date 2025-06-24
+
+python3 scripts/build_package.py build-score-history-from-projection \
+  --projection cleaned/ln_projection_score_2025.csv \
+  --score-distribution cleaned/ln_score_distribution_2025.csv \
+  --output-root exports \
+  --package-id 2025_ln_score_history_derived
+```
+
+派生位次是最低分对应的一分一段累计人数，不是同分排序后的精确投档位次，质量报告会保留 warning。
+
 ## 专业映射复核晋级
 
 core 负责生成和维护人工复核队列，DataHub 只读读取其中已批准的结果，并输出完整 `fa_bridge_major_tdx` 数据包：

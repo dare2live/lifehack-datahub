@@ -94,6 +94,28 @@
         "source_date": ["source_date", "来源日期"]
       }
     },
+    "fa_fact_ln_score_distribution": {
+      "source_key": "ln_score_distribution",
+      "primary_key": ["subject_cat", "score_year", "score"],
+      "required": ["subject_cat", "score_year", "score", "score_count", "cumulative_rank", "source_date"],
+      "columns": [
+        "subject_cat",
+        "score_year",
+        "score",
+        "score_count",
+        "cumulative_rank",
+        "source_date"
+      ],
+      "numeric": ["score_year", "score", "score_count", "cumulative_rank"],
+      "aliases": {
+        "subject_cat": ["subject_cat", "科类", "首选科目"],
+        "score_year": ["score_year", "年份"],
+        "score": ["score", "分数"],
+        "score_count": ["score_count", "人数"],
+        "cumulative_rank": ["cumulative_rank", "累计", "累计人数"],
+        "source_date": ["source_date", "来源日期"]
+      }
+    },
     "fa_dim_major_catalog": {
       "source_key": "moe_major_catalog",
       "primary_key": ["major_code"],

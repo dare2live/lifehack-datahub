@@ -114,6 +114,31 @@ python3 scripts/build_package.py parse-ln-projection-score \
 
 `ln_projection_score` 当前配置覆盖 2024-2025 辽宁招生考试之窗附件，以及 2023 中国教育在线转载镜像附件。2023 镜像页面标注来源为辽宁招生考试之窗，但仍按镜像来源记录，不替代辽宁官网原始长期源。
 
+## 辽宁成绩统计表与历史位次派生
+
+`ln_score_distribution` 维护辽宁官方普通高考成绩统计表（一分一段）附件。2025 年普通类历史/物理 PDF 可直接解析为 `fa_fact_ln_score_distribution`：
+
+```bash
+python3 scripts/build_package.py parse-ln-score-distribution \
+  --input raw/ln_score_distribution/2025-06-24/ln_score_distribution_2025_history.pdf \
+  --input raw/ln_score_distribution/2025-06-24/ln_score_distribution_2025_physics.pdf \
+  --output cleaned/ln_score_distribution_2025.csv \
+  --score-year 2025 \
+  --source-date 2025-06-24
+```
+
+投档最低分本身不包含最低位次。DataHub 用官方投档最低分 + 官方一分一段累计人数，派生 `fa_fact_ln_score_history.min_rank`：
+
+```bash
+python3 scripts/build_package.py build-score-history-from-projection \
+  --projection cleaned/ln_projection_score_2025.csv \
+  --score-distribution cleaned/ln_score_distribution_2025.csv \
+  --output-root exports \
+  --package-id 2025_ln_score_history_derived
+```
+
+注意：派生的 `min_rank` 是最低分对应的一分一段累计人数，不是同分排序后的精确投档位次。`quality_report.warnings` 会保留 `rank_is_score_cumulative_rank`。2023/2024 成绩统计表在辽宁官方页面目前以图片发布，仍需后续图片解析或受控人工复核。
+
 ## 证据域数据包
 
 推荐和报告需要的学校、专业、政策证据由 DataHub 产出标准包，core 只消费：

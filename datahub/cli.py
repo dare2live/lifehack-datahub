@@ -12,6 +12,7 @@ from .builders.policy_tables import (
     build_policy_industry_map_package,
     build_policy_plan_history_package,
 )
+from .builders.score_history_from_projection import build_score_history_from_projection_package
 from .builders.score_history_snapshot import build_score_history_snapshot_package
 from .builders.school_identity import build_school_identity_package
 from .config import get_table_schema
@@ -19,6 +20,7 @@ from .connectors.manual_files import intake_manual_assets
 from .connectors.registry import discover_assets, list_source_keys
 from .connectors.remote_files import download_remote_assets
 from .parsers.ln_projection_score import parse_ln_projection_score_files
+from .parsers.ln_score_distribution import parse_ln_score_distribution_pdf
 from .parsers.moe_major_catalog import parse_moe_major_catalog_pdf
 from .parsers.moe_school_profile import parse_moe_school_profile_xls
 from .source_audit import audit_sources
@@ -94,6 +96,16 @@ def main() -> int:
     build_score_snapshot.add_argument("--package-id")
     build_score_snapshot.add_argument("--source-version")
 
+    build_score_derived = sub.add_parser(
+        "build-score-history-from-projection",
+        help="Build fa_fact_ln_score_history from projection score and score distribution CSVs",
+    )
+    build_score_derived.add_argument("--projection", required=True, type=Path)
+    build_score_derived.add_argument("--score-distribution", required=True, type=Path)
+    build_score_derived.add_argument("--output-root", required=True, type=Path)
+    build_score_derived.add_argument("--package-id")
+    build_score_derived.add_argument("--source-version")
+
     build_policy_industry = sub.add_parser(
         "build-policy-industry-map",
         help="Build fa_dim_policy_industry_map from curated config",
@@ -126,6 +138,16 @@ def main() -> int:
     parse_projection.add_argument("--batch", required=True)
     parse_projection.add_argument("--source-date", required=True)
     parse_projection.add_argument("--password", action="append", dest="passwords", default=[])
+
+    parse_distribution = sub.add_parser(
+        "parse-ln-score-distribution",
+        help="Parse Liaoning score distribution PDFs to cleaned CSV",
+    )
+    parse_distribution.add_argument("--input", required=True, action="append", type=Path)
+    parse_distribution.add_argument("--output", required=True, type=Path)
+    parse_distribution.add_argument("--score-year", required=True, type=int)
+    parse_distribution.add_argument("--source-date", required=True)
+    parse_distribution.add_argument("--subject-cat", action="append", dest="subject_cats", default=[])
 
     parse_school = sub.add_parser("parse-moe-school-profile", help="Parse MOE school list XLS to cleaned CSV")
     parse_school.add_argument("--input", required=True, type=Path)
@@ -212,6 +234,16 @@ def main() -> int:
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
+    if args.cmd == "build-score-history-from-projection":
+        result = build_score_history_from_projection_package(
+            projection_csv=args.projection,
+            score_distribution_csv=args.score_distribution,
+            output_root=args.output_root,
+            package_id=args.package_id,
+            source_version=args.source_version,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
     if args.cmd == "build-policy-industry-map":
         result = build_policy_industry_map_package(
             output_root=args.output_root,
@@ -249,6 +281,24 @@ def main() -> int:
             password_candidates=args.passwords,
         )
         schema = get_table_schema("fa_fact_ln_projection_score")
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        with args.output.open("w", encoding="utf-8", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=schema["columns"], extrasaction="ignore")
+            writer.writeheader()
+            writer.writerows(rows)
+        print(json.dumps({"output": str(args.output), "rows": len(rows)}, ensure_ascii=False, indent=2))
+        return 0
+    if args.cmd == "parse-ln-score-distribution":
+        rows = []
+        for index, input_path in enumerate(args.input):
+            subject_cat = args.subject_cats[index] if index < len(args.subject_cats) else None
+            rows.extend(parse_ln_score_distribution_pdf(
+                input_path,
+                score_year=args.score_year,
+                subject_cat=subject_cat,
+                source_date=args.source_date,
+            ))
+        schema = get_table_schema("fa_fact_ln_score_distribution")
         args.output.parent.mkdir(parents=True, exist_ok=True)
         with args.output.open("w", encoding="utf-8", newline="") as f:
             writer = csv.DictWriter(f, fieldnames=schema["columns"], extrasaction="ignore")

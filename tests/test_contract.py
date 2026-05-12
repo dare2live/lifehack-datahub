@@ -13,6 +13,7 @@ from datahub.builders.policy_tables import (
     build_policy_industry_map_package,
     build_policy_plan_history_package,
 )
+from datahub.builders.score_history_from_projection import build_score_history_from_projection_package
 from datahub.builders.score_history_snapshot import build_score_history_snapshot_package
 from datahub.config import get_table_schema, load_outcome_metrics, load_source_schemas
 from datahub.builders.school_identity import build_school_identity_package
@@ -20,6 +21,7 @@ from datahub.connectors.manual_files import intake_manual_assets
 from datahub.connectors.remote_files import download_remote_assets
 from datahub.connectors.registry import discover_assets
 from datahub.parsers.ln_projection_score import parse_ln_projection_score_file
+from datahub.parsers.ln_score_distribution import parse_ln_score_distribution_lines
 from datahub.parsers.moe_major_catalog import parse_moe_major_catalog_lines
 from datahub.parsers.moe_school_profile import parse_moe_school_profile_rows
 from datahub.source_audit import audit_sources
@@ -193,7 +195,8 @@ def test_audit_sources_marks_admission_plan_manual():
     assert by_key["ln_admission_plan"]["status"] == "manual_required"
     assert by_key["ln_admission_plan"]["official_distribution"]
     assert by_key["ln_projection_score"]["status"] == "remote_configured"
-    assert by_key["ln_score_history"]["status"] == "research_required"
+    assert by_key["ln_score_history"]["status"] == "partial_official_derivation_configured"
+    assert by_key["ln_score_distribution"]["status"] == "remote_configured"
     assert by_key["major_mapping_review"]["status"] == "local_db_configured"
     assert by_key["school_profile"]["status"] == "remote_configured"
     assert by_key["school_identity_bridge"]["status"] == "local_db_configured"
@@ -220,6 +223,97 @@ def test_evidence_domain_schemas_are_package_ready():
         assert "built_at" in schema["columns"]
         assert set(schema["required"]).issubset(set(schema["columns"]))
         assert schema["primary_key"]
+
+    score_distribution = schemas["fa_fact_ln_score_distribution"]
+    assert score_distribution["source_key"] == "ln_score_distribution"
+    assert score_distribution["primary_key"] == ["subject_cat", "score_year", "score"]
+    assert "cumulative_rank" in score_distribution["columns"]
+
+
+def test_parse_ln_score_distribution_lines():
+    rows = parse_ln_score_distribution_lines(
+        [
+            "2025年辽宁省普通高校招生考试成绩统计表(物理学科类)",
+            "分数 人数 累计",
+            "707       11      11及以上",
+            "706        2      13",
+            "665       57   1,048",
+            "分数 人数 累计 664 62 1,110 663 73 1,183",
+        ],
+        score_year=2025,
+        subject_cat="物理类",
+        source_date="2025-06-24",
+    )
+
+    by_score = {row["score"]: row for row in rows}
+    assert by_score[707]["score_count"] == 11
+    assert by_score[707]["cumulative_rank"] == 11
+    assert by_score[665]["cumulative_rank"] == 1048
+    assert by_score[663]["subject_cat"] == "物理类"
+
+
+def test_build_score_history_from_projection_package(tmp_path: Path):
+    projection = tmp_path / "projection.csv"
+    with projection.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(
+            f,
+            fieldnames=[
+                "school_code",
+                "school_name",
+                "major_code",
+                "major_full",
+                "batch",
+                "subject_cat",
+                "score_year",
+                "min_score",
+                "tie_breaker_json",
+                "source_date",
+            ],
+        )
+        writer.writeheader()
+        writer.writerow({
+            "school_code": "0378",
+            "school_name": "安徽财经大学",
+            "major_code": "13",
+            "major_full": "计算机类",
+            "batch": "本科批",
+            "subject_cat": "物理类",
+            "score_year": "2025",
+            "min_score": "574",
+            "tie_breaker_json": "{}",
+            "source_date": "2025-07-20",
+        })
+    distribution = tmp_path / "distribution.csv"
+    with distribution.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(
+            f,
+            fieldnames=["subject_cat", "score_year", "score", "score_count", "cumulative_rank", "source_date"],
+        )
+        writer.writeheader()
+        writer.writerow({
+            "subject_cat": "物理类",
+            "score_year": "2025",
+            "score": "574",
+            "score_count": "364",
+            "cumulative_rank": "22820",
+            "source_date": "2025-06-24",
+        })
+
+    result = build_score_history_from_projection_package(
+        projection_csv=projection,
+        score_distribution_csv=distribution,
+        output_root=tmp_path / "exports",
+        package_id="pkg-score-history-derived-test",
+    )
+    package_dir = Path(result["package_dir"])
+    assert validate_manifest(package_dir / "manifest.json")["errors"] == []
+    assert result["rows"] == 1
+    assert result["quality_report"]["warnings"][0]["code"] == "rank_is_score_cumulative_rank"
+
+    with (package_dir / "fa_fact_ln_score_history.csv").open(encoding="utf-8", newline="") as f:
+        rows = list(csv.DictReader(f))
+    assert rows[0]["min_rank"] == "22820"
+    assert rows[0]["school_code"] == "0378"
 
 
 def test_build_policy_industry_map_package_from_config(tmp_path: Path):
