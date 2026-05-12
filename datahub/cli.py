@@ -24,8 +24,10 @@ from .connectors.registry import discover_assets, list_source_keys
 from .connectors.remote_files import download_remote_assets
 from .parsers.ln_projection_score import parse_ln_projection_score_files
 from .parsers.ln_score_distribution_ocr import (
+    build_score_distribution_review_tasks,
     parse_ln_score_distribution_ocr_jsonl,
     write_candidate_csv,
+    write_review_task_csv,
 )
 from .parsers.ln_score_distribution import parse_ln_score_distribution_pdf
 from .parsers.moe_major_catalog import parse_moe_major_catalog_pdf
@@ -188,6 +190,14 @@ def main() -> int:
     parse_distribution_ocr.add_argument("--score-year", type=int)
     parse_distribution_ocr.add_argument("--subject-cat")
     parse_distribution_ocr.add_argument("--report", type=Path)
+
+    build_distribution_review = sub.add_parser(
+        "build-ln-score-distribution-review",
+        help="Build review task CSV from Liaoning score distribution OCR candidates",
+    )
+    build_distribution_review.add_argument("--candidate-csv", required=True, type=Path)
+    build_distribution_review.add_argument("--output", required=True, type=Path)
+    build_distribution_review.add_argument("--report", type=Path)
 
     parse_school = sub.add_parser("parse-moe-school-profile", help="Parse MOE school list XLS to cleaned CSV")
     parse_school.add_argument("--input", required=True, type=Path)
@@ -378,6 +388,18 @@ def main() -> int:
             subject_cat=args.subject_cat,
         )
         write_candidate_csv(args.output, rows)
+        report_path = args.report or args.output.with_suffix(".report.json")
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        report_path.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        print(json.dumps({
+            "output": str(args.output),
+            "report": str(report_path),
+            **report,
+        }, ensure_ascii=False, indent=2))
+        return 0
+    if args.cmd == "build-ln-score-distribution-review":
+        rows, report = build_score_distribution_review_tasks(args.candidate_csv)
+        write_review_task_csv(args.output, rows)
         report_path = args.report or args.output.with_suffix(".report.json")
         report_path.parent.mkdir(parents=True, exist_ok=True)
         report_path.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

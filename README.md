@@ -144,6 +144,16 @@ python3 scripts/build_package.py parse-ln-score-distribution-ocr \
 
 候选 CSV 用于人工复核或后续表格识别增强；只有复核后的 cleaned CSV 才能进入 `build-local`。
 
+再把候选 CSV 转成可分派的复核任务表：
+
+```bash
+python3 scripts/build_package.py build-ln-score-distribution-review \
+  --candidate-csv staging/ln_score_distribution_2024_ocr_candidates.csv \
+  --output staging/ln_score_distribution_2024_review_tasks.csv
+```
+
+复核任务表会按失败原因和位置排序，并预留 `corrected_score`、`corrected_score_count`、`corrected_cumulative_rank` 给人工校对。
+
 OCR 或人工转录后的 `fa_fact_ln_score_distribution` CSV 必须再经过 `build-local`。该入口会校验分数范围、单分人数、累计排名，以及“上一累计 + 本分人数 = 当前累计”，避免错误转录进入 core：
 
 ```bash

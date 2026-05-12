@@ -172,6 +172,16 @@ python3 scripts/build_package.py parse-ln-score-distribution-ocr \
 
 真实 smoke：2024 OCR JSONL 生成 1,861 条候选、650 条直接 parsed 行、194 条 inferred_score 行、598 条累计校验 OK；2023 OCR JSONL 生成 1,450 条候选、227 条直接 parsed 行、114 条 inferred_score 行、262 条累计校验 OK。该结果说明 OCR 候选仍需要人工复核或更强表格结构识别，不能跳过 `build-local` 质量闸门。
 
+候选 CSV 可以继续转成可分派的复核任务表，优先级和建议动作由 `config/sources.json` 的 `parser.ocr_review.issue_actions` 维护：
+
+```bash
+python3 scripts/build_package.py build-ln-score-distribution-review \
+  --candidate-csv staging/ln_score_distribution_2024_ocr_candidates.csv \
+  --output staging/ln_score_distribution_2024_review_tasks.csv
+```
+
+真实 smoke：2024 候选生成 1,263 条复核任务，失败原因分布为 `incomplete=864, duplicate_score=173, invalid_score=149, cumulative_mismatch=73, extra_tokens=4`；2023 候选生成 1,188 条复核任务，失败原因分布为 `incomplete=976, invalid_score=133, duplicate_score=48, cumulative_mismatch=31`。复核任务表只用于校对，不是 data package。
+
 OCR 或人工转录后的 cleaned CSV 不允许直接进入 core，必须通过 `build-local` 生成标准包。`build-local` 对 `fa_fact_ln_score_distribution` 会强制校验：
 
 - `score` 在 0-750 分范围内。

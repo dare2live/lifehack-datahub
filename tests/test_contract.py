@@ -25,8 +25,10 @@ from datahub.connectors.remote_files import download_remote_assets
 from datahub.connectors.registry import discover_assets
 from datahub.parsers.ln_projection_score import parse_ln_projection_score_file
 from datahub.parsers.ln_score_distribution_ocr import (
+    build_score_distribution_review_tasks,
     parse_ln_score_distribution_ocr_jsonl,
     write_candidate_csv,
+    write_review_task_csv,
 )
 from datahub.parsers.ln_score_distribution import parse_ln_score_distribution_lines
 from datahub.parsers.moe_major_catalog import parse_moe_major_catalog_lines
@@ -400,6 +402,74 @@ def test_parse_ln_score_distribution_ocr_jsonl_candidates(tmp_path: Path):
         written = list(csv.DictReader(f))
     assert written[0]["parse_status"] == "parsed"
     assert "raw_text" in written[0]
+
+
+def test_build_score_distribution_review_tasks_from_candidates(tmp_path: Path):
+    candidates = tmp_path / "candidates.csv"
+    rows = [
+        {
+            "subject_cat": "历史类",
+            "score_year": "2024",
+            "score": "676",
+            "score_count": "12",
+            "cumulative_rank": "12",
+            "source_date": "2024-06-25",
+            "image_file": "page1.jpg",
+            "block_index": "1",
+            "row_y": "0.88",
+            "ocr_confidence": "0.8",
+            "parse_status": "parsed",
+            "math_status": "ok",
+            "raw_text": "676及以上12",
+        },
+        {
+            "subject_cat": "历史类",
+            "score_year": "2024",
+            "score": "675",
+            "score_count": "3",
+            "cumulative_rank": "16",
+            "source_date": "2024-06-25",
+            "image_file": "page1.jpg",
+            "block_index": "1",
+            "row_y": "0.86",
+            "ocr_confidence": "1.0",
+            "parse_status": "parsed",
+            "math_status": "cumulative_mismatch",
+            "raw_text": "675 3 16",
+        },
+        {
+            "subject_cat": "历史类",
+            "score_year": "2024",
+            "score": "93",
+            "score_count": "4874",
+            "cumulative_rank": "",
+            "source_date": "2024-06-25",
+            "image_file": "page1.jpg",
+            "block_index": "4",
+            "row_y": "0.87",
+            "ocr_confidence": "1.0",
+            "parse_status": "incomplete",
+            "math_status": "not_checked",
+            "raw_text": "93 4,874",
+        },
+    ]
+    write_candidate_csv(candidates, rows)
+
+    tasks, report = build_score_distribution_review_tasks(candidates)
+    assert report["candidate_rows"] == 3
+    assert report["review_task_rows"] == 2
+    assert report["issue_counts"]["cumulative_mismatch"] == 1
+    assert tasks[0]["issue_type"] == "cumulative_mismatch"
+    assert tasks[0]["priority"] == 2
+    assert tasks[0]["review_status"] == "todo"
+    assert "累计校验" in tasks[0]["suggested_action"]
+
+    output = tmp_path / "review.csv"
+    write_review_task_csv(output, tasks)
+    with output.open(encoding="utf-8", newline="") as f:
+        written = list(csv.DictReader(f))
+    assert written[0]["corrected_score"] == ""
+    assert written[0]["issue_type"] == "cumulative_mismatch"
 
 
 def test_build_score_history_from_projection_package(tmp_path: Path):

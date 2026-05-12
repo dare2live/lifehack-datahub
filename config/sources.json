@@ -169,6 +169,36 @@
             [0.49, 0.72],
             [0.72, 0.96]
           ]
+        },
+        "ocr_review": {
+          "complete_parse_statuses": ["parsed", "inferred_score"],
+          "ok_math_status": "ok",
+          "issue_actions": {
+            "duplicate_score": {
+              "priority": 1,
+              "suggested_action": "同一科类年份出现重复分数，打开原图核对重复分数行，保留正确的一行。"
+            },
+            "cumulative_mismatch": {
+              "priority": 2,
+              "suggested_action": "累计校验不通过，核对本分人数和累计人数，并检查上一分数行是否缺失。"
+            },
+            "extra_tokens": {
+              "priority": 3,
+              "suggested_action": "OCR 把多个数字粘在一起或多识别，按原图拆分为分数、人数、累计三列。"
+            },
+            "invalid_score": {
+              "priority": 4,
+              "suggested_action": "当前首个数字不是有效分数，通常是漏识别分数列；按原图补齐分数、人数、累计。"
+            },
+            "incomplete": {
+              "priority": 5,
+              "suggested_action": "候选行缺少三列中的一列或多列，按原图补齐分数、人数、累计。"
+            },
+            "not_checked": {
+              "priority": 6,
+              "suggested_action": "候选行未完成累计校验，优先补齐缺失字段后重新生成候选。"
+            }
+          }
         }
       },
       "ocr": {

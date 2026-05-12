@@ -30,6 +30,32 @@ CANDIDATE_COLUMNS = [
 ]
 
 
+REVIEW_TASK_COLUMNS = [
+    "review_id",
+    "priority",
+    "issue_type",
+    "suggested_action",
+    "subject_cat",
+    "score_year",
+    "score",
+    "score_count",
+    "cumulative_rank",
+    "source_date",
+    "image_file",
+    "block_index",
+    "row_y",
+    "ocr_confidence",
+    "parse_status",
+    "math_status",
+    "raw_text",
+    "review_status",
+    "reviewer_notes",
+    "corrected_score",
+    "corrected_score_count",
+    "corrected_cumulative_rank",
+]
+
+
 COMPLETE_PARSE_STATUSES = {"parsed", "inferred_score"}
 
 
@@ -120,6 +146,44 @@ def write_candidate_csv(path: Path, rows: list[dict[str, Any]]) -> None:
         writer.writerows(rows)
 
 
+def build_score_distribution_review_tasks(
+    candidate_csv: Path,
+    *,
+    source_key: str = "ln_score_distribution",
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    review_config = _load_ocr_review_config(source_key)
+    rows = _read_candidate_csv(candidate_csv)
+    tasks = [
+        _review_task(row, index, review_config)
+        for index, row in enumerate(rows, start=1)
+        if _needs_review(row, review_config)
+    ]
+    tasks.sort(key=lambda row: (
+        int(row["priority"]),
+        row["subject_cat"],
+        int(row["score_year"] or 0),
+        row["image_file"],
+        int(row["block_index"] or 0),
+        -float(row["row_y"] or 0),
+    ))
+    report = {
+        "candidate_csv": str(candidate_csv),
+        "candidate_rows": len(rows),
+        "review_task_rows": len(tasks),
+        "issue_counts": dict(sorted(Counter(task["issue_type"] for task in tasks).items())),
+        "notes": "Review task CSV only. Correct rows before build-local.",
+    }
+    return tasks, report
+
+
+def write_review_task_csv(path: Path, rows: list[dict[str, Any]]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=REVIEW_TASK_COLUMNS, extrasaction="ignore")
+        writer.writeheader()
+        writer.writerows(rows)
+
+
 def _load_ocr_table_config(source_key: str) -> dict[str, Any]:
     source = load_sources().get("sources", {}).get(source_key)
     if not source:
@@ -142,6 +206,80 @@ def _load_ocr_table_config(source_key: str) -> dict[str, Any]:
         "score_inference_min_anchor_rows": int(config.get("score_inference_min_anchor_rows", 2)),
         "block_x_ranges": [(float(item[0]), float(item[1])) for item in block_ranges],
     }
+
+
+def _load_ocr_review_config(source_key: str) -> dict[str, Any]:
+    source = load_sources().get("sources", {}).get(source_key)
+    if not source:
+        raise KeyError(f"unknown source key: {source_key}")
+    config = source.get("parser", {}).get("ocr_review")
+    if not isinstance(config, dict):
+        raise ValueError(f"{source_key}.parser.ocr_review is required")
+    statuses = config.get("complete_parse_statuses")
+    actions = config.get("issue_actions")
+    if not isinstance(statuses, list) or not statuses:
+        raise ValueError(f"{source_key}.parser.ocr_review.complete_parse_statuses must be a non-empty list")
+    if not isinstance(actions, dict) or not actions:
+        raise ValueError(f"{source_key}.parser.ocr_review.issue_actions must be a non-empty object")
+    return {
+        "complete_parse_statuses": set(str(item) for item in statuses),
+        "ok_math_status": str(config.get("ok_math_status") or "ok"),
+        "issue_actions": actions,
+    }
+
+
+def _read_candidate_csv(path: Path) -> list[dict[str, Any]]:
+    with path.open(encoding="utf-8", newline="") as f:
+        return list(csv.DictReader(f))
+
+
+def _needs_review(row: dict[str, Any], review_config: dict[str, Any]) -> bool:
+    return (
+        row.get("parse_status") not in review_config["complete_parse_statuses"]
+        or row.get("math_status") != review_config["ok_math_status"]
+    )
+
+
+def _review_task(row: dict[str, Any], index: int, review_config: dict[str, Any]) -> dict[str, Any]:
+    issue_type = _issue_type(row, review_config)
+    action = review_config["issue_actions"].get(issue_type) or review_config["issue_actions"].get("not_checked")
+    if not action:
+        raise ValueError(f"ocr_review.issue_actions missing issue type: {issue_type}")
+    review_id = (
+        f"{row.get('source_date')}-{row.get('subject_cat')}-{row.get('image_file')}-"
+        f"b{row.get('block_index')}-y{row.get('row_y')}-{index}"
+    )
+    return {
+        "review_id": review_id,
+        "priority": int(action["priority"]),
+        "issue_type": issue_type,
+        "suggested_action": action["suggested_action"],
+        "subject_cat": row.get("subject_cat"),
+        "score_year": row.get("score_year"),
+        "score": row.get("score"),
+        "score_count": row.get("score_count"),
+        "cumulative_rank": row.get("cumulative_rank"),
+        "source_date": row.get("source_date"),
+        "image_file": row.get("image_file"),
+        "block_index": row.get("block_index"),
+        "row_y": row.get("row_y"),
+        "ocr_confidence": row.get("ocr_confidence"),
+        "parse_status": row.get("parse_status"),
+        "math_status": row.get("math_status"),
+        "raw_text": row.get("raw_text"),
+        "review_status": "todo",
+        "reviewer_notes": "",
+        "corrected_score": "",
+        "corrected_score_count": "",
+        "corrected_cumulative_rank": "",
+    }
+
+
+def _issue_type(row: dict[str, Any], review_config: dict[str, Any]) -> str:
+    math_status = row.get("math_status")
+    if row.get("parse_status") in review_config["complete_parse_statuses"] and math_status != review_config["ok_math_status"]:
+        return str(math_status or "not_checked")
+    return str(row.get("parse_status") or "not_checked")
 
 
 def _score_year_from_config(source_key: str, source_date: str) -> int:
