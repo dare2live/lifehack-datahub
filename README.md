@@ -194,6 +194,16 @@ python3 scripts/build_package.py build-score-history-from-reconciliation-plan \
 
 当前真实 2023/2024 队列仍会被拒绝：`pending=24478`，不会生成 package。`exclude_row` 只适用于排除 package-only 行；如果任务带有 core 侧证据，构建器会拒绝，因为当前 core importer 不能通过 CSV package 删除已有行。
 
+对于已复核确认需要删除 core 侧历史位次行的任务，单独生成删除迁移计划。该命令只输出待删除主键，不执行 SQL，也不是 data package：
+
+```bash
+python3 scripts/build_package.py build-score-history-delete-plan \
+  --plan-csv staging/score_history_reconciliation_2023_2024/score_history_reconciliation_plan_merged.csv \
+  --output-dir staging/score_history_reconciliation_2023_2024/delete_plan
+```
+
+当前真实未复核队列同样会被拒绝：`pending=24478`，不会生成 delete plan。
+
 2023/2024 已补充可文本解析的转载 PDF 镜像，配置为 `mirror_pdf`，不能冒充辽宁官网原始长期来源。真实 smoke 已解析 2023 年 1,076 行、2024 年 1,086 行，并通过 `fa_fact_ln_score_distribution` 质量闸门：
 
 ```bash

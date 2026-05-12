@@ -23,6 +23,7 @@ from .builders.score_history_reconciliation_batch import (
     build_score_history_reconciliation_review_batch,
     merge_score_history_reconciliation_review_batch,
 )
+from .builders.score_history_reconciliation_delete_plan import build_score_history_delete_plan_from_reconciliation_plan
 from .builders.score_history_reconciliation_package import build_score_history_package_from_reconciliation_plan
 from .builders.score_history_reconciliation_plan import build_score_history_reconciliation_plan
 from .builders.score_history_snapshot import build_score_history_snapshot_package
@@ -215,6 +216,13 @@ def main() -> int:
     build_score_reconciliation_package.add_argument("--output-root", required=True, type=Path)
     build_score_reconciliation_package.add_argument("--package-id")
     build_score_reconciliation_package.add_argument("--source-version")
+
+    build_score_delete_plan = sub.add_parser(
+        "build-score-history-delete-plan",
+        help="Build non-executing delete migration plan from reviewed core-backed exclude decisions",
+    )
+    build_score_delete_plan.add_argument("--plan-csv", required=True, type=Path)
+    build_score_delete_plan.add_argument("--output-dir", required=True, type=Path)
 
     build_policy_industry = sub.add_parser(
         "build-policy-industry-map",
@@ -530,6 +538,13 @@ def main() -> int:
             output_root=args.output_root,
             package_id=args.package_id,
             source_version=args.source_version,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+    if args.cmd == "build-score-history-delete-plan":
+        result = build_score_history_delete_plan_from_reconciliation_plan(
+            plan_csv=args.plan_csv,
+            output_dir=args.output_dir,
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
