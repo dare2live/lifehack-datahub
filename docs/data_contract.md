@@ -182,12 +182,32 @@ python3 scripts/build_package.py build-ln-score-distribution-review \
 
 真实 smoke：2024 候选生成 1,263 条复核任务，失败原因分布为 `incomplete=864, duplicate_score=173, invalid_score=149, cumulative_mismatch=73, extra_tokens=4`；2023 候选生成 1,188 条复核任务，失败原因分布为 `incomplete=976, invalid_score=133, duplicate_score=48, cumulative_mismatch=31`。复核任务表只用于校对，不是 data package。
 
+复核任务可继续拆成本地工作区。工作区按原图生成批次 CSV、进度 manifest 和 HTML 核对页；pending 状态和可编辑字段由 `config/sources.json` 的 `parser.ocr_review_workspace` 维护：
+
+```bash
+python3 scripts/build_package.py build-ln-score-distribution-review-workspace \
+  --review-csv staging/ln_score_distribution_2024_review_tasks.csv \
+  --image-manifest raw/ln_score_distribution/2024-06-25/_page_images_index.json \
+  --output-dir staging/ln_score_distribution_2024_review_workspace
+```
+
+人工修正各批次 CSV 后，先合并回完整复核表：
+
+```bash
+python3 scripts/build_package.py merge-ln-score-distribution-review-workspace \
+  --review-csv staging/ln_score_distribution_2024_review_tasks.csv \
+  --workspace-dir staging/ln_score_distribution_2024_review_workspace \
+  --output staging/ln_score_distribution_2024_review_tasks_merged.csv
+```
+
+真实 smoke：2024 工作区生成 21 个图片批次、1,263 条待复核任务；2023 工作区生成 20 个图片批次、1,188 条待复核任务。未修改批次可无损合并回总表，`updated_rows=0`。
+
 复核完成后，使用 review task 中的 `corrected_score/corrected_score_count/corrected_cumulative_rank` 合并出 cleaned CSV：
 
 ```bash
 python3 scripts/build_package.py apply-ln-score-distribution-review \
   --candidate-csv staging/ln_score_distribution_2024_ocr_candidates.csv \
-  --review-csv staging/ln_score_distribution_2024_review_tasks.csv \
+  --review-csv staging/ln_score_distribution_2024_review_tasks_merged.csv \
   --output cleaned/ln_score_distribution_2024.csv
 ```
 

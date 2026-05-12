@@ -38,7 +38,7 @@ exports/YYYY-MM-DD_ln_admission_plan/
 
 ## 当前阶段
 
-Phase 5+：已固化数据包契约和模块边界，提供本地已清洗 CSV/TSV/XLSX 到 data package 的生成入口，支持远程文件下载、受控手工 intake、教育部目录解析、辽宁投档分解析、辽宁一分一段转录校验、学校身份桥表、历史位次 legacy snapshot、专业映射复核晋级，以及配置驱动的政策表数据包生成。
+Phase 5+：已固化数据包契约和模块边界，提供本地已清洗 CSV/TSV/XLSX 到 data package 的生成入口，支持远程文件下载、受控手工 intake、教育部目录解析、辽宁投档分解析、辽宁一分一段转录校验与 OCR 复核工作区、学校身份桥表、历史位次 legacy snapshot、专业映射复核晋级，以及配置驱动的政策表数据包生成。
 
 ## 本地数据包生成
 
@@ -154,12 +154,30 @@ python3 scripts/build_package.py build-ln-score-distribution-review \
 
 复核任务表会按失败原因和位置排序，并预留 `corrected_score`、`corrected_score_count`、`corrected_cumulative_rank` 给人工校对。
 
+为了让人工复核能按原图推进，可把总任务表拆成本地工作区。工作区会按图片生成批次 CSV、进度 manifest 和一个只引用本地原图的 HTML 核对页；状态和可编辑字段由 `config/sources.json` 的 `parser.ocr_review_workspace` 维护：
+
+```bash
+python3 scripts/build_package.py build-ln-score-distribution-review-workspace \
+  --review-csv staging/ln_score_distribution_2024_review_tasks.csv \
+  --image-manifest raw/ln_score_distribution/2024-06-25/_page_images_index.json \
+  --output-dir staging/ln_score_distribution_2024_review_workspace
+```
+
+分批 CSV 修正后，再合并回完整复核表：
+
+```bash
+python3 scripts/build_package.py merge-ln-score-distribution-review-workspace \
+  --review-csv staging/ln_score_distribution_2024_review_tasks.csv \
+  --workspace-dir staging/ln_score_distribution_2024_review_workspace \
+  --output staging/ln_score_distribution_2024_review_tasks_merged.csv
+```
+
 人工复核后，用 corrected 字段合并回 cleaned CSV。默认严格模式会拒绝未复核任务、重复主键和累计校验错误；`--allow-unresolved` 只用于迭代检查，不可导入 core：
 
 ```bash
 python3 scripts/build_package.py apply-ln-score-distribution-review \
   --candidate-csv staging/ln_score_distribution_2024_ocr_candidates.csv \
-  --review-csv staging/ln_score_distribution_2024_review_tasks.csv \
+  --review-csv staging/ln_score_distribution_2024_review_tasks_merged.csv \
   --output cleaned/ln_score_distribution_2024.csv
 ```
 

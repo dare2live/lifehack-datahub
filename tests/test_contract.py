@@ -17,6 +17,10 @@ from datahub.builders.policy_tables import (
 )
 from datahub.builders.score_history_from_projection import build_score_history_from_projection_package
 from datahub.builders.score_history_snapshot import build_score_history_snapshot_package
+from datahub.builders.score_distribution_review_workspace import (
+    build_score_distribution_review_workspace,
+    merge_score_distribution_review_workspace,
+)
 from datahub.config import get_table_schema, load_outcome_metrics, load_source_schemas
 from datahub.builders.school_identity import build_school_identity_package
 from datahub.connectors.manual_files import intake_manual_assets
@@ -472,6 +476,106 @@ def test_build_score_distribution_review_tasks_from_candidates(tmp_path: Path):
         written = list(csv.DictReader(f))
     assert written[0]["corrected_score"] == ""
     assert written[0]["issue_type"] == "cumulative_mismatch"
+
+
+def test_build_and_merge_score_distribution_review_workspace(tmp_path: Path):
+    review = tmp_path / "review.csv"
+    image_path = tmp_path / "page1.jpg"
+    image_path.write_bytes(b"not-a-real-image")
+    manifest = tmp_path / "_page_images_index.json"
+    manifest.write_text(json.dumps({
+        "files": [
+            {"file_name": "page1.jpg", "path": str(image_path)},
+            {"file_name": "page2.jpg", "path": str(tmp_path / "page2.jpg")},
+        ]
+    }), encoding="utf-8")
+    rows = [
+        {
+            "review_id": "r1",
+            "priority": "2",
+            "issue_type": "cumulative_mismatch",
+            "suggested_action": "核对累计",
+            "subject_cat": "历史类",
+            "score_year": "2024",
+            "score": "675",
+            "score_count": "3",
+            "cumulative_rank": "16",
+            "source_date": "2024-06-25",
+            "image_file": "page1.jpg",
+            "block_index": "1",
+            "row_y": "0.86",
+            "ocr_confidence": "1.0",
+            "parse_status": "parsed",
+            "math_status": "cumulative_mismatch",
+            "raw_text": "675 3 16",
+            "review_status": "todo",
+            "reviewer_notes": "",
+            "corrected_score": "",
+            "corrected_score_count": "",
+            "corrected_cumulative_rank": "",
+        },
+        {
+            "review_id": "r2",
+            "priority": "5",
+            "issue_type": "incomplete",
+            "suggested_action": "补齐",
+            "subject_cat": "历史类",
+            "score_year": "2024",
+            "score": "93",
+            "score_count": "4874",
+            "cumulative_rank": "",
+            "source_date": "2024-06-25",
+            "image_file": "page2.jpg",
+            "block_index": "4",
+            "row_y": "0.87",
+            "ocr_confidence": "1.0",
+            "parse_status": "incomplete",
+            "math_status": "not_checked",
+            "raw_text": "93 4,874",
+            "review_status": "todo",
+            "reviewer_notes": "",
+            "corrected_score": "",
+            "corrected_score_count": "",
+            "corrected_cumulative_rank": "",
+        },
+    ]
+    write_review_task_csv(review, rows)
+
+    workspace = tmp_path / "workspace"
+    report = build_score_distribution_review_workspace(
+        review_csv=review,
+        output_dir=workspace,
+        image_manifest=manifest,
+    )
+    assert report["task_rows"] == 2
+    assert report["unresolved_rows"] == 2
+    assert len(report["batches"]) == 2
+    assert (workspace / "index.html").exists()
+    assert (workspace / "review_workspace_manifest.json").exists()
+
+    page1_batch = Path(report["batches"][0]["csv"])
+    with page1_batch.open(encoding="utf-8", newline="") as f:
+        batch_rows = list(csv.DictReader(f))
+    batch_rows[0]["review_status"] = "approved"
+    batch_rows[0]["corrected_cumulative_rank"] = "15"
+    batch_rows[0]["issue_type"] = "changed-but-not-merged"
+    write_review_task_csv(page1_batch, batch_rows)
+
+    merged = tmp_path / "merged_review.csv"
+    merge_report = merge_score_distribution_review_workspace(
+        review_csv=review,
+        workspace_dir=workspace,
+        output=merged,
+    )
+    assert merge_report["updated_rows"] == 1
+    assert merge_report["unresolved_rows"] == 1
+
+    with merged.open(encoding="utf-8", newline="") as f:
+        merged_rows = {row["review_id"]: row for row in csv.DictReader(f)}
+    assert merged_rows["r1"]["review_status"] == "approved"
+    assert merged_rows["r1"]["corrected_cumulative_rank"] == "15"
+    assert merged_rows["r1"]["issue_type"] == "cumulative_mismatch"
+    assert merged_rows["r2"]["review_status"] == "todo"
 
 
 def test_apply_score_distribution_review_writes_cleaned_rows(tmp_path: Path):

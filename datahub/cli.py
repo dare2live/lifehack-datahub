@@ -16,6 +16,10 @@ from .builders.policy_tables import (
 from .builders.score_history_from_projection import build_score_history_from_projection_package
 from .builders.score_history_snapshot import build_score_history_snapshot_package
 from .builders.school_identity import build_school_identity_package
+from .builders.score_distribution_review_workspace import (
+    build_score_distribution_review_workspace,
+    merge_score_distribution_review_workspace,
+)
 from .config import get_table_schema
 from .connectors.manual_files import intake_manual_assets
 from .connectors.macos_vision_ocr import ocr_page_images
@@ -210,6 +214,23 @@ def main() -> int:
     apply_distribution_review.add_argument("--output", required=True, type=Path)
     apply_distribution_review.add_argument("--report", type=Path)
     apply_distribution_review.add_argument("--allow-unresolved", action="store_true")
+
+    build_distribution_workspace = sub.add_parser(
+        "build-ln-score-distribution-review-workspace",
+        help="Build local per-image OCR review workspace from a review task CSV",
+    )
+    build_distribution_workspace.add_argument("--review-csv", required=True, type=Path)
+    build_distribution_workspace.add_argument("--output-dir", required=True, type=Path)
+    build_distribution_workspace.add_argument("--image-manifest", type=Path)
+
+    merge_distribution_workspace = sub.add_parser(
+        "merge-ln-score-distribution-review-workspace",
+        help="Merge edited OCR review workspace batch CSVs back into a full review task CSV",
+    )
+    merge_distribution_workspace.add_argument("--review-csv", required=True, type=Path)
+    merge_distribution_workspace.add_argument("--workspace-dir", required=True, type=Path)
+    merge_distribution_workspace.add_argument("--output", required=True, type=Path)
+    merge_distribution_workspace.add_argument("--report", type=Path)
 
     parse_school = sub.add_parser("parse-moe-school-profile", help="Parse MOE school list XLS to cleaned CSV")
     parse_school.add_argument("--input", required=True, type=Path)
@@ -433,6 +454,28 @@ def main() -> int:
         report_path.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         print(json.dumps({
             "output": str(args.output),
+            "report": str(report_path),
+            **report,
+        }, ensure_ascii=False, indent=2))
+        return 0
+    if args.cmd == "build-ln-score-distribution-review-workspace":
+        report = build_score_distribution_review_workspace(
+            review_csv=args.review_csv,
+            output_dir=args.output_dir,
+            image_manifest=args.image_manifest,
+        )
+        print(json.dumps(report, ensure_ascii=False, indent=2))
+        return 0
+    if args.cmd == "merge-ln-score-distribution-review-workspace":
+        report = merge_score_distribution_review_workspace(
+            review_csv=args.review_csv,
+            workspace_dir=args.workspace_dir,
+            output=args.output,
+        )
+        report_path = args.report or args.output.with_suffix(".report.json")
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        report_path.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        print(json.dumps({
             "report": str(report_path),
             **report,
         }, ensure_ascii=False, indent=2))

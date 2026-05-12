@@ -201,6 +201,16 @@
               "suggested_action": "候选行未完成累计校验，优先补齐缺失字段后重新生成候选。"
             }
           }
+        },
+        "ocr_review_workspace": {
+          "pending_review_statuses": ["", "todo"],
+          "editable_columns": [
+            "review_status",
+            "reviewer_notes",
+            "corrected_score",
+            "corrected_score_count",
+            "corrected_cumulative_rank"
+          ]
         }
       },
       "ocr": {
