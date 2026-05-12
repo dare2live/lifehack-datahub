@@ -1183,13 +1183,13 @@ def test_audit_score_history_package_against_core_reports_overlap_drift(tmp_path
                 "plan_count": "8",
             },
             {
-                "school_code": "1004",
+                "school_code": "1003",
                 "major_code": "04",
                 "batch": "本科批",
                 "subject_cat": "物理类",
                 "score_year": "2024",
-                "min_score": "560",
-                "min_rank": "4000",
+                "min_score": "570",
+                "min_rank": "3000",
                 "plan_count": "6",
             },
         ])
@@ -1219,6 +1219,11 @@ def test_audit_score_history_package_against_core_reports_overlap_drift(tmp_path
     assert report["counts"]["different_rows"] == 1
     assert report["decision"]["reconciliation_required"] is True
     assert report["decision"]["safe_to_import_without_reconciliation"] is False
+    assert report["reconciliation_hints"]["same_values_different_key_candidates"]["candidate_pairs"] == 1
+    assert (
+        report["reconciliation_hints"]["same_values_different_key_candidates"]["samples"][0]["variant_differences"]
+        == [{"column": "major_code", "package_value": "04", "core_value": "03"}]
+    )
     assert report["samples"]["different_rows"][0]["differences"] == [
         {"column": "min_rank", "package_value": 1990, "core_value": 2000}
     ]

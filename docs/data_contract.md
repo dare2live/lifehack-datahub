@@ -168,7 +168,7 @@ python3 scripts/build_package.py audit-score-history-package-against-core \
   --report audits/score_history_2023_2024_against_core.json
 ```
 
-该命令只读 core DB。报告中 `decision.reconciliation_required=true` 时，先处理 `different_rows`、`package_only_rows`、`core_only_rows` 的来源和代码差异，再决定导入策略。
+该命令只读 core DB。报告中 `decision.reconciliation_required=true` 时，先处理 `different_rows`、`package_only_rows`、`core_only_rows` 的来源和代码差异，再决定导入策略。报告会额外输出 `reconciliation_hints.same_values_different_key_candidates`，用配置化匹配列识别“同校同年同分同位次但专业代码不同”的疑似代码漂移。
 
 2022/2023/2024 官方图片页和 2022 镜像图片页可先用 `download-page-images` 采集图片并生成 manifest。manifest 兼容 `build-local --intake-manifest`，后续无论使用 OCR 还是人工转录，发布包都能追溯到原始图片 SHA-256：
 

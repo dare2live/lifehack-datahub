@@ -27,8 +27,10 @@ def audit_score_history_package_against_core(
     primary_key = audit_config["primary_key"]
     compare_columns = audit_config["compare_columns"]
     scope_columns = audit_config["scope_columns"]
+    alignment_match_columns = audit_config["alignment_match_columns"]
+    alignment_variant_columns = audit_config["alignment_variant_columns"]
     numeric_columns = set(schema.get("numeric", []))
-    columns = _unique(primary_key + compare_columns)
+    columns = _unique(primary_key + compare_columns + alignment_match_columns + alignment_variant_columns)
 
     package_reports, package_rows, package_errors = _read_package_rows(
         package_dirs,
@@ -71,6 +73,16 @@ def audit_score_history_package_against_core(
         compare_columns,
         audit_config["sample_limit"],
     )
+    alignment_candidates = _alignment_candidates(
+        package_only_keys=package_only_keys,
+        core_only_keys=core_only_keys,
+        package_index=package_index,
+        core_index=scoped_core_index,
+        primary_key=primary_key,
+        match_columns=alignment_match_columns,
+        variant_columns=alignment_variant_columns,
+        sample_limit=audit_config["sample_limit"],
+    )
     package_scope_counts = _scope_counts(package_rows, scope_columns)
     core_scope_counts = _scope_counts(scoped_core_rows, scope_columns)
     core_has_overlap = bool(scoped_core_rows)
@@ -89,6 +101,8 @@ def audit_score_history_package_against_core(
         "configured_primary_key": primary_key,
         "configured_scope_columns": scope_columns,
         "configured_compare_columns": compare_columns,
+        "configured_alignment_match_columns": alignment_match_columns,
+        "configured_alignment_variant_columns": alignment_variant_columns,
         "counts": {
             "package_rows": len(package_rows),
             "package_unique_keys": len(package_index),
@@ -100,6 +114,9 @@ def audit_score_history_package_against_core(
             "different_rows": diff_rows["count"],
             "package_duplicate_keys": len(package_duplicate_keys),
             "core_duplicate_keys": len(core_duplicate_keys),
+        },
+        "reconciliation_hints": {
+            "same_values_different_key_candidates": alignment_candidates,
         },
         "scope_counts": {
             "package": package_scope_counts,
@@ -128,6 +145,14 @@ def _audit_config(schema: dict[str, Any], sample_limit: int | None) -> dict[str,
     primary_key = _string_list(schema.get("primary_key"), "primary_key")
     scope_columns = _string_list(audit.get("scope_columns"), "audit.scope_columns")
     compare_columns = _string_list(audit.get("compare_columns"), "audit.compare_columns")
+    alignment_match_columns = _string_list(
+        audit.get("alignment_match_columns") or [],
+        "audit.alignment_match_columns",
+    )
+    alignment_variant_columns = _string_list(
+        audit.get("alignment_variant_columns") or [],
+        "audit.alignment_variant_columns",
+    )
     if not scope_columns:
         raise ValueError("fa_fact_ln_score_history audit.scope_columns is required")
     if not compare_columns:
@@ -138,6 +163,8 @@ def _audit_config(schema: dict[str, Any], sample_limit: int | None) -> dict[str,
         "primary_key": primary_key,
         "scope_columns": scope_columns,
         "compare_columns": compare_columns,
+        "alignment_match_columns": alignment_match_columns,
+        "alignment_variant_columns": alignment_variant_columns,
         "sample_limit": max(0, int(limit)),
     }
 
@@ -329,6 +356,67 @@ def _sample_keys(
             },
         })
     return samples
+
+
+def _alignment_candidates(
+    *,
+    package_only_keys: set[tuple[Any, ...]],
+    core_only_keys: set[tuple[Any, ...]],
+    package_index: dict[tuple[Any, ...], dict[str, Any]],
+    core_index: dict[tuple[Any, ...], dict[str, Any]],
+    primary_key: list[str],
+    match_columns: list[str],
+    variant_columns: list[str],
+    sample_limit: int,
+) -> dict[str, Any]:
+    if not match_columns or not variant_columns:
+        return {
+            "candidate_pairs": 0,
+            "package_rows_with_candidate": 0,
+            "core_rows_with_candidate": 0,
+            "samples": [],
+        }
+    core_by_match: dict[tuple[Any, ...], list[tuple[Any, ...]]] = {}
+    for key in core_only_keys:
+        row = core_index[key]
+        core_by_match.setdefault(_key_tuple(row, match_columns), []).append(key)
+
+    candidate_pairs = 0
+    package_rows_with_candidate: set[tuple[Any, ...]] = set()
+    core_rows_with_candidate: set[tuple[Any, ...]] = set()
+    samples: list[dict[str, Any]] = []
+    for package_key in _sorted_keys(package_only_keys):
+        package_row = package_index[package_key]
+        match_key = _key_tuple(package_row, match_columns)
+        for core_key in _sorted_keys(set(core_by_match.get(match_key, []))):
+            core_row = core_index[core_key]
+            variant_differences = [
+                {
+                    "column": column,
+                    "package_value": package_row.get(column),
+                    "core_value": core_row.get(column),
+                }
+                for column in variant_columns
+                if package_row.get(column) != core_row.get(column)
+            ]
+            if not variant_differences:
+                continue
+            candidate_pairs += 1
+            package_rows_with_candidate.add(package_key)
+            core_rows_with_candidate.add(core_key)
+            if len(samples) < sample_limit:
+                samples.append({
+                    "package_key": _key_dict(package_key, primary_key),
+                    "core_key": _key_dict(core_key, primary_key),
+                    "matching_values": _key_dict(match_key, match_columns),
+                    "variant_differences": variant_differences,
+                })
+    return {
+        "candidate_pairs": candidate_pairs,
+        "package_rows_with_candidate": len(package_rows_with_candidate),
+        "core_rows_with_candidate": len(core_rows_with_candidate),
+        "samples": samples,
+    }
 
 
 def _sample_key_dicts(

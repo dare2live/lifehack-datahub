@@ -135,7 +135,7 @@ python3 scripts/build_package.py audit-score-history-package-against-core \
   --report audits/score_history_2023_2024_against_core.json
 ```
 
-若报告出现 `different_rows`、`core_only_rows` 或重叠作用域下的 `package_only_rows`，先做代码体系/来源体系 reconciliation，不直接覆盖实际工作库。
+若报告出现 `different_rows`、`core_only_rows` 或重叠作用域下的 `package_only_rows`，先做代码体系/来源体系 reconciliation，不直接覆盖实际工作库。报告中的 `reconciliation_hints.same_values_different_key_candidates` 会按配置化匹配列提示“同校同年同分同位次但专业代码不同”的疑似代码漂移。
 
 2023/2024 已补充可文本解析的转载 PDF 镜像，配置为 `mirror_pdf`，不能冒充辽宁官网原始长期来源。真实 smoke 已解析 2023 年 1,076 行、2024 年 1,086 行，并通过 `fa_fact_ln_score_distribution` 质量闸门：
 
