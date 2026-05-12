@@ -133,6 +133,17 @@ python3 scripts/build_package.py ocr-page-images \
   --manifest raw/ln_score_distribution/2024-06-25/_page_images_index.json
 ```
 
+OCR JSONL 不能直接发布为正式数据。先生成带解析状态、累计校验状态、原始文本和置信度的候选 CSV：
+
+```bash
+python3 scripts/build_package.py parse-ln-score-distribution-ocr \
+  --ocr-jsonl ocr/ln_score_distribution/2024-06-25/_ocr__page_images_index.jsonl \
+  --output staging/ln_score_distribution_2024_ocr_candidates.csv \
+  --source-date 2024-06-25
+```
+
+候选 CSV 用于人工复核或后续表格识别增强；只有复核后的 cleaned CSV 才能进入 `build-local`。
+
 OCR 或人工转录后的 `fa_fact_ln_score_distribution` CSV 必须再经过 `build-local`。该入口会校验分数范围、单分人数、累计排名，以及“上一累计 + 本分人数 = 当前累计”，避免错误转录进入 core：
 
 ```bash

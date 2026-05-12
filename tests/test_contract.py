@@ -24,6 +24,10 @@ from datahub.connectors.macos_vision_ocr import ocr_page_images
 from datahub.connectors.remote_files import download_remote_assets
 from datahub.connectors.registry import discover_assets
 from datahub.parsers.ln_projection_score import parse_ln_projection_score_file
+from datahub.parsers.ln_score_distribution_ocr import (
+    parse_ln_score_distribution_ocr_jsonl,
+    write_candidate_csv,
+)
 from datahub.parsers.ln_score_distribution import parse_ln_score_distribution_lines
 from datahub.parsers.moe_major_catalog import parse_moe_major_catalog_lines
 from datahub.parsers.moe_school_profile import parse_moe_school_profile_rows
@@ -354,6 +358,41 @@ def test_parse_ln_score_distribution_lines():
     assert by_score[707]["cumulative_rank"] == 11
     assert by_score[665]["cumulative_rank"] == 1048
     assert by_score[663]["subject_cat"] == "物理类"
+
+
+def test_parse_ln_score_distribution_ocr_jsonl_candidates(tmp_path: Path):
+    ocr_jsonl = tmp_path / "ocr.jsonl"
+    image_result = {
+        "image_path": "/tmp/ln_score_distribution_2024_001.jpg",
+        "observations": [
+            {"text": "2024年辽宁省普通高校招生考试成绩统计表（历史学科类）", "confidence": 1, "x": 0.1, "y": 0.95, "width": 0.7, "height": 0.02},
+            {"text": "676及以上12", "confidence": 0.8, "x": 0.08, "y": 0.88, "width": 0.1, "height": 0.01},
+            {"text": "12", "confidence": 1, "x": 0.22, "y": 0.88, "width": 0.03, "height": 0.01},
+            {"text": "675", "confidence": 1, "x": 0.08, "y": 0.86, "width": 0.03, "height": 0.01},
+            {"text": "3", "confidence": 1, "x": 0.16, "y": 0.86, "width": 0.01, "height": 0.01},
+            {"text": "15", "confidence": 1, "x": 0.22, "y": 0.86, "width": 0.02, "height": 0.01},
+            {"text": "674及以上17", "confidence": 0.8, "x": 0.30, "y": 0.84, "width": 0.1, "height": 0.01},
+            {"text": "150 22,006", "confidence": 0.7, "x": 0.60, "y": 0.50, "width": 0.1, "height": 0.01},
+        ],
+    }
+    ocr_jsonl.write_text(json.dumps(image_result, ensure_ascii=False) + "\n", encoding="utf-8")
+
+    rows, report = parse_ln_score_distribution_ocr_jsonl(ocr_jsonl, source_date="2024-06-25")
+    by_score = {row["score"]: row for row in rows if row["parse_status"] == "parsed"}
+    assert by_score[676]["score_count"] == 12
+    assert by_score[675]["cumulative_rank"] == 15
+    assert by_score[674]["cumulative_rank"] == 17
+    assert by_score[676]["math_status"] == "ok"
+    assert by_score[675]["math_status"] == "ok"
+    assert report["subjects"] == ["历史类"]
+    assert report["candidate_rows"] >= 2
+
+    output = tmp_path / "candidates.csv"
+    write_candidate_csv(output, rows)
+    with output.open(encoding="utf-8", newline="") as f:
+        written = list(csv.DictReader(f))
+    assert written[0]["parse_status"] == "parsed"
+    assert "raw_text" in written[0]
 
 
 def test_build_score_history_from_projection_package(tmp_path: Path):

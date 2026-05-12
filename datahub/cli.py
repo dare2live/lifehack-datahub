@@ -23,6 +23,10 @@ from .connectors.page_images import download_page_images
 from .connectors.registry import discover_assets, list_source_keys
 from .connectors.remote_files import download_remote_assets
 from .parsers.ln_projection_score import parse_ln_projection_score_files
+from .parsers.ln_score_distribution_ocr import (
+    parse_ln_score_distribution_ocr_jsonl,
+    write_candidate_csv,
+)
 from .parsers.ln_score_distribution import parse_ln_score_distribution_pdf
 from .parsers.moe_major_catalog import parse_moe_major_catalog_pdf
 from .parsers.moe_school_profile import parse_moe_school_profile_xls
@@ -173,6 +177,17 @@ def main() -> int:
     parse_distribution.add_argument("--score-year", required=True, type=int)
     parse_distribution.add_argument("--source-date", required=True)
     parse_distribution.add_argument("--subject-cat", action="append", dest="subject_cats", default=[])
+
+    parse_distribution_ocr = sub.add_parser(
+        "parse-ln-score-distribution-ocr",
+        help="Parse OCR JSONL into reviewable Liaoning score distribution candidates",
+    )
+    parse_distribution_ocr.add_argument("--ocr-jsonl", required=True, type=Path)
+    parse_distribution_ocr.add_argument("--output", required=True, type=Path)
+    parse_distribution_ocr.add_argument("--source-date", required=True)
+    parse_distribution_ocr.add_argument("--score-year", type=int)
+    parse_distribution_ocr.add_argument("--subject-cat")
+    parse_distribution_ocr.add_argument("--report", type=Path)
 
     parse_school = sub.add_parser("parse-moe-school-profile", help="Parse MOE school list XLS to cleaned CSV")
     parse_school.add_argument("--input", required=True, type=Path)
@@ -354,6 +369,23 @@ def main() -> int:
             writer.writeheader()
             writer.writerows(rows)
         print(json.dumps({"output": str(args.output), "rows": len(rows)}, ensure_ascii=False, indent=2))
+        return 0
+    if args.cmd == "parse-ln-score-distribution-ocr":
+        rows, report = parse_ln_score_distribution_ocr_jsonl(
+            args.ocr_jsonl,
+            source_date=args.source_date,
+            score_year=args.score_year,
+            subject_cat=args.subject_cat,
+        )
+        write_candidate_csv(args.output, rows)
+        report_path = args.report or args.output.with_suffix(".report.json")
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        report_path.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        print(json.dumps({
+            "output": str(args.output),
+            "report": str(report_path),
+            **report,
+        }, ensure_ascii=False, indent=2))
         return 0
     if args.cmd == "parse-moe-school-profile":
         rows = parse_moe_school_profile_xls(
