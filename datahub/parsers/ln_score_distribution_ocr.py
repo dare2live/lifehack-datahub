@@ -202,6 +202,35 @@ def write_review_task_csv(path: Path, rows: list[dict[str, Any]]) -> None:
         writer.writerows(rows)
 
 
+def prefill_score_distribution_review_suggestions(
+    review_csv: Path,
+    *,
+    source_key: str = "ln_score_distribution",
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    review_config = _load_ocr_review_config(source_key)
+    prefill_config = _load_suggestion_prefill_config(source_key, review_config)
+    rows = _read_review_csv(review_csv)
+    counts = Counter()
+    if prefill_config["enabled"]:
+        for row in rows:
+            if not _has_complete_suggestion(row):
+                counts["skipped_no_suggestion"] += 1
+                continue
+            if _review_status(row) not in prefill_config["eligible_review_statuses"]:
+                counts["skipped_ineligible_status"] += 1
+                continue
+            if not prefill_config["overwrite_corrected"] and _has_any_correction(row):
+                counts["skipped_existing_correction"] += 1
+                continue
+            row["corrected_score"] = row["suggested_score"]
+            row["corrected_score_count"] = row["suggested_score_count"]
+            row["corrected_cumulative_rank"] = row["suggested_cumulative_rank"]
+            row["review_status"] = prefill_config["review_status"]
+            _append_reviewer_note(row, prefill_config["reviewer_note"])
+            counts["prefilled_rows"] += 1
+    return rows, _prefill_report(review_csv, rows, counts, enabled=prefill_config["enabled"])
+
+
 def apply_score_distribution_review(
     candidate_csv: Path,
     review_csv: Path,
@@ -347,6 +376,31 @@ def _load_ocr_review_config(source_key: str) -> dict[str, Any]:
     }
 
 
+def _load_suggestion_prefill_config(source_key: str, review_config: dict[str, Any]) -> dict[str, Any]:
+    source = load_sources().get("sources", {}).get(source_key)
+    if not source:
+        raise KeyError(f"unknown source key: {source_key}")
+    config = source.get("parser", {}).get("ocr_review", {}).get("prefill_suggestions") or {}
+    if not isinstance(config, dict):
+        raise ValueError(f"{source_key}.parser.ocr_review.prefill_suggestions must be an object")
+    enabled = bool(config.get("enabled"))
+    eligible_statuses = config.get("eligible_review_statuses")
+    if enabled and (not isinstance(eligible_statuses, list) or not eligible_statuses):
+        raise ValueError("ocr_review.prefill_suggestions.eligible_review_statuses must be a non-empty list")
+    review_status = str(config.get("review_status") or "").strip()
+    if enabled and not review_status:
+        raise ValueError("ocr_review.prefill_suggestions.review_status is required when enabled")
+    if review_status in review_config["approved_review_statuses"] or review_status in review_config["drop_review_statuses"]:
+        raise ValueError("ocr_review.prefill_suggestions.review_status must not approve or drop rows")
+    return {
+        "enabled": enabled,
+        "eligible_review_statuses": {str(item).strip() for item in (eligible_statuses or [])},
+        "review_status": review_status,
+        "reviewer_note": str(config.get("reviewer_note") or "").strip(),
+        "overwrite_corrected": bool(config.get("overwrite_corrected")),
+    }
+
+
 def _read_candidate_csv(path: Path) -> list[dict[str, Any]]:
     with path.open(encoding="utf-8", newline="") as f:
         return list(csv.DictReader(f))
@@ -362,6 +416,53 @@ def _needs_review(row: dict[str, Any], review_config: dict[str, Any]) -> bool:
         row.get("parse_status") not in review_config["complete_parse_statuses"]
         or row.get("math_status") != review_config["ok_math_status"]
     )
+
+
+def _review_status(row: dict[str, Any]) -> str:
+    return str(row.get("review_status") or "").strip()
+
+
+def _has_complete_suggestion(row: dict[str, Any]) -> bool:
+    return all(
+        str(row.get(column) or "").strip()
+        for column in ["suggested_score", "suggested_score_count", "suggested_cumulative_rank"]
+    )
+
+
+def _has_any_correction(row: dict[str, Any]) -> bool:
+    return any(
+        str(row.get(column) or "").strip()
+        for column in ["corrected_score", "corrected_score_count", "corrected_cumulative_rank"]
+    )
+
+
+def _append_reviewer_note(row: dict[str, Any], note: str) -> None:
+    if not note:
+        return
+    existing = str(row.get("reviewer_notes") or "").strip()
+    if note in existing:
+        return
+    row["reviewer_notes"] = f"{existing}; {note}" if existing else note
+
+
+def _prefill_report(
+    review_csv: Path,
+    rows: list[dict[str, Any]],
+    counts: Counter[str],
+    *,
+    enabled: bool,
+) -> dict[str, Any]:
+    return {
+        "review_csv": str(review_csv),
+        "review_rows": len(rows),
+        "enabled": enabled,
+        "prefilled_rows": counts["prefilled_rows"],
+        "skipped_no_suggestion": counts["skipped_no_suggestion"],
+        "skipped_ineligible_status": counts["skipped_ineligible_status"],
+        "skipped_existing_correction": counts["skipped_existing_correction"],
+        "review_status_counts": dict(sorted(Counter(_review_status(row) for row in rows).items())),
+        "notes": "Suggestions were copied to corrected_* only. Rows still need human image review before approval.",
+    }
 
 
 def _review_task(

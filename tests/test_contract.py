@@ -34,6 +34,7 @@ from datahub.parsers.ln_score_distribution_ocr import (
     apply_score_distribution_review,
     build_score_distribution_review_tasks,
     parse_ln_score_distribution_ocr_jsonl,
+    prefill_score_distribution_review_suggestions,
     write_candidate_csv,
     write_cleaned_score_distribution_csv,
     write_review_task_csv,
@@ -594,6 +595,66 @@ def test_build_score_distribution_review_tasks_prefills_single_boundary_suggesti
     assert first["suggested_score"] == 500
     assert first["suggested_score_count"] == 2
     assert first["suggested_cumulative_rank"] == 4
+
+
+def test_prefill_score_distribution_review_suggestions_requires_human_approval(tmp_path: Path):
+    candidates = tmp_path / "candidates.csv"
+    rows = []
+    for index in range(9):
+        rows.append({
+            "subject_cat": "物理类",
+            "score_year": "2024",
+            "score": str(index + 2),
+            "score_count": str((index + 2) * 2),
+            "cumulative_rank": "",
+            "source_date": "2024-06-25",
+            "image_file": "page-low-score.jpg",
+            "block_index": "3",
+            "row_y": f"{0.90 - index * 0.01:.2f}",
+            "ocr_confidence": "0.8",
+            "parse_status": "incomplete",
+            "math_status": "not_checked",
+            "raw_text": f"{index + 2} {(index + 2) * 2}",
+        })
+    rows.append({
+        "subject_cat": "物理类",
+        "score_year": "2024",
+        "score": "491",
+        "score_count": "12",
+        "cumulative_rank": "108",
+        "source_date": "2024-06-25",
+        "image_file": "page-low-score.jpg",
+        "block_index": "3",
+        "row_y": "0.81",
+        "ocr_confidence": "0.95",
+        "parse_status": "parsed",
+        "math_status": "ok",
+        "raw_text": "491 12 108",
+    })
+    write_candidate_csv(candidates, rows)
+    tasks, _ = build_score_distribution_review_tasks(candidates)
+    review = tmp_path / "review.csv"
+    write_review_task_csv(review, tasks)
+
+    prefilled_rows, report = prefill_score_distribution_review_suggestions(review)
+
+    assert report["prefilled_rows"] == 9
+    first = next(row for row in prefilled_rows if row["raw_text"] == "2 4")
+    assert first["corrected_score"] == first["suggested_score"]
+    assert first["corrected_score_count"] == first["suggested_score_count"]
+    assert first["corrected_cumulative_rank"] == first["suggested_cumulative_rank"]
+    assert first["review_status"] == "todo"
+    assert "requires_image_check" in first["reviewer_notes"]
+
+    prefilled_review = tmp_path / "prefilled_review.csv"
+    write_review_task_csv(prefilled_review, prefilled_rows)
+    try:
+        apply_score_distribution_review(candidates, prefilled_review)
+        accepted_without_review = True
+    except ValueError as exc:
+        accepted_without_review = False
+        assert "unresolved review rows" in str(exc)
+    assert accepted_without_review is False
 
 
 def test_build_score_distribution_review_tasks_skips_conflicting_boundary_suggestions(tmp_path: Path):

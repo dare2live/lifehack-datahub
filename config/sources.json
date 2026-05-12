@@ -277,6 +277,13 @@
           "ok_math_status": "ok",
           "approved_review_statuses": ["approved", "corrected"],
           "drop_review_statuses": ["rejected", "drop"],
+          "prefill_suggestions": {
+            "enabled": true,
+            "eligible_review_statuses": ["", "todo"],
+            "review_status": "todo",
+            "reviewer_note": "suggestion_prefilled_requires_image_check",
+            "overwrite_corrected": false
+          },
           "issue_actions": {
             "duplicate_score": {
               "priority": 1,

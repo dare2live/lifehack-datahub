@@ -180,6 +180,14 @@ python3 scripts/build_package.py merge-ln-score-distribution-review-workspace \
   --output staging/ln_score_distribution_2024_review_tasks_merged.csv
 ```
 
+若复核表已有 `suggested_*`，可先把建议值预填到 `corrected_*`，降低人工逐格抄写成本。该步骤不会把行标记为 approved/corrected，仍需人工打开原图核对并改状态：
+
+```bash
+python3 scripts/build_package.py prefill-ln-score-distribution-review-suggestions \
+  --review-csv staging/ln_score_distribution_2024_review_tasks_merged.csv \
+  --output staging/ln_score_distribution_2024_review_tasks_prefilled.csv
+```
+
 人工复核后，用 corrected 字段合并回 cleaned CSV。默认严格模式会拒绝未复核任务、重复主键和累计校验错误；`--allow-unresolved` 只用于迭代检查，不可导入 core：
 
 ```bash

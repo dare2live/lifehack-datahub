@@ -33,6 +33,7 @@ from .parsers.ln_score_distribution_ocr import (
     apply_score_distribution_review,
     build_score_distribution_review_tasks,
     parse_ln_score_distribution_ocr_jsonl,
+    prefill_score_distribution_review_suggestions,
     write_candidate_csv,
     write_cleaned_score_distribution_csv,
     write_review_task_csv,
@@ -224,6 +225,14 @@ def main() -> int:
     audit_distribution_readiness.add_argument("--review-csv", type=Path)
     audit_distribution_readiness.add_argument("--cleaned-csv", type=Path)
     audit_distribution_readiness.add_argument("--report", type=Path)
+
+    prefill_distribution_review = sub.add_parser(
+        "prefill-ln-score-distribution-review-suggestions",
+        help="Copy review suggestion columns into corrected columns without approving rows",
+    )
+    prefill_distribution_review.add_argument("--review-csv", required=True, type=Path)
+    prefill_distribution_review.add_argument("--output", required=True, type=Path)
+    prefill_distribution_review.add_argument("--report", type=Path)
 
     apply_distribution_review = sub.add_parser(
         "apply-ln-score-distribution-review",
@@ -481,6 +490,18 @@ def main() -> int:
             args.report.parent.mkdir(parents=True, exist_ok=True)
             args.report.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         print(json.dumps(report, ensure_ascii=False, indent=2))
+        return 0
+    if args.cmd == "prefill-ln-score-distribution-review-suggestions":
+        rows, report = prefill_score_distribution_review_suggestions(args.review_csv)
+        write_review_task_csv(args.output, rows)
+        report_path = args.report or args.output.with_suffix(".report.json")
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        report_path.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        print(json.dumps({
+            "output": str(args.output),
+            "report": str(report_path),
+            **report,
+        }, ensure_ascii=False, indent=2))
         return 0
     if args.cmd == "apply-ln-score-distribution-review":
         rows, report = apply_score_distribution_review(

@@ -219,6 +219,16 @@ python3 scripts/build_package.py merge-ln-score-distribution-review-workspace \
   --output staging/ln_score_distribution_2024_review_tasks_merged.csv
 ```
 
+如果复核任务中已有 `suggested_*`，可先预填到 `corrected_*`，减少人工录入。预填参数由 `config/sources.json` 的 `parser.ocr_review.prefill_suggestions` 控制；该配置禁止把建议值直接标记为 approved/drop，因此预填结果仍会被严格合并拒绝，直到人工核对原图并改为 `approved` 或 `corrected`：
+
+```bash
+python3 scripts/build_package.py prefill-ln-score-distribution-review-suggestions \
+  --review-csv staging/ln_score_distribution_2024_review_tasks_merged.csv \
+  --output staging/ln_score_distribution_2024_review_tasks_prefilled.csv
+```
+
+真实 smoke：2022 镜像复核表 1,225 行中，预填 310 行 `corrected_*`，全部 `review_status` 仍为 `todo`；readiness audit 仍报告 `unresolved_rows=1225` 和 `strict_apply.ok=false`，证明预填不会绕过人工复核。
+
 真实 smoke：2024 工作区生成 21 个图片批次、1,181 条待复核任务；2023 工作区生成 20 个图片批次、1,185 条待复核任务；2022 镜像工作区生成 19 个图片批次、1,225 条待复核任务。未修改批次可无损合并回总表，`updated_rows=0`。
 
 复核完成后，使用 review task 中的 `corrected_score/corrected_score_count/corrected_cumulative_rank` 合并出 cleaned CSV：
