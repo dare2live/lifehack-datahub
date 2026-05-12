@@ -1,0 +1,9 @@
+[project]
+name = "lifehack-datahub"
+version = "0.1.0"
+description = "Data acquisition and packaging project for LifeHack"
+requires-python = ">=3.9"
+dependencies = []
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

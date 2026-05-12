@@ -1,0 +1,19 @@
+.DS_Store
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+
+# Data files stay local unless explicitly published as sanitized fixtures.
+data/
+raw/
+staging/
+normalized/
+exports/
+*.xlsx
+*.xls
+*.csv
+*.tsv
+*.parquet
+*.duckdb
+*.db

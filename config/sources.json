@@ -1,0 +1,27 @@
+{
+  "version": "1",
+  "updated_at": "2026-05-12",
+  "sources": {
+    "ln_admission_plan": {
+      "name": "辽宁招生计划",
+      "kind": "manual_download",
+      "owner": "lifehack-datahub",
+      "raw_glob": "raw/ln_admission_plan/**/*.xlsx",
+      "target_tables": ["fa_dim_ln_admission_plan"]
+    },
+    "ln_score_history": {
+      "name": "辽宁历史分数线",
+      "kind": "manual_download",
+      "owner": "lifehack-datahub",
+      "raw_glob": "raw/ln_score_history/**/*.xlsx",
+      "target_tables": ["fa_fact_ln_score_history"]
+    },
+    "moe_major_catalog": {
+      "name": "教育部本科专业目录",
+      "kind": "public_catalog",
+      "owner": "lifehack-datahub",
+      "raw_glob": "raw/moe_major_catalog/**/*",
+      "target_tables": ["fa_dim_major_catalog"]
+    }
+  }
+}
