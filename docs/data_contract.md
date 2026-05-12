@@ -205,6 +205,17 @@ python3 scripts/build_package.py audit-score-history-reconciliation-plan \
 
 审计会校验任务列、任务 ID、issue type、状态、review decision、JSON 字段和 ready 状态必填列。只有 `ready.package_ready=true` 时，后续才可以进入可导入 package 构建；当前真实 2023/2024 队列仍是 `todo=24,478`，`package_ready=false`。
 
+为了让人工复核先从小样本启动，可按 issue type 抽取 pending 任务：
+
+```bash
+python3 scripts/build_package.py build-score-history-reconciliation-review-batch \
+  --plan-csv staging/score_history_reconciliation_2023_2024/score_history_reconciliation_plan.csv \
+  --output-dir staging/score_history_reconciliation_2023_2024/review_batch_initial \
+  --limit-per-issue 20
+```
+
+真实 smoke 已生成初始 80 行 review batch，四类 issue type 各 20 行。该 batch 是本地工作文件，复核结果必须合并回完整 reconciliation plan 后再跑 readiness audit。
+
 2022/2023/2024 官方图片页和 2022 镜像图片页可先用 `download-page-images` 采集图片并生成 manifest。manifest 兼容 `build-local --intake-manifest`，后续无论使用 OCR 还是人工转录，发布包都能追溯到原始图片 SHA-256：
 
 ```bash

@@ -19,6 +19,7 @@ from .builders.policy_tables import (
 from .builders.score_history_from_projection import build_score_history_from_projection_package
 from .builders.score_history_package_audit import audit_score_history_package_against_core
 from .builders.score_history_reconciliation_audit import audit_score_history_reconciliation_plan
+from .builders.score_history_reconciliation_batch import build_score_history_reconciliation_review_batch
 from .builders.score_history_reconciliation_plan import build_score_history_reconciliation_plan
 from .builders.score_history_snapshot import build_score_history_snapshot_package
 from .builders.school_identity import build_school_identity_package
@@ -183,6 +184,15 @@ def main() -> int:
     )
     audit_score_reconciliation.add_argument("--plan-csv", required=True, type=Path)
     audit_score_reconciliation.add_argument("--report", type=Path)
+
+    build_score_reconciliation_batch = sub.add_parser(
+        "build-score-history-reconciliation-review-batch",
+        help="Build a small CSV batch of pending score-history reconciliation tasks",
+    )
+    build_score_reconciliation_batch.add_argument("--plan-csv", required=True, type=Path)
+    build_score_reconciliation_batch.add_argument("--output-dir", required=True, type=Path)
+    build_score_reconciliation_batch.add_argument("--issue-type", action="append", dest="issue_types")
+    build_score_reconciliation_batch.add_argument("--limit-per-issue", type=int)
 
     build_policy_industry = sub.add_parser(
         "build-policy-industry-map",
@@ -472,6 +482,15 @@ def main() -> int:
             args.report.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         print(json.dumps(report, ensure_ascii=False, indent=2))
         return 0 if not report["errors"] else 1
+    if args.cmd == "build-score-history-reconciliation-review-batch":
+        result = build_score_history_reconciliation_review_batch(
+            plan_csv=args.plan_csv,
+            output_dir=args.output_dir,
+            issue_types=args.issue_types,
+            limit_per_issue=args.limit_per_issue,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
     if args.cmd == "build-policy-industry-map":
         result = build_policy_industry_map_package(
             output_root=args.output_root,

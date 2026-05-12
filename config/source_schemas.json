@@ -71,7 +71,8 @@
               "exclude_row",
               "needs_source_research"
             ],
-            "required_ready_columns": ["review_decision", "reviewer", "reviewed_at"]
+            "required_ready_columns": ["review_decision", "reviewer", "reviewed_at"],
+            "batch_limit_per_issue": 50
           },
           "issue_types": {
             "major_code_drift_candidate": {

@@ -105,11 +105,13 @@ def _review_config(schema: dict[str, Any]) -> dict[str, Any]:
         raise ValueError(f"score history reconciliation review missing list config: {', '.join(missing)}")
     return {
         "known_issue_types": set((reconciliation.get("issue_types") or {}).keys()),
+        "issue_types": reconciliation.get("issue_types") or {},
         "pending_statuses": {str(item) for item in review["pending_statuses"]},
         "ready_statuses": {str(item) for item in review["ready_statuses"]},
         "blocked_statuses": {str(item) for item in review["blocked_statuses"]},
         "allowed_review_decisions": {str(item) for item in review["allowed_review_decisions"]},
         "required_ready_columns": [str(item) for item in review["required_ready_columns"]],
+        "batch_limit_per_issue": int(review.get("batch_limit_per_issue") or 50),
     }
 
 

@@ -164,6 +164,15 @@ python3 scripts/build_package.py audit-score-history-reconciliation-plan \
   --report staging/score_history_reconciliation_2023_2024/readiness_report.json
 ```
 
+人工复核启动时可先抽一个小批次；默认每类数量由配置维护，也可用参数覆盖：
+
+```bash
+python3 scripts/build_package.py build-score-history-reconciliation-review-batch \
+  --plan-csv staging/score_history_reconciliation_2023_2024/score_history_reconciliation_plan.csv \
+  --output-dir staging/score_history_reconciliation_2023_2024/review_batch_initial \
+  --limit-per-issue 20
+```
+
 2023/2024 已补充可文本解析的转载 PDF 镜像，配置为 `mirror_pdf`，不能冒充辽宁官网原始长期来源。真实 smoke 已解析 2023 年 1,076 行、2024 年 1,086 行，并通过 `fa_fact_ln_score_distribution` 质量闸门：
 
 ```bash
