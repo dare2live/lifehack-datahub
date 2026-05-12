@@ -232,6 +232,18 @@ python3 scripts/build_package.py apply-ln-score-distribution-review \
 
 默认严格模式会拒绝未完成复核任务、重复主键和累计校验错误。真实 smoke：未复核的 2024 review tasks 被严格模式拒绝；`--allow-unresolved` 仅输出 680 行部分清洗结果并报告 1,181 条 unresolved、35 条累计质量错误。未复核的 2023 review tasks 在 `--allow-unresolved` 下仅输出 265 行部分清洗结果并报告 1,185 条 unresolved、19 条累计质量错误。部分清洗结果不能导入 core，也不能作为正式 data package。
 
+每个年份进入 `build-local` 前，应先跑 readiness audit，输出候选解析状态、复核任务状态、严格合并结果和 cleaned CSV 质量门禁：
+
+```bash
+python3 scripts/build_package.py audit-ln-score-distribution-readiness \
+  --candidate-csv staging/ln_score_distribution_2024_ocr_candidates.csv \
+  --review-csv staging/ln_score_distribution_2024_review_tasks_merged.csv \
+  --cleaned-csv cleaned/ln_score_distribution_2024.csv \
+  --report staging/ln_score_distribution_2024_readiness.json
+```
+
+真实 smoke：2022 镜像候选 + 未复核任务的 readiness audit 报告 `candidate_rows=1705`、`review_task_rows=1225`、`suggested_review_rows=310`、`unresolved_rows=1225`，`strict_apply.ok=false`，blocking reason 为 `strict_review_apply_failed/cleaned_csv_not_ready`。
+
 OCR 或人工转录后的 cleaned CSV 不允许直接进入 core，必须通过 `build-local` 生成标准包。`build-local` 对 `fa_fact_ln_score_distribution` 会强制校验：
 
 - `score` 在 0-750 分范围内。

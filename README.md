@@ -189,6 +189,16 @@ python3 scripts/build_package.py apply-ln-score-distribution-review \
   --output cleaned/ln_score_distribution_2024.csv
 ```
 
+复核推进过程中，可先生成 readiness audit，明确当前还差多少人工复核、严格合并是否可通过、cleaned CSV 是否已经满足 package 质量门禁：
+
+```bash
+python3 scripts/build_package.py audit-ln-score-distribution-readiness \
+  --candidate-csv staging/ln_score_distribution_2024_ocr_candidates.csv \
+  --review-csv staging/ln_score_distribution_2024_review_tasks_merged.csv \
+  --cleaned-csv cleaned/ln_score_distribution_2024.csv \
+  --report staging/ln_score_distribution_2024_readiness.json
+```
+
 OCR 或人工转录后的 `fa_fact_ln_score_distribution` CSV 必须再经过 `build-local`。该入口会校验分数范围、单分人数、累计排名，以及“上一累计 + 本分人数 = 当前累计”，避免错误转录进入 core：
 
 ```bash

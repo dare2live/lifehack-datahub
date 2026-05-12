@@ -16,6 +16,7 @@ from .builders.policy_tables import (
 from .builders.score_history_from_projection import build_score_history_from_projection_package
 from .builders.score_history_snapshot import build_score_history_snapshot_package
 from .builders.school_identity import build_school_identity_package
+from .builders.score_distribution_readiness import audit_score_distribution_readiness
 from .builders.score_distribution_review_workspace import (
     build_score_distribution_review_workspace,
     merge_score_distribution_review_workspace,
@@ -214,6 +215,15 @@ def main() -> int:
     build_distribution_review.add_argument("--candidate-csv", required=True, type=Path)
     build_distribution_review.add_argument("--output", required=True, type=Path)
     build_distribution_review.add_argument("--report", type=Path)
+
+    audit_distribution_readiness = sub.add_parser(
+        "audit-ln-score-distribution-readiness",
+        help="Audit OCR review progress and cleaned/package readiness for Liaoning score distribution data",
+    )
+    audit_distribution_readiness.add_argument("--candidate-csv", required=True, type=Path)
+    audit_distribution_readiness.add_argument("--review-csv", type=Path)
+    audit_distribution_readiness.add_argument("--cleaned-csv", type=Path)
+    audit_distribution_readiness.add_argument("--report", type=Path)
 
     apply_distribution_review = sub.add_parser(
         "apply-ln-score-distribution-review",
@@ -460,6 +470,17 @@ def main() -> int:
             "report": str(report_path),
             **report,
         }, ensure_ascii=False, indent=2))
+        return 0
+    if args.cmd == "audit-ln-score-distribution-readiness":
+        report = audit_score_distribution_readiness(
+            candidate_csv=args.candidate_csv,
+            review_csv=args.review_csv,
+            cleaned_csv=args.cleaned_csv,
+        )
+        if args.report:
+            args.report.parent.mkdir(parents=True, exist_ok=True)
+            args.report.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        print(json.dumps(report, ensure_ascii=False, indent=2))
         return 0
     if args.cmd == "apply-ln-score-distribution-review":
         rows, report = apply_score_distribution_review(

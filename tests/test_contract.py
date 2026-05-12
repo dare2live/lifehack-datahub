@@ -21,6 +21,7 @@ from datahub.builders.score_distribution_review_workspace import (
     build_score_distribution_review_workspace,
     merge_score_distribution_review_workspace,
 )
+from datahub.builders.score_distribution_readiness import audit_score_distribution_readiness
 from datahub.config import get_table_schema, load_outcome_metrics, load_source_schemas
 from datahub.builders.school_identity import build_school_identity_package
 from datahub.connectors.manual_files import intake_manual_assets
@@ -827,6 +828,70 @@ def test_apply_score_distribution_review_writes_cleaned_rows(tmp_path: Path):
     with cleaned.open(encoding="utf-8", newline="") as f:
         written = list(csv.DictReader(f))
     assert written[2]["cumulative_rank"] == "17"
+
+
+def test_audit_score_distribution_readiness_reports_review_blockers(tmp_path: Path):
+    candidates = tmp_path / "candidates.csv"
+    candidate_rows = [
+        {
+            "subject_cat": "历史类",
+            "score_year": "2024",
+            "score": "676",
+            "score_count": "12",
+            "cumulative_rank": "12",
+            "source_date": "2024-06-25",
+            "image_file": "page1.jpg",
+            "block_index": "1",
+            "row_y": "0.88",
+            "ocr_confidence": "0.8",
+            "parse_status": "parsed",
+            "math_status": "ok",
+            "raw_text": "676及以上12",
+        },
+        {
+            "subject_cat": "历史类",
+            "score_year": "2024",
+            "score": "675",
+            "score_count": "3",
+            "cumulative_rank": "16",
+            "source_date": "2024-06-25",
+            "image_file": "page1.jpg",
+            "block_index": "1",
+            "row_y": "0.86",
+            "ocr_confidence": "1.0",
+            "parse_status": "parsed",
+            "math_status": "cumulative_mismatch",
+            "raw_text": "675 3 16",
+        },
+    ]
+    write_candidate_csv(candidates, candidate_rows)
+
+    no_review = audit_score_distribution_readiness(candidate_csv=candidates)
+    assert no_review["required_review"]["review_task_rows"] == 1
+    assert "review_csv_required" in no_review["ready"]["blocking_reasons"]
+
+    tasks, _ = build_score_distribution_review_tasks(candidates)
+    review = tmp_path / "review.csv"
+    write_review_task_csv(review, tasks)
+    pending = audit_score_distribution_readiness(candidate_csv=candidates, review_csv=review)
+    assert pending["review_progress"]["unresolved_rows"] == 1
+    assert pending["strict_apply"]["ok"] is False
+
+    tasks[0]["review_status"] = "corrected"
+    tasks[0]["corrected_cumulative_rank"] = "15"
+    write_review_task_csv(review, tasks)
+    cleaned = tmp_path / "cleaned.csv"
+    cleaned_rows, _ = apply_score_distribution_review(candidates, review)
+    write_cleaned_score_distribution_csv(cleaned, cleaned_rows)
+    ready = audit_score_distribution_readiness(
+        candidate_csv=candidates,
+        review_csv=review,
+        cleaned_csv=cleaned,
+    )
+    assert ready["strict_apply"]["ok"] is True
+    assert ready["ready"]["review_complete"] is True
+    assert ready["ready"]["cleaned_package_ready"] is True
+    assert ready["ready"]["blocking_reasons"] == []
 
 
 def test_apply_score_distribution_review_rejects_unresolved_rows(tmp_path: Path):
