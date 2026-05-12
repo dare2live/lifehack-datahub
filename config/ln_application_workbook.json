@@ -1,0 +1,62 @@
+{
+  "version": "1",
+  "updated_at": "2026-05-13",
+  "notes": "本地已清洗报考工作簿解析配置。原始 Excel 不进入 Git，DataHub 只把匹配 sheet 转成标准 cleaned CSV。",
+  "profiles": {
+    "default": {
+      "duplicate_policy": "keep_first",
+      "plan_count_year": 2025,
+      "empty_values": ["", "无", "0", "0.0", "-", "/"],
+      "sheet_rules": [
+        {
+          "sheet_names": ["物理类"],
+          "batch": "本科批",
+          "subject_cat": "物理类"
+        },
+        {
+          "sheet_names": ["历史类"],
+          "batch": "本科批",
+          "subject_cat": "历史类"
+        }
+      ],
+      "field_aliases": {
+        "school_code": ["院校代码", "学校代码", "school_code"],
+        "school_name": ["院校名称", "学校名称", "school_name"],
+        "major_code": ["专业代码", "major_code"],
+        "major_full": ["专业全称", "专业名称", "major_full"],
+        "major_short": ["专业简称", "major_short"],
+        "school_tier": ["院校水平", "院校层次", "school_tier"],
+        "region": ["地域", "地区", "省份", "院校所在地", "region"],
+        "school_type": ["办学性质", "性质", "院校性质", "school_type"],
+        "city_level_tag": ["城市水平标签", "城市标签", "city_level_tag"],
+        "postgrad_rate": ["保研率", "postgrad_rate"]
+      },
+      "score_years": [
+        {
+          "score_year": 2025,
+          "min_score_aliases": ["25年最低分", "25年\n最低分"],
+          "min_rank_aliases": ["25年位次", "25最低位次", "25年最低位次"],
+          "plan_count_aliases": ["25年计划", "计划数"]
+        },
+        {
+          "score_year": 2024,
+          "min_score_aliases": ["24年最低分", "24年\n最低分"],
+          "min_rank_aliases": ["24年位次", "24最低位次", "24年最低位次"],
+          "plan_count_aliases": ["24年计划"]
+        },
+        {
+          "score_year": 2023,
+          "min_score_aliases": ["23年最低分", "23最低分"],
+          "min_rank_aliases": ["23年位次", "23最低位次", "23年最低位次"],
+          "plan_count_aliases": ["23年计划"]
+        },
+        {
+          "score_year": 2022,
+          "min_score_aliases": ["22年最低分", "22最低分"],
+          "min_rank_aliases": ["22年位次", "22最低位次", "22年最低位次"],
+          "plan_count_aliases": ["22年计划"]
+        }
+      ]
+    }
+  }
+}

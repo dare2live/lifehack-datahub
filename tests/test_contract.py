@@ -46,6 +46,10 @@ from datahub.connectors.remote_files import download_remote_assets
 from datahub.connectors.registry import discover_assets
 from datahub.connectors.source_candidates import probe_source_candidates
 from datahub.parsers.ln_projection_score import parse_ln_projection_score_file
+from datahub.parsers.ln_application_workbook import (
+    parse_ln_application_workbooks,
+    write_application_workbook_outputs,
+)
 from datahub.parsers.ln_score_distribution_ocr import (
     apply_score_distribution_review,
     build_score_distribution_review_tasks,
@@ -3027,6 +3031,94 @@ def test_parse_moe_major_catalog_lines():
     assert rows[2]["degree_type"] == "可授经济学或管理学学士学位"
     assert rows[3]["major_code"] == "0502100T"
     assert rows[3]["major_name"] == "语言学"
+
+
+def test_parse_ln_application_workbook_outputs_plan_and_score_history(tmp_path: Path):
+    path = tmp_path / "application.xlsx"
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "物理类"
+    ws.append([
+        "院校代码",
+        "专业代码",
+        "专业简称",
+        "院校名称",
+        "院校水平",
+        "专业全称",
+        "保研率",
+        "25年\n最低分",
+        "25最低位次",
+        "24年\n最低分",
+        "24最低位次",
+        "25年计划",
+        "24年计划",
+        "地域",
+        "性质",
+        "城市水平标签",
+    ])
+    ws.append([
+        "0001",
+        "56",
+        "0002",
+        "北京大学",
+        "C9联盟/部委直属",
+        "理科试验班类(理科基础类专业)",
+        0.65,
+        690,
+        100,
+        685,
+        120,
+        2,
+        2,
+        "北京市",
+        "公办",
+        "一线城市",
+    ])
+    ws.append([
+        "0001",
+        "56",
+        "0002",
+        "北京大学",
+        "C9联盟/部委直属",
+        "理科试验班类(理科基础类专业)",
+        0.65,
+        690,
+        100,
+        685,
+        120,
+        2,
+        2,
+        "北京市",
+        "公办",
+        "一线城市",
+    ])
+    ws2 = wb.create_sheet("物理类特殊")
+    ws2.append(["院校代码", "专业代码", "院校名称", "专业全称", "25年最低分", "25年位次"])
+    ws2.append(["0140", "AC", "辽宁大学", "法学类", 602, 12959])
+    wb.save(path)
+
+    result = parse_ln_application_workbooks([path])
+    report = write_application_workbook_outputs(
+        result,
+        plan_output=tmp_path / "plan.csv",
+        score_output=tmp_path / "score.csv",
+        report_output=tmp_path / "report.json",
+    )
+
+    assert report["row_counts"]["fa_dim_ln_admission_plan"] == 1
+    assert report["row_counts"]["fa_fact_ln_score_history"] == 2
+    assert report["duplicate_counts"]["fa_dim_ln_admission_plan"] == 1
+    assert any(item["sheet"] == "物理类特殊" for item in report["ignored_sheets"])
+    with (tmp_path / "plan.csv").open(encoding="utf-8", newline="") as f:
+        plan_rows = list(csv.DictReader(f))
+    assert plan_rows[0]["batch"] == "本科批"
+    assert plan_rows[0]["subject_cat"] == "物理类"
+    assert plan_rows[0]["plan_count"] == "2"
+    assert plan_rows[0]["postgrad_rate"] == "0.65"
+    with (tmp_path / "score.csv").open(encoding="utf-8", newline="") as f:
+        score_rows = list(csv.DictReader(f))
+    assert {row["score_year"] for row in score_rows} == {"2024", "2025"}
+    assert score_rows[0]["min_rank"] == "100"
 
 
 def test_parse_ln_projection_score_xlsx(tmp_path: Path):

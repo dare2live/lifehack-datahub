@@ -48,6 +48,20 @@ python3 scripts/build_package.py build-local \
 
 字段别名、主键、必填列和数字列维护在 `config/source_schemas.json`。
 
+### 本地报考工作簿解析
+
+顾问本地已清洗“报考数据”工作簿通常不是目标表结构，而是多个 sheet 混合招生计划、学校/专业增强字段，以及 2022-2025 历史最低分/位次。DataHub 用 `config/ln_application_workbook.json` 维护 sheet 选择、批次、科类、字段别名、年份列和重复主键策略，再输出标准 cleaned CSV：
+
+```bash
+python3 scripts/build_package.py parse-ln-application-workbook \
+  --input "/Users/dp/Documents/M/lifehack/26年报考数据/26年本科批报考数据8.27.xlsx" \
+  --plan-output cleaned/ln_application_workbook_plan.csv \
+  --score-output cleaned/ln_application_workbook_score_history.csv \
+  --report cleaned/ln_application_workbook_report.json
+```
+
+该入口只读 Excel，输出 `fa_dim_ln_admission_plan` 与 `fa_fact_ln_score_history` 两张 cleaned CSV 及解析报告，不生成 data package、不写 core。确认 `duplicate_counts` 和 `ignored_sheets` 后，再用 `build-local` 进入数据包契约。默认配置只接收普通类本科批 `物理类/历史类` sheet，特殊类型、提前批、艺术/体育/专科需增加 profile 或 sheet rule 后再解析，避免把不同录取规则混进同一批次。
+
 ### 招生计划过渡包
 
 `ln_admission_plan` 的完整官方分发目前是志愿填报系统和《辽宁招生考试》杂志，公开站点没有稳定完整附件。为了让 core 里现有清洗数据也进入 DataHub 包链路，可先生成过渡 snapshot：

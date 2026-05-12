@@ -45,6 +45,10 @@ from .connectors.registry import discover_assets, list_source_keys
 from .connectors.remote_files import download_remote_assets
 from .connectors.source_candidates import probe_source_candidates
 from .parsers.ln_projection_score import parse_ln_projection_score_files
+from .parsers.ln_application_workbook import (
+    parse_ln_application_workbooks,
+    write_application_workbook_outputs,
+)
 from .parsers.ln_score_distribution_ocr import (
     apply_score_distribution_review,
     build_score_distribution_review_tasks,
@@ -307,6 +311,17 @@ def main() -> int:
     parse_projection.add_argument("--batch", required=True)
     parse_projection.add_argument("--source-date", required=True)
     parse_projection.add_argument("--password", action="append", dest="passwords", default=[])
+
+    parse_application_workbook = sub.add_parser(
+        "parse-ln-application-workbook",
+        help="Parse local cleaned Liaoning application workbook(s) into plan and score-history CSVs",
+    )
+    parse_application_workbook.add_argument("--input", required=True, action="append", type=Path)
+    parse_application_workbook.add_argument("--plan-output", required=True, type=Path)
+    parse_application_workbook.add_argument("--score-output", required=True, type=Path)
+    parse_application_workbook.add_argument("--report", type=Path)
+    parse_application_workbook.add_argument("--config", type=Path)
+    parse_application_workbook.add_argument("--profile", default="default")
 
     parse_distribution = sub.add_parser(
         "parse-ln-score-distribution",
@@ -662,6 +677,20 @@ def main() -> int:
             writer.writeheader()
             writer.writerows(rows)
         print(json.dumps({"output": str(args.output), "rows": len(rows)}, ensure_ascii=False, indent=2))
+        return 0
+    if args.cmd == "parse-ln-application-workbook":
+        result = parse_ln_application_workbooks(
+            args.input,
+            config_path=args.config,
+            profile=args.profile,
+        )
+        report = write_application_workbook_outputs(
+            result,
+            plan_output=args.plan_output,
+            score_output=args.score_output,
+            report_output=args.report,
+        )
+        print(json.dumps(report, ensure_ascii=False, indent=2))
         return 0
     if args.cmd == "parse-ln-score-distribution":
         rows = []

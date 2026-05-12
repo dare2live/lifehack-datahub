@@ -83,6 +83,18 @@ python3 scripts/build_package.py build-local \
 
 字段别名和 schema 在 `config/source_schemas.json` 维护。`raw/` 和 `exports/` 默认被 `.gitignore` 排除。
 
+如果本地报考工作簿是多 sheet 形态，且同时包含招生计划和 2022-2025 历史分数/位次，先用配置驱动 parser 拆成标准 cleaned CSV。sheet 选择、批次、科类、字段别名、年份列和重复主键策略维护在 `config/ln_application_workbook.json`：
+
+```bash
+python3 scripts/build_package.py parse-ln-application-workbook \
+  --input "/Users/dp/Documents/M/lifehack/26年报考数据/26年本科批报考数据8.27.xlsx" \
+  --plan-output cleaned/ln_application_workbook_plan.csv \
+  --score-output cleaned/ln_application_workbook_score_history.csv \
+  --report cleaned/ln_application_workbook_report.json
+```
+
+生成的 cleaned CSV 仍不进入 Git。确认报告后，再分别用 `build-local --table fa_dim_ln_admission_plan` 和 `build-local --table fa_fact_ln_score_history` 生成数据包。
+
 当前 core 已有的清洗招生计划可先生成过渡 snapshot，避免核心库成为唯一数据落点。该包会标注 `legacy_core_snapshot`，不能替代后续官方系统/杂志导出的受控 intake：
 
 ```bash
