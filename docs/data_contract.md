@@ -182,6 +182,17 @@ python3 scripts/build_package.py build-ln-score-distribution-review \
 
 真实 smoke：2024 候选生成 1,263 条复核任务，失败原因分布为 `incomplete=864, duplicate_score=173, invalid_score=149, cumulative_mismatch=73, extra_tokens=4`；2023 候选生成 1,188 条复核任务，失败原因分布为 `incomplete=976, invalid_score=133, duplicate_score=48, cumulative_mismatch=31`。复核任务表只用于校对，不是 data package。
 
+复核完成后，使用 review task 中的 `corrected_score/corrected_score_count/corrected_cumulative_rank` 合并出 cleaned CSV：
+
+```bash
+python3 scripts/build_package.py apply-ln-score-distribution-review \
+  --candidate-csv staging/ln_score_distribution_2024_ocr_candidates.csv \
+  --review-csv staging/ln_score_distribution_2024_review_tasks.csv \
+  --output cleaned/ln_score_distribution_2024.csv
+```
+
+默认严格模式会拒绝未完成复核任务、重复主键和累计校验错误。真实 smoke：未复核的 2024 review tasks 被严格模式拒绝；`--allow-unresolved` 仅输出 598 行部分清洗结果并报告 1,263 条 unresolved、39 条累计质量错误。未复核的 2023 review tasks 在 `--allow-unresolved` 下仅输出 262 行部分清洗结果并报告 1,188 条 unresolved、19 条累计质量错误。部分清洗结果不能导入 core，也不能作为正式 data package。
+
 OCR 或人工转录后的 cleaned CSV 不允许直接进入 core，必须通过 `build-local` 生成标准包。`build-local` 对 `fa_fact_ln_score_distribution` 会强制校验：
 
 - `score` 在 0-750 分范围内。

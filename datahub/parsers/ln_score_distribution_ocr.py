@@ -10,7 +10,8 @@ from pathlib import Path
 from statistics import mean
 from typing import Any
 
-from datahub.config import load_sources
+from datahub.config import get_table_schema, load_sources
+from datahub.validators.score_distribution import validate_score_distribution
 
 
 CANDIDATE_COLUMNS = [
@@ -53,6 +54,16 @@ REVIEW_TASK_COLUMNS = [
     "corrected_score",
     "corrected_score_count",
     "corrected_cumulative_rank",
+]
+
+
+CLEANED_COLUMNS = [
+    "subject_cat",
+    "score_year",
+    "score",
+    "score_count",
+    "cumulative_rank",
+    "source_date",
 ]
 
 
@@ -184,6 +195,80 @@ def write_review_task_csv(path: Path, rows: list[dict[str, Any]]) -> None:
         writer.writerows(rows)
 
 
+def apply_score_distribution_review(
+    candidate_csv: Path,
+    review_csv: Path,
+    *,
+    source_key: str = "ln_score_distribution",
+    allow_unresolved: bool = False,
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    review_config = _load_ocr_review_config(source_key)
+    candidate_rows = _read_candidate_csv(candidate_csv)
+    review_rows = _read_review_csv(review_csv)
+    review_by_key = {_candidate_key(row): row for row in review_rows}
+
+    output_rows: list[dict[str, Any]] = []
+    unresolved_rows = 0
+    applied_review_rows = 0
+    dropped_rows = 0
+    for row in candidate_rows:
+        if not _needs_review(row, review_config):
+            output_rows.append(_cleaned_row(row))
+            continue
+
+        review = review_by_key.get(_candidate_key(row))
+        if not review:
+            unresolved_rows += 1
+            continue
+        review_status = str(review.get("review_status") or "").strip()
+        if review_status in review_config["drop_review_statuses"]:
+            dropped_rows += 1
+            continue
+        if review_status not in review_config["approved_review_statuses"]:
+            unresolved_rows += 1
+            continue
+        output_rows.append(_corrected_cleaned_row(row, review))
+        applied_review_rows += 1
+
+    output_rows = _sort_cleaned_rows(output_rows)
+    quality_report = validate_score_distribution(output_rows, get_table_schema("fa_fact_ln_score_distribution"), "fa_fact_ln_score_distribution")
+    duplicate_count = _duplicate_cleaned_count(output_rows)
+    quality_errors = list(quality_report["errors"])
+    if duplicate_count:
+        quality_errors.append(f"duplicate primary keys: {duplicate_count}")
+    report = {
+        "candidate_csv": str(candidate_csv),
+        "review_csv": str(review_csv),
+        "candidate_rows": len(candidate_rows),
+        "review_rows": len(review_rows),
+        "output_rows": len(output_rows),
+        "applied_review_rows": applied_review_rows,
+        "dropped_rows": dropped_rows,
+        "unresolved_rows": unresolved_rows,
+        "duplicate_primary_keys": duplicate_count,
+        "quality_errors": quality_errors,
+        "quality_warnings": quality_report["warnings"],
+        "allow_unresolved": allow_unresolved,
+        "notes": "Cleaned rows still need build-local before core import.",
+    }
+    if not allow_unresolved:
+        errors = []
+        if unresolved_rows:
+            errors.append(f"unresolved review rows: {unresolved_rows}")
+        errors.extend(quality_errors)
+        if errors:
+            raise ValueError("; ".join(errors))
+    return output_rows, report
+
+
+def write_cleaned_score_distribution_csv(path: Path, rows: list[dict[str, Any]]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=CLEANED_COLUMNS, extrasaction="ignore")
+        writer.writeheader()
+        writer.writerows(rows)
+
+
 def _load_ocr_table_config(source_key: str) -> dict[str, Any]:
     source = load_sources().get("sources", {}).get(source_key)
     if not source:
@@ -217,18 +302,31 @@ def _load_ocr_review_config(source_key: str) -> dict[str, Any]:
         raise ValueError(f"{source_key}.parser.ocr_review is required")
     statuses = config.get("complete_parse_statuses")
     actions = config.get("issue_actions")
+    approved_statuses = config.get("approved_review_statuses")
+    drop_statuses = config.get("drop_review_statuses")
     if not isinstance(statuses, list) or not statuses:
         raise ValueError(f"{source_key}.parser.ocr_review.complete_parse_statuses must be a non-empty list")
     if not isinstance(actions, dict) or not actions:
         raise ValueError(f"{source_key}.parser.ocr_review.issue_actions must be a non-empty object")
+    if not isinstance(approved_statuses, list) or not approved_statuses:
+        raise ValueError(f"{source_key}.parser.ocr_review.approved_review_statuses must be a non-empty list")
+    if not isinstance(drop_statuses, list):
+        raise ValueError(f"{source_key}.parser.ocr_review.drop_review_statuses must be a list")
     return {
         "complete_parse_statuses": set(str(item) for item in statuses),
         "ok_math_status": str(config.get("ok_math_status") or "ok"),
+        "approved_review_statuses": set(str(item) for item in approved_statuses),
+        "drop_review_statuses": set(str(item) for item in drop_statuses),
         "issue_actions": actions,
     }
 
 
 def _read_candidate_csv(path: Path) -> list[dict[str, Any]]:
+    with path.open(encoding="utf-8", newline="") as f:
+        return list(csv.DictReader(f))
+
+
+def _read_review_csv(path: Path) -> list[dict[str, Any]]:
     with path.open(encoding="utf-8", newline="") as f:
         return list(csv.DictReader(f))
 
@@ -280,6 +378,56 @@ def _issue_type(row: dict[str, Any], review_config: dict[str, Any]) -> str:
     if row.get("parse_status") in review_config["complete_parse_statuses"] and math_status != review_config["ok_math_status"]:
         return str(math_status or "not_checked")
     return str(row.get("parse_status") or "not_checked")
+
+
+def _candidate_key(row: dict[str, Any]) -> tuple[str, str, str, str, str, str, str]:
+    return (
+        str(row.get("source_date") or ""),
+        str(row.get("subject_cat") or ""),
+        str(row.get("score_year") or ""),
+        str(row.get("image_file") or ""),
+        str(row.get("block_index") or ""),
+        str(row.get("row_y") or ""),
+        str(row.get("raw_text") or ""),
+    )
+
+
+def _cleaned_row(row: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "subject_cat": str(row["subject_cat"]),
+        "score_year": _as_int(row["score_year"]),
+        "score": _as_int(row["score"]),
+        "score_count": _as_int(row["score_count"]),
+        "cumulative_rank": _as_int(row["cumulative_rank"]),
+        "source_date": str(row["source_date"]),
+    }
+
+
+def _corrected_cleaned_row(candidate: dict[str, Any], review: dict[str, Any]) -> dict[str, Any]:
+    merged = dict(candidate)
+    for source, target in [
+        ("corrected_score", "score"),
+        ("corrected_score_count", "score_count"),
+        ("corrected_cumulative_rank", "cumulative_rank"),
+    ]:
+        if str(review.get(source) or "").strip():
+            merged[target] = review[source]
+    return _cleaned_row(merged)
+
+
+def _sort_cleaned_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return sorted(rows, key=lambda item: (item["subject_cat"], int(item["score_year"]), -int(item["score"])))
+
+
+def _duplicate_cleaned_count(rows: list[dict[str, Any]]) -> int:
+    seen: set[tuple[str, int, int]] = set()
+    duplicates = 0
+    for row in rows:
+        key = (row["subject_cat"], int(row["score_year"]), int(row["score"]))
+        if key in seen:
+            duplicates += 1
+        seen.add(key)
+    return duplicates
 
 
 def _score_year_from_config(source_key: str, source_date: str) -> int:
@@ -513,3 +661,9 @@ def _has_digit(text: str) -> bool:
 
 def _valid_score(value: Any) -> bool:
     return isinstance(value, int) and 0 <= value <= 750
+
+
+def _as_int(value: Any) -> int:
+    if value in (None, ""):
+        raise ValueError(f"integer value required: {value}")
+    return int(float(str(value).replace(",", "").strip()))

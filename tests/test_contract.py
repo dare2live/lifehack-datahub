@@ -25,9 +25,11 @@ from datahub.connectors.remote_files import download_remote_assets
 from datahub.connectors.registry import discover_assets
 from datahub.parsers.ln_projection_score import parse_ln_projection_score_file
 from datahub.parsers.ln_score_distribution_ocr import (
+    apply_score_distribution_review,
     build_score_distribution_review_tasks,
     parse_ln_score_distribution_ocr_jsonl,
     write_candidate_csv,
+    write_cleaned_score_distribution_csv,
     write_review_task_csv,
 )
 from datahub.parsers.ln_score_distribution import parse_ln_score_distribution_lines
@@ -470,6 +472,172 @@ def test_build_score_distribution_review_tasks_from_candidates(tmp_path: Path):
         written = list(csv.DictReader(f))
     assert written[0]["corrected_score"] == ""
     assert written[0]["issue_type"] == "cumulative_mismatch"
+
+
+def test_apply_score_distribution_review_writes_cleaned_rows(tmp_path: Path):
+    candidates = tmp_path / "candidates.csv"
+    candidate_rows = [
+        {
+            "subject_cat": "历史类",
+            "score_year": "2024",
+            "score": "676",
+            "score_count": "12",
+            "cumulative_rank": "12",
+            "source_date": "2024-06-25",
+            "image_file": "page1.jpg",
+            "block_index": "1",
+            "row_y": "0.88",
+            "ocr_confidence": "0.8",
+            "parse_status": "parsed",
+            "math_status": "ok",
+            "raw_text": "676及以上12",
+        },
+        {
+            "subject_cat": "历史类",
+            "score_year": "2024",
+            "score": "675",
+            "score_count": "3",
+            "cumulative_rank": "16",
+            "source_date": "2024-06-25",
+            "image_file": "page1.jpg",
+            "block_index": "1",
+            "row_y": "0.86",
+            "ocr_confidence": "1.0",
+            "parse_status": "parsed",
+            "math_status": "cumulative_mismatch",
+            "raw_text": "675 3 16",
+        },
+        {
+            "subject_cat": "历史类",
+            "score_year": "2024",
+            "score": "93",
+            "score_count": "4874",
+            "cumulative_rank": "",
+            "source_date": "2024-06-25",
+            "image_file": "page1.jpg",
+            "block_index": "4",
+            "row_y": "0.87",
+            "ocr_confidence": "1.0",
+            "parse_status": "incomplete",
+            "math_status": "not_checked",
+            "raw_text": "93 4,874",
+        },
+    ]
+    write_candidate_csv(candidates, candidate_rows)
+    tasks, _ = build_score_distribution_review_tasks(candidates)
+    for task in tasks:
+        task["review_status"] = "approved"
+        if task["raw_text"] == "675 3 16":
+            task["corrected_cumulative_rank"] = "15"
+        if task["raw_text"] == "93 4,874":
+            task["corrected_score"] = "674"
+            task["corrected_score_count"] = "2"
+            task["corrected_cumulative_rank"] = "17"
+    review = tmp_path / "review.csv"
+    write_review_task_csv(review, tasks)
+
+    cleaned_rows, report = apply_score_distribution_review(candidates, review)
+    assert report["unresolved_rows"] == 0
+    assert report["quality_errors"] == []
+    assert report["applied_review_rows"] == 2
+    assert [row["score"] for row in cleaned_rows] == [676, 675, 674]
+
+    cleaned = tmp_path / "cleaned.csv"
+    write_cleaned_score_distribution_csv(cleaned, cleaned_rows)
+    with cleaned.open(encoding="utf-8", newline="") as f:
+        written = list(csv.DictReader(f))
+    assert written[2]["cumulative_rank"] == "17"
+
+
+def test_apply_score_distribution_review_rejects_unresolved_rows(tmp_path: Path):
+    candidates = tmp_path / "candidates.csv"
+    write_candidate_csv(candidates, [
+        {
+            "subject_cat": "历史类",
+            "score_year": "2024",
+            "score": "676",
+            "score_count": "12",
+            "cumulative_rank": "12",
+            "source_date": "2024-06-25",
+            "image_file": "page1.jpg",
+            "block_index": "1",
+            "row_y": "0.88",
+            "ocr_confidence": "0.8",
+            "parse_status": "parsed",
+            "math_status": "ok",
+            "raw_text": "676及以上12",
+        },
+        {
+            "subject_cat": "历史类",
+            "score_year": "2024",
+            "score": "675",
+            "score_count": "3",
+            "cumulative_rank": "16",
+            "source_date": "2024-06-25",
+            "image_file": "page1.jpg",
+            "block_index": "1",
+            "row_y": "0.86",
+            "ocr_confidence": "1.0",
+            "parse_status": "parsed",
+            "math_status": "cumulative_mismatch",
+            "raw_text": "675 3 16",
+        },
+    ])
+    tasks, _ = build_score_distribution_review_tasks(candidates)
+    review = tmp_path / "review.csv"
+    write_review_task_csv(review, tasks)
+
+    try:
+        apply_score_distribution_review(candidates, review)
+        rejected = False
+    except ValueError as exc:
+        rejected = "unresolved review rows" in str(exc)
+    assert rejected
+
+
+def test_apply_score_distribution_review_rejects_duplicate_primary_keys(tmp_path: Path):
+    candidates = tmp_path / "candidates.csv"
+    write_candidate_csv(candidates, [
+        {
+            "subject_cat": "历史类",
+            "score_year": "2024",
+            "score": "676",
+            "score_count": "12",
+            "cumulative_rank": "12",
+            "source_date": "2024-06-25",
+            "image_file": "page1.jpg",
+            "block_index": "1",
+            "row_y": "0.88",
+            "ocr_confidence": "0.8",
+            "parse_status": "parsed",
+            "math_status": "ok",
+            "raw_text": "676及以上12",
+        },
+        {
+            "subject_cat": "历史类",
+            "score_year": "2024",
+            "score": "676",
+            "score_count": "12",
+            "cumulative_rank": "12",
+            "source_date": "2024-06-25",
+            "image_file": "page1.jpg",
+            "block_index": "1",
+            "row_y": "0.87",
+            "ocr_confidence": "0.8",
+            "parse_status": "parsed",
+            "math_status": "ok",
+            "raw_text": "676 12 12",
+        },
+    ])
+    review = tmp_path / "review.csv"
+    write_review_task_csv(review, [])
+
+    try:
+        apply_score_distribution_review(candidates, review)
+        rejected = False
+    except ValueError as exc:
+        rejected = "duplicate primary keys" in str(exc)
+    assert rejected
 
 
 def test_build_score_history_from_projection_package(tmp_path: Path):

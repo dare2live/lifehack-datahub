@@ -154,6 +154,15 @@ python3 scripts/build_package.py build-ln-score-distribution-review \
 
 复核任务表会按失败原因和位置排序，并预留 `corrected_score`、`corrected_score_count`、`corrected_cumulative_rank` 给人工校对。
 
+人工复核后，用 corrected 字段合并回 cleaned CSV。默认严格模式会拒绝未复核任务、重复主键和累计校验错误；`--allow-unresolved` 只用于迭代检查，不可导入 core：
+
+```bash
+python3 scripts/build_package.py apply-ln-score-distribution-review \
+  --candidate-csv staging/ln_score_distribution_2024_ocr_candidates.csv \
+  --review-csv staging/ln_score_distribution_2024_review_tasks.csv \
+  --output cleaned/ln_score_distribution_2024.csv
+```
+
 OCR 或人工转录后的 `fa_fact_ln_score_distribution` CSV 必须再经过 `build-local`。该入口会校验分数范围、单分人数、累计排名，以及“上一累计 + 本分人数 = 当前累计”，避免错误转录进入 core：
 
 ```bash

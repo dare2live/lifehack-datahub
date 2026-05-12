@@ -173,6 +173,8 @@
         "ocr_review": {
           "complete_parse_statuses": ["parsed", "inferred_score"],
           "ok_math_status": "ok",
+          "approved_review_statuses": ["approved", "corrected"],
+          "drop_review_statuses": ["rejected", "drop"],
           "issue_actions": {
             "duplicate_score": {
               "priority": 1,
