@@ -62,6 +62,15 @@ python3 scripts/build_package.py parse-ln-application-workbook \
 
 该入口只读 Excel，输出 `fa_dim_ln_admission_plan` 与 `fa_fact_ln_score_history` 两张 cleaned CSV 及解析报告，不生成 data package、不写 core。确认 `duplicate_counts` 和 `ignored_sheets` 后，再用 `build-local` 进入数据包契约。默认配置只接收普通类本科批 `物理类/历史类` sheet，特殊类型、提前批、艺术/体育/专科需增加 profile 或 sheet rule 后再解析，避免把不同录取规则混进同一批次。
 
+招生计划包进入实际 core 之前必须先做只读对账。`audit-admission-plan-package-against-core` 按 `config/source_schemas.json` 中 `fa_dim_ln_admission_plan.audit` 的 scope 和 compare 列输出匹配、package-only、core-only、字段差异与样本；它不导入、不删除、不修改 `university.db`：
+
+```bash
+python3 scripts/build_package.py audit-admission-plan-package-against-core \
+  --core-db /Users/dp/Documents/M/lifehack/backend/data/university.db \
+  --package-dir exports/2026_ln_admission_plan \
+  --report audits/admission_plan_2026_against_core.json
+```
+
 ### 招生计划过渡包
 
 `ln_admission_plan` 的完整官方分发目前是志愿填报系统和《辽宁招生考试》杂志，公开站点没有稳定完整附件。为了让 core 里现有清洗数据也进入 DataHub 包链路，可先生成过渡 snapshot：

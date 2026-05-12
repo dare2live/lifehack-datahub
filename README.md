@@ -95,6 +95,15 @@ python3 scripts/build_package.py parse-ln-application-workbook \
 
 生成的 cleaned CSV 仍不进入 Git。确认报告后，再分别用 `build-local --table fa_dim_ln_admission_plan` 和 `build-local --table fa_fact_ln_score_history` 生成数据包。
 
+招生计划包导入实际 core 前，先做只读对账。审计范围、比较列和样本上限维护在 `config/source_schemas.json`，报告只输出差异，不写 core：
+
+```bash
+python3 scripts/build_package.py audit-admission-plan-package-against-core \
+  --core-db ../lifehack/backend/data/university.db \
+  --package-dir exports/2026_ln_admission_plan \
+  --report audits/admission_plan_2026_against_core.json
+```
+
 当前 core 已有的清洗招生计划可先生成过渡 snapshot，避免核心库成为唯一数据落点。该包会标注 `legacy_core_snapshot`，不能替代后续官方系统/杂志导出的受控 intake：
 
 ```bash

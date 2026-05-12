@@ -7,6 +7,7 @@ import json
 from pathlib import Path
 
 from .builders.admission_plan_snapshot import build_admission_plan_snapshot_package
+from .builders.admission_plan_package_audit import audit_admission_plan_package_against_core
 from .builders.outcome_collection_batch import (
     build_outcome_collection_batch,
     merge_outcome_collection_batch,
@@ -154,6 +155,15 @@ def main() -> int:
     build_admission_snapshot.add_argument("--output-root", required=True, type=Path)
     build_admission_snapshot.add_argument("--package-id")
     build_admission_snapshot.add_argument("--source-version")
+
+    audit_admission_plan_package = sub.add_parser(
+        "audit-admission-plan-package-against-core",
+        help="Compare fa_dim_ln_admission_plan package rows against core DB without importing",
+    )
+    audit_admission_plan_package.add_argument("--core-db", required=True, type=Path)
+    audit_admission_plan_package.add_argument("--package-dir", required=True, action="append", dest="package_dirs", type=Path)
+    audit_admission_plan_package.add_argument("--report", type=Path)
+    audit_admission_plan_package.add_argument("--sample-limit", type=int)
 
     build_score_snapshot = sub.add_parser(
         "build-score-history-snapshot",
@@ -504,6 +514,17 @@ def main() -> int:
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
+    if args.cmd == "audit-admission-plan-package-against-core":
+        report = audit_admission_plan_package_against_core(
+            core_db=args.core_db,
+            package_dirs=args.package_dirs,
+            sample_limit=args.sample_limit,
+        )
+        if args.report:
+            args.report.parent.mkdir(parents=True, exist_ok=True)
+            args.report.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        print(json.dumps(report, ensure_ascii=False, indent=2))
+        return 0 if not report["errors"] else 1
     if args.cmd == "build-score-history-snapshot":
         result = build_score_history_snapshot_package(
             core_db=args.core_db,

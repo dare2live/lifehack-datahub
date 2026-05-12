@@ -8,6 +8,7 @@ import duckdb
 from openpyxl import Workbook
 
 from datahub.builders.admission_plan_snapshot import build_admission_plan_snapshot_package
+from datahub.builders.admission_plan_package_audit import audit_admission_plan_package_against_core
 from datahub.connectors.page_images import download_page_images
 from datahub.builders.outcome_collection_audit import audit_outcome_collection_plan
 from datahub.builders.outcome_collection_batch import (
@@ -2635,6 +2636,120 @@ def test_build_outcome_packages_from_verified_collection_plan(tmp_path: Path):
         rows = list(csv.DictReader(f))
     assert rows[0]["school_code"] == "10145"
     assert rows[0]["metric_value"] == "0.462"
+
+
+def test_audit_admission_plan_package_against_core_reports_scope_drift(tmp_path: Path):
+    db = tmp_path / "core.duckdb"
+    con = duckdb.connect(str(db))
+    try:
+        con.execute("""
+            CREATE TABLE fa_dim_ln_admission_plan (
+                school_code VARCHAR,
+                school_name VARCHAR,
+                major_code VARCHAR,
+                major_full VARCHAR,
+                major_short VARCHAR,
+                batch VARCHAR,
+                subject_cat VARCHAR,
+                school_tier VARCHAR,
+                region VARCHAR,
+                plan_count INTEGER,
+                school_type VARCHAR,
+                city_level_tag VARCHAR,
+                postgrad_rate DOUBLE
+            )
+        """)
+        con.execute("""
+            INSERT INTO fa_dim_ln_admission_plan VALUES
+                ('1001', '东北大学', '01', '计算机类', '计算机类', '本科批', '物理类', '985', '辽宁省沈阳市', 10, '公办', '新一线', 0.28),
+                ('1002', '辽宁大学', '02', '法学', '法学', '本科批', '物理类', '211', '辽宁省沈阳市', 9, '公办', '新一线', 0.12),
+                ('1003', '大连理工大学', '03', '软件工程', '软件工程', '本科批', '物理类', '985', '辽宁省大连市', 6, '公办', '新一线', 0.30),
+                ('2001', '历史大学', '01', '汉语言文学', '汉语言文学', '本科批', '历史类', '普通本科', '辽宁省', 5, '公办', '其他', 0.05)
+        """)
+    finally:
+        con.close()
+
+    schema = get_table_schema("fa_dim_ln_admission_plan")
+    package_dir = tmp_path / "exports" / "pkg-admission-plan-audit"
+    package_dir.mkdir(parents=True)
+    with (package_dir / "fa_dim_ln_admission_plan.csv").open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=schema["columns"], extrasaction="ignore")
+        writer.writeheader()
+        writer.writerows([
+            {
+                "school_code": "1001",
+                "school_name": "东北大学",
+                "major_code": "01",
+                "major_full": "计算机类",
+                "major_short": "计算机类",
+                "batch": "本科批",
+                "subject_cat": "物理类",
+                "school_tier": "985",
+                "region": "辽宁省沈阳市",
+                "plan_count": "10",
+                "school_type": "公办",
+                "city_level_tag": "新一线",
+                "postgrad_rate": "0.28",
+            },
+            {
+                "school_code": "1002",
+                "school_name": "辽宁大学",
+                "major_code": "02",
+                "major_full": "法学",
+                "major_short": "法学",
+                "batch": "本科批",
+                "subject_cat": "物理类",
+                "school_tier": "211",
+                "region": "辽宁省沈阳市",
+                "plan_count": "8",
+                "school_type": "公办",
+                "city_level_tag": "新一线",
+                "postgrad_rate": "0.12",
+            },
+            {
+                "school_code": "1004",
+                "school_name": "沈阳工业大学",
+                "major_code": "04",
+                "major_full": "自动化",
+                "major_short": "自动化",
+                "batch": "本科批",
+                "subject_cat": "物理类",
+                "school_tier": "普通本科",
+                "region": "辽宁省沈阳市",
+                "plan_count": "12",
+                "school_type": "公办",
+                "city_level_tag": "新一线",
+                "postgrad_rate": "0.08",
+            },
+        ])
+    (package_dir / "quality_report.json").write_text('{"errors":[]}\n', encoding="utf-8")
+    (package_dir / "manifest.json").write_text(json.dumps({
+        "package_id": "pkg-admission-plan-audit",
+        "built_at": "2026-05-13T00:00:00",
+        "source_version": "fixture",
+        "tables": [{"name": "fa_dim_ln_admission_plan", "file": "fa_dim_ln_admission_plan.csv"}],
+        "files": ["fa_dim_ln_admission_plan.csv"],
+        "hashes": {},
+        "quality_report": "quality_report.json",
+    }, ensure_ascii=False), encoding="utf-8")
+
+    report = audit_admission_plan_package_against_core(
+        core_db=db,
+        package_dirs=[package_dir],
+        sample_limit=5,
+    )
+
+    assert report["errors"] == []
+    assert report["counts"]["package_rows"] == 3
+    assert report["counts"]["core_scoped_rows"] == 3
+    assert report["counts"]["matched_rows"] == 2
+    assert report["counts"]["different_rows"] == 1
+    assert report["counts"]["package_only_rows"] == 1
+    assert report["counts"]["core_only_rows"] == 1
+    assert report["samples"]["different_rows"][0]["differences"] == [
+        {"column": "plan_count", "package_value": 8, "core_value": 9}
+    ]
+    assert report["decision"]["reconciliation_required"] is True
 
 
 def _outcome_plan_row(

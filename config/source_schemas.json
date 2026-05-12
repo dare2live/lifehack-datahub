@@ -22,6 +22,17 @@
         "postgrad_rate"
       ],
       "numeric": ["plan_count", "postgrad_rate"],
+      "audit": {
+        "scope_columns": ["batch", "subject_cat"],
+        "compare_columns": [
+          "school_name",
+          "major_full",
+          "major_short",
+          "region",
+          "plan_count"
+        ],
+        "sample_limit": 20
+      },
       "aliases": {
         "school_code": ["school_code", "院校代码", "学校代码", "院校专业组代码"],
         "school_name": ["school_name", "院校名称", "学校名称"],
