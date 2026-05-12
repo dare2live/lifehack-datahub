@@ -162,6 +162,7 @@
           "table_y_min": 0.045,
           "table_y_max": 0.91,
           "infer_missing_score": true,
+          "infer_single_number_rows": true,
           "score_inference_min_anchor_rows": 2,
           "block_x_ranges": [
             [0.04, 0.27],
@@ -171,7 +172,7 @@
           ]
         },
         "ocr_review": {
-          "complete_parse_statuses": ["parsed", "inferred_score"],
+          "complete_parse_statuses": ["parsed", "inferred_score", "inferred_row"],
           "ok_math_status": "ok",
           "approved_review_statuses": ["approved", "corrected"],
           "drop_review_statuses": ["rejected", "drop"],

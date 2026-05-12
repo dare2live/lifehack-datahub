@@ -67,7 +67,7 @@ CLEANED_COLUMNS = [
 ]
 
 
-COMPLETE_PARSE_STATUSES = {"parsed", "inferred_score"}
+COMPLETE_PARSE_STATUSES = {"parsed", "inferred_score", "inferred_row"}
 
 
 NOISE_MARKERS = [
@@ -139,6 +139,7 @@ def parse_ln_score_distribution_ocr_jsonl(
         "candidate_rows": len(rows),
         "parsed_rows": sum(1 for row in rows if row["parse_status"] == "parsed"),
         "inferred_score_rows": sum(1 for row in rows if row["parse_status"] == "inferred_score"),
+        "inferred_row_rows": sum(1 for row in rows if row["parse_status"] == "inferred_row"),
         "complete_rows": sum(1 for row in rows if row["parse_status"] in COMPLETE_PARSE_STATUSES),
         "needs_review_rows": sum(
             1 for row in rows if row["parse_status"] not in COMPLETE_PARSE_STATUSES or row["math_status"] != "ok"
@@ -288,6 +289,7 @@ def _load_ocr_table_config(source_key: str) -> dict[str, Any]:
         "table_y_min": float(config["table_y_min"]),
         "table_y_max": float(config["table_y_max"]),
         "infer_missing_score": bool(config.get("infer_missing_score")),
+        "infer_single_number_rows": bool(config.get("infer_single_number_rows")),
         "score_inference_min_anchor_rows": int(config.get("score_inference_min_anchor_rows", 2)),
         "block_x_ranges": [(float(item[0]), float(item[1])) for item in block_ranges],
     }
@@ -633,22 +635,55 @@ def _infer_missing_scores(rows: list[dict[str, Any]], config: dict[str, Any]) ->
         [(anchor_score, anchor_count)] = Counter(anchors).most_common(1)
         if anchor_count < min_anchor_rows or not _valid_score(anchor_score):
             continue
+        previous_cumulative: int | None = None
         for index, row in indexed_rows:
-            if row["parse_status"] != "incomplete":
+            if _complete_numeric_row(row):
+                previous_cumulative = int(row["cumulative_rank"])
                 continue
             expected_score = anchor_score - index
             if not _valid_score(expected_score):
                 continue
             numbers = _extract_numbers(row["raw_text"])
-            if len(numbers) != 2:
+            inferred = _infer_counts_from_numbers(
+                numbers,
+                previous_cumulative=previous_cumulative,
+                allow_single_number=bool(config.get("infer_single_number_rows")),
+            )
+            if not inferred:
                 continue
-            score_count, cumulative_rank = numbers
+            score_count, cumulative_rank = inferred
             if score_count <= 0 or cumulative_rank <= score_count:
                 continue
             row["score"] = expected_score
             row["score_count"] = score_count
             row["cumulative_rank"] = cumulative_rank
-            row["parse_status"] = "inferred_score"
+            row["parse_status"] = "inferred_score" if len(numbers) == 2 else "inferred_row"
+            previous_cumulative = cumulative_rank
+
+
+def _complete_numeric_row(row: dict[str, Any]) -> bool:
+    return (
+        row.get("parse_status") in COMPLETE_PARSE_STATUSES
+        and isinstance(row.get("score"), int)
+        and isinstance(row.get("score_count"), int)
+        and isinstance(row.get("cumulative_rank"), int)
+    )
+
+
+def _infer_counts_from_numbers(
+    numbers: list[int],
+    *,
+    previous_cumulative: int | None,
+    allow_single_number: bool,
+) -> tuple[int, int] | None:
+    if len(numbers) == 2:
+        return numbers[0], numbers[1]
+    if len(numbers) != 1 or previous_cumulative is None or not allow_single_number:
+        return None
+    value = numbers[0]
+    if value > previous_cumulative:
+        return value - previous_cumulative, value
+    return value, previous_cumulative + value
 
 
 def _is_noise(text: str) -> bool:

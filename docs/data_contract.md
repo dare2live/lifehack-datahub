@@ -170,7 +170,7 @@ python3 scripts/build_package.py parse-ln-score-distribution-ocr \
   --source-date 2024-06-25
 ```
 
-真实 smoke：2024 OCR JSONL 生成 1,861 条候选、650 条直接 parsed 行、194 条 inferred_score 行、598 条累计校验 OK；2023 OCR JSONL 生成 1,450 条候选、227 条直接 parsed 行、114 条 inferred_score 行、262 条累计校验 OK。该结果说明 OCR 候选仍需要人工复核或更强表格结构识别，不能跳过 `build-local` 质量闸门。
+真实 smoke：2024 OCR JSONL 生成 1,861 条候选、650 条直接 parsed 行、194 条 inferred_score 行、88 条 inferred_row 行、680 条累计校验 OK；2023 OCR JSONL 生成 1,450 条候选、227 条直接 parsed 行、116 条 inferred_score 行、2 条 inferred_row 行、265 条累计校验 OK。`inferred_row` 使用同图同块锚点和连续累计规则补齐单数字行，参数由 `parser.ocr_table.infer_single_number_rows` 控制。该结果说明 OCR 候选仍需要人工复核或更强表格结构识别，不能跳过 `build-local` 质量闸门。
 
 候选 CSV 可以继续转成可分派的复核任务表，优先级和建议动作由 `config/sources.json` 的 `parser.ocr_review.issue_actions` 维护：
 
@@ -180,7 +180,7 @@ python3 scripts/build_package.py build-ln-score-distribution-review \
   --output staging/ln_score_distribution_2024_review_tasks.csv
 ```
 
-真实 smoke：2024 候选生成 1,263 条复核任务，失败原因分布为 `incomplete=864, duplicate_score=173, invalid_score=149, cumulative_mismatch=73, extra_tokens=4`；2023 候选生成 1,188 条复核任务，失败原因分布为 `incomplete=976, invalid_score=133, duplicate_score=48, cumulative_mismatch=31`。复核任务表只用于校对，不是 data package。
+真实 smoke：2024 候选生成 1,181 条复核任务，失败原因分布为 `incomplete=803, duplicate_score=184, invalid_score=122, cumulative_mismatch=68, extra_tokens=4`；2023 候选生成 1,185 条复核任务，失败原因分布为 `incomplete=975, invalid_score=130, duplicate_score=49, cumulative_mismatch=31`。复核任务表只用于校对，不是 data package。
 
 复核任务可继续拆成本地工作区。工作区按原图生成批次 CSV、进度 manifest 和 HTML 核对页；pending 状态和可编辑字段由 `config/sources.json` 的 `parser.ocr_review_workspace` 维护：
 
@@ -200,7 +200,7 @@ python3 scripts/build_package.py merge-ln-score-distribution-review-workspace \
   --output staging/ln_score_distribution_2024_review_tasks_merged.csv
 ```
 
-真实 smoke：2024 工作区生成 21 个图片批次、1,263 条待复核任务；2023 工作区生成 20 个图片批次、1,188 条待复核任务。未修改批次可无损合并回总表，`updated_rows=0`。
+真实 smoke：2024 工作区生成 21 个图片批次、1,181 条待复核任务；2023 工作区生成 20 个图片批次、1,185 条待复核任务。未修改批次可无损合并回总表，`updated_rows=0`。
 
 复核完成后，使用 review task 中的 `corrected_score/corrected_score_count/corrected_cumulative_rank` 合并出 cleaned CSV：
 
@@ -211,7 +211,7 @@ python3 scripts/build_package.py apply-ln-score-distribution-review \
   --output cleaned/ln_score_distribution_2024.csv
 ```
 
-默认严格模式会拒绝未完成复核任务、重复主键和累计校验错误。真实 smoke：未复核的 2024 review tasks 被严格模式拒绝；`--allow-unresolved` 仅输出 598 行部分清洗结果并报告 1,263 条 unresolved、39 条累计质量错误。未复核的 2023 review tasks 在 `--allow-unresolved` 下仅输出 262 行部分清洗结果并报告 1,188 条 unresolved、19 条累计质量错误。部分清洗结果不能导入 core，也不能作为正式 data package。
+默认严格模式会拒绝未完成复核任务、重复主键和累计校验错误。真实 smoke：未复核的 2024 review tasks 被严格模式拒绝；`--allow-unresolved` 仅输出 680 行部分清洗结果并报告 1,181 条 unresolved、35 条累计质量错误。未复核的 2023 review tasks 在 `--allow-unresolved` 下仅输出 265 行部分清洗结果并报告 1,185 条 unresolved、19 条累计质量错误。部分清洗结果不能导入 core，也不能作为正式 data package。
 
 OCR 或人工转录后的 cleaned CSV 不允许直接进入 core，必须通过 `build-local` 生成标准包。`build-local` 对 `fa_fact_ln_score_distribution` 会强制校验：
 
