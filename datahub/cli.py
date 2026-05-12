@@ -8,6 +8,7 @@ from pathlib import Path
 
 from .builders.major_mapping_review import build_major_mapping_review_package
 from .builders.local_package import build_local_package
+from .builders.score_history_snapshot import build_score_history_snapshot_package
 from .builders.school_identity import build_school_identity_package
 from .config import get_table_schema
 from .connectors.manual_files import intake_manual_assets
@@ -79,6 +80,15 @@ def main() -> int:
     build_school_identity.add_argument("--source-version")
     build_school_identity.add_argument("--source-date")
     build_school_identity.add_argument("--availability-date")
+
+    build_score_snapshot = sub.add_parser(
+        "build-score-history-snapshot",
+        help="Build transitional fa_fact_ln_score_history package from current core DB",
+    )
+    build_score_snapshot.add_argument("--core-db", required=True, type=Path)
+    build_score_snapshot.add_argument("--output-root", required=True, type=Path)
+    build_score_snapshot.add_argument("--package-id")
+    build_score_snapshot.add_argument("--source-version")
 
     parse_moe = sub.add_parser("parse-moe-major-catalog", help="Parse MOE major catalog PDF to cleaned CSV")
     parse_moe.add_argument("--input", required=True, type=Path)
@@ -168,6 +178,15 @@ def main() -> int:
             source_version=args.source_version,
             source_date=args.source_date,
             availability_date=args.availability_date,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+    if args.cmd == "build-score-history-snapshot":
+        result = build_score_history_snapshot_package(
+            core_db=args.core_db,
+            output_root=args.output_root,
+            package_id=args.package_id,
+            source_version=args.source_version,
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0

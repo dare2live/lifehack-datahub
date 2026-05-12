@@ -9,6 +9,7 @@ from openpyxl import Workbook
 
 from datahub.builders.major_mapping_review import build_major_mapping_review_package
 from datahub.builders.local_package import build_local_package
+from datahub.builders.score_history_snapshot import build_score_history_snapshot_package
 from datahub.config import get_table_schema, load_outcome_metrics, load_source_schemas
 from datahub.builders.school_identity import build_school_identity_package
 from datahub.connectors.manual_files import intake_manual_assets
@@ -440,6 +441,50 @@ def test_build_school_identity_package_matches_unique_school_names(tmp_path: Pat
     by_local_code = {row["local_school_code"]: row for row in rows}
     assert by_local_code["0140"]["national_school_code"] == "4121010140"
     assert by_local_code["0183"]["match_method"] == "unique_exact_school_name"
+
+
+def test_build_score_history_snapshot_filters_incomplete_rows(tmp_path: Path):
+    db = tmp_path / "core.duckdb"
+    con = duckdb.connect(str(db))
+    try:
+        con.execute("""
+            CREATE TABLE fa_fact_ln_score_history (
+                school_code VARCHAR,
+                major_code VARCHAR,
+                batch VARCHAR,
+                subject_cat VARCHAR,
+                score_year INTEGER,
+                min_score DOUBLE,
+                min_rank INTEGER,
+                plan_count INTEGER,
+                source_date VARCHAR
+            )
+        """)
+        con.execute("""
+            INSERT INTO fa_fact_ln_score_history VALUES
+                ('0140', '01', '本科批', '历史类', 2025, 612, 12000, 12, '2025'),
+                ('0140', '02', '本科批', '历史类', 2025, 580, NULL, 8, '2025')
+        """)
+    finally:
+        con.close()
+
+    result = build_score_history_snapshot_package(
+        core_db=db,
+        output_root=tmp_path / "exports",
+        package_id="pkg-score-history-snapshot-test",
+        source_version="fixture-score-history-snapshot",
+    )
+    package_dir = Path(result["package_dir"])
+    assert validate_manifest(package_dir / "manifest.json")["errors"] == []
+    assert result["rows"] == 1
+    assert result["excluded_rows"] == 1
+    assert result["quality_report"]["year_coverage"] == [2025]
+    assert result["source_lineage"]["source_kind"] == "legacy_core_snapshot"
+
+    with (package_dir / "fa_fact_ln_score_history.csv").open(encoding="utf-8", newline="") as f:
+        rows = list(csv.DictReader(f))
+    assert rows[0]["school_code"] == "0140"
+    assert rows[0]["min_rank"] == "12000"
 
 
 def test_download_remote_assets_from_config(tmp_path: Path, monkeypatch):

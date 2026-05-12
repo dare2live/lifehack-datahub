@@ -153,6 +153,19 @@ python3 scripts/build_package.py build-school-identity \
 
 第一版只发布唯一学校名精确匹配结果；未匹配本地院校代码进入 quality report 的 warning，不做模糊自动合并。
 
+## 历史位次过渡包
+
+`ln_score_history` 的官方可重复来源仍未确认。为了让当前 core 中已有的清洗结果也进入 DataHub 数据包链路，可以先生成 legacy snapshot：
+
+```bash
+python3 scripts/build_package.py build-score-history-snapshot \
+  --core-db /Users/dp/Documents/M/lifehack/backend/data/university.db \
+  --output-root exports \
+  --package-id legacy_ln_score_history_snapshot
+```
+
+该包只导出 `min_score/min_rank` 等推荐必需字段完整的行，并在 `quality_report.warnings` 和 `manifest.source_lineage` 中标注 `legacy_core_snapshot`。它不是官方来源替代品，后续仍必须寻找辽宁官方多年份录取位次来源。
+
 ## 专业映射复核数据包
 
 `major_mapping_review` source 从 core 的 `university.db` 只读读取：
