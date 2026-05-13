@@ -4,6 +4,7 @@ from __future__ import annotations
 import csv
 import hashlib
 import json
+from collections import Counter
 from datetime import datetime
 from html.parser import HTMLParser
 from pathlib import Path
@@ -45,6 +46,7 @@ def download_outcome_report_intake_assets(
     downloaded_rows = 0
     skipped_rows = 0
     failed_rows = 0
+    failure_reason_counts: Counter[str] = Counter()
 
     for row in rows:
         result_row = {column: str(row.get(column) or "") for column in DOWNLOAD_COLUMNS}
@@ -66,11 +68,13 @@ def download_outcome_report_intake_assets(
             })
             downloaded_rows += 1
         except Exception as exc:  # pragma: no cover - real source failures are reported in output CSV
+            failure_reason = _failure_reason(exc)
             result_row.update({
                 "download_status": "failed",
                 "download_error": str(exc),
             })
             failed_rows += 1
+            failure_reason_counts[failure_reason] += 1
         output_rows.append(result_row)
 
     output.parent.mkdir(parents=True, exist_ok=True)
@@ -82,12 +86,20 @@ def download_outcome_report_intake_assets(
         "rows": len(rows),
         "downloaded_rows": downloaded_rows,
         "failed_rows": failed_rows,
+        "failure_reason_counts": dict(sorted(failure_reason_counts.items())),
         "skipped_rows": skipped_rows,
         "notes": "Downloaded files only. Review extracted candidates before building outcome packages.",
     }
     report_path = output.with_suffix(".json")
     report_path.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return {**report, "report": str(report_path)}
+
+
+def _failure_reason(exc: Exception) -> str:
+    message = str(exc).strip()
+    if not message:
+        return exc.__class__.__name__
+    return message.split(":", 1)[0].strip()
 
 
 def _intake_config(config: dict[str, Any]) -> dict[str, Any]:

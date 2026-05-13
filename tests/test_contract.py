@@ -5167,6 +5167,7 @@ def test_download_outcome_report_intake_assets_follows_html_attachment(tmp_path:
 
     assert report["downloaded_rows"] == 1
     assert report["failed_rows"] == 0
+    assert report["failure_reason_counts"] == {}
     assert target_pdf.read_bytes() == b"%PDF-1.4 fixture"
     with output.open(encoding="utf-8", newline="") as f:
         rows = list(csv.DictReader(f))
@@ -5174,6 +5175,77 @@ def test_download_outcome_report_intake_assets_follows_html_attachment(tmp_path:
     assert rows[0]["local_report_path"] == str(target_pdf)
     assert rows[0]["download_url"] == "https://example.edu/system/download.jsp?id=1"
     assert rows[0]["download_sha256"] == hashlib.sha256(b"%PDF-1.4 fixture").hexdigest()
+
+
+def test_download_outcome_report_intake_assets_summarizes_failure_reasons(tmp_path: Path, monkeypatch):
+    intake_csv = tmp_path / "outcome_report_intake_plan.csv"
+    row = {
+        "domain": "school",
+        "entity_code": "10142",
+        "entity_name": "沈阳工业大学",
+        "metric_year": "2024",
+        "report_scope": "undergraduate_teaching_quality_report",
+        "candidate_report_title": "2023-2024年沈阳工业大学本科教学质量报告",
+        "candidate_report_url": "https://example.edu/info/2.htm",
+        "candidate_file_name": "2023-2024年沈阳工业大学本科教学质量报告.pdf",
+        "candidate_source_date": "2024-12-05",
+        "availability_date": "2024-12-05",
+        "suggested_local_report_path": str(tmp_path / "report.pdf"),
+        "local_report_path": "",
+        "intake_status": "ready_for_intake",
+        "block_reason": "",
+        "source_status": "candidate_found",
+        "notes": "",
+    }
+    with intake_csv.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=list(row))
+        writer.writeheader()
+        writer.writerow(row)
+
+    class FakeHeaders:
+        def __init__(self, content_type: str):
+            self._content_type = content_type
+
+        def get(self, name: str, default=None):
+            return self._content_type if name == "Content-Type" else default
+
+    class FakeResponse:
+        def __init__(self, url: str, body: bytes, content_type: str):
+            self._url = url
+            self._body = body
+            self.headers = FakeHeaders(content_type)
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def read(self):
+            return self._body
+
+        def geturl(self):
+            return self._url
+
+    def fake_urlopen(request, timeout=60):
+        url = request.full_url
+        if url.endswith("/info/2.htm"):
+            html = '<html><body><a href="/system/download.jsp?id=2">2023-2024年沈阳工业大学本科教学质量报告.pdf</a></body></html>'
+            return FakeResponse(url, html.encode("utf-8"), "text/html; charset=utf-8")
+        if url.endswith("/system/download.jsp?id=2"):
+            return FakeResponse(url, "<html>验证码 codeValue</html>".encode("utf-8"), "text/html; charset=utf-8")
+        raise AssertionError(url)
+
+    monkeypatch.setattr("datahub.connectors.outcome_report_download.urlopen", fake_urlopen)
+
+    report = download_outcome_report_intake_assets(
+        intake_csv=intake_csv,
+        output=tmp_path / "downloaded.csv",
+    )
+
+    assert report["downloaded_rows"] == 0
+    assert report["failed_rows"] == 1
+    assert report["failure_reason_counts"] == {"attachment requires captcha or manual intake": 1}
 
 
 def test_merge_outcome_report_intake_results_requires_existing_file(tmp_path: Path):
