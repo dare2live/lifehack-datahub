@@ -41,6 +41,7 @@ from .builders.data_update_plan import build_data_update_plan
 from .builders.data_update_readiness_plan import build_data_update_readiness_plan
 from .builders.entity_normalization_registry import build_entity_normalization_registry_package
 from .builders.major_city_employment_fit import build_major_city_employment_fit_package
+from .builders.major_outcome_civil_service import build_major_outcome_from_civil_service_package
 from .builders.outcome_collection_batch import (
     build_outcome_collection_batch,
     merge_outcome_collection_batch,
@@ -691,6 +692,19 @@ def main() -> int:
     build_major_city_employment_fit.add_argument("--source-version")
     build_major_city_employment_fit.add_argument("--role-sheet")
     build_major_city_employment_fit.add_argument("--demand-sheet")
+
+    build_major_outcome_civil_service = sub.add_parser(
+        "build-major-outcome-from-civil-service",
+        help="Build fa_fact_major_outcome civil-service fit rows from official position rows",
+    )
+    build_major_outcome_civil_service.add_argument("--positions-csv", required=True, type=Path)
+    build_major_outcome_civil_service.add_argument("--output-root", required=True, type=Path)
+    build_major_outcome_civil_service.add_argument("--core-db", type=Path)
+    build_major_outcome_civil_service.add_argument("--major-input", type=Path)
+    build_major_outcome_civil_service.add_argument("--package-id")
+    build_major_outcome_civil_service.add_argument("--source-version")
+    build_major_outcome_civil_service.add_argument("--metric-year", type=int)
+    build_major_outcome_civil_service.add_argument("--sheet")
 
     build_city_development_score = sub.add_parser(
         "build-city-development-score",
@@ -1558,6 +1572,19 @@ def main() -> int:
             source_version=args.source_version,
             role_sheet=args.role_sheet,
             demand_sheet=args.demand_sheet,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+    if args.cmd == "build-major-outcome-from-civil-service":
+        result = build_major_outcome_from_civil_service_package(
+            positions_csv=args.positions_csv,
+            output_root=args.output_root,
+            core_db=args.core_db,
+            major_input=args.major_input,
+            package_id=args.package_id,
+            source_version=args.source_version,
+            metric_year=args.metric_year,
+            sheet=args.sheet,
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0

@@ -1,0 +1,28 @@
+{
+  "version": "1",
+  "updated_at": "2026-05-14",
+  "notes": "专业 outcome 派生规则。当前只把官方国考职位表转换为专业考公适配分；参数在配置中维护，代码只负责匹配、聚合和打包。",
+  "civil_service_fit_score": {
+    "metric_key": "civil_service_fit_score",
+    "metric_name": "考公适配分",
+    "metric_unit": "score",
+    "default_metric_year": 2026,
+    "metric_scope": "中央机关及其直属机构公务员招考职位表专业要求文本匹配，含本科专业、专业类及相近研究生专业要求，用作专业方向适配信号，不代表本科毕业可直接报考",
+    "source_key": "career_civil_service_posts",
+    "source_title": "中央机关及其直属机构2026年度考试录用公务员招考简章",
+    "matching": {
+      "text_fields": ["major_requirement", "remarks"],
+      "code_prefix_lengths": [4],
+      "allow_name_match": true,
+      "skip_requirement_markers": ["不限"],
+      "minimum_major_name_length": 2
+    },
+    "score_profile": {
+      "profile_id": "civil_service_fit_v1",
+      "min_score": 40,
+      "max_score": 100,
+      "recruit_count_at_max": 10000,
+      "evidence_sample_limit": 5
+    }
+  }
+}

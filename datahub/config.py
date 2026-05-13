@@ -35,6 +35,11 @@ def load_outcome_report_sources() -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def load_major_outcome_derivation() -> dict[str, Any]:
+    path = CONFIG_DIR / "major_outcome_derivation.json"
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
 def load_career_data_sources() -> dict[str, Any]:
     path = CONFIG_DIR / "career_data_sources.json"
     return json.loads(path.read_text(encoding="utf-8"))

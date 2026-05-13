@@ -43,6 +43,7 @@ from datahub.builders.data_update_plan import build_data_update_plan
 from datahub.builders.data_update_readiness_plan import build_data_update_readiness_plan
 from datahub.builders.entity_normalization_registry import build_entity_normalization_registry_package
 from datahub.builders.major_city_employment_fit import build_major_city_employment_fit_package
+from datahub.builders.major_outcome_civil_service import build_major_outcome_from_civil_service_package
 from datahub.connectors.page_images import download_page_images
 from datahub.builders.outcome_collection_audit import audit_outcome_collection_plan
 from datahub.builders.outcome_collection_batch import (
@@ -5867,6 +5868,115 @@ def test_build_outcome_packages_from_verified_collection_plan(tmp_path: Path):
         rows = list(csv.DictReader(f))
     assert rows[0]["school_code"] == "10145"
     assert rows[0]["metric_value"] == "0.462"
+
+
+def test_build_major_outcome_from_civil_service_positions(tmp_path: Path):
+    db = tmp_path / "core.duckdb"
+    con = duckdb.connect(str(db))
+    try:
+        con.execute("""
+            CREATE TABLE fa_dim_ln_admission_plan (
+                major_short VARCHAR,
+                major_full VARCHAR,
+                batch VARCHAR
+            )
+        """)
+        con.execute("""
+            INSERT INTO fa_dim_ln_admission_plan VALUES
+            ('120203K', '会计学', '本科批'),
+            ('120204', '财务管理', '本科批'),
+            ('030101K', '法学', '本科批'),
+            ('050101', '汉语言文学', '本科批'),
+            ('080901', '计算机科学与技术', '本科批')
+        """)
+    finally:
+        con.close()
+
+    positions = tmp_path / "positions.csv"
+    fieldnames = [
+        "source_key",
+        "source_title",
+        "source_url",
+        "source_date",
+        "availability_date",
+        "sheet_name",
+        "row_number",
+        "department_name",
+        "position_name",
+        "position_code",
+        "recruit_count",
+        "major_requirement",
+        "remarks",
+    ]
+    with positions.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerow({
+            "source_key": "career_civil_service_posts",
+            "source_title": "中央机关及其直属机构2026年度考试录用公务员招考简章",
+            "source_url": "http://example.gov/positions.xls",
+            "source_date": "2025-10-14",
+            "availability_date": "2025-10-14",
+            "sheet_name": "中央党群机关",
+            "row_number": "4",
+            "department_name": "中央办公厅",
+            "position_name": "财务管理岗位",
+            "position_code": "100110001002",
+            "recruit_count": "2",
+            "major_requirement": "本科：120203K会计学、120204财务管理；研究生：1253会计",
+            "remarks": "研究生学历报考者须同时具有本科和研究生学历学位。",
+        })
+        writer.writerow({
+            "source_key": "career_civil_service_posts",
+            "source_title": "中央机关及其直属机构2026年度考试录用公务员招考简章",
+            "source_url": "http://example.gov/positions.xls",
+            "source_date": "2025-10-14",
+            "availability_date": "2025-10-14",
+            "sheet_name": "中央党群机关",
+            "row_number": "6",
+            "department_name": "中央办公厅",
+            "position_name": "文秘岗位",
+            "position_code": "100210002001",
+            "recruit_count": "3",
+            "major_requirement": "0301法学、0501中国语言文学",
+            "remarks": "岗位要求具备较强的文稿写作能力。",
+        })
+        writer.writerow({
+            "source_key": "career_civil_service_posts",
+            "source_title": "中央机关及其直属机构2026年度考试录用公务员招考简章",
+            "source_url": "http://example.gov/positions.xls",
+            "source_date": "2025-10-14",
+            "availability_date": "2025-10-14",
+            "sheet_name": "中央党群机关",
+            "row_number": "7",
+            "department_name": "中央办公厅",
+            "position_name": "综合岗位",
+            "position_code": "100210002002",
+            "recruit_count": "10",
+            "major_requirement": "不限",
+            "remarks": "",
+        })
+
+    result = build_major_outcome_from_civil_service_package(
+        positions_csv=positions,
+        core_db=db,
+        output_root=tmp_path / "exports",
+        package_id="major-civil-service-fit",
+    )
+
+    assert result["table"] == "fa_fact_major_outcome"
+    assert result["rows"] == 4
+    package_dir = Path(result["package_dir"])
+    assert validate_manifest(package_dir / "manifest.json")["errors"] == []
+    with (package_dir / "fa_fact_major_outcome.csv").open(encoding="utf-8", newline="") as f:
+        rows = {row["major_code"]: row for row in csv.DictReader(f)}
+    assert set(rows) == {"030101K", "050101", "120203K", "120204"}
+    assert rows["120203K"]["metric_key"] == "civil_service_fit_score"
+    assert rows["120203K"]["metric_unit"] == "score"
+    assert rows["120203K"]["metric_scope"]
+    assert "中央办公厅-财务管理岗位" in rows["120203K"]["evidence_quote"]
+    assert "code_prefix_4" in rows["030101K"]["evidence_quote"]
+    assert float(rows["050101"]["metric_value"]) > float(rows["120203K"]["metric_value"])
 
 
 def test_audit_admission_plan_package_against_core_reports_scope_drift(tmp_path: Path):

@@ -138,6 +138,17 @@ python3 scripts/build_package.py build-career-score \
 
 `career_civil_service_posts` 已登记国家公务员局下载资源 API。`download-scs-resources` 只下载配置筛选出的官方资源和 API 响应到 ignored `raw/career_civil_service_posts/{source_date}/`，manifest 记录 resource id、来源页、API URL、下载 URL、文件大小和 SHA-256。`parse-scs-position-workbook` 读取同一官方 ZIP 内 `.xls`，按 `config/career_data_sources.json.position_parser` 的列映射输出职位明细 CSV；`build-local` 可将该明细发布为 `fa_fact_civil_service_position` 数据包。`build-civil-service-signal-plan` 会把官方职位明细与职业目录做配置化关键词匹配，输出可复核的 `career_source_plan` 行，默认状态为 `in_progress`；人工确认后再用 `build-career-signal-from-source-plan` 生成 `fa_fact_career_signal`。该链路不会直接把职位匹配结果写入 core。真实 smoke：API 返回 8 个资源，配置筛出 1 个“中央机关及其直属机构2026年度考试录用公务员招考简章.zip”，下载 1,860,532 字节，SHA-256 为 `0055e7eb78906e2dcefb8e31963e2fd74baf980aa98893eebb54fd9d7f9176cb`；职位表解析出 20,714 条职位、招考人数合计 38,119；`2026_scs_civil_service_positions` 包 quality report 无错误、manifest 校验通过，core importer `--dry-run` 通过；用本地 core 73 条职业目录生成 49 条职业信号候选复核行，审计 `errors=[]`，初始复核批次 20 行。
 
+国考职位表还可派生专业 outcome，而不是只停留在职业信号。`build-major-outcome-from-civil-service` 会读取官方职位明细和 core 招生计划里的标准本科专业代码，按 `config/major_outcome_derivation.json` 的代码、专业类前缀和专业名规则聚合为 `fa_fact_major_outcome.civil_service_fit_score`。该分数是“方向适配信号”，口径明确包含本科专业、专业类和相近研究生专业要求，不等同于本科毕业即可直接报考。真实 run：用 20,714 条 2026 国考职位明细和当前 core 专业清单生成 `2026_major_civil_service_fit` 标准包 797 行，quality report 和 manifest 均无错误，core importer `--dry-run` 和本地实导均通过。
+
+```bash
+python3 scripts/build_package.py build-major-outcome-from-civil-service \
+  --positions-csv exports/2026_scs_civil_service_positions/fa_fact_civil_service_position.csv \
+  --core-db /Users/dp/Documents/M/lifehack/backend/data/university.db \
+  --output-root exports \
+  --package-id 2026_major_civil_service_fit \
+  --metric-year 2026
+```
+
 `build-career-source-plan` 可选读取标准职业清单（`occupation_code/occupation_name/tdx_l2/tdx_l2_name`），把来源配置展开成“职业 × 指标 × 城市”的采集任务；`audit-career-source-plan` 检查状态、指标注册、证据 URL、摘录、来源日期和值域。采集执行时先用 `build-career-source-review-batch` 从总计划拆出小批 CSV，只补 `config/career_data_sources.json.review_batch.editable_columns` 允许的证据列，再用 `merge-career-source-review-batch` 回写总计划；职业、指标、城市、来源和目标表字段不会被批次覆盖。`build-career-signal-from-source-plan` 只读取完整状态的职业信号行，并复用标准数据包质量门禁生成 `fa_fact_career_signal`。采集源、指标口径、评分权重维护在 `config/career_data_sources.json`；目标表契约维护在 `config/source_schemas.json`。招聘平台数据只允许通过公开授权 API、官方附件、人工导出或可复核快照进入 raw，不在本项目写反爬绕过逻辑。
 
 当 core 已导入 `fa_dim_career_occupation` 时，`build-career-source-plan --core-db ...` 可只读读取职业目录生成采集任务，避免另存一份职业 CSV。真实 smoke 用本地 core DB 和 3 个职业目录行生成 12 条招聘快照任务；输出仍在 ignored staging/tmp，不是 data package。
