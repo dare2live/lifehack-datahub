@@ -104,6 +104,19 @@ python3 scripts/build_package.py build-career-score \
 
 真实 smoke：招聘快照来源生成 4 条职业信号采集任务，按 `limit_per_source=2` 拆出 2 条批次，原样合并 `updated_rows=0`，随后审计 `errors=[]`。输出均在 ignored `staging/`，不是 data package，也不会写 core。
 
+城市发展底盘评分不在 core 里直接计算。先由 DataHub 采集并复核 `fa_fact_city_economic_indicator`、`fa_fact_city_public_resource` 和 `fa_fact_city_listed_company_signal`，再统一生成 `fa_mart_city_development_score`：
+
+```bash
+python3 scripts/build_package.py build-city-development-score \
+  --economic-input cleaned/city_economic_indicator.csv \
+  --public-resource-input cleaned/city_public_resource.csv \
+  --listed-company-input cleaned/city_listed_company_signal.csv \
+  --output-root exports \
+  --package-id 2026_city_development_score
+```
+
+GDP、人均指标、医疗资源、教育资源、轨道交通、公共服务和上市公司产业厚度的评分范围与权重维护在 `config/city_development_score.json`。该 mart 只解释城市长期承载能力和机会密度，不直接决定录取分档。
+
 专业到城市就业机会的评分不直接写在 core。先用 `fa_bridge_major_employment_role` 表达专业可进入的直接岗位、通用职能岗位、公共部门/升学路径，再用 `fa_fact_company_role_demand_signal` 表达企业和上市公司岗位需求，最后生成 `fa_mart_major_city_employment_fit`：
 
 ```bash

@@ -1,0 +1,138 @@
+{
+  "version": "1",
+  "notes": "城市发展底盘评分配置。输入为城市经济指标、公共资源指标和上市公司城市信号，输出 fa_mart_city_development_score；指标归属、范围和权重均在本文件维护。",
+  "score_profile": {
+    "profile_id": "city_development_default",
+    "snapshot_date": "2026-05-13",
+    "minimum_component_count": 2
+  },
+  "component_weights": {
+    "economic_score": 0.30,
+    "industry_depth_score": 0.30,
+    "medical_resource_score": 0.15,
+    "education_resource_score": 0.15,
+    "public_service_score": 0.10
+  },
+  "economic_metrics": {
+    "gdp": {
+      "label": "地区生产总值",
+      "component": "economic_score",
+      "weight": 0.35,
+      "min": 500,
+      "max": 30000,
+      "polarity": "positive"
+    },
+    "gdp_per_capita": {
+      "label": "人均地区生产总值",
+      "component": "economic_score",
+      "weight": 0.25,
+      "min": 30000,
+      "max": 220000,
+      "polarity": "positive"
+    },
+    "urban_avg_wage": {
+      "label": "城镇平均工资",
+      "component": "economic_score",
+      "weight": 0.15,
+      "min": 50000,
+      "max": 180000,
+      "polarity": "positive"
+    },
+    "disposable_income_per_capita": {
+      "label": "人均可支配收入",
+      "component": "economic_score",
+      "weight": 0.15,
+      "min": 25000,
+      "max": 90000,
+      "polarity": "positive"
+    },
+    "tertiary_industry_share": {
+      "label": "第三产业占比",
+      "component": "public_service_score",
+      "weight": 0.10,
+      "min": 0.35,
+      "max": 0.85,
+      "polarity": "positive"
+    }
+  },
+  "public_resource_metrics": {
+    "hospital_beds_per_1000": {
+      "label": "每千人口医疗卫生机构床位数",
+      "component": "medical_resource_score",
+      "weight": 0.45,
+      "min": 2.5,
+      "max": 12,
+      "polarity": "positive"
+    },
+    "licensed_doctors_per_1000": {
+      "label": "每千人口执业医师数",
+      "component": "medical_resource_score",
+      "weight": 0.45,
+      "min": 1.5,
+      "max": 8,
+      "polarity": "positive"
+    },
+    "tertiary_hospital_count": {
+      "label": "三级医院数量",
+      "component": "medical_resource_score",
+      "weight": 0.10,
+      "min": 0,
+      "max": 80,
+      "polarity": "positive"
+    },
+    "higher_education_institution_count": {
+      "label": "普通高校数量",
+      "component": "education_resource_score",
+      "weight": 0.70,
+      "min": 0,
+      "max": 120,
+      "polarity": "positive"
+    },
+    "public_library_count": {
+      "label": "公共图书馆数量",
+      "component": "public_service_score",
+      "weight": 0.15,
+      "min": 0,
+      "max": 120,
+      "polarity": "positive"
+    },
+    "rail_transit_mileage": {
+      "label": "轨道交通运营里程",
+      "component": "public_service_score",
+      "weight": 0.35,
+      "min": 0,
+      "max": 900,
+      "polarity": "positive"
+    }
+  },
+  "listed_company_metrics": {
+    "listed_company_count": {
+      "label": "上市公司数量",
+      "component": "industry_depth_score",
+      "weight": 0.60,
+      "min": 0,
+      "max": 500,
+      "polarity": "positive"
+    },
+    "listed_company_tdx_l2_count": {
+      "label": "上市公司覆盖行业数",
+      "component": "industry_depth_score",
+      "weight": 0.25,
+      "min": 0,
+      "max": 80,
+      "polarity": "positive"
+    },
+    "listed_company_revenue_proxy": {
+      "label": "上市公司营收代理",
+      "component": "industry_depth_score",
+      "weight": 0.15,
+      "min": 0,
+      "max": 1000000000000,
+      "polarity": "positive"
+    }
+  },
+  "reason_thresholds": {
+    "strong_component_score": 70,
+    "weak_component_score": 35
+  }
+}

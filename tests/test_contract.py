@@ -24,6 +24,7 @@ from datahub.builders.career_source_batch import (
 )
 from datahub.builders.career_source_package import build_career_signal_package_from_source_plan
 from datahub.builders.career_source_plan import PLAN_COLUMNS as CAREER_PLAN_COLUMNS, build_career_source_plan
+from datahub.builders.city_development_score import build_city_development_score_package
 from datahub.builders.major_city_employment_fit import build_major_city_employment_fit_package
 from datahub.connectors.page_images import download_page_images
 from datahub.builders.outcome_collection_audit import audit_outcome_collection_plan
@@ -3071,6 +3072,185 @@ def test_build_career_score_package_from_signals(tmp_path: Path):
     assert int(float(rows[0]["signal_count"])) == 4
     lineage = json.loads(rows[0]["pit_lineage_json"])
     assert "fa_fact_career_signal" in lineage["tables"]
+
+
+def test_build_city_development_score_package(tmp_path: Path):
+    economic_input = tmp_path / "city_economic.csv"
+    with economic_input.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(
+            f,
+            fieldnames=[
+                "adcode",
+                "province",
+                "city",
+                "region_level",
+                "metric_key",
+                "metric_name",
+                "metric_value",
+                "metric_unit",
+                "metric_year",
+                "metric_scope",
+                "source_title",
+                "source_url",
+                "evidence_quote",
+                "source_date",
+                "availability_date",
+                "built_at",
+            ],
+        )
+        writer.writeheader()
+        base = {
+            "adcode": "210100",
+            "province": "辽宁",
+            "city": "沈阳",
+            "region_level": "city",
+            "metric_year": "2025",
+            "metric_scope": "年度统计",
+            "source_title": "fixture economic bulletin",
+            "source_date": "2026-05-13",
+            "availability_date": "2026-05-13",
+            "built_at": "2026-05-13T00:00:00",
+        }
+        for metric_key, metric_name, value, unit in [
+            ("gdp", "地区生产总值", 9000, "亿元"),
+            ("gdp_per_capita", "人均地区生产总值", 120000, "元"),
+            ("urban_avg_wage", "城镇平均工资", 105000, "元"),
+            ("tertiary_industry_share", "第三产业占比", 0.58, "ratio"),
+        ]:
+            writer.writerow({
+                **base,
+                "metric_key": metric_key,
+                "metric_name": metric_name,
+                "metric_value": value,
+                "metric_unit": unit,
+                "source_url": f"https://example.com/economic/{metric_key}",
+                "evidence_quote": f"{metric_name}{value}",
+            })
+
+    public_input = tmp_path / "city_public.csv"
+    with public_input.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(
+            f,
+            fieldnames=[
+                "adcode",
+                "province",
+                "city",
+                "region_level",
+                "resource_domain",
+                "metric_key",
+                "metric_name",
+                "metric_value",
+                "metric_unit",
+                "metric_year",
+                "metric_scope",
+                "source_title",
+                "source_url",
+                "evidence_quote",
+                "source_date",
+                "availability_date",
+                "built_at",
+            ],
+        )
+        writer.writeheader()
+        base = {
+            "adcode": "210100",
+            "province": "辽宁",
+            "city": "沈阳",
+            "region_level": "city",
+            "metric_year": "2025",
+            "metric_scope": "年度统计",
+            "source_title": "fixture public resource",
+            "source_date": "2026-05-13",
+            "availability_date": "2026-05-13",
+            "built_at": "2026-05-13T00:00:00",
+        }
+        for domain, metric_key, metric_name, value, unit in [
+            ("medical", "hospital_beds_per_1000", "每千人口床位数", 7.2, "张/千人"),
+            ("medical", "licensed_doctors_per_1000", "每千人口医师数", 4.1, "人/千人"),
+            ("education", "higher_education_institution_count", "普通高校数量", 45, "所"),
+            ("transport", "rail_transit_mileage", "轨道交通运营里程", 220, "公里"),
+        ]:
+            writer.writerow({
+                **base,
+                "resource_domain": domain,
+                "metric_key": metric_key,
+                "metric_name": metric_name,
+                "metric_value": value,
+                "metric_unit": unit,
+                "source_url": f"https://example.com/public/{metric_key}",
+                "evidence_quote": f"{metric_name}{value}",
+            })
+
+    listed_input = tmp_path / "city_listed.csv"
+    with listed_input.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(
+            f,
+            fieldnames=[
+                "province",
+                "city",
+                "tdx_l2",
+                "tdx_l2_name",
+                "metric_key",
+                "metric_name",
+                "metric_value",
+                "metric_unit",
+                "metric_year",
+                "source_system",
+                "source_scope",
+                "source_date",
+                "availability_date",
+                "built_at",
+            ],
+        )
+        writer.writeheader()
+        base = {
+            "province": "辽宁",
+            "city": "沈阳",
+            "tdx_l2": "all",
+            "tdx_l2_name": "全部行业",
+            "metric_year": "2025",
+            "source_system": "fixture_snapshot",
+            "source_scope": "城市上市公司聚合",
+            "source_date": "2026-05-13",
+            "availability_date": "2026-05-13",
+            "built_at": "2026-05-13T00:00:00",
+        }
+        for metric_key, metric_name, value, unit in [
+            ("listed_company_count", "上市公司数量", 92, "count"),
+            ("listed_company_tdx_l2_count", "上市公司覆盖行业数", 26, "count"),
+            ("listed_company_revenue_proxy", "上市公司营收代理", 320000000000, "cny"),
+        ]:
+            writer.writerow({
+                **base,
+                "metric_key": metric_key,
+                "metric_name": metric_name,
+                "metric_value": value,
+                "metric_unit": unit,
+            })
+
+    result = build_city_development_score_package(
+        economic_input=economic_input,
+        public_resource_input=public_input,
+        listed_company_input=listed_input,
+        output_root=tmp_path / "exports",
+        package_id="pkg-city-development-score-test",
+        source_version="fixture-city-development",
+    )
+
+    package_dir = Path(result["package_dir"])
+    assert validate_manifest(package_dir / "manifest.json")["errors"] == []
+    assert result["rows"] == 1
+    with (package_dir / "fa_mart_city_development_score.csv").open(encoding="utf-8", newline="") as f:
+        rows = list(csv.DictReader(f))
+    row = rows[0]
+    assert row["adcode"] == "210100"
+    assert row["city"] == "沈阳"
+    assert row["score_profile"] == "city_development_default"
+    assert float(row["overall_score"]) > 0
+    contributions = json.loads(row["signal_contribution_json"])
+    assert "industry_depth_score" in contributions["components"]
+    lineage = json.loads(row["pit_lineage_json"])
+    assert "fa_fact_city_public_resource" in lineage["tables"]
 
 
 def test_build_major_city_employment_fit_package(tmp_path: Path):

@@ -23,6 +23,7 @@ from .builders.career_source_batch import (
 )
 from .builders.career_source_package import build_career_signal_package_from_source_plan
 from .builders.career_source_plan import build_career_source_plan
+from .builders.city_development_score import build_city_development_score_package
 from .builders.major_city_employment_fit import build_major_city_employment_fit_package
 from .builders.outcome_collection_batch import (
     build_outcome_collection_batch,
@@ -534,6 +535,20 @@ def main() -> int:
     build_major_city_employment_fit.add_argument("--source-version")
     build_major_city_employment_fit.add_argument("--role-sheet")
     build_major_city_employment_fit.add_argument("--demand-sheet")
+
+    build_city_development_score = sub.add_parser(
+        "build-city-development-score",
+        help="Build fa_mart_city_development_score from city economic, public resource, and listed-company signals",
+    )
+    build_city_development_score.add_argument("--economic-input", required=True, type=Path)
+    build_city_development_score.add_argument("--public-resource-input", required=True, type=Path)
+    build_city_development_score.add_argument("--listed-company-input", required=True, type=Path)
+    build_city_development_score.add_argument("--output-root", required=True, type=Path)
+    build_city_development_score.add_argument("--package-id")
+    build_city_development_score.add_argument("--source-version")
+    build_city_development_score.add_argument("--economic-sheet")
+    build_city_development_score.add_argument("--public-resource-sheet")
+    build_city_development_score.add_argument("--listed-company-sheet")
 
     parse_moe = sub.add_parser("parse-moe-major-catalog", help="Parse MOE major catalog PDF to cleaned CSV")
     parse_moe.add_argument("--input", required=True, type=Path)
@@ -1124,6 +1139,20 @@ def main() -> int:
             source_version=args.source_version,
             role_sheet=args.role_sheet,
             demand_sheet=args.demand_sheet,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+    if args.cmd == "build-city-development-score":
+        result = build_city_development_score_package(
+            economic_input=args.economic_input,
+            public_resource_input=args.public_resource_input,
+            listed_company_input=args.listed_company_input,
+            output_root=args.output_root,
+            package_id=args.package_id,
+            source_version=args.source_version,
+            economic_sheet=args.economic_sheet,
+            public_resource_sheet=args.public_resource_sheet,
+            listed_company_sheet=args.listed_company_sheet,
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
