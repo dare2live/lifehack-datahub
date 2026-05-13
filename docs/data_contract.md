@@ -50,7 +50,7 @@ python3 scripts/build_package.py build-local \
 
 ### 本地报考工作簿解析
 
-顾问本地已清洗“报考数据”工作簿通常不是目标表结构，而是多个 sheet 混合招生计划、学校/专业增强字段，以及 2022-2025 历史最低分/位次。DataHub 用 `config/ln_application_workbook.json` 维护 sheet 选择、批次、科类、字段别名、年份列和重复主键策略，再输出标准 cleaned CSV：
+本地已清洗“报考数据”工作簿通常不是目标表结构，而是多个 sheet 混合招生计划、学校/专业增强字段，以及 2022-2025 历史最低分/位次。DataHub 用 `config/ln_application_workbook.json` 维护 sheet 选择、批次、科类、字段别名、年份列和重复主键策略，再输出标准 cleaned CSV：
 
 ```bash
 python3 scripts/build_package.py parse-ln-application-workbook \
