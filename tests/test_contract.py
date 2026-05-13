@@ -52,6 +52,7 @@ from datahub.builders.outcome_collection_package import build_outcome_packages_f
 from datahub.builders.major_mapping_review import build_major_mapping_review_package
 from datahub.builders.local_package import build_local_package
 from datahub.builders.outcome_collection_plan import PLAN_COLUMNS as OUTCOME_PLAN_COLUMNS, build_outcome_collection_plan
+from datahub.builders.outcome_report_intake_plan import build_outcome_report_intake_plan
 from datahub.builders.outcome_report_extraction_plan import build_outcome_report_extraction_plan
 from datahub.builders.outcome_report_extraction_runner import run_outcome_report_extraction_plan
 from datahub.builders.outcome_report_source_audit import audit_outcome_report_source_plan
@@ -4491,6 +4492,41 @@ def test_audit_outcome_report_source_seeds_validates_config(tmp_path: Path):
     assert any(row["entity_name"] == "辽宁大学" for row in report["seed_rows"])
     assert any(row["entity_name"] == "吉林大学" and row["metric_year"] == 2024 for row in report["seed_rows"])
     assert (tmp_path / "seed_audit.json").exists()
+
+
+def test_build_outcome_report_intake_plan_requires_confirmed_url(tmp_path: Path):
+    plan = tmp_path / "outcome_collection_plan.csv"
+    rows = [
+        _outcome_plan_row("school", "10140", "辽宁大学", "employment_rate", status="todo", priority_rank="1"),
+        _outcome_plan_row("school", "10142", "沈阳工业大学", "employment_rate", status="todo", priority_rank="2"),
+    ]
+    rows[0]["metric_year"] = "2022"
+    rows[1]["metric_year"] = "2024"
+    _write_outcome_plan(plan, rows)
+    source_result = build_outcome_report_source_plan(
+        plan_csv=plan,
+        output_dir=tmp_path / "report_sources",
+        domains=["school"],
+    )
+    seeded_plan = tmp_path / "report_sources" / "outcome_report_source_plan_seeded.csv"
+    apply_outcome_report_source_seeds(
+        plan_csv=Path(source_result["csv"]),
+        output=seeded_plan,
+    )
+
+    result = build_outcome_report_intake_plan(
+        report_source_csv=seeded_plan,
+        output_dir=tmp_path / "report_intake",
+    )
+
+    assert result["ready_rows"] == 2
+    assert result["blocked_rows"] == 0
+    with Path(result["csv"]).open(encoding="utf-8", newline="") as f:
+        intake_rows = list(csv.DictReader(f))
+    assert {row["intake_status"] for row in intake_rows} == {"ready_for_intake"}
+    lnu = next(row for row in intake_rows if row["entity_name"] == "辽宁大学")
+    assert lnu["suggested_local_report_path"].startswith("raw/outcome_report/2022/")
+    assert lnu["candidate_report_url"] == "https://www.lnu.edu.cn/info/15026/78891.htm"
 
 
 def test_build_outcome_report_extraction_plan_requires_local_file(tmp_path: Path):

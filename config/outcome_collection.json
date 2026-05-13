@@ -111,6 +111,12 @@
     "ready_status": "ready",
     "blocked_status": "blocked"
   },
+  "report_intake_plan": {
+    "source_statuses": ["candidate_found", "verified", "ready"],
+    "local_path_template": "raw/outcome_report/{metric_year}/{domain}_{safe_entity_code}_{report_scope}/{safe_file_name}",
+    "ready_status": "ready_for_intake",
+    "blocked_status": "blocked"
+  },
   "domains": {
     "school": {
       "source_table": "fa_dim_ln_admission_plan",
