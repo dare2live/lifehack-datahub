@@ -24,6 +24,7 @@ from .builders.career_source_batch import (
 from .builders.career_source_package import build_career_signal_package_from_source_plan
 from .builders.career_source_plan import build_career_source_plan
 from .builders.city_development_score import build_city_development_score_package
+from .builders.city_listed_company_signal import build_city_listed_company_signal_package
 from .builders.major_city_employment_fit import build_major_city_employment_fit_package
 from .builders.outcome_collection_batch import (
     build_outcome_collection_batch,
@@ -549,6 +550,20 @@ def main() -> int:
     build_city_development_score.add_argument("--economic-sheet")
     build_city_development_score.add_argument("--public-resource-sheet")
     build_city_development_score.add_argument("--listed-company-sheet")
+
+    build_city_listed_company_signal = sub.add_parser(
+        "build-city-listed-company-signal",
+        help="Build fa_fact_city_listed_company_signal from a reviewed company-city snapshot",
+    )
+    build_city_listed_company_signal.add_argument("--company-input", required=True, type=Path)
+    build_city_listed_company_signal.add_argument("--output-root", required=True, type=Path)
+    build_city_listed_company_signal.add_argument("--package-id")
+    build_city_listed_company_signal.add_argument("--source-version")
+    build_city_listed_company_signal.add_argument("--sheet")
+    build_city_listed_company_signal.add_argument("--metric-year", type=int)
+    build_city_listed_company_signal.add_argument("--source-date")
+    build_city_listed_company_signal.add_argument("--availability-date")
+    build_city_listed_company_signal.add_argument("--source-system")
 
     parse_moe = sub.add_parser("parse-moe-major-catalog", help="Parse MOE major catalog PDF to cleaned CSV")
     parse_moe.add_argument("--input", required=True, type=Path)
@@ -1153,6 +1168,20 @@ def main() -> int:
             economic_sheet=args.economic_sheet,
             public_resource_sheet=args.public_resource_sheet,
             listed_company_sheet=args.listed_company_sheet,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+    if args.cmd == "build-city-listed-company-signal":
+        result = build_city_listed_company_signal_package(
+            company_input=args.company_input,
+            output_root=args.output_root,
+            package_id=args.package_id,
+            source_version=args.source_version,
+            sheet=args.sheet,
+            metric_year=args.metric_year,
+            source_date=args.source_date,
+            availability_date=args.availability_date,
+            source_system=args.source_system,
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0

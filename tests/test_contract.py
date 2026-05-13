@@ -25,6 +25,7 @@ from datahub.builders.career_source_batch import (
 from datahub.builders.career_source_package import build_career_signal_package_from_source_plan
 from datahub.builders.career_source_plan import PLAN_COLUMNS as CAREER_PLAN_COLUMNS, build_career_source_plan
 from datahub.builders.city_development_score import build_city_development_score_package
+from datahub.builders.city_listed_company_signal import build_city_listed_company_signal_package
 from datahub.builders.major_city_employment_fit import build_major_city_employment_fit_package
 from datahub.connectors.page_images import download_page_images
 from datahub.builders.outcome_collection_audit import audit_outcome_collection_plan
@@ -3251,6 +3252,62 @@ def test_build_city_development_score_package(tmp_path: Path):
     assert "industry_depth_score" in contributions["components"]
     lineage = json.loads(row["pit_lineage_json"])
     assert "fa_fact_city_public_resource" in lineage["tables"]
+
+
+def test_build_city_listed_company_signal_package(tmp_path: Path):
+    company_input = tmp_path / "company_city.csv"
+    with company_input.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(
+            f,
+            fieldnames=[
+                "stock_code",
+                "company_name",
+                "hq_province",
+                "hq_city",
+                "tdx_l2",
+                "tdx_l2_name",
+                "revenue_proxy",
+            ],
+        )
+        writer.writeheader()
+        for row in [
+            ("600001", "沈阳软件A", "辽宁", "沈阳市", "T1205", "软件服务", 1200000000),
+            ("600002", "沈阳装备B", "辽宁", "沈阳", "T1102", "专用设备", 3000000000),
+            ("600003", "沈阳装备C", "辽宁", "沈阳", "T1102", "专用设备", 1800000000),
+            ("600004", "大连软件D", "辽宁", "大连", "T1205", "软件服务", 900000000),
+            ("", "缺少代码", "辽宁", "沈阳", "T1205", "软件服务", 500000000),
+        ]:
+            writer.writerow({
+                "stock_code": row[0],
+                "company_name": row[1],
+                "hq_province": row[2],
+                "hq_city": row[3],
+                "tdx_l2": row[4],
+                "tdx_l2_name": row[5],
+                "revenue_proxy": row[6],
+            })
+
+    result = build_city_listed_company_signal_package(
+        company_input=company_input,
+        output_root=tmp_path / "exports",
+        package_id="pkg-city-listed-company-signal-test",
+        source_version="fixture-city-listed",
+        metric_year=2025,
+        source_date="2026-05-13",
+        availability_date="2026-05-13",
+        source_system="fixture_company_city",
+    )
+
+    package_dir = Path(result["package_dir"])
+    assert validate_manifest(package_dir / "manifest.json")["errors"] == []
+    with (package_dir / "fa_fact_city_listed_company_signal.csv").open(encoding="utf-8", newline="") as f:
+        rows = list(csv.DictReader(f))
+    by_city_metric = {(row["city"], row["metric_key"]): row for row in rows}
+    assert int(float(by_city_metric[("沈阳", "listed_company_count")]["metric_value"])) == 3
+    assert int(float(by_city_metric[("沈阳", "listed_company_tdx_l2_count")]["metric_value"])) == 2
+    assert int(float(by_city_metric[("沈阳", "listed_company_revenue_proxy")]["metric_value"])) == 6000000000
+    assert by_city_metric[("沈阳", "listed_company_count")]["source_scope"] == "city_total"
+    assert result["quality_report"]["errors"] == []
 
 
 def test_build_major_city_employment_fit_package(tmp_path: Path):

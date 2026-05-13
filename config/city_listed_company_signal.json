@@ -1,0 +1,50 @@
+{
+  "version": "1",
+  "notes": "城市上市公司信号聚合配置。输入为已复核的公司城市快照，输出 fa_fact_city_listed_company_signal；字段别名、聚合指标和快照口径在本文件维护。",
+  "source_defaults": {
+    "source_system": "company_city_snapshot",
+    "source_scope": "city_total",
+    "metric_year": 2026,
+    "source_date": "2026-05-13",
+    "availability_date": "2026-05-13"
+  },
+  "input_columns": {
+    "company_id": ["company_id", "stock_code", "股票代码", "证券代码"],
+    "company_name": ["company_name", "公司名称", "证券简称"],
+    "province": ["province", "hq_province", "省份", "所在省"],
+    "city": ["city", "hq_city", "registered_city", "城市", "总部城市", "注册城市"],
+    "tdx_l2": ["tdx_l2", "通达信二级行业代码", "行业代码"],
+    "tdx_l2_name": ["tdx_l2_name", "通达信二级行业", "行业名称"],
+    "market_cap_proxy": ["market_cap_proxy", "总市值", "市值代理"],
+    "revenue_proxy": ["revenue_proxy", "营业收入", "营收代理"]
+  },
+  "defaults": {
+    "tdx_l2": "all",
+    "tdx_l2_name": "全部行业",
+    "metric_unit": "count"
+  },
+  "metrics": {
+    "listed_company_count": {
+      "metric_name": "上市公司数量",
+      "metric_unit": "count",
+      "aggregation": "distinct_company_count"
+    },
+    "listed_company_tdx_l2_count": {
+      "metric_name": "上市公司覆盖行业数",
+      "metric_unit": "count",
+      "aggregation": "distinct_tdx_l2_count"
+    },
+    "listed_company_market_cap_proxy": {
+      "metric_name": "上市公司市值代理",
+      "metric_unit": "cny",
+      "aggregation": "sum",
+      "input_field": "market_cap_proxy"
+    },
+    "listed_company_revenue_proxy": {
+      "metric_name": "上市公司营收代理",
+      "metric_unit": "cny",
+      "aggregation": "sum",
+      "input_field": "revenue_proxy"
+    }
+  }
+}

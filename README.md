@@ -104,6 +104,19 @@ python3 scripts/build_package.py build-career-score \
 
 真实 smoke：招聘快照来源生成 4 条职业信号采集任务，按 `limit_per_source=2` 拆出 2 条批次，原样合并 `updated_rows=0`，随后审计 `errors=[]`。输出均在 ignored `staging/`，不是 data package，也不会写 core。
 
+城市上市公司信号由已复核的公司城市快照聚合，不直接读取或写入 ChunkyMonkey。字段别名、默认口径和聚合指标维护在 `config/city_listed_company_signal.json`：
+
+```bash
+python3 scripts/build_package.py build-city-listed-company-signal \
+  --company-input cleaned/company_city_snapshot.csv \
+  --output-root exports \
+  --package-id 2026_city_listed_company_signal \
+  --metric-year 2026 \
+  --source-date 2026-05-13
+```
+
+输出 `fa_fact_city_listed_company_signal` 后，再作为城市发展底盘评分的上市公司产业厚度输入。
+
 城市发展底盘评分不在 core 里直接计算。先由 DataHub 采集并复核 `fa_fact_city_economic_indicator`、`fa_fact_city_public_resource` 和 `fa_fact_city_listed_company_signal`，再统一生成 `fa_mart_city_development_score`：
 
 ```bash
