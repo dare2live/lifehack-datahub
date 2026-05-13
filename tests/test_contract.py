@@ -497,6 +497,41 @@ def test_probe_source_candidates_reports_accessible_file(tmp_path: Path, monkeyp
     assert output.exists()
 
 
+def test_probe_source_candidates_detects_configured_antibot_marker(tmp_path: Path, monkeypatch):
+    source = tmp_path / "challenge.html"
+    body = "<html><script>$_ts={};</script></html>"
+    source.write_text(body, encoding="utf-8")
+
+    def fake_sources():
+        return {
+            "sources": {
+                "fixture_source": {
+                    "name": "Fixture Source",
+                    "probe": {"blocked_content_markers": ["$_ts"]},
+                    "research_candidates": [
+                        {
+                            "label": "local challenge",
+                            "kind": "fixture_page",
+                            "url": source.resolve().as_uri(),
+                            "source_date": "2026-05-13",
+                            "expected_table": "fa_fact_fixture",
+                        }
+                    ],
+                }
+            }
+        }
+
+    monkeypatch.setattr("datahub.connectors.source_candidates.load_sources", fake_sources)
+
+    report = probe_source_candidates("fixture_source")
+    assert report["candidate_count"] == 1
+    assert report["accessible_count"] == 0
+    assert report["blocked_by_antibot_count"] == 1
+    assert report["candidates"][0]["probe_status"] == "blocked_by_antibot"
+    assert report["candidates"][0]["blocked_marker"] == "$_ts"
+    assert report["candidates"][0]["sha256"] == hashlib.sha256(body.encode("utf-8")).hexdigest()
+
+
 def test_audit_sources_marks_admission_plan_manual():
     report = audit_sources()
     by_key = {item["source_key"]: item for item in report["sources"]}

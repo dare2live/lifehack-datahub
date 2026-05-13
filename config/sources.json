@@ -196,6 +196,13 @@
       "kind": "official_score_distribution",
       "owner": "lifehack-datahub",
       "raw_glob": "raw/ln_score_distribution/**/*",
+      "probe": {
+        "blocked_content_markers": [
+          "A2Kal8hczzgd",
+          "$_ts",
+          "Precondition Failed"
+        ]
+      },
       "remote_files": [
         {
           "url": "https://www.lnzsks.com/lnzkbfiles/2025/2025gk1f1d0624wl001.pdf",

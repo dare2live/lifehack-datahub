@@ -29,9 +29,16 @@ def probe_source_candidates(
     candidates = source.get("research_candidates") or []
     if not isinstance(candidates, list):
         raise ValueError(f"{source_key}.research_candidates must be a list")
+    blocked_markers = _blocked_content_markers(source)
 
     rows = [
-        _probe_candidate(source_key, item, timeout=timeout, max_bytes=max_bytes)
+        _probe_candidate(
+            source_key,
+            item,
+            timeout=timeout,
+            max_bytes=max_bytes,
+            blocked_markers=blocked_markers,
+        )
         for item in candidates
     ]
     report = {
@@ -41,6 +48,7 @@ def probe_source_candidates(
         "candidate_count": len(rows),
         "accessible_count": sum(1 for row in rows if row["probe_status"] == "accessible"),
         "inaccessible_count": sum(1 for row in rows if row["probe_status"] == "inaccessible"),
+        "blocked_by_antibot_count": sum(1 for row in rows if row["probe_status"] == "blocked_by_antibot"),
         "too_large_count": sum(1 for row in rows if row["probe_status"] == "too_large"),
         "candidates": rows,
         "notes": "Research probe only. Accessible candidates still need source-specific parser and configured sha256 before promotion to remote_files.",
@@ -57,6 +65,7 @@ def _probe_candidate(
     *,
     timeout: int,
     max_bytes: int,
+    blocked_markers: list[str],
 ) -> dict[str, Any]:
     if not isinstance(item, dict):
         raise ValueError(f"{source_key}.research_candidates item must be an object")
@@ -77,7 +86,7 @@ def _probe_candidate(
         with urlopen(request, timeout=timeout) as response:
             return {
                 **base,
-                **_response_digest(response, max_bytes=max_bytes),
+                **_response_digest(response, max_bytes=max_bytes, blocked_markers=blocked_markers),
             }
     except HTTPError as exc:
         return {
@@ -101,9 +110,10 @@ def _probe_candidate(
         }
 
 
-def _response_digest(response: Any, *, max_bytes: int) -> dict[str, Any]:
+def _response_digest(response: Any, *, max_bytes: int, blocked_markers: list[str]) -> dict[str, Any]:
     h = hashlib.sha256()
     size = 0
+    sample = bytearray()
     while True:
         chunk = response.read(1024 * 1024)
         if not chunk:
@@ -119,6 +129,20 @@ def _response_digest(response: Any, *, max_bytes: int) -> dict[str, Any]:
                 "error": f"candidate exceeded max_bytes={max_bytes}",
             }
         h.update(chunk)
+        if len(sample) < 64 * 1024:
+            sample.extend(chunk[: 64 * 1024 - len(sample)])
+
+    blocked_marker = _matched_blocked_marker(bytes(sample), blocked_markers)
+    if blocked_marker:
+        return {
+            "probe_status": "blocked_by_antibot",
+            "http_status": _status_code(response),
+            "content_type": response.headers.get("Content-Type"),
+            "size_bytes": size,
+            "sha256": h.hexdigest(),
+            "blocked_marker": blocked_marker,
+            "error": f"response matched configured blocked content marker: {blocked_marker}",
+        }
     return {
         "probe_status": "accessible",
         "http_status": _status_code(response),
@@ -127,6 +151,24 @@ def _response_digest(response: Any, *, max_bytes: int) -> dict[str, Any]:
         "sha256": h.hexdigest(),
         "error": None,
     }
+
+
+def _blocked_content_markers(source: dict[str, Any]) -> list[str]:
+    probe_config = source.get("probe") or {}
+    markers = probe_config.get("blocked_content_markers") or []
+    if not isinstance(markers, list) or not all(isinstance(marker, str) for marker in markers):
+        raise ValueError("source.probe.blocked_content_markers must be a string list")
+    return [marker for marker in markers if marker]
+
+
+def _matched_blocked_marker(sample: bytes, markers: list[str]) -> str | None:
+    if not markers or not sample:
+        return None
+    sample_text = sample.decode("utf-8", errors="ignore")
+    for marker in markers:
+        if marker in sample_text:
+            return marker
+    return None
 
 
 def _status_code(response: Any) -> int | None:
