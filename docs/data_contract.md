@@ -204,7 +204,7 @@ python3 scripts/build_package.py parse-ln-projection-score \
   --password VelvetSweatshop
 ```
 
-`ln_projection_score` 当前配置覆盖 2024-2025 辽宁招生考试之窗附件，以及 2023 中国教育在线转载镜像附件。2023 镜像页面标注来源为辽宁招生考试之窗，但仍按镜像来源记录，不替代辽宁官网原始长期源。
+`ln_projection_score` 当前配置覆盖 2023-2025 辽宁招生考试之窗附件。2023 附件通过辽宁招生考试之窗官方页面 `IMS_20230720_42967_xuHWw7pSO3.htm` 反查得到，HTTP 200、Excel 文件类型和 SHA-256 均已核验。
 
 ## 辽宁成绩统计表与历史位次派生
 

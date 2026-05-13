@@ -275,7 +275,7 @@ python3 scripts/build_package.py audit-score-source-coverage \
   --report staging/source_research/score_source_coverage.json
 ```
 
-当前配置下，2025 为官方远程文件可派生；2024 投档最低分是辽宁官网附件、一分一段仍用镜像 PDF 加官方图片页留痕；2023 两类输入均含镜像降级；2022 投档最低分已补辽宁招生考试之窗官方附件直链，历史类 `2022ptlbk0720w01.xlsx`、物理类 `2022ptlbk0720l01.xlsx` 已核验 HTTP 200、文件类型和 SHA-256，`parse-ln-projection-score` 可解析 14,203 行。2022 一分一段官方图片源已在 `page_image_sources` 标记 `parse_mode=grid_image_table`，覆盖审计识别为 `official_image_derivable`；导入 core 前仍必须走 raw manifest、quality report 和 importer dry-run。
+当前配置下，2025 为官方远程文件可派生；2024 投档最低分是辽宁官网附件、一分一段仍用镜像 PDF 加官方图片页留痕；2023 投档最低分已升级为辽宁官网附件，一分一段仍用镜像 PDF 加官方图片页留痕；2022 投档最低分已补辽宁招生考试之窗官方附件直链，历史类 `2022ptlbk0720w01.xlsx`、物理类 `2022ptlbk0720l01.xlsx` 已核验 HTTP 200、文件类型和 SHA-256，`parse-ln-projection-score` 可解析 14,203 行。2022 一分一段官方图片源已在 `page_image_sources` 标记 `parse_mode=grid_image_table`，覆盖审计识别为 `official_image_derivable`；导入 core 前仍必须走 raw manifest、quality report 和 importer dry-run。
 
 真实 smoke：2022 辽宁招生考试之窗官方投档最低分附件 + 2022 官方图片表格一分一段，已生成 `2022_ln_score_history_derived_official_projection_grid` 包，`fa_fact_ln_score_history` 14,203 行，quality report 无错误，manifest 校验通过，core importer `--dry-run` 通过。只读对账显示与当前 core 2022 本科批普通类存在代码体系和旧值差异，`safe_to_import_without_reconciliation=false`：package 14,203 行、core scoped 14,195 行、matched 6,363 行、package-only 7,840 行、core-only 7,832 行、different 3,712 行，另有 3,055 个同分同位次但专业代码不同的候选对。已生成 `staging/score_history_reconciliation_2022_official_projection_grid` 复核计划 16,963 行和初始 100 行小批；未复核前构建可导入包和 delete plan 均会被拒绝。
 

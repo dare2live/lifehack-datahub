@@ -3697,7 +3697,7 @@ def test_audit_score_source_coverage_tracks_derivation_gaps(tmp_path: Path):
     assert by_year[2024]["derivation_status"] == "derivable_with_mirror_inputs"
     assert by_year[2024]["score_distribution"]["official_page_image_count"] >= 1
     assert by_year[2024]["score_distribution"]["official_grid_image_group_count"] == 2
-    assert by_year[2023]["projection_status"] == "mirror_remote_ready"
+    assert by_year[2023]["projection_status"] == "official_remote_ready"
     assert by_year[2023]["score_distribution"]["official_grid_image_group_count"] == 2
     assert by_year[2022]["projection_status"] == "official_remote_ready"
     assert by_year[2022]["score_distribution"]["official_grid_image_count"] == 2

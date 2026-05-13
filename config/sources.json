@@ -75,24 +75,24 @@
           "notes": "辽宁招生考试之窗官方附件 URL，发现路径为中国教育在线/高考资讯网转载页；HTTP 200 和 sha256 已核验。"
         },
         {
-          "url": "https://gaokao.eol.cn/liao_ning/dongtai/202307/W020230721364135487901.xlsx",
+          "url": "https://www.lnzsks.com/lnzkbfiles/2023/2023gkptlfsx0720w.xlsx",
           "file_name": "ln_projection_score_2023_history.xlsx",
           "source_date": "2023-07-21",
           "sha256": "6e24bf8344504805cc804b4099fb8c8e2faa5c88a30e8d1d845e9b8b357f2cf8",
           "headers": {
             "User-Agent": "Mozilla/5.0"
           },
-          "notes": "中国教育在线转载附件，页面标注来源为辽宁招生考试之窗；作为可追踪镜像来源保存，不替代辽宁官网原始长期源。"
+          "notes": "辽宁招生考试之窗 2023 普通类本科批历史学科类投档最低分官方附件；HTTP 200、Excel 文件类型和 sha256 已核验。"
         },
         {
-          "url": "https://gaokao.eol.cn/liao_ning/dongtai/202307/W020230721364135490483.xlsx",
+          "url": "https://www.lnzsks.com/lnzkbfiles/2023/2023gkptlfsx0720l.xlsx",
           "file_name": "ln_projection_score_2023_physics.xlsx",
           "source_date": "2023-07-21",
           "sha256": "20673c0427506fe21b08d7c322d848ae013040f83d6d58a096c871096dec457d",
           "headers": {
             "User-Agent": "Mozilla/5.0"
           },
-          "notes": "中国教育在线转载附件，页面标注来源为辽宁招生考试之窗；作为可追踪镜像来源保存，不替代辽宁官网原始长期源。"
+          "notes": "辽宁招生考试之窗 2023 普通类本科批物理学科类投档最低分官方附件；HTTP 200、Excel 文件类型和 sha256 已核验。"
         },
         {
           "url": "https://www.lnzsks.com/lnzkbfiles/2024/2024gkbkptdxosiexie01w.zip",
@@ -179,14 +179,15 @@
       },
       "acquisition": {
         "status": "remote_configured",
-        "official_distribution": "辽宁招生考试之窗官网附件；2023 年目前保留中国教育在线转载镜像",
+        "official_distribution": "辽宁招生考试之窗官网附件",
         "evidence_urls": [
           "https://gaokao.eol.cn/liao_ning/dongtai/202207/t20220721_2238836.shtml",
           "https://www.gkzxw.com/gxzs/202207/65892.html",
           "https://www.gkzxw.com/gxzs/202207/65893.html",
+          "https://www.lnzsks.com/newsinfo/IMS_20230720_42967_xuHWw7pSO3.htm",
           "https://gaokao.eol.cn/liao_ning/dongtai/202307/t20230721_2453642.shtml"
         ],
-        "notes": "投档最低分是年度投档结果，不包含最低位次，不能替代 fa_fact_ln_score_history。2022 已找到辽宁招生考试之窗官方附件直链并核验 hash；2023 仍为中国教育在线转载镜像，需继续寻找辽宁官网原始长期源。"
+        "notes": "投档最低分是年度投档结果，不包含最低位次，不能替代 fa_fact_ln_score_history。2022 和 2023 已找到辽宁招生考试之窗官方附件直链并核验 hash。"
       },
       "target_tables": ["fa_fact_ln_projection_score"]
     },
