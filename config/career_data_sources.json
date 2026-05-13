@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "updated_at": "2026-05-13",
+  "updated_at": "2026-05-14",
   "notes": "职业相关数据源和加工规则。DataHub 负责采集、清洗、加工；core 只导入 fa_ 数据包，不直接爬站或解析原始文件。",
   "defaults": {
     "status": "todo",
@@ -153,13 +153,14 @@
         "name": "招聘需求与薪资快照",
         "kind": "controlled_market_snapshot",
         "target_tables": ["fa_fact_career_signal"],
-        "official_distribution": "招聘平台公开聚合页、企业招聘页、第三方报告；遵守目标站点 ToS，优先人工导出或公开数据集",
+        "official_distribution": "人社部门公开供求分析、招聘平台公开聚合页、企业招聘页、第三方报告；遵守目标站点 ToS，优先官方公开报告、人工导出或公开数据集",
         "collection_methods": ["manual_platform_export", "controlled_html_snapshot", "api_adapter_when_allowed"],
         "evidence_urls": [],
-        "metrics": ["job_posting_count", "salary_median", "salary_p75", "work_intensity_index"],
+        "metrics": ["job_posting_count", "shortage_rank", "salary_median", "salary_p75", "work_intensity_index"],
         "query_templates": [
           "{entity_name} 招聘 薪资 {city} {metric_year}",
-          "{entity_name} 岗位 JD 加班 强度 {city}"
+          "{entity_name} 岗位 JD 加班 强度 {city}",
+          "{city} 人力资源市场 供求 状况 分析 {entity_name} {metric_year}"
         ],
         "notes": "不在本项目维护平台反爬绕过逻辑；只保留可复现、可引用、可人工复核的快照。"
       },
@@ -247,6 +248,13 @@
       "unit": "count",
       "min_value": 0,
       "score": {"component": "growth_score", "weight": 0.18, "method": "range", "min": 0, "max": 5000, "polarity": "positive"}
+    },
+    "shortage_rank": {
+      "label": "紧缺职业排行",
+      "unit": "rank",
+      "min_value": 1,
+      "max_value": 100,
+      "score": {"component": "growth_score", "weight": 0.08, "method": "range", "min": 1, "max": 30, "polarity": "negative"}
     },
     "salary_median": {
       "label": "月薪中位数",

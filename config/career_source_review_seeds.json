@@ -611,6 +611,48 @@
       "reviewer": "codex",
       "reviewed_at": "2026-05-14",
       "review_note": "官方薪酬调查表为年度工资价位；按12个月折算为月薪，保留原始年度值在口径中。"
+    },
+    {
+      "seed_id": "guangzhou2025_q4_shortage_computer_network",
+      "source_key": "career_recruitment_snapshot",
+      "target_table": "fa_fact_career_signal",
+      "occupation_code": "2-02-10-04",
+      "occupation_name": "计算机网络工程技术人员",
+      "metric_key": "shortage_rank",
+      "metric_year": 2025,
+      "city": "广州",
+      "status": "verified",
+      "metric_value": 12,
+      "metric_scope": "广州市2025年第四季度人力资源市场供求状况分析，紧缺职业排行，数值越小表示紧缺程度越高。",
+      "source_title": "广州市2025年第四季度人力资源市场供求状况分析",
+      "source_url": "https://www.gz.gov.cn/zfjg/gzsrlzyhshbzj/zdly/jycy/jctj/content/post_10758141.html",
+      "evidence_quote": "计算机网络工程技术人员排名12。",
+      "source_date": "2026-04-08",
+      "availability_date": "2026-04-08",
+      "reviewer": "codex",
+      "reviewed_at": "2026-05-14",
+      "review_note": "来源为广州市人社局公开供求分析；按公开排行录入，不等同于岗位绝对数量。"
+    },
+    {
+      "seed_id": "guangzhou2025_q4_shortage_computer_software",
+      "source_key": "career_recruitment_snapshot",
+      "target_table": "fa_fact_career_signal",
+      "occupation_code": "2-02-10-03",
+      "occupation_name": "计算机软件工程技术人员",
+      "metric_key": "shortage_rank",
+      "metric_year": 2025,
+      "city": "广州",
+      "status": "verified",
+      "metric_value": 15,
+      "metric_scope": "广州市2025年第四季度人力资源市场供求状况分析，紧缺职业排行，数值越小表示紧缺程度越高。",
+      "source_title": "广州市2025年第四季度人力资源市场供求状况分析",
+      "source_url": "https://www.gz.gov.cn/zfjg/gzsrlzyhshbzj/zdly/jycy/jctj/content/post_10758141.html",
+      "evidence_quote": "计算机软件工程技术人员排名15。",
+      "source_date": "2026-04-08",
+      "availability_date": "2026-04-08",
+      "reviewer": "codex",
+      "reviewed_at": "2026-05-14",
+      "review_note": "来源为广州市人社局公开供求分析；按公开排行录入，不等同于岗位绝对数量。"
     }
   ]
 }

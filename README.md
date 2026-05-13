@@ -138,9 +138,11 @@ python3 scripts/build_package.py build-career-score \
 
 `career_civil_service_posts` 已登记国家公务员局下载资源 API。`download-scs-resources` 只下载配置筛选出的官方资源和 API 响应到 ignored `raw/career_civil_service_posts/{source_date}/`，manifest 记录 resource id、来源页、API URL、下载 URL、文件大小和 SHA-256。`parse-scs-position-workbook` 读取同一官方 ZIP 内 `.xls`，按 `config/career_data_sources.json.position_parser` 的列映射输出职位明细 CSV；`build-local` 可将该明细发布为 `fa_fact_civil_service_position` 数据包。`build-civil-service-signal-plan` 会把官方职位明细与职业目录做配置化关键词匹配，输出可复核的 `career_source_plan` 行，默认状态为 `in_progress`；人工确认后再用 `build-career-signal-from-source-plan` 生成 `fa_fact_career_signal`。该链路不会直接把职位匹配结果写入 core。真实 smoke：API 返回 8 个资源，配置筛出 1 个“中央机关及其直属机构2026年度考试录用公务员招考简章.zip”，下载 1,860,532 字节，SHA-256 为 `0055e7eb78906e2dcefb8e31963e2fd74baf980aa98893eebb54fd9d7f9176cb`；职位表解析出 20,714 条职位、招考人数合计 38,119；`2026_scs_civil_service_positions` 包 quality report 无错误、manifest 校验通过，core importer `--dry-run` 通过。职业信号匹配已把“数据/环境/农业/设计/电子/海洋”等宽词列入 `keyword_stopwords`，并改用更具体短语；当前用本地 core 73 条职业目录生成 44 条候选复核行，审计 `errors=[]`，top10 复核批次按 `review_batch.sort` 优先抽取公考岗位数最高候选。证据摘录会优先展示命中关键词更多、更具体的职位，并在摘录中标注 `命中：...`；如果关键词来自职位简介或备注，摘录会同步带出对应片段，避免人工复核只看到专业字段却看不到命中来源。真实 run 已小批复核 21 条高置信职业信号，生成 `2026_career_signal_civil_service_verified_v1` 和 `2026_career_score_civil_service_verified_v1` 标准包，两个包 manifest 校验和 core importer dry-run 均通过；23 条宽词或重复细分候选保持 `in_progress`。
 
-上述 21 条复核结论已沉淀为 `config/career_source_review_seeds.json`，只记录职业、指标、年份、城市、状态和复核理由，不提交原始职位明细。薪酬调查类种子允许携带已核对的 `metric_value/source_title/source_url/evidence_quote/metric_scope`，用于从受控报告直接重放完整职业信号。`audit-career-source-review-seeds` 可检查种子合法性，`apply-career-source-review-seeds` 可把种子重放到重新生成的 `career_source_plan`；当前种子共 36 条，其中 21 条来自国考职位表、15 条来自宁波 2024 年薪酬调查。
+上述 21 条复核结论已沉淀为 `config/career_source_review_seeds.json`，只记录职业、指标、年份、城市、状态和复核理由，不提交原始职位明细。薪酬调查和招聘快照类种子允许携带已核对的 `metric_value/source_title/source_url/evidence_quote/metric_scope`，用于从受控报告直接重放完整职业信号。`audit-career-source-review-seeds` 可检查种子合法性，`apply-career-source-review-seeds` 可把种子重放到重新生成的 `career_source_plan`；当前种子共 38 条，其中 21 条来自国考职位表、15 条来自宁波 2024 年薪酬调查、2 条来自广州 2025 年第四季度人力资源市场供求分析。
 
 薪酬调查第一批真实 run：以本地 core 的 73 条职业目录生成宁波 2024 年 `career_salary_survey` 采集计划 219 行，重放 15 条已核种子，覆盖计算机软件、计算机网络、信息安全、自动控制、通信 5 个职业的 `salary_p25/salary_median/salary_p75`。`audit-career-source-plan` 返回 `errors=[]`，生成 `2024_ningbo_salary_career_signal_v1`（`fa_fact_career_signal` 15 行）和 `2024_ningbo_salary_career_score_v1`（`fa_mart_career_score` 5 行），manifest 校验、core importer dry-run 和本地实导均通过。主项目已把 career signal/score 的导入模式调整为 `upsert_or_replace_package`，后续小批薪资、招聘或强度包不会覆盖已有国考信号。
+
+招聘紧缺第一批真实 run：以本地 core 的 73 条职业目录生成广州 2025 年 `career_recruitment_snapshot` 采集计划 365 行，重放广州市人社局 2025 年第四季度公开供求分析中的 2 条已核种子，覆盖计算机网络、计算机软件 2 个职业的 `shortage_rank`。`audit-career-source-plan` 返回 `errors=[]`，生成 `2025_guangzhou_shortage_career_signal_v1`（`fa_fact_career_signal` 2 行）和 `2025_guangzhou_shortage_career_score_v1`（`fa_mart_career_score` 2 行），manifest 校验、core importer dry-run 和本地实导均通过。该批只有单一紧缺排行信号，职业评分保留 `below_minimum_signal_count`，表示它是增长侧证据，不是完整职业画像。
 
 国考职位表还可派生专业 outcome，而不是只停留在职业信号。`build-major-outcome-from-civil-service` 会读取官方职位明细和 core 招生计划里的标准本科专业代码，按 `config/major_outcome_derivation.json` 的代码、专业类前缀和专业名规则聚合为 `fa_fact_major_outcome.civil_service_fit_score`。该分数是“方向适配信号”，口径明确包含本科专业、专业类和相近研究生专业要求，不等同于本科毕业即可直接报考。真实 run：用 20,714 条 2026 国考职位明细和当前 core 专业清单生成 `2026_major_civil_service_fit` 标准包 797 行，quality report 和 manifest 均无错误，core importer `--dry-run` 和本地实导均通过。
 
@@ -159,7 +161,7 @@ python3 scripts/build_package.py build-major-outcome-from-civil-service \
 
 真实 smoke：招聘快照来源生成 4 条职业信号采集任务，按 `limit_per_source=2` 拆出 2 条批次，原样合并 `updated_rows=0`，随后审计 `errors=[]`。输出均在 ignored `staging/`，不是 data package，也不会写 core。
 
-`audit-career-source-coverage` 只审计配置覆盖，不采集数据。当前 7 个职业信号指标都已被至少一个来源承接：公考/编制指标来自官方职位表入口，招聘数量、薪资和工作强度来自受控招聘快照或薪酬调查。该报告会标出哪些来源是官方入口、哪些仍需人工快照，避免后续把无证据口径直接写入 `fa_fact_career_signal`。
+`audit-career-source-coverage` 只审计配置覆盖，不采集数据。当前 8 个职业信号指标都已被至少一个来源承接：公考/编制指标来自官方职位表入口，招聘数量、紧缺排行、薪资和工作强度来自受控招聘快照或薪酬调查。该报告会标出哪些来源是官方入口、哪些仍需人工快照，避免后续把无证据口径直接写入 `fa_fact_career_signal`。
 
 规范化语义层用于解决城市、学校、校区、专业、职业、行业、企业和指标在不同来源中的重复命名问题。实体与别名进入 `fa_dim_entity_registry/fa_bridge_entity_alias`，指标与别名进入 `fa_dim_metric_registry/fa_bridge_metric_alias`；清洗步骤、匹配置信度、模型入参门禁和输出策略维护在 `config/entity_normalization.json`。后续 builder 不应在业务逻辑里重复写“沈阳/沈阳市/辽宁沈阳”或“软件工程师/后端开发/程序员”这类临时清洗规则。
 

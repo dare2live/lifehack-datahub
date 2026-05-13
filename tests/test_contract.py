@@ -2953,6 +2953,7 @@ def test_outcome_metric_registry_requires_metric_scope(tmp_path: Path):
 def test_build_career_source_plan_from_config(tmp_path: Path):
     config = load_career_data_sources()
     assert "salary_median" in config["metrics"]
+    assert "shortage_rank" in config["metrics"]
     occupations = tmp_path / "occupations.csv"
     with occupations.open("w", encoding="utf-8", newline="") as f:
         writer = csv.DictWriter(
@@ -2975,7 +2976,7 @@ def test_build_career_source_plan_from_config(tmp_path: Path):
         occupation_input=occupations,
     )
 
-    assert result["rows"] == 6
+    assert result["rows"] == 7
     with Path(result["csv"]).open(encoding="utf-8", newline="") as f:
         rows = list(csv.DictReader(f))
     assert set(rows[0]).issuperset(CAREER_PLAN_COLUMNS)
@@ -3026,13 +3027,14 @@ def test_build_career_source_plan_from_core_catalog(tmp_path: Path):
         occupation_limit=1,
     )
 
-    assert result["rows"] == 4
+    assert result["rows"] == 5
     with Path(result["csv"]).open(encoding="utf-8", newline="") as f:
         rows = list(csv.DictReader(f))
     assert {row["occupation_name"] for row in rows} == {"互联网营销师"}
     assert {row["tdx_l2"] for row in rows} == {"T0502"}
     assert {row["metric_key"] for row in rows} == {
         "job_posting_count",
+        "shortage_rank",
         "salary_median",
         "salary_p75",
         "work_intensity_index",
@@ -3703,13 +3705,25 @@ def test_apply_career_source_review_seeds_updates_matching_rows(tmp_path: Path):
         "city": "宁波",
         "metric_year": "2024",
     })
-    _write_career_plan(plan, [seeded, salary_seeded, pending])
+    shortage_seeded = _career_plan_row(
+        "career_recruitment_snapshot",
+        "fa_fact_career_signal",
+        "shortage_rank",
+        status="todo",
+    )
+    shortage_seeded.update({
+        "occupation_code": "2-02-10-04",
+        "occupation_name": "计算机网络工程技术人员",
+        "city": "广州",
+        "metric_year": "2025",
+    })
+    _write_career_plan(plan, [seeded, salary_seeded, shortage_seeded, pending])
 
     output = tmp_path / "career_source_plan_seeded.csv"
     report = apply_career_source_review_seeds(plan_csv=plan, output=output)
-    assert report["matched_rows"] == 2
-    assert report["updated_rows"] == 2
-    assert report["unmatched_seeds"] == audit["seed_count"] - 2
+    assert report["matched_rows"] == 3
+    assert report["updated_rows"] == 3
+    assert report["unmatched_seeds"] == audit["seed_count"] - 3
 
     with output.open(encoding="utf-8", newline="") as f:
         rows = list(csv.DictReader(f))
@@ -3723,6 +3737,11 @@ def test_apply_career_source_review_seeds_updates_matching_rows(tmp_path: Path):
     assert software_salary["metric_value"] == "13584"
     assert software_salary["source_title"] == "宁波市2024年度薪酬调查信息"
     assert "年度50%位163009元折算月薪" in software_salary["metric_scope"]
+    network_shortage = by_key[("career_recruitment_snapshot", "2-02-10-04", "广州", "shortage_rank")]
+    assert network_shortage["status"] == "verified"
+    assert network_shortage["metric_value"] == "12"
+    assert network_shortage["metric_unit"] == "rank"
+    assert network_shortage["source_title"] == "广州市2025年第四季度人力资源市场供求状况分析"
     assert by_key[("career_civil_service_posts", "4-04-05-02", "全国", "civil_service_post_count")]["status"] == "in_progress"
 
 
@@ -6947,12 +6966,14 @@ def _career_plan_row(
     metric_label = {
         "salary_median": "月薪中位数",
         "salary_p75": "月薪75分位",
+        "shortage_rank": "紧缺职业排行",
         "work_intensity_index": "工作强度指数",
         "civil_service_post_count": "公考岗位数",
     }.get(metric_key, metric_key)
     metric_unit = {
         "salary_median": "cny_month",
         "salary_p75": "cny_month",
+        "shortage_rank": "rank",
         "work_intensity_index": "score",
         "civil_service_post_count": "count",
     }.get(metric_key, "")
