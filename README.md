@@ -137,9 +137,14 @@ python3 scripts/build_package.py merge-city-context-review-batch \
   --plan-csv staging/city_context/city_context_collection_plan.csv \
   --batch-csv staging/city_context/review_batches/city_context_review_batch.csv \
   --output staging/city_context/city_context_collection_plan.reviewed.csv
+
+python3 scripts/build_package.py build-city-context-from-collection-plan \
+  --plan-csv staging/city_context/city_context_collection_plan.reviewed.csv \
+  --output-root exports \
+  --package-id 2026_city_context_{domain}
 ```
 
-采集计划不是 data package，不能导入 core。只有证据列完整并通过审计的行，才允许整理为 `fa_fact_city_economic_indicator` 或 `fa_fact_city_public_resource` 标准表，再通过 `build-local` 出包。
+采集计划不是 data package，不能导入 core。只有证据列完整并通过审计的行，才允许由 `build-city-context-from-collection-plan` 转成 `fa_fact_city_economic_indicator` 或 `fa_fact_city_public_resource` 标准包。
 
 城市发展底盘评分不在 core 里直接计算。先由 DataHub 采集并复核 `fa_fact_city_economic_indicator`、`fa_fact_city_public_resource` 和 `fa_fact_city_listed_company_signal`，再统一生成 `fa_mart_city_development_score`：
 

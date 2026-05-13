@@ -28,6 +28,7 @@ from .builders.city_context_collection_batch import (
     build_city_context_review_batch,
     merge_city_context_review_batch,
 )
+from .builders.city_context_collection_package import build_city_context_packages_from_collection_plan
 from .builders.city_context_collection_plan import build_city_context_collection_plan
 from .builders.city_development_score import build_city_development_score_package
 from .builders.city_listed_company_signal import build_city_listed_company_signal_package
@@ -603,6 +604,16 @@ def main() -> int:
     merge_city_context_batch.add_argument("--plan-csv", required=True, type=Path)
     merge_city_context_batch.add_argument("--batch-csv", required=True, type=Path)
     merge_city_context_batch.add_argument("--output", required=True, type=Path)
+
+    build_city_context_from_plan = sub.add_parser(
+        "build-city-context-from-collection-plan",
+        help="Build city economic/public-resource packages from audited complete collection rows",
+    )
+    build_city_context_from_plan.add_argument("--plan-csv", required=True, type=Path)
+    build_city_context_from_plan.add_argument("--output-root", required=True, type=Path)
+    build_city_context_from_plan.add_argument("--domain", action="append", dest="domains")
+    build_city_context_from_plan.add_argument("--package-id")
+    build_city_context_from_plan.add_argument("--source-version")
 
     parse_moe = sub.add_parser("parse-moe-major-catalog", help="Parse MOE major catalog PDF to cleaned CSV")
     parse_moe.add_argument("--input", required=True, type=Path)
@@ -1252,6 +1263,16 @@ def main() -> int:
             plan_csv=args.plan_csv,
             batch_csv=args.batch_csv,
             output=args.output,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+    if args.cmd == "build-city-context-from-collection-plan":
+        result = build_city_context_packages_from_collection_plan(
+            plan_csv=args.plan_csv,
+            output_root=args.output_root,
+            domains=args.domains,
+            package_id=args.package_id,
+            source_version=args.source_version,
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0

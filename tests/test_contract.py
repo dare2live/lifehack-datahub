@@ -29,6 +29,7 @@ from datahub.builders.city_context_collection_batch import (
     build_city_context_review_batch,
     merge_city_context_review_batch,
 )
+from datahub.builders.city_context_collection_package import build_city_context_packages_from_collection_plan
 from datahub.builders.city_context_collection_plan import build_city_context_collection_plan
 from datahub.builders.city_development_score import build_city_development_score_package
 from datahub.builders.city_listed_company_signal import build_city_listed_company_signal_package
@@ -3373,6 +3374,20 @@ def test_build_and_audit_city_context_collection_plan(tmp_path: Path):
     merged_audit = audit_city_context_collection_plan(Path(merge["output"]))
     assert merged_audit["progress"]["complete_rows"] == 1
     assert merged_audit["errors"] == []
+    package_result = build_city_context_packages_from_collection_plan(
+        plan_csv=Path(merge["output"]),
+        output_root=tmp_path / "exports",
+        domains=["economic"],
+        package_id="pkg-city-context-{domain}",
+        source_version="fixture-city-context",
+    )
+    assert len(package_result["packages"]) == 1
+    package_dir = Path(package_result["packages"][0]["package_dir"])
+    assert validate_manifest(package_dir / "manifest.json")["errors"] == []
+    with (package_dir / "fa_fact_city_economic_indicator.csv").open(encoding="utf-8", newline="") as f:
+        package_rows = list(csv.DictReader(f))
+    assert package_rows[0]["metric_key"] == batch_rows[0]["metric_key"]
+    assert package_rows[0]["city"] == "沈阳"
 
     reviewed = tmp_path / "city_context_reviewed.csv"
     rows[0]["status"] = "verified"
