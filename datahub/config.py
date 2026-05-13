@@ -45,6 +45,11 @@ def load_career_data_sources() -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def load_career_source_review_seeds() -> dict[str, Any]:
+    path = CONFIG_DIR / "career_source_review_seeds.json"
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
 def load_major_city_employment_fit() -> dict[str, Any]:
     path = CONFIG_DIR / "major_city_employment_fit.json"
     return json.loads(path.read_text(encoding="utf-8"))

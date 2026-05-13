@@ -27,6 +27,10 @@ from datahub.builders.career_source_batch import (
 )
 from datahub.builders.career_source_package import build_career_signal_package_from_source_plan
 from datahub.builders.career_source_plan import PLAN_COLUMNS as CAREER_PLAN_COLUMNS, build_career_source_plan
+from datahub.builders.career_source_seed_merge import (
+    apply_career_source_review_seeds,
+    audit_career_source_review_seeds,
+)
 from datahub.builders.city_context_collection_audit import audit_city_context_collection_plan
 from datahub.builders.city_context_collection_batch import (
     build_city_context_review_batch,
@@ -3601,6 +3605,57 @@ def test_build_career_source_review_batch_limits_pending_rows(tmp_path: Path):
     ]
     assert "source_url" in manifest["editable_columns"]
     assert manifest["sort"][1] == {"field": "metric_value", "type": "number", "direction": "desc"}
+
+
+def test_apply_career_source_review_seeds_updates_matching_rows(tmp_path: Path):
+    audit = audit_career_source_review_seeds()
+    assert audit["errors"] == []
+    assert audit["seed_count"] >= 20
+    assert audit["status_counts"]["verified"] >= 20
+
+    plan = tmp_path / "career_source_plan.csv"
+    seeded = _career_plan_row(
+        "career_civil_service_posts",
+        "fa_fact_career_signal",
+        "civil_service_post_count",
+        status="in_progress",
+    )
+    seeded.update({
+        "occupation_code": "2-02-10-03",
+        "occupation_name": "计算机软件工程技术人员",
+        "city": "全国",
+        "source_title": "中央机关及其直属机构2026年度考试录用公务员招考简章",
+        "source_url": "http://dl.scs.gov.cn/download/resource-main",
+        "evidence_quote": "专业：软件工程，命中：软件",
+        "source_date": "2025-10-14",
+        "availability_date": "2025-10-14",
+    })
+    pending = _career_plan_row(
+        "career_civil_service_posts",
+        "fa_fact_career_signal",
+        "civil_service_post_count",
+        status="in_progress",
+    )
+    pending.update({
+        "occupation_code": "4-04-05-02",
+        "occupation_name": "计算机软件测试员",
+        "city": "全国",
+    })
+    _write_career_plan(plan, [seeded, pending])
+
+    output = tmp_path / "career_source_plan_seeded.csv"
+    report = apply_career_source_review_seeds(plan_csv=plan, output=output)
+    assert report["matched_rows"] == 1
+    assert report["updated_rows"] == 1
+    assert report["unmatched_seeds"] == audit["seed_count"] - 1
+
+    with output.open(encoding="utf-8", newline="") as f:
+        rows = list(csv.DictReader(f))
+    by_code = {row["occupation_code"]: row for row in rows}
+    assert by_code["2-02-10-03"]["status"] == "verified"
+    assert by_code["2-02-10-03"]["reviewer"] == "codex"
+    assert "seed_review=" in by_code["2-02-10-03"]["notes"]
+    assert by_code["4-04-05-02"]["status"] == "in_progress"
 
 
 def test_merge_career_source_review_batch_updates_only_editable_columns(tmp_path: Path):

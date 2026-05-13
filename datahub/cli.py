@@ -25,6 +25,10 @@ from .builders.career_source_batch import (
 )
 from .builders.career_source_package import build_career_signal_package_from_source_plan
 from .builders.career_source_plan import build_career_source_plan
+from .builders.career_source_seed_merge import (
+    apply_career_source_review_seeds,
+    audit_career_source_review_seeds,
+)
 from .builders.city_context_collection_audit import audit_city_context_collection_plan
 from .builders.city_context_collection_batch import (
     build_city_context_review_batch,
@@ -654,6 +658,21 @@ def main() -> int:
     merge_career_source_batch_parser.add_argument("--batch-csv", required=True, type=Path)
     merge_career_source_batch_parser.add_argument("--output", required=True, type=Path)
     merge_career_source_batch_parser.add_argument("--report", type=Path)
+
+    audit_career_source_review_seeds_parser = sub.add_parser(
+        "audit-career-source-review-seeds",
+        help="Audit configured career source review seeds",
+    )
+    audit_career_source_review_seeds_parser.add_argument("--report", type=Path)
+
+    apply_career_source_review_seeds_parser = sub.add_parser(
+        "apply-career-source-review-seeds",
+        help="Apply configured career source review seeds to a full career source plan",
+    )
+    apply_career_source_review_seeds_parser.add_argument("--plan-csv", required=True, type=Path)
+    apply_career_source_review_seeds_parser.add_argument("--output", required=True, type=Path)
+    apply_career_source_review_seeds_parser.add_argument("--report", type=Path)
+    apply_career_source_review_seeds_parser.add_argument("--overwrite", action="store_true")
 
     build_career_signal_from_plan = sub.add_parser(
         "build-career-signal-from-source-plan",
@@ -1535,6 +1554,19 @@ def main() -> int:
         if args.report:
             args.report.parent.mkdir(parents=True, exist_ok=True)
             args.report.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        print(json.dumps(report, ensure_ascii=False, indent=2))
+        return 0
+    if args.cmd == "audit-career-source-review-seeds":
+        report = audit_career_source_review_seeds(report_path=args.report)
+        print(json.dumps(report, ensure_ascii=False, indent=2))
+        return 0
+    if args.cmd == "apply-career-source-review-seeds":
+        report = apply_career_source_review_seeds(
+            plan_csv=args.plan_csv,
+            output=args.output,
+            report_path=args.report,
+            overwrite=args.overwrite,
+        )
         print(json.dumps(report, ensure_ascii=False, indent=2))
         return 0
     if args.cmd == "build-career-signal-from-source-plan":
