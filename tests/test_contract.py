@@ -25,6 +25,10 @@ from datahub.builders.career_source_batch import (
 from datahub.builders.career_source_package import build_career_signal_package_from_source_plan
 from datahub.builders.career_source_plan import PLAN_COLUMNS as CAREER_PLAN_COLUMNS, build_career_source_plan
 from datahub.builders.city_context_collection_audit import audit_city_context_collection_plan
+from datahub.builders.city_context_collection_batch import (
+    build_city_context_review_batch,
+    merge_city_context_review_batch,
+)
 from datahub.builders.city_context_collection_plan import build_city_context_collection_plan
 from datahub.builders.city_development_score import build_city_development_score_package
 from datahub.builders.city_listed_company_signal import build_city_listed_company_signal_package
@@ -3338,6 +3342,37 @@ def test_build_and_audit_city_context_collection_plan(tmp_path: Path):
     audit = audit_city_context_collection_plan(Path(result["csv"]))
     assert audit["errors"] == []
     assert audit["progress"]["pending_rows"] == 13
+
+    batch = build_city_context_review_batch(
+        plan_csv=Path(result["csv"]),
+        output_dir=tmp_path / "city_context_batch",
+        domains=["economic"],
+        limit_per_domain=2,
+    )
+    assert batch["rows"] == 2
+    with Path(batch["csv"]).open(encoding="utf-8", newline="") as f:
+        batch_rows = list(csv.DictReader(f))
+    batch_rows[0]["status"] = "verified"
+    batch_rows[0]["metric_value"] = "9000"
+    batch_rows[0]["source_title"] = "fixture bulletin"
+    batch_rows[0]["source_url"] = "https://example.com/shenyang-gdp"
+    batch_rows[0]["evidence_quote"] = "地区生产总值9000亿元"
+    batch_rows[0]["source_date"] = "2026-05-13"
+    batch_rows[0]["availability_date"] = "2026-05-13"
+    edited_batch = tmp_path / "city_context_batch_edited.csv"
+    with edited_batch.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=batch_rows[0].keys())
+        writer.writeheader()
+        writer.writerows(batch_rows)
+    merge = merge_city_context_review_batch(
+        plan_csv=Path(result["csv"]),
+        batch_csv=edited_batch,
+        output=tmp_path / "city_context_merged.csv",
+    )
+    assert merge["updated_rows"] == 1
+    merged_audit = audit_city_context_collection_plan(Path(merge["output"]))
+    assert merged_audit["progress"]["complete_rows"] == 1
+    assert merged_audit["errors"] == []
 
     reviewed = tmp_path / "city_context_reviewed.csv"
     rows[0]["status"] = "verified"

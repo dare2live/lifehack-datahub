@@ -127,6 +127,16 @@ python3 scripts/build_package.py build-city-context-collection-plan \
 
 python3 scripts/build_package.py audit-city-context-collection-plan \
   --plan-csv staging/city_context/city_context_collection_plan.csv
+
+python3 scripts/build_package.py build-city-context-review-batch \
+  --plan-csv staging/city_context/city_context_collection_plan.csv \
+  --output-dir staging/city_context/review_batches \
+  --limit-per-domain 20
+
+python3 scripts/build_package.py merge-city-context-review-batch \
+  --plan-csv staging/city_context/city_context_collection_plan.csv \
+  --batch-csv staging/city_context/review_batches/city_context_review_batch.csv \
+  --output staging/city_context/city_context_collection_plan.reviewed.csv
 ```
 
 采集计划不是 data package，不能导入 core。只有证据列完整并通过审计的行，才允许整理为 `fa_fact_city_economic_indicator` 或 `fa_fact_city_public_resource` 标准表，再通过 `build-local` 出包。

@@ -24,6 +24,10 @@ from .builders.career_source_batch import (
 from .builders.career_source_package import build_career_signal_package_from_source_plan
 from .builders.career_source_plan import build_career_source_plan
 from .builders.city_context_collection_audit import audit_city_context_collection_plan
+from .builders.city_context_collection_batch import (
+    build_city_context_review_batch,
+    merge_city_context_review_batch,
+)
 from .builders.city_context_collection_plan import build_city_context_collection_plan
 from .builders.city_development_score import build_city_development_score_package
 from .builders.city_listed_company_signal import build_city_listed_company_signal_package
@@ -582,6 +586,23 @@ def main() -> int:
         help="Audit city context collection plan evidence readiness",
     )
     audit_city_context_plan.add_argument("--plan-csv", required=True, type=Path)
+
+    build_city_context_batch = sub.add_parser(
+        "build-city-context-review-batch",
+        help="Build a local review batch from pending city context collection rows",
+    )
+    build_city_context_batch.add_argument("--plan-csv", required=True, type=Path)
+    build_city_context_batch.add_argument("--output-dir", required=True, type=Path)
+    build_city_context_batch.add_argument("--domain", action="append", dest="domains")
+    build_city_context_batch.add_argument("--limit-per-domain", type=int)
+
+    merge_city_context_batch = sub.add_parser(
+        "merge-city-context-review-batch",
+        help="Merge an edited city context review batch back into the full collection plan",
+    )
+    merge_city_context_batch.add_argument("--plan-csv", required=True, type=Path)
+    merge_city_context_batch.add_argument("--batch-csv", required=True, type=Path)
+    merge_city_context_batch.add_argument("--output", required=True, type=Path)
 
     parse_moe = sub.add_parser("parse-moe-major-catalog", help="Parse MOE major catalog PDF to cleaned CSV")
     parse_moe.add_argument("--input", required=True, type=Path)
@@ -1215,6 +1236,23 @@ def main() -> int:
         return 0
     if args.cmd == "audit-city-context-collection-plan":
         result = audit_city_context_collection_plan(plan_csv=args.plan_csv)
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+    if args.cmd == "build-city-context-review-batch":
+        result = build_city_context_review_batch(
+            plan_csv=args.plan_csv,
+            output_dir=args.output_dir,
+            domains=args.domains,
+            limit_per_domain=args.limit_per_domain,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+    if args.cmd == "merge-city-context-review-batch":
+        result = merge_city_context_review_batch(
+            plan_csv=args.plan_csv,
+            batch_csv=args.batch_csv,
+            output=args.output,
+        )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
     if args.cmd == "parse-moe-major-catalog":
