@@ -106,6 +106,7 @@ from datahub.builders.school_location_geocode_plan import build_school_location_
 from datahub.connectors.amap_web_api import fetch_amap_web_api
 from datahub.connectors.manual_files import intake_manual_assets
 from datahub.connectors.macos_vision_ocr import ocr_page_images
+from datahub.connectors.outcome_report_download import download_outcome_report_intake_assets
 from datahub.connectors.remote_files import download_remote_assets
 from datahub.connectors.registry import discover_assets
 from datahub.connectors.source_candidates import probe_source_candidates
@@ -4686,6 +4687,85 @@ def test_build_outcome_report_intake_plan_requires_confirmed_url(tmp_path: Path)
     assert lnu["candidate_report_url"] == "https://www.lnu.edu.cn/info/15026/78891.htm"
 
 
+def test_download_outcome_report_intake_assets_follows_html_attachment(tmp_path: Path, monkeypatch):
+    intake_csv = tmp_path / "outcome_report_intake_plan.csv"
+    target_pdf = tmp_path / "raw" / "outcome_report" / "2024" / "report.pdf"
+    row = {
+        "domain": "school",
+        "entity_code": "10140",
+        "entity_name": "辽宁大学",
+        "metric_year": "2024",
+        "report_scope": "undergraduate_teaching_quality_report",
+        "candidate_report_title": "辽宁大学2023-2024学年本科教学质量报告",
+        "candidate_report_url": "https://example.edu/info/1.htm",
+        "candidate_file_name": "辽宁大学2023-2024学年本科教学质量报告.pdf",
+        "candidate_source_date": "2024-12-06",
+        "availability_date": "2024-12-06",
+        "suggested_local_report_path": str(target_pdf),
+        "local_report_path": "",
+        "intake_status": "ready_for_intake",
+        "block_reason": "",
+        "source_status": "candidate_found",
+        "notes": "",
+    }
+    with intake_csv.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=list(row))
+        writer.writeheader()
+        writer.writerow(row)
+
+    class FakeHeaders:
+        def __init__(self, content_type: str):
+            self._content_type = content_type
+
+        def get(self, name: str, default=None):
+            return self._content_type if name == "Content-Type" else default
+
+    class FakeResponse:
+        def __init__(self, url: str, body: bytes, content_type: str):
+            self._url = url
+            self._body = body
+            self.headers = FakeHeaders(content_type)
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def read(self):
+            return self._body
+
+        def geturl(self):
+            return self._url
+
+    def fake_urlopen(request, timeout=60):
+        url = request.full_url
+        if url.endswith("/info/1.htm"):
+            html = '<html><body><a href="/system/download.jsp?id=1">辽宁大学2023-2024学年本科教学质量报告.pdf</a></body></html>'
+            return FakeResponse(url, html.encode("utf-8"), "text/html; charset=utf-8")
+        if url.endswith("/system/download.jsp?id=1"):
+            return FakeResponse(url, b"%PDF-1.4 fixture", "application/x-download")
+        raise AssertionError(url)
+
+    monkeypatch.setattr("datahub.connectors.outcome_report_download.urlopen", fake_urlopen)
+
+    output = tmp_path / "outcome_report_intake_plan.downloaded.csv"
+    report = download_outcome_report_intake_assets(
+        intake_csv=intake_csv,
+        output=output,
+    )
+
+    assert report["downloaded_rows"] == 1
+    assert report["failed_rows"] == 0
+    assert target_pdf.read_bytes() == b"%PDF-1.4 fixture"
+    with output.open(encoding="utf-8", newline="") as f:
+        rows = list(csv.DictReader(f))
+    assert rows[0]["intake_status"] == "downloaded"
+    assert rows[0]["local_report_path"] == str(target_pdf)
+    assert rows[0]["download_url"] == "https://example.edu/system/download.jsp?id=1"
+    assert rows[0]["download_sha256"] == hashlib.sha256(b"%PDF-1.4 fixture").hexdigest()
+
+
 def test_merge_outcome_report_intake_results_requires_existing_file(tmp_path: Path):
     plan = tmp_path / "outcome_collection_plan.csv"
     rows = [
@@ -4764,6 +4844,8 @@ def test_build_outcome_report_extraction_plan_requires_local_file(tmp_path: Path
     local_pdf = tmp_path / "raw" / "lnu2025.pdf"
     local_pdf.parent.mkdir(parents=True)
     local_pdf.write_bytes(b"%PDF-1.4\n")
+    local_ofd = tmp_path / "raw" / "lnu2025.ofd"
+    local_ofd.write_bytes(b"ofd fixture")
     source_rows[0].update({
         "status": "verified",
         "candidate_report_title": "辽宁大学2025届毕业生就业质量报告",
@@ -4778,6 +4860,7 @@ def test_build_outcome_report_extraction_plan_requires_local_file(tmp_path: Path
         "candidate_report_url": "https://example.edu/lnu_teaching2025.pdf",
         "candidate_source_date": "2025-12-31",
         "availability_date": "2026-01-05",
+        "local_report_path": str(local_ofd),
     })
     report_source_csv = tmp_path / "outcome_report_source_plan_verified.csv"
     with report_source_csv.open("w", encoding="utf-8", newline="") as f:
@@ -4799,7 +4882,7 @@ def test_build_outcome_report_extraction_plan_requires_local_file(tmp_path: Path
     assert extraction_rows[0]["input_path"] == str(local_pdf)
     assert extraction_rows[0]["output_path"].endswith("school_10140_2025_employment_quality_report_candidates.csv")
     assert extraction_rows[1]["extraction_status"] == "blocked"
-    assert extraction_rows[1]["block_reason"] == "missing_local_report_path"
+    assert extraction_rows[1]["block_reason"] == "unsupported_report_format"
 
 
 def test_run_outcome_report_extraction_plan_writes_candidate_csv(tmp_path: Path, monkeypatch):

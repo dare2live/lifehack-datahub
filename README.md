@@ -722,9 +722,13 @@ python3 scripts/build_package.py build-outcome-report-intake-plan \
   --report-source-csv staging/outcome_report_sources/outcome_report_source_plan.seeded.csv \
   --output-dir staging/outcome_report_intake
 
+python3 scripts/build_package.py download-outcome-report-intake-assets \
+  --intake-csv staging/outcome_report_intake/outcome_report_intake_plan.csv \
+  --output staging/outcome_report_intake/outcome_report_intake_plan.downloaded.csv
+
 python3 scripts/build_package.py merge-outcome-report-intake-results \
   --report-source-csv staging/outcome_report_sources/outcome_report_source_plan.seeded.csv \
-  --intake-csv staging/outcome_report_intake/outcome_report_intake_plan.reviewed.csv \
+  --intake-csv staging/outcome_report_intake/outcome_report_intake_plan.downloaded.csv \
   --output staging/outcome_report_sources/outcome_report_source_plan.with_paths.csv \
   --report staging/outcome_report_intake/outcome_report_intake_merge.json
 
@@ -737,7 +741,7 @@ python3 scripts/build_package.py run-outcome-report-extraction-plan \
   --report staging/outcome_report_candidates/outcome_report_extraction_report.json
 ```
 
-`config/outcome_report_sources.json` 保存已经确认的学校/专业报告来源种子，例如辽宁大学 2022 届毕业生就业质量报告，以及辽宁大学、吉林大学、辽宁工程技术大学、东北财经大学、沈阳工业大学、大连交通大学 2023-2024 学年本科教学质量报告。先用 `audit-outcome-report-source-seeds` 检查种子 ID、必填字段、URL 和状态是否符合配置，再用 `apply-outcome-report-source-seeds` 合并到 report-source plan，状态变成 `candidate_found`。随后用 `build-outcome-report-intake-plan` 生成受控下载/本地登记清单；人工或脚本下载报告后，把 `local_report_path` 和 `intake_status=downloaded` 回填到 intake CSV，再用 `merge-outcome-report-intake-results` 写回 report-source plan。只有本地报告路径真实存在的行会被推进到 `ready`，`build-outcome-report-extraction-plan` 才会进入 ready；PDF 下载、受控 intake、本地文件路径、候选提取、人工核对和 outcome 数据包生成仍然是彼此独立的门禁。
+`config/outcome_report_sources.json` 保存已经确认的学校/专业报告来源种子，例如辽宁大学 2022 届毕业生就业质量报告，以及辽宁大学、吉林大学、辽宁工程技术大学、东北财经大学、沈阳工业大学、大连交通大学 2023-2024 学年本科教学质量报告。先用 `audit-outcome-report-source-seeds` 检查种子 ID、必填字段、URL 和状态是否符合配置，再用 `apply-outcome-report-source-seeds` 合并到 report-source plan，状态变成 `candidate_found`。随后用 `build-outcome-report-intake-plan` 生成受控下载/本地登记清单；`download-outcome-report-intake-assets` 可读取该清单，从官方 HTML 页面中匹配报告附件或直接下载文件，写入 ignored raw 路径并输出带 `local_report_path/intake_status=downloaded` 的 CSV；也可以人工补同样字段。再用 `merge-outcome-report-intake-results` 写回 report-source plan。只有本地报告路径真实存在的行会被推进到 `ready`，`build-outcome-report-extraction-plan` 才会进入 ready；当前自动候选提取只支持 PDF，OFD 或验证码下载页会保持 blocked/manual intake，不进入候选提取。PDF 下载、受控 intake、本地文件路径、候选提取、人工核对和 outcome 数据包生成仍然是彼此独立的门禁。
 
 采集计划 CSV 预留 `metric_value/source_url/evidence_quote/metric_scope` 等证据列，人工或后续采集器补齐后，可先跑审计报告确认指标、状态和证据完整度：
 

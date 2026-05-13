@@ -96,6 +96,7 @@ from .config import get_table_schema
 from .connectors.amap_web_api import fetch_amap_web_api
 from .connectors.manual_files import intake_manual_assets
 from .connectors.macos_vision_ocr import ocr_page_images
+from .connectors.outcome_report_download import download_outcome_report_intake_assets
 from .connectors.page_images import download_page_images
 from .connectors.registry import discover_assets, list_source_keys
 from .connectors.remote_files import download_remote_assets
@@ -531,6 +532,14 @@ def main() -> int:
     build_outcome_report_intake.add_argument("--report-source-csv", required=True, type=Path)
     build_outcome_report_intake.add_argument("--output-dir", required=True, type=Path)
     build_outcome_report_intake.add_argument("--status", action="append", dest="statuses")
+
+    download_outcome_report_intake = sub.add_parser(
+        "download-outcome-report-intake-assets",
+        help="Download report files listed in an outcome report intake plan",
+    )
+    download_outcome_report_intake.add_argument("--intake-csv", required=True, type=Path)
+    download_outcome_report_intake.add_argument("--output", required=True, type=Path)
+    download_outcome_report_intake.add_argument("--timeout", type=int, default=60)
 
     merge_outcome_report_intake = sub.add_parser(
         "merge-outcome-report-intake-results",
@@ -1360,6 +1369,14 @@ def main() -> int:
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
+    if args.cmd == "download-outcome-report-intake-assets":
+        result = download_outcome_report_intake_assets(
+            intake_csv=args.intake_csv,
+            output=args.output,
+            timeout=args.timeout,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0 if result["failed_rows"] == 0 else 1
     if args.cmd == "merge-outcome-report-intake-results":
         report = merge_outcome_report_intake_results(
             report_source_csv=args.report_source_csv,

@@ -126,8 +126,11 @@ def _build_rows(
 def _block_reason(input_path: str) -> str:
     if not input_path:
         return "missing_local_report_path"
-    if not Path(input_path).exists():
+    path = Path(input_path)
+    if not path.exists():
         return "local_report_path_not_found"
+    if path.suffix.lower() != ".pdf":
+        return "unsupported_report_format"
     return ""
 
 
