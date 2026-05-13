@@ -3691,21 +3691,39 @@ def test_apply_career_source_review_seeds_updates_matching_rows(tmp_path: Path):
         "occupation_name": "计算机软件测试员",
         "city": "全国",
     })
-    _write_career_plan(plan, [seeded, pending])
+    salary_seeded = _career_plan_row(
+        "career_salary_survey",
+        "fa_fact_career_signal",
+        "salary_median",
+        status="todo",
+    )
+    salary_seeded.update({
+        "occupation_code": "2-02-10-03",
+        "occupation_name": "计算机软件工程技术人员",
+        "city": "宁波",
+        "metric_year": "2024",
+    })
+    _write_career_plan(plan, [seeded, salary_seeded, pending])
 
     output = tmp_path / "career_source_plan_seeded.csv"
     report = apply_career_source_review_seeds(plan_csv=plan, output=output)
-    assert report["matched_rows"] == 1
-    assert report["updated_rows"] == 1
-    assert report["unmatched_seeds"] == audit["seed_count"] - 1
+    assert report["matched_rows"] == 2
+    assert report["updated_rows"] == 2
+    assert report["unmatched_seeds"] == audit["seed_count"] - 2
 
     with output.open(encoding="utf-8", newline="") as f:
         rows = list(csv.DictReader(f))
-    by_code = {row["occupation_code"]: row for row in rows}
-    assert by_code["2-02-10-03"]["status"] == "verified"
-    assert by_code["2-02-10-03"]["reviewer"] == "codex"
-    assert "seed_review=" in by_code["2-02-10-03"]["notes"]
-    assert by_code["4-04-05-02"]["status"] == "in_progress"
+    by_key = {(row["source_key"], row["occupation_code"], row["city"], row["metric_key"]): row for row in rows}
+    software_scs = by_key[("career_civil_service_posts", "2-02-10-03", "全国", "civil_service_post_count")]
+    assert software_scs["status"] == "verified"
+    assert software_scs["reviewer"] == "codex"
+    assert "seed_review=" in software_scs["notes"]
+    software_salary = by_key[("career_salary_survey", "2-02-10-03", "宁波", "salary_median")]
+    assert software_salary["status"] == "verified"
+    assert software_salary["metric_value"] == "13584"
+    assert software_salary["source_title"] == "宁波市2024年度薪酬调查信息"
+    assert "年度50%位163009元折算月薪" in software_salary["metric_scope"]
+    assert by_key[("career_civil_service_posts", "4-04-05-02", "全国", "civil_service_post_count")]["status"] == "in_progress"
 
 
 def test_merge_career_source_review_batch_updates_only_editable_columns(tmp_path: Path):

@@ -28,6 +28,16 @@ REQUIRED_SEED_FIELDS = [
     "review_note",
 ]
 
+OPTIONAL_SEED_COPY_FIELDS = [
+    "metric_value",
+    "metric_scope",
+    "source_title",
+    "source_url",
+    "evidence_quote",
+    "source_date",
+    "availability_date",
+]
+
 
 def audit_career_source_review_seeds(*, report_path: Path | None = None) -> dict[str, Any]:
     report = _audit_seed_config()
@@ -67,6 +77,10 @@ def apply_career_source_review_seeds(
         row["status"] = seed["status"]
         row["reviewer"] = seed["reviewer"]
         row["reviewed_at"] = seed["reviewed_at"]
+        for field in OPTIONAL_SEED_COPY_FIELDS:
+            value = str(seed.get(field) or "").strip()
+            if value:
+                row[field] = value
         row["notes"] = _append_note(row.get("notes", ""), seed["review_note"])
         updated += 1
 
