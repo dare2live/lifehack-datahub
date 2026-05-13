@@ -62,6 +62,8 @@ python3 scripts/build_package.py parse-ln-application-workbook \
 
 该入口只读 Excel，输出 `fa_dim_ln_admission_plan` 与 `fa_fact_ln_score_history` 两张 cleaned CSV 及解析报告，不生成 data package、不写 core。确认 `duplicate_counts` 和 `ignored_sheets` 后，再用 `build-local` 进入数据包契约。默认配置只接收普通类本科批 `物理类/历史类` sheet，特殊类型、提前批、艺术/体育/专科需增加 profile 或 sheet rule 后再解析，避免把不同录取规则混进同一批次。
 
+真实 smoke：`26年本科批报考数据8.27.xlsx` 已先通过 `intake-manual --source-key ln_application_workbook` 登记到 ignored raw 区，`_intake_manifest.json` 记录本地原文件 SHA-256、来源说明、证据链接和采集人；再从 raw 副本解析出 14,196 条招生计划、46,597 条历史分数/位次。随后分别用 `build-local --source-key ln_admission_plan` 和 `build-local --source-key ln_score_history` 携带同一 intake manifest 生成 `2026_ln_application_workbook_plan_intake` 与 `2026_ln_application_workbook_score_history_intake` 包，两个包 manifest 校验无错误，并已通过 core importer `--dry-run`。Excel、cleaned CSV、raw 和 exports 均为本地 ignored 产物，不进入 Git。
+
 招生计划包进入实际 core 之前必须先做只读对账。`audit-admission-plan-package-against-core` 按 `config/source_schemas.json` 中 `fa_dim_ln_admission_plan.audit` 的 scope 和 compare 列输出匹配、package-only、core-only、字段差异与样本；它不导入、不删除、不修改 `university.db`：
 
 ```bash
