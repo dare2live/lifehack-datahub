@@ -50,6 +50,7 @@ from datahub.builders.major_mapping_review import build_major_mapping_review_pac
 from datahub.builders.local_package import build_local_package
 from datahub.builders.outcome_collection_plan import PLAN_COLUMNS as OUTCOME_PLAN_COLUMNS, build_outcome_collection_plan
 from datahub.builders.outcome_report_extraction_plan import build_outcome_report_extraction_plan
+from datahub.builders.outcome_report_extraction_runner import run_outcome_report_extraction_plan
 from datahub.builders.outcome_report_source_audit import audit_outcome_report_source_plan
 from datahub.builders.outcome_report_source_plan import build_outcome_report_source_plan
 from datahub.builders.policy_tables import (
@@ -4265,6 +4266,112 @@ def test_build_outcome_report_extraction_plan_requires_local_file(tmp_path: Path
     assert extraction_rows[0]["output_path"].endswith("school_10140_2025_employment_quality_report_candidates.csv")
     assert extraction_rows[1]["extraction_status"] == "blocked"
     assert extraction_rows[1]["block_reason"] == "missing_local_report_path"
+
+
+def test_run_outcome_report_extraction_plan_writes_candidate_csv(tmp_path: Path, monkeypatch):
+    input_pdf = tmp_path / "raw" / "lnu2025.pdf"
+    input_pdf.parent.mkdir(parents=True)
+    input_pdf.write_bytes(b"%PDF-1.4\n")
+    output_csv = tmp_path / "candidates" / "lnu2025_candidates.csv"
+    blocked_pdf = tmp_path / "raw" / "blocked.pdf"
+    plan = tmp_path / "outcome_report_extraction_plan.csv"
+    with plan.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(
+            f,
+            fieldnames=[
+                "domain",
+                "entity_code",
+                "entity_name",
+                "metric_year",
+                "report_scope",
+                "source_title",
+                "source_url",
+                "source_date",
+                "availability_date",
+                "input_path",
+                "output_path",
+                "planned_metric_keys",
+                "extraction_status",
+                "block_reason",
+                "notes",
+            ],
+        )
+        writer.writeheader()
+        writer.writerow({
+            "domain": "school",
+            "entity_code": "10140",
+            "entity_name": "辽宁大学",
+            "metric_year": "2025",
+            "report_scope": "employment_quality_report",
+            "source_title": "辽宁大学2025届毕业生就业质量报告",
+            "source_url": "https://example.edu/lnu2025.pdf",
+            "source_date": "2025-12-31",
+            "availability_date": "2026-01-05",
+            "input_path": str(input_pdf),
+            "output_path": str(output_csv),
+            "planned_metric_keys": '["employment_rate"]',
+            "extraction_status": "ready",
+            "block_reason": "",
+            "notes": "",
+        })
+        writer.writerow({
+            "domain": "school",
+            "entity_code": "10140",
+            "entity_name": "辽宁大学",
+            "metric_year": "2025",
+            "report_scope": "undergraduate_teaching_quality_report",
+            "source_title": "辽宁大学2025年本科教学质量报告",
+            "source_url": "https://example.edu/lnu_teaching2025.pdf",
+            "source_date": "2025-12-31",
+            "availability_date": "2026-01-05",
+            "input_path": str(blocked_pdf),
+            "output_path": str(tmp_path / "candidates" / "blocked.csv"),
+            "planned_metric_keys": '["postgrad_rate"]',
+            "extraction_status": "blocked",
+            "block_reason": "local_report_path_not_found",
+            "notes": "",
+        })
+
+    def fake_extract(path: Path, **kwargs):
+        assert path == input_pdf
+        return [{
+            "domain": kwargs["domain"],
+            "entity_code": kwargs["entity_code"],
+            "entity_name": kwargs["entity_name"],
+            "metric_key": "employment_rate",
+            "metric_label": "毕业去向落实率",
+            "metric_unit": "ratio",
+            "metric_year": kwargs["metric_year"],
+            "candidate_value": "0.9236",
+            "candidate_text_value": "92.36%",
+            "source_title": kwargs["source_title"],
+            "source_url": kwargs["source_url"],
+            "evidence_quote": "毕业去向落实率为 92.36%",
+            "metric_scope": "",
+            "source_date": kwargs["source_date"],
+            "availability_date": kwargs["availability_date"],
+            "page_number": "1",
+            "match_alias": "毕业去向落实率",
+            "confidence": "medium",
+            "review_status": "needs_review",
+            "notes": "fixture",
+        }]
+
+    monkeypatch.setattr(
+        "datahub.builders.outcome_report_extraction_runner.extract_outcome_metric_candidates_from_pdf",
+        fake_extract,
+    )
+    report = run_outcome_report_extraction_plan(plan_csv=plan, report_path=tmp_path / "extract_report.json")
+
+    assert report["errors"] == []
+    assert report["ready_rows"] == 1
+    assert report["skipped_rows"] == 1
+    assert report["candidate_rows"] == 1
+    assert output_csv.exists()
+    with output_csv.open(encoding="utf-8", newline="") as f:
+        candidates = list(csv.DictReader(f))
+    assert candidates[0]["metric_key"] == "employment_rate"
+    assert (tmp_path / "extract_report.json").exists()
 
 
 def test_audit_outcome_collection_plan_reports_progress_and_errors(tmp_path: Path):

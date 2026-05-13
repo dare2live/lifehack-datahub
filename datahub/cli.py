@@ -48,6 +48,7 @@ from .builders.major_mapping_review import build_major_mapping_review_package
 from .builders.local_package import build_local_package
 from .builders.outcome_collection_plan import build_outcome_collection_plan
 from .builders.outcome_report_extraction_plan import build_outcome_report_extraction_plan
+from .builders.outcome_report_extraction_runner import run_outcome_report_extraction_plan
 from .builders.outcome_report_source_audit import audit_outcome_report_source_plan
 from .builders.outcome_report_source_plan import build_outcome_report_source_plan
 from .builders.policy_tables import (
@@ -480,6 +481,13 @@ def main() -> int:
     build_outcome_report_extraction.add_argument("--report-source-csv", required=True, type=Path)
     build_outcome_report_extraction.add_argument("--output-dir", required=True, type=Path)
     build_outcome_report_extraction.add_argument("--status", action="append", dest="statuses")
+
+    run_outcome_report_extraction = sub.add_parser(
+        "run-outcome-report-extraction-plan",
+        help="Run ready outcome report candidate-extraction tasks",
+    )
+    run_outcome_report_extraction.add_argument("--plan-csv", required=True, type=Path)
+    run_outcome_report_extraction.add_argument("--report", type=Path)
 
     build_outcome_from_collection = sub.add_parser(
         "build-outcome-from-collection-plan",
@@ -1201,6 +1209,13 @@ def main() -> int:
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
+    if args.cmd == "run-outcome-report-extraction-plan":
+        report = run_outcome_report_extraction_plan(
+            plan_csv=args.plan_csv,
+            report_path=args.report,
+        )
+        print(json.dumps(report, ensure_ascii=False, indent=2))
+        return 0 if not report["errors"] else 1
     if args.cmd == "build-outcome-from-collection-plan":
         result = build_outcome_packages_from_collection_plan(
             plan_csv=args.plan_csv,
