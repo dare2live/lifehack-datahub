@@ -28,6 +28,66 @@
       "candidate_source_date": "2024-12-05",
       "availability_date": "2024-12-05",
       "evidence_note": "沈阳工业大学官网信息公开页发布，页面列出本科教学质量报告附件。"
+    },
+    {
+      "domain": "school",
+      "entity_name": "辽宁大学",
+      "metric_year": 2024,
+      "report_scope": "undergraduate_teaching_quality_report",
+      "candidate_report_title": "辽宁大学2023-2024学年本科教学质量报告",
+      "candidate_report_url": "https://xxgk.lnu.edu.cn/info/13534/68147.htm",
+      "candidate_file_name": "辽宁大学2023-2024学年本科教学质量报告.pdf",
+      "candidate_source_date": "2024-12-06",
+      "availability_date": "2024-12-06",
+      "evidence_note": "辽宁大学信息公开网页发布，页面说明报告已发布并列出 PDF 附件。"
+    },
+    {
+      "domain": "school",
+      "entity_name": "吉林大学",
+      "metric_year": 2024,
+      "report_scope": "undergraduate_teaching_quality_report",
+      "candidate_report_title": "吉林大学本科教学质量报告（2023-2024学年）",
+      "candidate_report_url": "https://ctld.jlu.edu.cn/info/1059/1202.htm",
+      "candidate_file_name": "吉林大学2023-2024学年本科教学质量报告.pdf",
+      "candidate_source_date": "2025-01-15",
+      "availability_date": "2025-01-15",
+      "evidence_note": "吉林大学教师教学发展中心官网发布，页面正文说明报告已公布并列出 PDF 附件。"
+    },
+    {
+      "domain": "school",
+      "entity_name": "辽宁工程技术大学",
+      "metric_year": 2024,
+      "report_scope": "undergraduate_teaching_quality_report",
+      "candidate_report_title": "辽宁工程技术大学2023-2024学年本科教学质量报告",
+      "candidate_report_url": "https://www.lntu.edu.cn/info/1028/19421.htm",
+      "candidate_file_name": "辽宁工程技术大学2023-2024学年本科教学质量报告.pdf",
+      "candidate_source_date": "2024-12-04",
+      "availability_date": "2024-12-04",
+      "evidence_note": "辽宁工程技术大学官网通知公告发布，页面说明详情见附件并列出 PDF 附件。"
+    },
+    {
+      "domain": "school",
+      "entity_name": "东北财经大学",
+      "metric_year": 2024,
+      "report_scope": "undergraduate_teaching_quality_report",
+      "candidate_report_title": "东北财经大学2023-2024学年本科教学质量报告",
+      "candidate_report_url": "https://xxgk.dufe.edu.cn/content_88732.html",
+      "candidate_file_name": "东北财经大学2023-2024学年本科教学质量报告.ofd",
+      "candidate_source_date": "2024-12-05",
+      "availability_date": "2024-12-05",
+      "evidence_note": "东北财经大学信息公开页发布，页面列出生成日期、发布日期和下载文件。"
+    },
+    {
+      "domain": "school",
+      "entity_name": "大连交通大学",
+      "metric_year": 2024,
+      "report_scope": "undergraduate_teaching_quality_report",
+      "candidate_report_title": "大连交通大学2023-2024学年本科教学质量报告",
+      "candidate_report_url": "http://www.djtu.edu.cn/Notices/16044.html",
+      "candidate_file_name": "大连交通大学2023-2024学年本科教学质量报告.pdf",
+      "candidate_source_date": "2024-12-12",
+      "availability_date": "2024-12-12",
+      "evidence_note": "大连交通大学官网通知页面发布，正文说明报告公开发布并列出 PDF 附件。"
     }
   ]
 }

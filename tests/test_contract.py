@@ -4468,7 +4468,8 @@ def test_apply_outcome_report_source_seeds_updates_matching_pending_rows(tmp_pat
     )
 
     assert report["updated_rows"] == 2
-    assert report["unmatched_seed_ids"] == []
+    assert "school|辽宁大学|2022|employment_quality_report" not in report["unmatched_seed_ids"]
+    assert "school|沈阳工业大学|2024|undergraduate_teaching_quality_report" not in report["unmatched_seed_ids"]
     with output.open(encoding="utf-8", newline="") as f:
         merged_rows = list(csv.DictReader(f))
     lnu = next(row for row in merged_rows if row["entity_name"] == "辽宁大学" and row["report_scope"] == "employment_quality_report")
@@ -4485,9 +4486,10 @@ def test_audit_outcome_report_source_seeds_validates_config(tmp_path: Path):
     report = audit_outcome_report_source_seeds(report_path=tmp_path / "seed_audit.json")
 
     assert report["errors"] == []
-    assert report["seed_count"] >= 2
+    assert report["seed_count"] >= 7
     assert report["applied_status"] == "candidate_found"
     assert any(row["entity_name"] == "辽宁大学" for row in report["seed_rows"])
+    assert any(row["entity_name"] == "吉林大学" and row["metric_year"] == 2024 for row in report["seed_rows"])
     assert (tmp_path / "seed_audit.json").exists()
 
 

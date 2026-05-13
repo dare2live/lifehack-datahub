@@ -707,7 +707,7 @@ python3 scripts/build_package.py run-outcome-report-extraction-plan \
   --report staging/outcome_report_candidates/outcome_report_extraction_report.json
 ```
 
-`config/outcome_report_sources.json` 保存已经确认的学校/专业报告来源种子，例如辽宁大学 2022 届毕业生就业质量报告和沈阳工业大学 2023-2024 本科教学质量报告。先用 `audit-outcome-report-source-seeds` 检查种子 ID、必填字段、URL 和状态是否符合配置，再用 `apply-outcome-report-source-seeds` 合并到 report-source plan，状态变成 `candidate_found`；PDF 下载、受控 intake、本地文件路径、候选提取、人工核对和 outcome 数据包生成仍然是后续独立门禁。
+`config/outcome_report_sources.json` 保存已经确认的学校/专业报告来源种子，例如辽宁大学 2022 届毕业生就业质量报告，以及辽宁大学、吉林大学、辽宁工程技术大学、东北财经大学、沈阳工业大学、大连交通大学 2023-2024 学年本科教学质量报告。先用 `audit-outcome-report-source-seeds` 检查种子 ID、必填字段、URL 和状态是否符合配置，再用 `apply-outcome-report-source-seeds` 合并到 report-source plan，状态变成 `candidate_found`；PDF 下载、受控 intake、本地文件路径、候选提取、人工核对和 outcome 数据包生成仍然是后续独立门禁。
 
 采集计划 CSV 预留 `metric_value/source_url/evidence_quote/metric_scope` 等证据列，人工或后续采集器补齐后，可先跑审计报告确认指标、状态和证据完整度：
 
