@@ -1,0 +1,80 @@
+{
+  "version": "1",
+  "notes": "专业-城市就业适配评分配置。输入为专业就业角色映射和企业岗位需求信号，输出 fa_mart_major_city_employment_fit；权重、阈值和角色类型均在本文件维护。",
+  "score_profile": {
+    "profile_id": "major_city_employment_default",
+    "snapshot_date": "2026-05-13",
+    "minimum_role_count": 1,
+    "minimum_demand_signal_count": 1
+  },
+  "role_type_groups": {
+    "direct": ["direct"],
+    "generalist": ["generalist"],
+    "public_sector": ["public_sector"]
+  },
+  "confidence_weights": {
+    "high": 1.0,
+    "medium": 0.75,
+    "low": 0.5,
+    "unknown": 0.5
+  },
+  "demand_metrics": {
+    "job_posting_count": {
+      "label": "岗位数量",
+      "component": "local_demand_score",
+      "weight": 0.5,
+      "min": 0,
+      "max": 300,
+      "polarity": "positive"
+    },
+    "internship_post_count": {
+      "label": "实习岗位数量",
+      "component": "local_demand_score",
+      "weight": 0.2,
+      "min": 0,
+      "max": 80,
+      "polarity": "positive"
+    },
+    "salary_median": {
+      "label": "薪资中位数",
+      "component": "local_demand_score",
+      "weight": 0.2,
+      "min": 3000,
+      "max": 18000,
+      "polarity": "positive"
+    },
+    "public_sector_post_count": {
+      "label": "公共部门岗位数量",
+      "component": "public_sector_fit_score",
+      "weight": 0.1,
+      "min": 0,
+      "max": 80,
+      "polarity": "positive"
+    }
+  },
+  "component_weights": {
+    "direct_role_score": 0.18,
+    "generalist_role_score": 0.14,
+    "listed_company_fit_score": 0.2,
+    "local_demand_score": 0.26,
+    "public_sector_fit_score": 0.1,
+    "flexibility_score": 0.12
+  },
+  "flexibility": {
+    "max_role_coverage_count": 6,
+    "type_diversity_bonus": 18
+  },
+  "listed_company_signal": {
+    "score_per_company": 8,
+    "max_score": 100
+  },
+  "primary_role_weights": {
+    "private_sector_fit": 0.35,
+    "listed_company_fit": 0.25,
+    "public_sector_fit": 0.15,
+    "demand_signal_score": 0.25,
+    "demand_signal_score_per_row": 20,
+    "demand_signal_score_max": 100
+  },
+  "listed_company_true_values": ["1", "true", "yes", "y", "是", "上市"]
+}

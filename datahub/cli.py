@@ -23,6 +23,7 @@ from .builders.career_source_batch import (
 )
 from .builders.career_source_package import build_career_signal_package_from_source_plan
 from .builders.career_source_plan import build_career_source_plan
+from .builders.major_city_employment_fit import build_major_city_employment_fit_package
 from .builders.outcome_collection_batch import (
     build_outcome_collection_batch,
     merge_outcome_collection_batch,
@@ -453,6 +454,18 @@ def main() -> int:
     build_career_score.add_argument("--package-id")
     build_career_score.add_argument("--source-version")
     build_career_score.add_argument("--sheet")
+
+    build_major_city_employment_fit = sub.add_parser(
+        "build-major-city-employment-fit",
+        help="Build fa_mart_major_city_employment_fit from major-role maps and company role demand signals",
+    )
+    build_major_city_employment_fit.add_argument("--role-input", required=True, type=Path)
+    build_major_city_employment_fit.add_argument("--demand-input", required=True, type=Path)
+    build_major_city_employment_fit.add_argument("--output-root", required=True, type=Path)
+    build_major_city_employment_fit.add_argument("--package-id")
+    build_major_city_employment_fit.add_argument("--source-version")
+    build_major_city_employment_fit.add_argument("--role-sheet")
+    build_major_city_employment_fit.add_argument("--demand-sheet")
 
     parse_moe = sub.add_parser("parse-moe-major-catalog", help="Parse MOE major catalog PDF to cleaned CSV")
     parse_moe.add_argument("--input", required=True, type=Path)
@@ -968,6 +981,18 @@ def main() -> int:
             package_id=args.package_id,
             source_version=args.source_version,
             sheet=args.sheet,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+    if args.cmd == "build-major-city-employment-fit":
+        result = build_major_city_employment_fit_package(
+            role_input=args.role_input,
+            demand_input=args.demand_input,
+            output_root=args.output_root,
+            package_id=args.package_id,
+            source_version=args.source_version,
+            role_sheet=args.role_sheet,
+            demand_sheet=args.demand_sheet,
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0

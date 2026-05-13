@@ -541,19 +541,13 @@
     },
     "school_location_geocode": {
       "name": "高校地理位置增强",
-      "kind": "verified_address_plus_amap_mcp_geocode",
+      "kind": "verified_address_plus_amap_web_api_geocode",
       "owner": "lifehack-datahub",
       "raw_glob": "raw/school_location/**/*",
       "remote_files": [],
       "interfaces": {
-        "preferred": "mcp",
-        "mcp": {
-          "provider": "amap_mcp",
-          "server_hint": "amap",
-          "required_tools": ["geocode", "regeocode", "district"],
-          "secret_handling": "configured_in_mcp_server"
-        },
-        "web_service_fallback": {
+        "preferred": "web_service",
+        "web_service": {
           "provider": "amap_web_service",
           "key_env": "AMAP_WEB_SERVICE_KEY",
           "endpoints": {
@@ -576,31 +570,25 @@
         ]
       },
       "acquisition": {
-        "status": "mcp_configured_requires_connector",
-        "official_distribution": "学校官网或权威名录地址 + 高德地图 MCP 地理编码/逆地理编码/行政区划查询",
+        "status": "web_api_configured_requires_connector",
+        "official_distribution": "学校官网或权威名录地址 + 高德地图 Web API 地理编码/逆地理编码/行政区划查询",
         "evidence_urls": [
           "https://lbs.amap.com/api/webservice/guide/api/georegeo",
           "https://lbs.amap.com/api/webservice/guide/api/district"
         ],
-        "notes": "高德 MCP 只作为地理增强来源，不替代学校身份、校区归属和官方地址来源。密钥应配置在 MCP server 或 AMAP_WEB_SERVICE_KEY 兜底环境变量中，不能写入 Git；原始响应应缓存到 ignored raw/staging 并以 geocode_raw_hash 追溯。"
+        "notes": "高德 Web API 只作为地理增强来源，不替代学校身份、校区归属和官方地址来源。密钥应通过 AMAP_WEB_SERVICE_KEY 或本机密钥管理注入，不能写入 Git；原始响应应缓存到 ignored raw/staging 并以 geocode_raw_hash 追溯。"
       },
       "target_tables": ["fa_dim_school_location"]
     },
     "region_profile_geocode": {
       "name": "城市与行政区基础信息",
-      "kind": "amap_mcp_district_profile",
+      "kind": "amap_web_api_district_profile",
       "owner": "lifehack-datahub",
       "raw_glob": "raw/region_profile/**/*",
       "remote_files": [],
       "interfaces": {
-        "preferred": "mcp",
-        "mcp": {
-          "provider": "amap_mcp",
-          "server_hint": "amap",
-          "required_tools": ["district"],
-          "secret_handling": "configured_in_mcp_server"
-        },
-        "web_service_fallback": {
+        "preferred": "web_service",
+        "web_service": {
           "provider": "amap_web_service",
           "key_env": "AMAP_WEB_SERVICE_KEY",
           "endpoints": {
@@ -620,30 +608,24 @@
         }
       },
       "acquisition": {
-        "status": "mcp_configured_requires_connector",
-        "official_distribution": "高德地图 MCP 行政区划查询，用于城市、区县、adcode 和中心点基础信息补全",
+        "status": "web_api_configured_requires_connector",
+        "official_distribution": "高德地图 Web API 行政区划查询，用于城市、区县、adcode 和中心点基础信息补全",
         "evidence_urls": [
           "https://lbs.amap.com/api/webservice/guide/api/district"
         ],
-        "notes": "该表服务城市距离、区域筛选、校区归属和城市/区县展示。行政区划结果应生成 raw manifest 与标准包，core 不实时调用 MCP。"
+        "notes": "该表服务城市距离、区域筛选、校区归属和城市/区县展示。行政区划结果应生成 raw manifest 与标准包，core 不实时调用高德 Web API。"
       },
       "target_tables": ["fa_dim_region_profile"]
     },
     "campus_surrounding_poi": {
       "name": "校区周边设施与交通",
-      "kind": "amap_mcp_poi_around_snapshot",
+      "kind": "amap_web_api_poi_around_snapshot",
       "owner": "lifehack-datahub",
       "raw_glob": "raw/campus_surrounding_poi/**/*",
       "remote_files": [],
       "interfaces": {
-        "preferred": "mcp",
-        "mcp": {
-          "provider": "amap_mcp",
-          "server_hint": "amap",
-          "required_tools": ["place_around", "route_distance"],
-          "secret_handling": "configured_in_mcp_server"
-        },
-        "web_service_fallback": {
+        "preferred": "web_service",
+        "web_service": {
           "provider": "amap_web_service",
           "key_env": "AMAP_WEB_SERVICE_KEY"
         },
@@ -665,10 +647,10 @@
         }
       },
       "acquisition": {
-        "status": "mcp_configured_requires_connector",
-        "official_distribution": "高德地图 MCP 周边 POI 与路径距离查询",
+        "status": "web_api_configured_requires_connector",
+        "official_distribution": "高德地图 Web API 周边 POI 与路径距离查询",
         "evidence_urls": [],
-        "notes": "围绕 fa_dim_school_location 的校区坐标采集商圈、地铁、公交、医疗、公园等周边设施。POI 属于快照数据，应保留 snapshot_date 和 raw_response_hash；core 不实时调用 MCP。"
+        "notes": "围绕 fa_dim_school_location 的校区坐标采集商圈、地铁、公交、医疗、公园等周边设施。POI 属于快照数据，应保留 snapshot_date 和 raw_response_hash；core 不实时调用高德 Web API。"
       },
       "target_tables": ["fa_fact_campus_surrounding_poi"]
     },
@@ -741,7 +723,7 @@
       },
       "acquisition": {
         "status": "source_collection_required",
-        "official_distribution": "统计年鉴、政府开放数据、合规市场报告、高德 MCP 区域与 POI 密度快照",
+        "official_distribution": "统计年鉴、政府开放数据、合规市场报告、高德 Web API 区域与 POI 密度快照",
         "evidence_urls": [],
         "notes": "城市生活成本必须保存 metric_year、snapshot_date、source_scope 和样本数。租售价格使用校区周边 housing 快照优先，城市/区县均值只作为背景基准。"
       },
@@ -924,14 +906,14 @@
           "government_open_data",
           "development_zone_official_site",
           "city_industry_plan",
-          "amap_mcp_geocode"
+          "amap_web_api_geocode"
         ],
         "coordinate_system": "GCJ-02",
         "mapping_review_required": true
       },
       "acquisition": {
         "status": "source_collection_required",
-        "official_distribution": "政府产业园区公开名录、城市产业规划、开发区官网和高德 MCP 地理编码补全",
+        "official_distribution": "政府产业园区公开名录、城市产业规划、开发区官网和高德 Web API 地理编码补全",
         "evidence_urls": [],
         "notes": "用于把专业/行业和城市空间机会连接起来。高德只补地址、坐标和行政区划，园区身份与主导产业仍以政府或园区官网公开信息为准。"
       },

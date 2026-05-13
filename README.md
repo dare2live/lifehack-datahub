@@ -104,6 +104,18 @@ python3 scripts/build_package.py build-career-score \
 
 真实 smoke：招聘快照来源生成 4 条职业信号采集任务，按 `limit_per_source=2` 拆出 2 条批次，原样合并 `updated_rows=0`，随后审计 `errors=[]`。输出均在 ignored `staging/`，不是 data package，也不会写 core。
 
+专业到城市就业机会的评分不直接写在 core。先用 `fa_bridge_major_employment_role` 表达专业可进入的直接岗位、通用职能岗位、公共部门/升学路径，再用 `fa_fact_company_role_demand_signal` 表达企业和上市公司岗位需求，最后生成 `fa_mart_major_city_employment_fit`：
+
+```bash
+python3 scripts/build_package.py build-major-city-employment-fit \
+  --role-input cleaned/major_employment_role.csv \
+  --demand-input cleaned/company_role_demand_signal.csv \
+  --output-root exports \
+  --package-id 2026_major_city_employment_fit
+```
+
+评分档案、组件权重、岗位需求指标、上市公司计分和主角色选择权重维护在 `config/major_city_employment_fit.json`。这样会计、人力资源、法律等通用岗位不会被强行塞进单一行业结论，而是通过就业角色、城市岗位需求和上市公司适配进入同一张 mart。
+
 ## 本地数据包生成
 
 先审计数据源获取状态：

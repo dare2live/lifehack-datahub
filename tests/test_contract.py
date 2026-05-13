@@ -24,6 +24,7 @@ from datahub.builders.career_source_batch import (
 )
 from datahub.builders.career_source_package import build_career_signal_package_from_source_plan
 from datahub.builders.career_source_plan import PLAN_COLUMNS as CAREER_PLAN_COLUMNS, build_career_source_plan
+from datahub.builders.major_city_employment_fit import build_major_city_employment_fit_package
 from datahub.connectors.page_images import download_page_images
 from datahub.builders.outcome_collection_audit import audit_outcome_collection_plan
 from datahub.builders.outcome_collection_batch import (
@@ -460,11 +461,11 @@ def test_audit_sources_marks_admission_plan_manual():
     assert by_key["ln_score_distribution"]["ocr_engine"] == "macos_vision"
     assert by_key["major_mapping_review"]["status"] == "local_db_configured"
     assert by_key["school_profile"]["status"] == "remote_configured"
-    assert by_key["school_location_geocode"]["status"] == "mcp_configured_requires_connector"
+    assert by_key["school_location_geocode"]["status"] == "web_api_configured_requires_connector"
     assert by_key["school_location_geocode"]["target_tables"] == ["fa_dim_school_location"]
-    assert by_key["region_profile_geocode"]["status"] == "mcp_configured_requires_connector"
+    assert by_key["region_profile_geocode"]["status"] == "web_api_configured_requires_connector"
     assert by_key["region_profile_geocode"]["target_tables"] == ["fa_dim_region_profile"]
-    assert by_key["campus_surrounding_poi"]["status"] == "mcp_configured_requires_connector"
+    assert by_key["campus_surrounding_poi"]["status"] == "web_api_configured_requires_connector"
     assert by_key["campus_surrounding_poi"]["target_tables"] == ["fa_fact_campus_surrounding_poi"]
     assert by_key["campus_housing_market"]["status"] == "source_collection_required"
     assert by_key["campus_housing_market"]["target_tables"] == ["fa_fact_campus_housing_market"]
@@ -3065,6 +3066,165 @@ def test_build_career_score_package_from_signals(tmp_path: Path):
     assert int(float(rows[0]["signal_count"])) == 4
     lineage = json.loads(rows[0]["pit_lineage_json"])
     assert "fa_fact_career_signal" in lineage["tables"]
+
+
+def test_build_major_city_employment_fit_package(tmp_path: Path):
+    role_input = tmp_path / "major_roles.csv"
+    with role_input.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(
+            f,
+            fieldnames=[
+                "major_code",
+                "major_name",
+                "major_class",
+                "role_key",
+                "role_name",
+                "role_family",
+                "role_type",
+                "occupation_code",
+                "occupation_name",
+                "tdx_l2",
+                "tdx_l2_name",
+                "public_sector_fit",
+                "private_sector_fit",
+                "listed_company_fit",
+                "confidence",
+                "rationale",
+                "source_title",
+                "source_url",
+                "source_date",
+                "availability_date",
+                "built_at",
+            ],
+        )
+        writer.writeheader()
+        base = {
+            "major_code": "120203K",
+            "major_name": "会计学",
+            "major_class": "工商管理类",
+            "tdx_l2": "T1001",
+            "tdx_l2_name": "银行",
+            "source_title": "fixture role map",
+            "source_url": "https://example.com/role-map",
+            "source_date": "2026-05-13",
+            "availability_date": "2026-05-13",
+            "built_at": "2026-05-13T00:00:00",
+        }
+        for row in [
+            ("accountant", "会计", "财务", "direct", "2-06-03-00", "会计专业人员", 70, 85, 78, "high"),
+            ("hr_generalist", "人力资源专员", "组织职能", "generalist", "", "", 45, 72, 62, "medium"),
+            ("public_finance", "财政财务岗位", "公共部门", "public_sector", "", "", 82, 45, 35, "medium"),
+        ]:
+            writer.writerow({
+                **base,
+                "role_key": row[0],
+                "role_name": row[1],
+                "role_family": row[2],
+                "role_type": row[3],
+                "occupation_code": row[4],
+                "occupation_name": row[5],
+                "public_sector_fit": row[6],
+                "private_sector_fit": row[7],
+                "listed_company_fit": row[8],
+                "confidence": row[9],
+                "rationale": "fixture",
+            })
+
+    demand_input = tmp_path / "company_role_demand.csv"
+    with demand_input.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(
+            f,
+            fieldnames=[
+                "company_id",
+                "stock_code",
+                "company_name",
+                "listed_company_flag",
+                "province",
+                "city",
+                "tdx_l2",
+                "tdx_l2_name",
+                "role_key",
+                "role_name",
+                "role_family",
+                "metric_key",
+                "metric_name",
+                "metric_value",
+                "metric_unit",
+                "metric_year",
+                "metric_scope",
+                "source_title",
+                "source_url",
+                "evidence_quote",
+                "source_date",
+                "availability_date",
+                "built_at",
+            ],
+        )
+        writer.writeheader()
+        base = {
+            "province": "辽宁",
+            "city": "沈阳",
+            "tdx_l2": "T1001",
+            "tdx_l2_name": "银行",
+            "metric_year": "2026",
+            "metric_scope": "公开样本",
+            "source_title": "fixture demand",
+            "source_date": "2026-05-13",
+            "availability_date": "2026-05-13",
+            "built_at": "2026-05-13T00:00:00",
+        }
+        rows = [
+            ("bank-a", "600001", "沈阳银行A", "true", "accountant", "会计", "财务", "job_posting_count", "岗位数量", 180, "count"),
+            ("bank-a", "600001", "沈阳银行A", "true", "accountant", "会计", "财务", "internship_post_count", "实习数量", 32, "count"),
+            ("industry-b", "600002", "沈阳制造B", "true", "hr_generalist", "人力资源专员", "组织职能", "job_posting_count", "岗位数量", 42, "count"),
+            ("public-c", "", "公共部门C", "false", "public_finance", "财政财务岗位", "公共部门", "public_sector_post_count", "公共部门岗位", 24, "count"),
+        ]
+        for company_id, stock_code, company_name, listed, role_key, role_name, family, metric_key, metric_name, value, unit in rows:
+            writer.writerow({
+                **base,
+                "company_id": company_id,
+                "stock_code": stock_code,
+                "company_name": company_name,
+                "listed_company_flag": listed,
+                "role_key": role_key,
+                "role_name": role_name,
+                "role_family": family,
+                "metric_key": metric_key,
+                "metric_name": metric_name,
+                "metric_value": value,
+                "metric_unit": unit,
+                "source_url": f"https://example.com/{company_id}/{metric_key}",
+                "evidence_quote": f"{metric_name}{value}",
+            })
+
+    result = build_major_city_employment_fit_package(
+        role_input=role_input,
+        demand_input=demand_input,
+        output_root=tmp_path / "exports",
+        package_id="pkg-major-city-employment-fit-test",
+        source_version="fixture-major-city-fit",
+    )
+
+    package_dir = Path(result["package_dir"])
+    assert validate_manifest(package_dir / "manifest.json")["errors"] == []
+    assert result["rows"] == 1
+    with (package_dir / "fa_mart_major_city_employment_fit.csv").open(encoding="utf-8", newline="") as f:
+        rows = list(csv.DictReader(f))
+    row = rows[0]
+    assert row["major_code"] == "120203K"
+    assert row["city"] == "沈阳"
+    assert row["score_profile"] == "major_city_employment_default"
+    assert row["primary_role_key"] == "accountant"
+    assert int(float(row["role_coverage_count"])) == 3
+    assert int(float(row["listed_company_count"])) == 2
+    assert float(row["overall_score"]) > 0
+    role_mix = json.loads(row["role_mix_json"])
+    assert "direct" in role_mix
+    assert "generalist" in role_mix
+    contributions = json.loads(row["signal_contribution_json"])
+    assert contributions["listed_company_count"] == 2
+    lineage = json.loads(row["pit_lineage_json"])
+    assert "fa_fact_company_role_demand_signal" in lineage["tables"]
 
 
 def test_build_outcome_collection_plan_from_core_admission_plan(tmp_path: Path):
