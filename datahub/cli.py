@@ -547,6 +547,11 @@ def main() -> int:
     download_outcome_report_intake.add_argument("--intake-csv", required=True, type=Path)
     download_outcome_report_intake.add_argument("--output", required=True, type=Path)
     download_outcome_report_intake.add_argument("--timeout", type=int, default=60)
+    download_outcome_report_intake.add_argument(
+        "--allow-failures",
+        action="store_true",
+        help="Return success when some intake rows fail, while still writing failure details to the output CSV/report.",
+    )
 
     merge_outcome_report_intake = sub.add_parser(
         "merge-outcome-report-intake-results",
@@ -1427,7 +1432,7 @@ def main() -> int:
             timeout=args.timeout,
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
-        return 0 if result["failed_rows"] == 0 else 1
+        return 0 if args.allow_failures or result["failed_rows"] == 0 else 1
     if args.cmd == "merge-outcome-report-intake-results":
         report = merge_outcome_report_intake_results(
             report_source_csv=args.report_source_csv,

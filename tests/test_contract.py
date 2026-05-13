@@ -5315,6 +5315,34 @@ def test_download_outcome_report_intake_assets_summarizes_failure_reasons(tmp_pa
     assert report["failure_reason_counts"] == {"attachment requires captcha or manual intake": 1}
 
 
+def test_cli_download_outcome_report_intake_assets_can_allow_partial_failures(tmp_path: Path, monkeypatch):
+    from datahub import cli
+
+    def fake_download(**kwargs):
+        return {
+            "intake_csv": str(kwargs["intake_csv"]),
+            "output": str(kwargs["output"]),
+            "rows": 2,
+            "downloaded_rows": 1,
+            "failed_rows": 1,
+        }
+
+    monkeypatch.setattr(cli, "download_outcome_report_intake_assets", fake_download)
+    base_argv = [
+        "lifehack-datahub",
+        "download-outcome-report-intake-assets",
+        "--intake-csv",
+        str(tmp_path / "intake.csv"),
+        "--output",
+        str(tmp_path / "downloaded.csv"),
+    ]
+    monkeypatch.setattr("sys.argv", base_argv)
+    assert cli.main() == 1
+
+    monkeypatch.setattr("sys.argv", [*base_argv, "--allow-failures"])
+    assert cli.main() == 0
+
+
 def test_merge_outcome_report_intake_results_requires_existing_file(tmp_path: Path):
     plan = tmp_path / "outcome_collection_plan.csv"
     rows = [
