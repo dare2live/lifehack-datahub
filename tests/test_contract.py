@@ -59,6 +59,7 @@ from datahub.builders.score_distribution_readiness import audit_score_distributi
 from datahub.config import get_table_schema, load_career_data_sources, load_outcome_metrics, load_source_schemas
 from datahub.builders.school_identity import build_school_identity_package
 from datahub.builders.school_location_from_amap import build_school_location_package_from_amap_geocode
+from datahub.builders.school_location_geocode_plan import build_school_location_geocode_input_plan
 from datahub.connectors.amap_web_api import fetch_amap_web_api
 from datahub.connectors.manual_files import intake_manual_assets
 from datahub.connectors.macos_vision_ocr import ocr_page_images
@@ -4384,6 +4385,81 @@ def test_download_remote_assets_from_config(tmp_path: Path, monkeypatch):
     assert manifest["target_tables"] == ["fa_demo"]
     assert manifest["evidence_urls"] == ["https://example.edu/source"]
     assert manifest["files"][0]["sha256"] == digest
+
+
+def test_build_school_location_geocode_input_plan(tmp_path: Path):
+    core_db = tmp_path / "core.duckdb"
+    con = duckdb.connect(str(core_db))
+    try:
+        con.execute("""
+            CREATE TABLE fa_dim_ln_admission_plan (
+                school_code VARCHAR,
+                school_name VARCHAR,
+                region VARCHAR,
+                batch VARCHAR
+            )
+        """)
+        con.execute("""
+            INSERT INTO fa_dim_ln_admission_plan VALUES
+            ('10145', '东北大学', '辽宁沈阳', '本科批'),
+            ('10145', '东北大学', '辽宁沈阳', '本科批'),
+            ('99999', '测试学院', '辽宁大连', '本科批'),
+            ('88888', '未匹配学院', '辽宁鞍山', '专科批'),
+            ('77777', '过滤学院', '辽宁沈阳', '艺术类')
+        """)
+    finally:
+        con.close()
+
+    profile_csv = tmp_path / "school_profile.csv"
+    with profile_csv.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(
+            f,
+            fieldnames=["national_school_code", "school_name", "province", "city"],
+        )
+        writer.writeheader()
+        writer.writerow({
+            "national_school_code": "4121010145",
+            "school_name": "东北大学",
+            "province": "辽宁省",
+            "city": "沈阳市",
+        })
+        writer.writerow({
+            "national_school_code": "4121099999",
+            "school_name": "标准测试学院",
+            "province": "辽宁省",
+            "city": "大连市",
+        })
+
+    identity_csv = tmp_path / "school_identity.csv"
+    with identity_csv.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=["local_school_code", "national_school_code"])
+        writer.writeheader()
+        writer.writerow({"local_school_code": "99999", "national_school_code": "4121099999"})
+
+    result = build_school_location_geocode_input_plan(
+        core_db=core_db,
+        output_dir=tmp_path / "staging",
+        school_profile_csv=profile_csv,
+        school_identity_csv=identity_csv,
+        source_date="2026-05-13",
+    )
+
+    assert result["rows"] == 3
+    assert result["ready_rows"] == 2
+    assert result["blocked_rows"] == 1
+    with Path(result["amap_input_csv"]).open(encoding="utf-8", newline="") as f:
+        input_rows = list(csv.DictReader(f))
+    assert {row["national_school_code"] for row in input_rows} == {"4121010145", "4121099999"}
+    assert any(row["geocode_query"] == "沈阳市东北大学" for row in input_rows)
+    assert any(row["city"] == "大连市" and row["local_school_code"] == "99999" for row in input_rows)
+    with Path(result["plan_csv"]).open(encoding="utf-8", newline="") as f:
+        plan_rows = list(csv.DictReader(f))
+    blocked = [row for row in plan_rows if row["request_status"] == "blocked"]
+    assert len(blocked) == 1
+    assert blocked[0]["blocking_reason"] == "missing_national_school_code"
+    manifest = json.loads(Path(result["manifest"]).read_text(encoding="utf-8"))
+    assert manifest["source_key"] == "school_location_geocode"
+    assert "--address-column geocode_query" in manifest["fetch_command_hint"]
 
 
 def test_fetch_amap_web_api_geocode_writes_raw_manifest(tmp_path: Path, monkeypatch):

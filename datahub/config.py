@@ -40,6 +40,11 @@ def load_major_city_employment_fit() -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def load_school_location_geocode_plan() -> dict[str, Any]:
+    path = CONFIG_DIR / "school_location_geocode_plan.json"
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
 def get_table_schema(table_name: str) -> dict[str, Any]:
     data = load_source_schemas()
     tables = data.get("tables", {})

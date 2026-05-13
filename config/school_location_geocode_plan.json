@@ -1,0 +1,60 @@
+{
+  "version": "1",
+  "source_key": "school_location_geocode",
+  "core_source": {
+    "table": "fa_dim_ln_admission_plan",
+    "local_code_column": "school_code",
+    "school_name_column": "school_name",
+    "region_column": "region",
+    "batch_column": "batch",
+    "filters": {
+      "batch": ["本科批", "专科批"]
+    },
+    "order": ["plan_rows DESC", "school_name ASC"]
+  },
+  "defaults": {
+    "campus_key": "main",
+    "campus_name": "主校区",
+    "campus_type": "main",
+    "ready_status": "ready",
+    "blocked_status": "blocked"
+  },
+  "query": {
+    "template": "{city}{school_name}",
+    "address_column": "geocode_query",
+    "city_column": "city"
+  },
+  "province_prefixes": [
+    "黑龙江",
+    "内蒙古",
+    "广西",
+    "西藏",
+    "宁夏",
+    "新疆",
+    "北京",
+    "天津",
+    "上海",
+    "重庆",
+    "辽宁",
+    "吉林",
+    "河北",
+    "河南",
+    "山东",
+    "山西",
+    "陕西",
+    "江苏",
+    "浙江",
+    "安徽",
+    "福建",
+    "江西",
+    "湖北",
+    "湖南",
+    "广东",
+    "海南",
+    "四川",
+    "贵州",
+    "云南",
+    "甘肃",
+    "青海"
+  ]
+}

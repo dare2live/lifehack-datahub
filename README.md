@@ -153,11 +153,17 @@ python3 scripts/build_package.py probe-source-candidates \
 ```bash
 export AMAP_WEB_SERVICE_KEY=...
 
+python3 scripts/build_package.py build-school-location-geocode-input \
+  --core-db /Users/dp/Documents/M/lifehack/backend/data/university.db \
+  --school-profile exports/2025_moe_school_profile/fa_dim_school_profile.csv \
+  --school-identity exports/2026_school_identity/fa_bridge_school_identity.csv \
+  --output-dir staging/school_location_geocode
+
 python3 scripts/build_package.py fetch-amap-web-api \
   --source-key school_location_geocode \
   --operation geocode \
-  --input cleaned/school_campus_address.csv \
-  --address-column address \
+  --input staging/school_location_geocode/amap_geocode_input.csv \
+  --address-column geocode_query \
   --city-column city \
   --output-root raw
 

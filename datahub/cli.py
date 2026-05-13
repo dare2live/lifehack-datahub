@@ -50,6 +50,7 @@ from .builders.score_history_reconciliation_package import build_score_history_p
 from .builders.score_history_reconciliation_plan import build_score_history_reconciliation_plan
 from .builders.score_history_snapshot import build_score_history_snapshot_package
 from .builders.school_location_from_amap import build_school_location_package_from_amap_geocode
+from .builders.school_location_geocode_plan import build_school_location_geocode_input_plan
 from .builders.school_identity import build_school_identity_package
 from .builders.score_distribution_readiness import audit_score_distribution_readiness
 from .builders.score_distribution_review_workspace import (
@@ -198,6 +199,18 @@ def main() -> int:
     build_school_identity.add_argument("--source-version")
     build_school_identity.add_argument("--source-date")
     build_school_identity.add_argument("--availability-date")
+
+    build_school_location_geocode_input = sub.add_parser(
+        "build-school-location-geocode-input",
+        help="Build school geocode request plan and Amap input CSV from core schools",
+    )
+    build_school_location_geocode_input.add_argument("--core-db", required=True, type=Path)
+    build_school_location_geocode_input.add_argument("--output-dir", required=True, type=Path)
+    build_school_location_geocode_input.add_argument("--school-profile", type=Path)
+    build_school_location_geocode_input.add_argument("--school-identity", type=Path)
+    build_school_location_geocode_input.add_argument("--limit", type=int)
+    build_school_location_geocode_input.add_argument("--source-date")
+    build_school_location_geocode_input.add_argument("--availability-date")
 
     build_school_location_from_amap = sub.add_parser(
         "build-school-location-from-amap-geocode",
@@ -738,6 +751,18 @@ def main() -> int:
             output_root=args.output_root,
             package_id=args.package_id,
             source_version=args.source_version,
+            source_date=args.source_date,
+            availability_date=args.availability_date,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+    if args.cmd == "build-school-location-geocode-input":
+        result = build_school_location_geocode_input_plan(
+            core_db=args.core_db,
+            output_dir=args.output_dir,
+            school_profile_csv=args.school_profile,
+            school_identity_csv=args.school_identity,
+            limit=args.limit,
             source_date=args.source_date,
             availability_date=args.availability_date,
         )
