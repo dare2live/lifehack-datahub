@@ -4157,6 +4157,14 @@ def test_audit_score_source_coverage_tracks_derivation_gaps(tmp_path: Path):
         in by_year[2023]["score_distribution"]["candidate_urls"]
     )
     assert (
+        "https://epaper.lnd.com.cn/lswbepaper/pad/con/202306/25/content_195929.html"
+        in by_year[2023]["score_distribution"]["candidate_urls"]
+    )
+    assert (
+        "https://epaper.lnd.com.cn/lswbepaper/pad/pic/202306/25/783c9b12-c9ca-406f-908b-7c427eecb636.jpg.2"
+        in by_year[2023]["score_distribution"]["candidate_urls"]
+    )
+    assert (
         "https://epaper.lnd.com.cn/lswbepaper/pc/layout/202406/25/node_A02.html"
         in by_year[2024]["score_distribution"]["candidate_urls"]
     )

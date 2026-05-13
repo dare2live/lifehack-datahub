@@ -479,6 +479,56 @@
           "notes": "辽宁日报传媒集团/辽沈晚报电子报版面探测。正确附件路径含 /lswbepaper/pc/att/；2023-06-25 A01-A05 PDF 已核验可下载，A03/A05 标题含成绩统计表但 pypdf 文本不是完整逐分三列表，parse-ln-score-distribution 行数为 0；A01 仅有摘要区间。不能晋级 remote_files。"
         },
         {
+          "label": "2023 辽沈晚报电子报成绩统计表内容页（物理学科类）",
+          "kind": "media_epaper_content_image",
+          "url": "https://epaper.lnd.com.cn/lswbepaper/pad/con/202306/25/content_195929.html",
+          "source_date": "2023-06-25",
+          "expected_table": "fa_fact_ln_score_distribution",
+          "sha256": "e57e7f9fd3b120bc3143868fcfb612ccf5532a69558fd83bbbd20a9bb563f999",
+          "headers": {
+            "User-Agent": "Mozilla/5.0"
+          },
+          "notes": "辽宁日报传媒集团/辽沈晚报 A03 内容页，标题为 2023 年辽宁省普通高校招生考试成绩统计表（物理学科类），页面包含表格图片 /lswbepaper/pad/pic/202306/25/783c9b12-c9ca-406f-908b-7c427eecb636.jpg.2；仅作可追踪媒体候选证据，不作为官方长期 remote_files。"
+        },
+        {
+          "label": "2023 辽沈晚报电子报成绩统计表原图（物理学科类）",
+          "kind": "media_epaper_image",
+          "url": "https://epaper.lnd.com.cn/lswbepaper/pad/pic/202306/25/783c9b12-c9ca-406f-908b-7c427eecb636.jpg.2",
+          "source_date": "2023-06-25",
+          "expected_table": "fa_fact_ln_score_distribution",
+          "sha256": "35e52fe2de11856db2f607edcbb598ffa16c860f41e580eb9929b2fddab6e5ee",
+          "headers": {
+            "User-Agent": "Mozilla/5.0",
+            "Referer": "https://epaper.lnd.com.cn/lswbepaper/pad/con/202306/25/content_195929.html"
+          },
+          "notes": "辽宁日报传媒集团/辽沈晚报 A03 内容页引用的物理学科类成绩统计表原图，HTTP 200、JPEG 头和 sha256 已核验；需要 OCR/人工复核后才能进入 cleaned/build-local 链路。"
+        },
+        {
+          "label": "2023 辽沈晚报电子报成绩统计表内容页（历史学科类）",
+          "kind": "media_epaper_content_image",
+          "url": "https://epaper.lnd.com.cn/lswbepaper/pad/con/202306/25/content_195935.html",
+          "source_date": "2023-06-25",
+          "expected_table": "fa_fact_ln_score_distribution",
+          "sha256": "f19568aef3698d932d44a37877b406c7e39f740fd6ac6ce5ab470b970d05c2f0",
+          "headers": {
+            "User-Agent": "Mozilla/5.0"
+          },
+          "notes": "辽宁日报传媒集团/辽沈晚报 A05 内容页，标题为 2023 年辽宁省普通高校招生考试成绩统计表（历史学科类），页面包含表格图片 /lswbepaper/pad/pic/202306/25/e85c2e3e-d0c7-4bb8-b337-a44f585d27e3.jpg.2；仅作可追踪媒体候选证据，不作为官方长期 remote_files。"
+        },
+        {
+          "label": "2023 辽沈晚报电子报成绩统计表原图（历史学科类）",
+          "kind": "media_epaper_image",
+          "url": "https://epaper.lnd.com.cn/lswbepaper/pad/pic/202306/25/e85c2e3e-d0c7-4bb8-b337-a44f585d27e3.jpg.2",
+          "source_date": "2023-06-25",
+          "expected_table": "fa_fact_ln_score_distribution",
+          "sha256": "9424e1a2a93d6bf9bb30082f5e6f23c301ce4dc069c5e3ea204db044b55d3f6b",
+          "headers": {
+            "User-Agent": "Mozilla/5.0",
+            "Referer": "https://epaper.lnd.com.cn/lswbepaper/pad/con/202306/25/content_195935.html"
+          },
+          "notes": "辽宁日报传媒集团/辽沈晚报 A05 内容页引用的历史学科类成绩统计表原图，HTTP 200、JPEG 头和 sha256 已核验；需要 OCR/人工复核后才能进入 cleaned/build-local 链路。"
+        },
+        {
           "label": "2024 中国教育电视台转载成绩统计表页面",
           "kind": "mirror_page",
           "url": "https://www.centv.cn/p/514016.html",
