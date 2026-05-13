@@ -1,0 +1,109 @@
+{
+  "version": "1",
+  "updated_at": "2026-05-13",
+  "notes": "规范化语义层配置。实体、别名、指标口径和指标别名进入 fa_ 表；清洗步骤、匹配阈值和输出策略入口由本配置维护，避免城市、学校、职业、经济指标在各模块重复清洗。",
+  "source_key": "entity_normalization_registry",
+  "target_tables": [
+    "fa_dim_entity_registry",
+    "fa_bridge_entity_alias",
+    "fa_dim_metric_registry",
+    "fa_bridge_metric_alias"
+  ],
+  "pipeline_stages": [
+    {"stage": "raw_intake", "owner": "connectors", "output": "raw snapshots with source hash"},
+    {"stage": "parse", "owner": "parsers", "output": "source-shaped rows"},
+    {"stage": "normalize", "owner": "normalizers", "output": "trimmed text, standard units, typed values"},
+    {"stage": "canonicalize", "owner": "processors", "output": "entity_id and metric_key joins"},
+    {"stage": "validate", "owner": "validators", "output": "schema, primary key, evidence and lineage checks"},
+    {"stage": "publish_package", "owner": "exporters", "output": "fa_ package with manifest and quality report"},
+    {"stage": "import_core", "owner": "lifehack", "output": "registered fa_ tables in university.db"},
+    {"stage": "feature_build", "owner": "lifehack-datahub", "output": "mart features and evidence packets"},
+    {"stage": "score", "owner": "lifehack-datahub", "output": "configured score profiles"},
+    {"stage": "strategy_output", "owner": "lifehack", "output": "recommendation, comparison and report sections"}
+  ],
+  "entity_types": {
+    "city": {
+      "id_prefix": "geo_city",
+      "canonical_sources": ["fa_dim_region_profile"],
+      "primary_code_system": "amap_adcode",
+      "alias_sources": ["fa_dim_ln_admission_plan.region", "fa_dim_school_location.city"],
+      "required_parent_type": "province"
+    },
+    "district": {
+      "id_prefix": "geo_district",
+      "canonical_sources": ["fa_dim_region_profile"],
+      "primary_code_system": "amap_adcode",
+      "alias_sources": ["fa_dim_school_location.district", "fa_fact_region_living_cost.region_name"],
+      "required_parent_type": "city"
+    },
+    "school": {
+      "id_prefix": "school",
+      "canonical_sources": ["fa_dim_school_profile", "fa_bridge_school_identity"],
+      "primary_code_system": "moe_national_school_code",
+      "alias_sources": ["fa_dim_ln_admission_plan.school_name", "fa_dim_school_location.school_name"]
+    },
+    "campus": {
+      "id_prefix": "campus",
+      "canonical_sources": ["fa_dim_school_location"],
+      "primary_code_system": "lifehack_campus_key",
+      "alias_sources": ["fa_dim_school_location.campus_name"]
+    },
+    "major": {
+      "id_prefix": "major",
+      "canonical_sources": ["fa_dim_major_catalog"],
+      "primary_code_system": "moe_major_code",
+      "alias_sources": ["fa_dim_ln_admission_plan.major_full", "fa_dim_ln_admission_plan.major_short"]
+    },
+    "occupation": {
+      "id_prefix": "occupation",
+      "canonical_sources": ["fa_dim_career_occupation"],
+      "primary_code_system": "national_occupation_code",
+      "alias_sources": ["fa_fact_career_signal.occupation_name"]
+    },
+    "industry": {
+      "id_prefix": "tdx_l2",
+      "canonical_sources": ["fa_dim_policy_industry_map"],
+      "primary_code_system": "tdx_l2",
+      "alias_sources": ["fa_bridge_major_tdx.tdx_l2_name", "fa_fact_city_listed_company_signal.tdx_l2_name"]
+    },
+    "company": {
+      "id_prefix": "company",
+      "canonical_sources": ["fa_dim_company_city"],
+      "primary_code_system": "stock_code_or_credit_code",
+      "alias_sources": ["fa_fact_school_recruitment_event.employer_name", "fa_fact_company_role_demand_signal.company_name"]
+    }
+  },
+  "normalization_rules": {
+    "text": {
+      "trim_whitespace": true,
+      "normalize_full_width_parentheses": true,
+      "strip_region_suffix_for_geo_match": ["省", "市", "地区", "盟", "自治区", "特别行政区"],
+      "case_sensitive": false
+    },
+    "metric": {
+      "parse_percent_as_ratio": true,
+      "strip_thousand_separator": true,
+      "empty_values": ["", "-", "—", "暂无", "不详"],
+      "unit_must_match_registry": true
+    },
+    "confidence_thresholds": {
+      "exact_code": 1.0,
+      "exact_normalized_name": 0.95,
+      "alias_approved": 0.9,
+      "single_candidate_name": 0.8,
+      "manual_review_required_below": 0.9
+    }
+  },
+  "model_input_policy": {
+    "require_canonical_entity_id": true,
+    "require_metric_registry": true,
+    "allow_unmapped_rows_in_collection_plan": true,
+    "block_unmapped_rows_from_score_mart": true
+  },
+  "output_policy": {
+    "display_canonical_name": true,
+    "preserve_source_name_in_evidence": true,
+    "show_metric_unit": true,
+    "show_source_title_and_url": true
+  }
+}

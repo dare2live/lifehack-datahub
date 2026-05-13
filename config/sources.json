@@ -628,6 +628,88 @@
       },
       "target_tables": ["fa_dim_region_profile"]
     },
+    "entity_normalization_registry": {
+      "name": "规范化语义注册表",
+      "kind": "derived_semantic_registry",
+      "owner": "lifehack-datahub",
+      "raw_glob": "raw/entity_normalization_registry/**/*",
+      "remote_files": [],
+      "derivation": {
+        "source_tables": [
+          "fa_dim_region_profile",
+          "fa_dim_school_profile",
+          "fa_bridge_school_identity",
+          "fa_dim_school_location",
+          "fa_dim_major_catalog",
+          "fa_dim_career_occupation",
+          "fa_dim_policy_industry_map",
+          "fa_dim_company_city"
+        ],
+        "config": "config/entity_normalization.json",
+        "pipeline_stages": [
+          "raw_intake",
+          "parse",
+          "normalize",
+          "canonicalize",
+          "validate",
+          "publish_package",
+          "import_core",
+          "feature_build",
+          "score",
+          "strategy_output"
+        ]
+      },
+      "acquisition": {
+        "status": "derived_from_datahub_signals",
+        "official_distribution": "DataHub 已复核实体表、桥表、指标配置和来源证据",
+        "evidence_urls": [],
+        "notes": "城市、学校、校区、专业、职业、行业和企业等名称先进入统一实体/别名注册表；经济、就业、生活成本等指标先进入指标注册表。模型入参和输出策略只消费规范 ID、规范指标和保留来源证据的事实表。"
+      },
+      "target_tables": [
+        "fa_dim_entity_registry",
+        "fa_bridge_entity_alias",
+        "fa_dim_metric_registry",
+        "fa_bridge_metric_alias"
+      ]
+    },
+    "data_update_governance": {
+      "name": "数据更新治理",
+      "kind": "datahub_update_metadata",
+      "owner": "lifehack-datahub",
+      "raw_glob": "raw/data_update_governance/**/*",
+      "remote_files": [],
+      "derivation": {
+        "config": "config/data_update_policy.json",
+        "source_tables": [
+          "manifest.json",
+          "quality_report.json",
+          "collection_plan.csv",
+          "_intake_manifest.json",
+          "_amap_web_api_*.json"
+        ],
+        "update_modes": [
+          "full_replace",
+          "partition_replace",
+          "primary_key_upsert",
+          "append_snapshot",
+          "manual_review_promote",
+          "derived_rebuild"
+        ]
+      },
+      "acquisition": {
+        "status": "derived_from_datahub_signals",
+        "official_distribution": "DataHub 运行日志、来源健康检测、快照 manifest、复核队列和导入结果",
+        "evidence_urls": [],
+        "notes": "负责记录来源有效性、快照、增量策略、串并行依赖和非标数据复核状态。它不替代业务事实表，只给调度、导入和追溯提供元数据。"
+      },
+      "target_tables": [
+        "fa_meta_source_snapshot",
+        "fa_meta_source_health",
+        "fa_meta_update_run",
+        "fa_meta_update_run_step",
+        "fa_meta_nonstandard_review_queue"
+      ]
+    },
     "campus_surrounding_poi": {
       "name": "校区周边设施与交通",
       "kind": "amap_web_api_poi_around_snapshot",

@@ -31,6 +31,7 @@ from datahub.builders.city_context_collection_batch import (
 )
 from datahub.builders.city_context_collection_package import build_city_context_packages_from_collection_plan
 from datahub.builders.city_context_collection_plan import build_city_context_collection_plan
+from datahub.builders.city_context_target_cities import build_city_context_target_cities
 from datahub.builders.city_development_score import build_city_development_score_package
 from datahub.builders.city_listed_company_signal import build_city_listed_company_signal_package
 from datahub.builders.major_city_employment_fit import build_major_city_employment_fit_package
@@ -65,7 +66,14 @@ from datahub.builders.score_distribution_review_workspace import (
     merge_score_distribution_review_workspace,
 )
 from datahub.builders.score_distribution_readiness import audit_score_distribution_readiness
-from datahub.config import get_table_schema, load_career_data_sources, load_outcome_metrics, load_source_schemas
+from datahub.config import (
+    get_table_schema,
+    load_career_data_sources,
+    load_data_update_policy,
+    load_entity_normalization,
+    load_outcome_metrics,
+    load_source_schemas,
+)
 from datahub.builders.school_identity import build_school_identity_package
 from datahub.builders.school_identity_review_plan import build_school_identity_review_plan
 from datahub.builders.school_location_geocode_audit import audit_school_location_geocode_input
@@ -479,6 +487,10 @@ def test_audit_sources_marks_admission_plan_manual():
     assert by_key["school_location_geocode"]["target_tables"] == ["fa_dim_school_location"]
     assert by_key["region_profile_geocode"]["status"] == "web_api_configured_requires_connector"
     assert by_key["region_profile_geocode"]["target_tables"] == ["fa_dim_region_profile"]
+    assert by_key["entity_normalization_registry"]["status"] == "derived_from_datahub_signals"
+    assert "fa_dim_entity_registry" in by_key["entity_normalization_registry"]["target_tables"]
+    assert by_key["data_update_governance"]["status"] == "derived_from_datahub_signals"
+    assert "fa_meta_source_snapshot" in by_key["data_update_governance"]["target_tables"]
     assert by_key["campus_surrounding_poi"]["status"] == "web_api_configured_requires_connector"
     assert by_key["campus_surrounding_poi"]["target_tables"] == ["fa_fact_campus_surrounding_poi"]
     assert by_key["campus_housing_market"]["status"] == "source_collection_required"
@@ -506,6 +518,8 @@ def test_audit_sources_marks_admission_plan_manual():
     assert by_key["city_public_resource"]["target_tables"] == ["fa_fact_city_public_resource"]
     assert by_key["city_listed_company_signal"]["status"] == "source_collection_required"
     assert by_key["city_listed_company_signal"]["target_tables"] == ["fa_fact_city_listed_company_signal"]
+    assert by_key["city_ranking_signal"]["status"] == "source_collection_required"
+    assert by_key["city_ranking_signal"]["target_tables"] == ["fa_fact_city_ranking_signal"]
     assert by_key["city_development_score"]["status"] == "derived_from_datahub_signals"
     assert by_key["city_development_score"]["target_tables"] == ["fa_mart_city_development_score"]
     assert by_key["major_employment_role_map"]["status"] == "curation_required"
@@ -527,6 +541,15 @@ def test_evidence_domain_schemas_are_package_ready():
         "fa_dim_school_profile",
         "fa_dim_school_location",
         "fa_dim_region_profile",
+        "fa_dim_entity_registry",
+        "fa_bridge_entity_alias",
+        "fa_dim_metric_registry",
+        "fa_bridge_metric_alias",
+        "fa_meta_source_snapshot",
+        "fa_meta_source_health",
+        "fa_meta_update_run",
+        "fa_meta_update_run_step",
+        "fa_meta_nonstandard_review_queue",
         "fa_fact_campus_surrounding_poi",
         "fa_fact_campus_housing_market",
         "fa_fact_region_living_cost",
@@ -542,6 +565,7 @@ def test_evidence_domain_schemas_are_package_ready():
         "fa_fact_city_economic_indicator",
         "fa_fact_city_public_resource",
         "fa_fact_city_listed_company_signal",
+        "fa_fact_city_ranking_signal",
         "fa_mart_city_development_score",
         "fa_bridge_major_employment_role",
         "fa_fact_company_role_demand_signal",
@@ -3261,6 +3285,45 @@ def test_build_city_development_score_package(tmp_path: Path):
     assert "fa_fact_city_public_resource" in lineage["tables"]
 
 
+def test_entity_normalization_registry_config_and_schemas():
+    config = load_entity_normalization()
+    assert config["source_key"] == "entity_normalization_registry"
+    assert "city" in config["entity_types"]
+    assert "school" in config["entity_types"]
+    assert config["model_input_policy"]["require_canonical_entity_id"] is True
+    stages = [stage["stage"] for stage in config["pipeline_stages"]]
+    assert stages[:4] == ["raw_intake", "parse", "normalize", "canonicalize"]
+
+    schemas = load_source_schemas()["tables"]
+    assert schemas["fa_dim_entity_registry"]["primary_key"] == ["entity_id"]
+    assert schemas["fa_bridge_entity_alias"]["primary_key"] == [
+        "entity_type",
+        "alias_name",
+        "source_system",
+        "alias_scope",
+    ]
+    assert schemas["fa_dim_metric_registry"]["primary_key"] == ["metric_domain", "metric_key"]
+    assert schemas["fa_bridge_metric_alias"]["primary_key"] == ["metric_domain", "alias_name", "source_system"]
+
+
+def test_data_update_policy_config_and_schemas():
+    config = load_data_update_policy()
+    assert config["source_key"] == "data_update_governance"
+    assert "manual_review_promote" in config["update_modes"]
+    assert "append_snapshot" in config["update_modes"]
+    assert config["nonstandard_policy"]["old_data_policy"]["never_delete_without_delete_plan"] is True
+    assert config["scheduler"]["failure_policy"]["block_dependents_on_source_failure"] is True
+    assert config["source_policies"]["city_economic_indicator"]["parallelizable"] is True
+    assert config["source_policies"]["region_profile_geocode"]["parallelizable"] is False
+
+    schemas = load_source_schemas()["tables"]
+    assert schemas["fa_meta_source_snapshot"]["primary_key"] == ["source_key", "snapshot_id"]
+    assert schemas["fa_meta_source_health"]["primary_key"] == ["source_key", "check_at", "check_type"]
+    assert schemas["fa_meta_update_run"]["primary_key"] == ["update_run_id"]
+    assert schemas["fa_meta_update_run_step"]["primary_key"] == ["update_run_id", "source_key", "step_key"]
+    assert schemas["fa_meta_nonstandard_review_queue"]["primary_key"] == ["review_id"]
+
+
 def test_build_city_listed_company_signal_package(tmp_path: Path):
     company_input = tmp_path / "company_city.csv"
     with company_input.open("w", encoding="utf-8", newline="") as f:
@@ -3482,6 +3545,91 @@ def test_build_city_ranking_collection_plan_and_package(tmp_path: Path):
         writer.writerows(rows)
     missing_value_audit = audit_city_context_collection_plan(missing_value)
     assert any("complete status missing value" in error for error in missing_value_audit["errors"])
+
+
+def test_build_city_context_target_cities_from_core(tmp_path: Path):
+    core_db = tmp_path / "core.duckdb"
+    con = duckdb.connect(str(core_db))
+    con.execute("""
+        CREATE TABLE fa_dim_ln_admission_plan (
+            school_code VARCHAR,
+            school_name VARCHAR,
+            major_code VARCHAR,
+            major_full VARCHAR,
+            batch VARCHAR,
+            subject_cat VARCHAR,
+            region VARCHAR,
+            plan_count INTEGER
+        )
+    """)
+    con.executemany(
+        "INSERT INTO fa_dim_ln_admission_plan VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        [
+            ("10145", "东北大学", "01", "计算机类", "本科批", "物理类", "辽宁沈阳", 10),
+            ("10145", "东北大学", "02", "自动化类", "本科批", "物理类", "辽宁沈阳", 8),
+            ("10141", "大连理工大学", "01", "软件工程", "本科批", "物理类", "辽宁大连", 12),
+            ("10001", "北京大学", "01", "法学", "本科批", "历史类", "北京", 2),
+            ("10200", "东北师范大学", "01", "汉语言文学", "专科批", "历史类", "吉林长春", 3),
+        ],
+    )
+    con.execute("""
+        CREATE TABLE fa_dim_region_profile (
+            adcode VARCHAR,
+            region_name VARCHAR,
+            region_level VARCHAR,
+            parent_adcode VARCHAR,
+            province VARCHAR,
+            city VARCHAR,
+            district VARCHAR,
+            citycode VARCHAR,
+            center_longitude DOUBLE,
+            center_latitude DOUBLE,
+            coordinate_system VARCHAR,
+            source_provider VARCHAR,
+            source_date VARCHAR,
+            availability_date VARCHAR,
+            built_at VARCHAR
+        )
+    """)
+    con.executemany(
+        """
+        INSERT INTO fa_dim_region_profile VALUES
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        [
+            ("210100", "沈阳市", "city", "210000", "辽宁省", "沈阳市", "", "024", 123.4, 41.8, "GCJ-02", "fixture", "2026-05-13", "2026-05-13", "now"),
+            ("210200", "大连市", "city", "210000", "辽宁省", "大连市", "", "0411", 121.6, 38.9, "GCJ-02", "fixture", "2026-05-13", "2026-05-13", "now"),
+        ],
+    )
+    con.close()
+
+    result = build_city_context_target_cities(
+        core_db=core_db,
+        output_dir=tmp_path / "city_context",
+    )
+
+    assert result["rows"] == 3
+    assert result["ready_rows"] == 2
+    with Path(result["ready_csv"]).open(encoding="utf-8", newline="") as f:
+        ready_rows = list(csv.DictReader(f))
+    assert [row["city"] for row in ready_rows] == ["沈阳", "大连"]
+    assert {row["adcode"] for row in ready_rows} == {"210100", "210200"}
+    assert ready_rows[0]["priority_rank"] == "1"
+
+    with Path(result["review_csv"]).open(encoding="utf-8", newline="") as f:
+        review_rows = list(csv.DictReader(f))
+    blocked = [row for row in review_rows if row["match_status"] == "blocked"]
+    assert len(blocked) == 1
+    assert blocked[0]["city"] == "北京"
+    assert blocked[0]["blocking_reason"] == "missing_region_profile_adcode"
+
+    plan_result = build_city_context_collection_plan(
+        city_input=Path(result["ready_csv"]),
+        output_dir=tmp_path / "city_context_plan",
+        domains=["city_ranking"],
+        metric_year=2025,
+    )
+    assert plan_result["rows"] == 10
 
 
 def test_build_major_city_employment_fit_package(tmp_path: Path):

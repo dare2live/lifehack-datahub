@@ -1,0 +1,165 @@
+{
+  "version": "1",
+  "updated_at": "2026-05-13",
+  "notes": "数据更新治理配置。所有来源先做有效性检测和快照记录，再按配置选择全量替换、分区替换、主键 upsert、追加快照或人工复核晋级。非标数据不得直接进入 core。",
+  "source_key": "data_update_governance",
+  "target_tables": [
+    "fa_meta_source_snapshot",
+    "fa_meta_source_health",
+    "fa_meta_update_run",
+    "fa_meta_update_run_step",
+    "fa_meta_nonstandard_review_queue"
+  ],
+  "update_modes": {
+    "full_replace": "完整快照替换，适合官方目录、专业目录、行政区划等小中型维表。",
+    "partition_replace": "按年份、批次、地区或快照日期替换，适合招生计划、分数线、城市指标。",
+    "primary_key_upsert": "按主键更新和插入，适合复核后的增量事实。",
+    "append_snapshot": "保留每次快照，适合租售价格、招聘、POI 和排名这类时间序列。",
+    "manual_review_promote": "只生成候选和复核队列，人工批准后才发布标准包。",
+    "derived_rebuild": "由已发布标准表重新计算 mart，输入未变时可跳过。"
+  },
+  "nonstandard_policy": {
+    "definition": "无稳定官方下载、字段经常变化、需要网页/OCR/人工判断或来自第三方页面的数据。",
+    "stages": ["raw_snapshot", "parsed_candidate", "normalized_candidate", "review_batch", "approved_record", "published_package"],
+    "required_lineage": ["source_title", "source_url", "evidence_quote", "source_date", "availability_date", "raw_content_hash"],
+    "promotion_statuses": ["approved", "verified", "ready"],
+    "blocked_statuses": ["todo", "needs_review", "needs_source_research", "rejected", "stale_source"],
+    "old_data_policy": {
+      "keep_raw_snapshots": true,
+      "supersede_by_snapshot_date": true,
+      "never_delete_without_delete_plan": true,
+      "require_review_for_conflicting_values": true
+    }
+  },
+  "validity_checks": {
+    "remote_file": ["url_accessible", "content_hash", "file_size", "mime_type", "source_date_present"],
+    "web_api": ["endpoint_accessible", "status_code_ok", "response_schema", "quota_error_absent", "key_not_logged"],
+    "manual_file": ["file_exists", "content_hash", "operator_recorded", "official_distribution_recorded"],
+    "collection_plan": ["status_registered", "required_evidence_present", "value_parseable", "metric_registered"],
+    "derived_mart": ["input_package_lineage_present", "row_count_nonzero", "score_profile_registered", "reason_codes_present"]
+  },
+  "scheduler": {
+    "default_max_parallel": 3,
+    "serial_groups": ["core_import", "delete_migration", "same_target_table"],
+    "parallel_groups": ["remote_probe", "manual_intake", "independent_collection_batch", "derived_readonly_mart"],
+    "failure_policy": {
+      "block_dependents_on_source_failure": true,
+      "allow_independent_sources_to_continue": true,
+      "require_health_record_for_skipped_source": true
+    }
+  },
+  "source_policies": {
+    "ln_admission_plan": {
+      "update_mode": "manual_review_promote",
+      "cadence": "annual_after_release",
+      "partition_keys": ["year", "batch", "subject_cat"],
+      "concurrency_group": "core_admission_serial",
+      "parallelizable": false,
+      "depends_on": ["ln_application_workbook"],
+      "validity_profile": "manual_file",
+      "promotion_gate": "reconciliation_plan_ready"
+    },
+    "ln_score_history": {
+      "update_mode": "partition_replace",
+      "cadence": "annual_after_score_release",
+      "partition_keys": ["score_year", "batch", "subject_cat"],
+      "concurrency_group": "core_admission_serial",
+      "parallelizable": false,
+      "depends_on": ["ln_projection_score", "ln_score_distribution"],
+      "validity_profile": "collection_plan",
+      "promotion_gate": "reconciliation_plan_ready"
+    },
+    "school_profile": {
+      "update_mode": "full_replace",
+      "cadence": "annual",
+      "concurrency_group": "official_reference_parallel",
+      "parallelizable": true,
+      "validity_profile": "remote_file",
+      "promotion_gate": "package_quality_ok"
+    },
+    "region_profile_geocode": {
+      "update_mode": "full_replace",
+      "cadence": "semiannual_or_on_scope_change",
+      "concurrency_group": "amap_api_limited",
+      "parallelizable": false,
+      "validity_profile": "web_api",
+      "promotion_gate": "package_quality_ok"
+    },
+    "school_location_geocode": {
+      "update_mode": "primary_key_upsert",
+      "cadence": "on_school_scope_change",
+      "concurrency_group": "amap_api_limited",
+      "parallelizable": false,
+      "depends_on": ["school_profile", "school_identity_bridge"],
+      "validity_profile": "web_api",
+      "promotion_gate": "geocode_audit_ok"
+    },
+    "campus_surrounding_poi": {
+      "update_mode": "append_snapshot",
+      "cadence": "quarterly",
+      "concurrency_group": "amap_api_limited",
+      "parallelizable": false,
+      "depends_on": ["school_location_geocode"],
+      "validity_profile": "web_api",
+      "promotion_gate": "snapshot_quality_ok"
+    },
+    "campus_housing_market": {
+      "update_mode": "append_snapshot",
+      "cadence": "monthly_or_manual_snapshot",
+      "concurrency_group": "nonstandard_review",
+      "parallelizable": true,
+      "depends_on": ["school_location_geocode"],
+      "validity_profile": "manual_file",
+      "promotion_gate": "manual_review_approved"
+    },
+    "city_economic_indicator": {
+      "update_mode": "partition_replace",
+      "cadence": "annual_after_statistical_bulletin",
+      "partition_keys": ["metric_year", "adcode"],
+      "concurrency_group": "city_collection_parallel",
+      "parallelizable": true,
+      "depends_on": ["region_profile_geocode"],
+      "validity_profile": "collection_plan",
+      "promotion_gate": "collection_audit_ok"
+    },
+    "city_public_resource": {
+      "update_mode": "partition_replace",
+      "cadence": "annual_after_statistical_bulletin",
+      "partition_keys": ["metric_year", "adcode"],
+      "concurrency_group": "city_collection_parallel",
+      "parallelizable": true,
+      "depends_on": ["region_profile_geocode"],
+      "validity_profile": "collection_plan",
+      "promotion_gate": "collection_audit_ok"
+    },
+    "city_ranking_signal": {
+      "update_mode": "append_snapshot",
+      "cadence": "annual_or_publisher_release",
+      "partition_keys": ["ranking_year", "ranking_source_key"],
+      "concurrency_group": "city_collection_parallel",
+      "parallelizable": true,
+      "depends_on": ["region_profile_geocode"],
+      "validity_profile": "collection_plan",
+      "promotion_gate": "collection_audit_ok"
+    },
+    "career_signal": {
+      "update_mode": "append_snapshot",
+      "cadence": "monthly_or_quarterly",
+      "partition_keys": ["metric_year", "city", "occupation_code"],
+      "concurrency_group": "nonstandard_review",
+      "parallelizable": true,
+      "depends_on": ["career_occupation_catalog"],
+      "validity_profile": "collection_plan",
+      "promotion_gate": "manual_review_approved"
+    },
+    "city_development_score": {
+      "update_mode": "derived_rebuild",
+      "cadence": "after_city_context_update",
+      "concurrency_group": "derived_readonly_mart",
+      "parallelizable": true,
+      "depends_on": ["city_economic_indicator", "city_public_resource", "city_listed_company_signal", "city_ranking_signal"],
+      "validity_profile": "derived_mart",
+      "promotion_gate": "package_quality_ok"
+    }
+  }
+}

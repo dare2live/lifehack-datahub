@@ -30,6 +30,7 @@ from .builders.city_context_collection_batch import (
 )
 from .builders.city_context_collection_package import build_city_context_packages_from_collection_plan
 from .builders.city_context_collection_plan import build_city_context_collection_plan
+from .builders.city_context_target_cities import build_city_context_target_cities
 from .builders.city_development_score import build_city_development_score_package
 from .builders.city_listed_company_signal import build_city_listed_company_signal_package
 from .builders.major_city_employment_fit import build_major_city_employment_fit_package
@@ -581,6 +582,15 @@ def main() -> int:
     build_city_context_plan.add_argument("--domain", action="append", dest="domains")
     build_city_context_plan.add_argument("--metric-year", type=int)
     build_city_context_plan.add_argument("--limit", type=int)
+
+    build_city_context_targets = sub.add_parser(
+        "build-city-context-target-cities",
+        help="Build reusable target city input CSV from core admission plan and region profile",
+    )
+    build_city_context_targets.add_argument("--core-db", required=True, type=Path)
+    build_city_context_targets.add_argument("--output-dir", required=True, type=Path)
+    build_city_context_targets.add_argument("--region-profile-csv", type=Path)
+    build_city_context_targets.add_argument("--limit", type=int)
 
     audit_city_context_plan = sub.add_parser(
         "audit-city-context-collection-plan",
@@ -1241,6 +1251,15 @@ def main() -> int:
             output_dir=args.output_dir,
             domains=args.domains,
             metric_year=args.metric_year,
+            limit=args.limit,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+    if args.cmd == "build-city-context-target-cities":
+        result = build_city_context_target_cities(
+            core_db=args.core_db,
+            output_dir=args.output_dir,
+            region_profile_csv=args.region_profile_csv,
             limit=args.limit,
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))

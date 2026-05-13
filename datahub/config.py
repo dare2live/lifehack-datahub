@@ -55,6 +55,16 @@ def load_city_context_collection() -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def load_entity_normalization() -> dict[str, Any]:
+    path = CONFIG_DIR / "entity_normalization.json"
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def load_data_update_policy() -> dict[str, Any]:
+    path = CONFIG_DIR / "data_update_policy.json"
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
 def load_school_location_geocode_plan() -> dict[str, Any]:
     path = CONFIG_DIR / "school_location_geocode_plan.json"
     return json.loads(path.read_text(encoding="utf-8"))

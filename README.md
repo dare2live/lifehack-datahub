@@ -104,6 +104,10 @@ python3 scripts/build_package.py build-career-score \
 
 真实 smoke：招聘快照来源生成 4 条职业信号采集任务，按 `limit_per_source=2` 拆出 2 条批次，原样合并 `updated_rows=0`，随后审计 `errors=[]`。输出均在 ignored `staging/`，不是 data package，也不会写 core。
 
+规范化语义层用于解决城市、学校、校区、专业、职业、行业、企业和指标在不同来源中的重复命名问题。实体与别名进入 `fa_dim_entity_registry/fa_bridge_entity_alias`，指标与别名进入 `fa_dim_metric_registry/fa_bridge_metric_alias`；清洗步骤、匹配置信度、模型入参门禁和输出策略维护在 `config/entity_normalization.json`。后续 builder 不应在业务逻辑里重复写“沈阳/沈阳市/辽宁沈阳”或“软件工程师/后端开发/程序员”这类临时清洗规则。
+
+数据更新治理用于确定数据什么时候重跑、怎么增量、旧数据如何覆盖、失败来源如何阻断依赖。`config/data_update_policy.json` 统一维护 `full_replace/partition_replace/primary_key_upsert/append_snapshot/manual_review_promote/derived_rebuild` 六类更新模式、非标数据晋级规则、来源有效性检测和串并行调度分组；运行元数据进入 `fa_meta_source_snapshot/fa_meta_source_health/fa_meta_update_run/fa_meta_update_run_step/fa_meta_nonstandard_review_queue`。非标数据只允许停留在 raw、候选和复核队列，复核通过后才发布标准包。
+
 城市上市公司信号由已复核的公司城市快照聚合，不直接读取或写入 ChunkyMonkey。字段别名、默认口径和聚合指标维护在 `config/city_listed_company_signal.json`：
 
 ```bash
@@ -117,9 +121,14 @@ python3 scripts/build_package.py build-city-listed-company-signal \
 
 输出 `fa_fact_city_listed_company_signal` 后，再作为城市发展底盘评分的上市公司产业厚度输入。
 
-城市经济、公共资源和城市排名信号先生成采集计划，再按证据完整度审计。城市清单只需要 `adcode/province/city/region_level` 等列：
+城市经济、公共资源和城市排名信号先生成目标城市清单，再展开采集计划并按证据完整度审计。目标城市清单从 core 招生计划只读抽取，并用 `fa_dim_region_profile` 或受控 CSV 补齐 `adcode`：
 
 ```bash
+python3 scripts/build_package.py build-city-context-target-cities \
+  --core-db /Users/dp/Documents/M/lifehack/backend/data/university.db \
+  --region-profile-csv staging/region_profile/fa_dim_region_profile.csv \
+  --output-dir staging/city_context
+
 python3 scripts/build_package.py build-city-context-collection-plan \
   --city-input staging/city_context/target_cities.csv \
   --output-dir staging/city_context \
