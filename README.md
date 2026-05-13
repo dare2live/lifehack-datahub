@@ -167,6 +167,16 @@ python3 scripts/build_package.py fetch-amap-web-api \
   --output-root raw
 ```
 
+学校地址 geocode 原始响应需要再转成标准包，才能进入 core：
+
+```bash
+python3 scripts/build_package.py build-school-location-from-amap-geocode \
+  --raw-jsonl raw/school_location_geocode/2026-05-13/amap_web_api_geocode.jsonl \
+  --raw-manifest raw/school_location_geocode/2026-05-13/_amap_web_api_geocode.json \
+  --output-root exports \
+  --package-id 2026_school_location_geocode
+```
+
 再把已清洗文件生成 data package：
 
 ```bash

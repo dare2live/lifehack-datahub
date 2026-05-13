@@ -58,6 +58,7 @@ from datahub.builders.score_distribution_review_workspace import (
 from datahub.builders.score_distribution_readiness import audit_score_distribution_readiness
 from datahub.config import get_table_schema, load_career_data_sources, load_outcome_metrics, load_source_schemas
 from datahub.builders.school_identity import build_school_identity_package
+from datahub.builders.school_location_from_amap import build_school_location_package_from_amap_geocode
 from datahub.connectors.amap_web_api import fetch_amap_web_api
 from datahub.connectors.manual_files import intake_manual_assets
 from datahub.connectors.macos_vision_ocr import ocr_page_images
@@ -4514,6 +4515,103 @@ def test_fetch_amap_web_api_district_uses_config_scope(tmp_path: Path, monkeypat
     assert result["request_count"] == 1
     assert manifest["request_params_without_key"][0]["keywords"] == "辽宁省"
     assert manifest["request_params_without_key"][0]["subdistrict"] == "3"
+
+
+def test_build_school_location_package_from_amap_geocode(tmp_path: Path, monkeypatch):
+    raw_dir = tmp_path / "raw" / "school_location_geocode" / "2026-05-13"
+    raw_dir.mkdir(parents=True)
+    raw_jsonl = raw_dir / "amap_web_api_geocode.jsonl"
+    raw_manifest = raw_dir / "_amap_web_api_geocode.json"
+    raw_jsonl.write_text(
+        json.dumps({
+            "request_index": 1,
+            "operation": "geocode",
+            "endpoint": "https://restapi.amap.com/v3/geocode/geo",
+            "params": {"address": "沈阳市和平区文化路3号巷11号", "city": "沈阳"},
+            "source_row": {
+                "national_school_code": "4121010145",
+                "local_school_code": "10145",
+                "school_name": "东北大学",
+                "campus_key": "main",
+                "campus_name": "南湖校区",
+                "address": "沈阳市和平区文化路3号巷11号",
+                "source_address_url": "https://example.edu/address",
+            },
+            "raw_response_hash": "abc123",
+            "response": {
+                "status": "1",
+                "geocodes": [{
+                    "formatted_address": "辽宁省沈阳市和平区文化路3号巷11号",
+                    "province": "辽宁省",
+                    "city": "沈阳市",
+                    "district": "和平区",
+                    "township": "南湖街道",
+                    "street": "文化路",
+                    "number": "3号巷11号",
+                    "adcode": "210102",
+                    "citycode": "024",
+                    "location": "123.421,41.765",
+                    "level": "门牌号",
+                    "id": "B001",
+                }],
+            },
+            "fetched_at": "2026-05-13T00:00:00",
+        }, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
+    raw_manifest.write_text(json.dumps({
+        "source_key": "school_location_geocode",
+        "source_name": "高校地理位置增强",
+        "source_kind": "verified_address_plus_amap_web_api_geocode",
+        "source_date": "2026-05-13",
+        "operation": "geocode",
+        "intake_at": "2026-05-13T00:00:00",
+        "acquired_by": "datahub.fetch_amap_web_api",
+        "official_distribution": "fixture amap",
+        "evidence_urls": ["https://lbs.amap.com/api/webservice/guide/api/georegeo"],
+        "target_tables": ["fa_dim_school_location"],
+    }, ensure_ascii=False), encoding="utf-8")
+
+    monkeypatch.setattr(
+        "datahub.builders.school_location_from_amap.load_sources",
+        lambda: {
+            "sources": {
+                "school_location_geocode": {
+                    "name": "高校地理位置增强",
+                    "interfaces": {
+                        "coordinate_system": "GCJ-02",
+                        "default_campus_key": "main",
+                        "geocode_confidence_by_level": {"门牌号": 0.95, "unknown": 0.5},
+                    },
+                }
+            }
+        },
+    )
+
+    result = build_school_location_package_from_amap_geocode(
+        raw_jsonl=raw_jsonl,
+        raw_manifest=raw_manifest,
+        output_root=tmp_path / "exports",
+        package_id="pkg-school-location-test",
+        source_version="fixture-school-location",
+    )
+
+    package_dir = Path(result["package"]["package_dir"])
+    assert validate_manifest(package_dir / "manifest.json")["errors"] == []
+    assert result["rows"] == 1
+    with (package_dir / "fa_dim_school_location.csv").open(encoding="utf-8", newline="") as f:
+        rows = list(csv.DictReader(f))
+    row = rows[0]
+    assert row["national_school_code"] == "4121010145"
+    assert row["campus_key"] == "main"
+    assert row["coordinate_system"] == "GCJ-02"
+    assert row["longitude"] == "123.421"
+    assert row["latitude"] == "41.765"
+    assert row["geocode_confidence"] == "0.95"
+    assert row["geocode_raw_hash"] == "abc123"
+    manifest = json.loads((package_dir / "manifest.json").read_text(encoding="utf-8"))
+    assert manifest["source_lineage"]["raw_manifest"] == str(raw_manifest)
+    assert manifest["source_lineage"]["source_kind"] == "parsed_amap_web_api_geocode"
 
 
 def test_download_page_images_from_config(tmp_path: Path, monkeypatch):

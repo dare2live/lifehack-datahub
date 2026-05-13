@@ -49,6 +49,7 @@ from .builders.score_history_reconciliation_delete_plan import build_score_histo
 from .builders.score_history_reconciliation_package import build_score_history_package_from_reconciliation_plan
 from .builders.score_history_reconciliation_plan import build_score_history_reconciliation_plan
 from .builders.score_history_snapshot import build_score_history_snapshot_package
+from .builders.school_location_from_amap import build_school_location_package_from_amap_geocode
 from .builders.school_identity import build_school_identity_package
 from .builders.score_distribution_readiness import audit_score_distribution_readiness
 from .builders.score_distribution_review_workspace import (
@@ -197,6 +198,16 @@ def main() -> int:
     build_school_identity.add_argument("--source-version")
     build_school_identity.add_argument("--source-date")
     build_school_identity.add_argument("--availability-date")
+
+    build_school_location_from_amap = sub.add_parser(
+        "build-school-location-from-amap-geocode",
+        help="Build fa_dim_school_location package from fetch-amap-web-api geocode JSONL",
+    )
+    build_school_location_from_amap.add_argument("--raw-jsonl", required=True, type=Path)
+    build_school_location_from_amap.add_argument("--raw-manifest", type=Path)
+    build_school_location_from_amap.add_argument("--output-root", required=True, type=Path)
+    build_school_location_from_amap.add_argument("--package-id")
+    build_school_location_from_amap.add_argument("--source-version")
 
     build_admission_snapshot = sub.add_parser(
         "build-admission-plan-snapshot",
@@ -729,6 +740,16 @@ def main() -> int:
             source_version=args.source_version,
             source_date=args.source_date,
             availability_date=args.availability_date,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+    if args.cmd == "build-school-location-from-amap-geocode":
+        result = build_school_location_package_from_amap_geocode(
+            raw_jsonl=args.raw_jsonl,
+            raw_manifest=args.raw_manifest,
+            output_root=args.output_root,
+            package_id=args.package_id,
+            source_version=args.source_version,
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
