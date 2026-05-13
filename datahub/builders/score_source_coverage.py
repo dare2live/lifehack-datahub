@@ -106,6 +106,8 @@ def _distribution_coverage(source: dict[str, Any]) -> dict[int, dict[str, Any]]:
         source_class = _source_class(item, "page_url")
         if source_class == "official":
             entry["official_page_image_count"] += 1
+            if _page_image_parse_mode(item) == "grid_image_table":
+                entry["official_grid_image_count"] += 1
         else:
             entry["mirror_page_image_count"] += 1
         entry["image_source_urls"].append(item.get("page_url", ""))
@@ -127,6 +129,7 @@ def _empty_entry(year: int) -> dict[str, Any]:
         "official_remote_file_count": 0,
         "mirror_remote_file_count": 0,
         "official_page_image_count": 0,
+        "official_grid_image_count": 0,
         "mirror_page_image_count": 0,
         "research_candidate_count": 0,
         "subjects": set(),
@@ -176,6 +179,10 @@ def _subjects_from_item(item: dict[str, Any]) -> set[str]:
     return subjects
 
 
+def _page_image_parse_mode(item: dict[str, Any]) -> str:
+    return str(item.get("parse_mode") or "").strip()
+
+
 def _projection_status(entry: dict[str, Any]) -> str:
     if entry["official_remote_file_count"] >= 2:
         return "official_remote_ready"
@@ -189,6 +196,8 @@ def _projection_status(entry: dict[str, Any]) -> str:
 def _distribution_status(entry: dict[str, Any]) -> str:
     if entry["official_remote_file_count"] >= 2:
         return "official_remote_ready"
+    if entry["official_grid_image_count"] >= 2:
+        return "official_image_grid_ready"
     if entry["remote_file_count"] >= 2 and entry["official_page_image_count"]:
         return "mirror_remote_with_official_images"
     if entry["remote_file_count"] >= 2:
@@ -203,6 +212,8 @@ def _distribution_status(entry: dict[str, Any]) -> str:
 def _derivation_status(projection_status: str, distribution_status: str) -> str:
     if projection_status == "official_remote_ready" and distribution_status == "official_remote_ready":
         return "official_remote_derivable"
+    if projection_status == "official_remote_ready" and distribution_status == "official_image_grid_ready":
+        return "official_image_derivable"
     if projection_status == "candidate_only":
         return "blocked_projection_candidate_only"
     if projection_status == "missing":

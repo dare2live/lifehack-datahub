@@ -266,11 +266,12 @@
           "source_date": "2022-06-23",
           "score_year": 2022,
           "file_prefix": "ln_score_distribution_2022_physics_official",
+          "parse_mode": "grid_image_table",
           "include": "/up_img/advimg/2022-06-23_",
           "headers": {
             "User-Agent": "Mozilla/5.0"
           },
-          "notes": "2022 辽宁成绩统计表物理学科类官方图片页；需 OCR 或受控人工转录后进入 cleaned CSV。"
+          "notes": "2022 辽宁成绩统计表物理学科类官方图片页；可通过 grid_image_table 解析器生成候选表，仍需 raw manifest 和质量报告门禁。"
         },
         {
           "page_url": "https://www.lnzsks.com/newsinfo/IMS_20220623_41570_xa6ntsEqH5.htm",
@@ -278,11 +279,12 @@
           "source_date": "2022-06-23",
           "score_year": 2022,
           "file_prefix": "ln_score_distribution_2022_history_official",
+          "parse_mode": "grid_image_table",
           "include": "/up_img/advimg/2022-06-23_",
           "headers": {
             "User-Agent": "Mozilla/5.0"
           },
-          "notes": "2022 辽宁成绩统计表历史学科类官方图片页；需 OCR 或受控人工转录后进入 cleaned CSV。"
+          "notes": "2022 辽宁成绩统计表历史学科类官方图片页；可通过 grid_image_table 解析器生成候选表，仍需 raw manifest 和质量报告门禁。"
         },
         {
           "page_url": "https://www.ln.chinanews.com.cn/news/2022/0627/324221.html",
@@ -504,7 +506,7 @@
           "https://jyt.ln.gov.cn/jyt/jyzx/jyyw/2024062510394164694/index.shtml",
           "https://jyt.ln.gov.cn/jyt/jyzx/jyyw/2025062418040445891/index.shtml"
         ],
-        "notes": "用于把官方投档最低分转换为同分段累计位次。该累计位次不是同分排序后的精确投档位次。2023/2024 官方页面以图片发布，download-page-images 可重复采集原图并生成来源 manifest，后续由 OCR 或受控人工转录进入 cleaned CSV。"
+        "notes": "用于把官方投档最低分转换为同分段累计位次。该累计位次不是同分排序后的精确投档位次。2022 官方页面图片可通过 grid_image_table 解析器生成候选表；2023/2024 官方页面以图片发布，download-page-images 可重复采集原图并生成来源 manifest，后续由 OCR 或受控人工转录进入 cleaned CSV。"
       },
       "target_tables": ["fa_fact_ln_score_distribution"]
     },

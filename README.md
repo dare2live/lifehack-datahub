@@ -275,7 +275,7 @@ python3 scripts/build_package.py audit-score-source-coverage \
   --report staging/source_research/score_source_coverage.json
 ```
 
-当前配置下，2025 为官方远程文件可派生；2024 投档最低分是辽宁官网附件、一分一段仍用镜像 PDF 加官方图片页留痕；2023 两类输入均含镜像降级；2022 投档最低分已补辽宁招生考试之窗官方附件直链，历史类 `2022ptlbk0720w01.xlsx`、物理类 `2022ptlbk0720l01.xlsx` 已核验 HTTP 200、文件类型和 SHA-256，`parse-ln-projection-score` 可解析 14,203 行。2022 仍不能自动构建可导入历史位次包，因为一分一段来源是官方图片页，必须 OCR/人工复核后才能进入 cleaned/package。
+当前配置下，2025 为官方远程文件可派生；2024 投档最低分是辽宁官网附件、一分一段仍用镜像 PDF 加官方图片页留痕；2023 两类输入均含镜像降级；2022 投档最低分已补辽宁招生考试之窗官方附件直链，历史类 `2022ptlbk0720w01.xlsx`、物理类 `2022ptlbk0720l01.xlsx` 已核验 HTTP 200、文件类型和 SHA-256，`parse-ln-projection-score` 可解析 14,203 行。2022 一分一段官方图片源已在 `page_image_sources` 标记 `parse_mode=grid_image_table`，覆盖审计识别为 `official_image_derivable`；导入 core 前仍必须走 raw manifest、quality report 和 importer dry-run。
 
 高德地图数据走 Web API connector。API key 只从环境变量读取，不写入配置或 manifest；原始响应写入 ignored `raw/`，后续再由 parser/normalizer 生成标准包：
 
