@@ -18,6 +18,7 @@ from datahub.builders.admission_plan_reconciliation_batch import (
 from datahub.builders.admission_plan_reconciliation_delete_plan import build_admission_plan_delete_plan_from_reconciliation_plan
 from datahub.builders.career_score import build_career_score_package
 from datahub.builders.career_source_audit import audit_career_source_plan
+from datahub.builders.career_source_coverage import audit_career_source_coverage
 from datahub.builders.career_source_batch import (
     build_career_source_review_batch,
     merge_career_source_review_batch,
@@ -2799,6 +2800,22 @@ def test_audit_career_source_plan_reports_progress_and_errors(tmp_path: Path):
     assert report["evidence_counts"]["rows_with_source_url"] == 1
     assert any("unregistered career metric_key" in error for error in report["errors"])
     assert any("complete status missing evidence" in error for error in report["errors"])
+
+
+def test_audit_career_source_coverage_maps_metrics_to_sources(tmp_path: Path):
+    report_path = tmp_path / "career_source_coverage.json"
+    report = audit_career_source_coverage(report_path=report_path)
+
+    assert report_path.exists()
+    assert report["uncovered_metrics"] == []
+    assert report["warnings"] == []
+    assert "career_recruitment_snapshot" in report["metric_to_sources"]["salary_median"]
+    assert "career_salary_survey" in report["metric_to_sources"]["salary_median"]
+    assert "career_civil_service_posts" in report["metric_to_sources"]["civil_service_post_count"]
+    source_by_key = {row["source_key"]: row for row in report["source_rows"]}
+    assert source_by_key["career_occupation_catalog"]["coverage_status"] == "official_seed_ready"
+    assert source_by_key["career_recruitment_snapshot"]["coverage_status"] == "manual_snapshot_required"
+    assert report["summary"]["covered_metric_count"] == report["metric_count"]
 
 
 def test_build_career_source_review_batch_limits_pending_rows(tmp_path: Path):

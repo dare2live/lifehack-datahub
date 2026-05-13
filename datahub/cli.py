@@ -17,6 +17,7 @@ from .builders.admission_plan_reconciliation_batch import (
 from .builders.admission_plan_reconciliation_delete_plan import build_admission_plan_delete_plan_from_reconciliation_plan
 from .builders.career_score import build_career_score_package
 from .builders.career_source_audit import audit_career_source_plan
+from .builders.career_source_coverage import audit_career_source_coverage
 from .builders.career_source_batch import (
     build_career_source_review_batch,
     merge_career_source_review_batch,
@@ -559,6 +560,12 @@ def main() -> int:
     build_career_source_plan_parser.add_argument("--metric-year", type=int)
     build_career_source_plan_parser.add_argument("--city")
     build_career_source_plan_parser.add_argument("--occupation-input", type=Path)
+
+    audit_career_source_coverage_parser = sub.add_parser(
+        "audit-career-source-coverage",
+        help="Audit configured career source and metric coverage",
+    )
+    audit_career_source_coverage_parser.add_argument("--report", type=Path)
 
     audit_career_source_plan_parser = sub.add_parser(
         "audit-career-source-plan",
@@ -1331,6 +1338,10 @@ def main() -> int:
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
+    if args.cmd == "audit-career-source-coverage":
+        report = audit_career_source_coverage(report_path=args.report)
+        print(json.dumps(report, ensure_ascii=False, indent=2))
+        return 0 if not report["uncovered_metrics"] and not report["warnings"] else 1
     if args.cmd == "audit-career-source-plan":
         report = audit_career_source_plan(args.plan_csv)
         if args.report:
