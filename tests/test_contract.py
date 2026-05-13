@@ -17,6 +17,7 @@ from datahub.builders.admission_plan_reconciliation_batch import (
 )
 from datahub.builders.admission_plan_reconciliation_delete_plan import build_admission_plan_delete_plan_from_reconciliation_plan
 from datahub.builders.career_score import build_career_score_package
+from datahub.builders.career_source_audit import audit_career_source_plan
 from datahub.builders.career_source_plan import PLAN_COLUMNS as CAREER_PLAN_COLUMNS, build_career_source_plan
 from datahub.connectors.page_images import download_page_images
 from datahub.builders.outcome_collection_audit import audit_outcome_collection_plan
@@ -2404,12 +2405,26 @@ def test_outcome_metric_registry_rejects_unknown_keys(tmp_path: Path):
 def test_build_career_source_plan_from_config(tmp_path: Path):
     config = load_career_data_sources()
     assert "salary_median" in config["metrics"]
+    occupations = tmp_path / "occupations.csv"
+    with occupations.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(
+            f,
+            fieldnames=["occupation_code", "occupation_name", "tdx_l2", "tdx_l2_name"],
+        )
+        writer.writeheader()
+        writer.writerow({
+            "occupation_code": "15-102",
+            "occupation_name": "软件工程师",
+            "tdx_l2": "T1205",
+            "tdx_l2_name": "软件服务",
+        })
 
     result = build_career_source_plan(
         output_dir=tmp_path / "career_plan",
         source_keys=["career_recruitment_snapshot", "career_civil_service_posts"],
         metric_year=2026,
         city="沈阳",
+        occupation_input=occupations,
     )
 
     assert result["rows"] == 6
@@ -2420,8 +2435,72 @@ def test_build_career_source_plan_from_config(tmp_path: Path):
     assert any(row["metric_key"] == "salary_median" for row in rows)
     assert any(row["target_table"] == "fa_fact_career_signal" for row in rows)
     assert all(row["city"] == "沈阳" for row in rows)
+    assert all(row["occupation_name"] == "软件工程师" for row in rows)
+    assert "软件工程师 招聘 薪资 沈阳 2026" in rows[0]["search_queries"]
     manifest = json.loads(Path(result["manifest"]).read_text(encoding="utf-8"))
     assert manifest["notes"].startswith("Collection plan only")
+
+
+def test_audit_career_source_plan_reports_progress_and_errors(tmp_path: Path):
+    plan = tmp_path / "career_source_plan.csv"
+    with plan.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=CAREER_PLAN_COLUMNS)
+        writer.writeheader()
+        base = {column: "" for column in CAREER_PLAN_COLUMNS}
+        writer.writerow({
+            **base,
+            "source_key": "career_recruitment_snapshot",
+            "source_name": "招聘需求与薪资快照",
+            "source_kind": "controlled_market_snapshot",
+            "target_table": "fa_fact_career_signal",
+            "occupation_code": "15-102",
+            "occupation_name": "软件工程师",
+            "tdx_l2": "T1205",
+            "tdx_l2_name": "软件服务",
+            "metric_key": "salary_median",
+            "metric_label": "月薪中位数",
+            "metric_unit": "cny_month",
+            "metric_value": "12000",
+            "metric_scope": "公开招聘样本",
+            "metric_year": "2026",
+            "city": "沈阳",
+            "collection_methods": '["manual_platform_export"]',
+            "evidence_urls": "[]",
+            "search_queries": '["软件工程师 招聘 薪资 沈阳 2026"]',
+            "source_title": "招聘快照",
+            "source_url": "https://example.com/jobs/software",
+            "evidence_quote": "软件工程师薪资中位数约12000元/月。",
+            "source_date": "2026-05-13",
+            "availability_date": "2026-05-13",
+            "status": "verified",
+            "reviewer": "fixture",
+            "reviewed_at": "2026-05-13T00:00:00",
+        })
+        writer.writerow({
+            **base,
+            "source_key": "career_recruitment_snapshot",
+            "source_name": "招聘需求与薪资快照",
+            "source_kind": "controlled_market_snapshot",
+            "target_table": "fa_fact_career_signal",
+            "occupation_code": "15-102",
+            "occupation_name": "软件工程师",
+            "metric_key": "made_up_metric",
+            "metric_label": "未知指标",
+            "metric_unit": "score",
+            "metric_year": "2026",
+            "city": "沈阳",
+            "collection_methods": '["manual_platform_export"]',
+            "evidence_urls": "[]",
+            "search_queries": '["fixture"]',
+            "status": "verified",
+        })
+
+    report = audit_career_source_plan(plan)
+    assert report["rows"] == 2
+    assert report["progress"]["complete_rows"] == 2
+    assert report["evidence_counts"]["rows_with_source_url"] == 1
+    assert any("unregistered career metric_key" in error for error in report["errors"])
+    assert any("complete status missing evidence" in error for error in report["errors"])
 
 
 def test_build_career_signal_package_from_cleaned_csv(tmp_path: Path):

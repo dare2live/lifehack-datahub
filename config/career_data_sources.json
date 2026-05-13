@@ -7,6 +7,18 @@
     "metric_year": 2026,
     "city": "全国"
   },
+  "audit": {
+    "pending_statuses": ["todo", "in_progress"],
+    "complete_statuses": ["verified", "ready", "collected"],
+    "blocked_statuses": ["blocked", "needs_source_research"],
+    "required_signal_columns": ["occupation_code", "occupation_name", "metric_value", "source_title", "source_url", "evidence_quote", "source_date", "availability_date"],
+    "required_catalog_columns": ["occupation_code", "occupation_name", "source_title", "source_url", "evidence_quote", "source_date", "availability_date"]
+  },
+  "review_batch": {
+    "selection_statuses": ["todo", "in_progress"],
+    "editable_columns": ["status", "metric_value", "metric_scope", "source_title", "source_url", "evidence_quote", "source_date", "availability_date", "reviewer", "reviewed_at", "notes"],
+    "limit_per_source": 50
+  },
   "source_plan": {
     "sources": {
       "career_occupation_catalog": {

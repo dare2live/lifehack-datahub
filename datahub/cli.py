@@ -16,6 +16,7 @@ from .builders.admission_plan_reconciliation_batch import (
 )
 from .builders.admission_plan_reconciliation_delete_plan import build_admission_plan_delete_plan_from_reconciliation_plan
 from .builders.career_score import build_career_score_package
+from .builders.career_source_audit import audit_career_source_plan
 from .builders.career_source_plan import build_career_source_plan
 from .builders.outcome_collection_batch import (
     build_outcome_collection_batch,
@@ -364,6 +365,14 @@ def main() -> int:
     build_career_source_plan_parser.add_argument("--source-key", action="append", dest="source_keys")
     build_career_source_plan_parser.add_argument("--metric-year", type=int)
     build_career_source_plan_parser.add_argument("--city")
+    build_career_source_plan_parser.add_argument("--occupation-input", type=Path)
+
+    audit_career_source_plan_parser = sub.add_parser(
+        "audit-career-source-plan",
+        help="Audit career source plan progress and evidence readiness",
+    )
+    audit_career_source_plan_parser.add_argument("--plan-csv", required=True, type=Path)
+    audit_career_source_plan_parser.add_argument("--report", type=Path)
 
     build_career_score = sub.add_parser(
         "build-career-score",
@@ -789,8 +798,16 @@ def main() -> int:
             source_keys=args.source_keys,
             metric_year=args.metric_year,
             city=args.city,
+            occupation_input=args.occupation_input,
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+    if args.cmd == "audit-career-source-plan":
+        report = audit_career_source_plan(args.plan_csv)
+        if args.report:
+            args.report.parent.mkdir(parents=True, exist_ok=True)
+            args.report.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        print(json.dumps(report, ensure_ascii=False, indent=2))
         return 0
     if args.cmd == "build-career-score":
         result = build_career_score_package(

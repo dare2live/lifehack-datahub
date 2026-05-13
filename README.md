@@ -47,8 +47,13 @@ Phase 5+：已固化数据包契约和模块边界，提供本地已清洗 CSV/T
 ```bash
 python3 scripts/build_package.py build-career-source-plan \
   --output-dir staging/career_source_plan \
+  --occupation-input cleaned/career_occupation_seed.csv \
   --city 沈阳 \
   --metric-year 2026
+
+python3 scripts/build_package.py audit-career-source-plan \
+  --plan-csv staging/career_source_plan/career_source_plan.csv \
+  --report staging/career_source_plan/career_source_audit.json
 
 python3 scripts/build_package.py build-local \
   --source-key career_signal \
@@ -63,7 +68,7 @@ python3 scripts/build_package.py build-career-score \
   --package-id 2026_career_score_shenyang
 ```
 
-采集源、指标口径、评分权重维护在 `config/career_data_sources.json`；目标表契约维护在 `config/source_schemas.json`。招聘平台数据只允许通过公开授权 API、官方附件、人工导出或可复核快照进入 raw，不在本项目写反爬绕过逻辑。
+`build-career-source-plan` 可选读取标准职业清单（`occupation_code/occupation_name/tdx_l2/tdx_l2_name`），把来源配置展开成“职业 × 指标 × 城市”的采集任务；`audit-career-source-plan` 检查状态、指标注册、证据 URL、摘录、来源日期和值域。采集源、指标口径、评分权重维护在 `config/career_data_sources.json`；目标表契约维护在 `config/source_schemas.json`。招聘平台数据只允许通过公开授权 API、官方附件、人工导出或可复核快照进入 raw，不在本项目写反爬绕过逻辑。
 
 ## 本地数据包生成
 
