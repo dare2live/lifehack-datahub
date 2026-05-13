@@ -9,6 +9,7 @@
         "unit": "ratio",
         "min_value": 0,
         "max_value": 1,
+        "aliases": ["升学率", "升学深造", "国内升学", "继续深造", "深造人数"],
         "description": "毕业生升学、出国出境深造等继续学习比例，口径必须写入 metric_scope。"
       },
       "employment_rate": {
@@ -16,6 +17,7 @@
         "unit": "ratio",
         "min_value": 0,
         "max_value": 1,
+        "aliases": ["就业率", "毕业生去向落实率", "就业去向落实率", "就业落实率"],
         "description": "学校就业质量报告中的毕业去向落实率。"
       },
       "keep_research_rate": {
@@ -23,6 +25,7 @@
         "unit": "ratio",
         "min_value": 0,
         "max_value": 1,
+        "aliases": ["推荐免试", "推免", "免试攻读", "推免率"],
         "description": "推荐免试研究生名额或实际保研比例。"
       },
       "civil_service_rate": {
@@ -30,6 +33,7 @@
         "unit": "ratio",
         "min_value": 0,
         "max_value": 1,
+        "aliases": ["党政机关", "事业单位", "国有企业", "机关事业单位"],
         "description": "党政机关、事业单位、国企等体制内去向比例，需说明统计口径。"
       }
     },
@@ -39,6 +43,7 @@
         "unit": "ratio",
         "min_value": 0,
         "max_value": 1,
+        "aliases": ["专业去向落实率", "专业毕业去向落实率", "就业率"],
         "description": "专业或专业类毕业去向落实率。"
       },
       "postgrad_rate": {
@@ -46,12 +51,14 @@
         "unit": "ratio",
         "min_value": 0,
         "max_value": 1,
+        "aliases": ["专业升学率", "专业升学深造", "专业继续深造", "升学率"],
         "description": "专业或专业类升学、出国出境深造比例。"
       },
       "salary_median": {
         "label": "薪资中位数",
         "unit": "cny_month",
         "min_value": 0,
+        "aliases": ["月薪中位数", "平均薪酬", "平均月薪", "薪资水平"],
         "description": "月薪中位数，需标明样本来源和统计年度。"
       },
       "civil_service_fit_score": {
@@ -59,6 +66,7 @@
         "unit": "score",
         "min_value": 0,
         "max_value": 100,
+        "aliases": ["公考适配", "公务员岗位适配", "职位表匹配"],
         "description": "基于公开岗位需求或专业目录映射的确定性评分。"
       },
       "exam_friendly_score": {
@@ -66,6 +74,7 @@
         "unit": "score",
         "min_value": 0,
         "max_value": 100,
+        "aliases": ["升学延续性", "考研延续性", "研究生招生适配"],
         "description": "基于专业课延续性、招生规模、跨考难度等公开证据的确定性评分。"
       }
     }

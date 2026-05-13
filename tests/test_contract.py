@@ -73,6 +73,11 @@ from datahub.parsers.ln_score_distribution_ocr import (
 from datahub.parsers.ln_score_distribution import parse_ln_score_distribution_lines
 from datahub.parsers.moe_major_catalog import parse_moe_major_catalog_lines
 from datahub.parsers.moe_school_profile import parse_moe_school_profile_rows
+from datahub.parsers.outcome_report import (
+    CANDIDATE_COLUMNS,
+    extract_outcome_metric_candidates_from_lines,
+    write_outcome_metric_candidate_csv,
+)
 from datahub.source_audit import audit_sources
 from datahub.validators.package_validator import validate_manifest
 
@@ -2825,6 +2830,35 @@ def test_build_outcome_collection_plan_from_core_admission_plan(tmp_path: Path):
     manifest = json.loads(Path(result["manifest"]).read_text(encoding="utf-8"))
     assert manifest["notes"].startswith("Collection plan only")
     assert manifest["rows"] == 16
+
+
+def test_extract_outcome_report_candidates_from_lines(tmp_path: Path):
+    rows = extract_outcome_metric_candidates_from_lines(
+        [
+            (3, "学校本科毕业生毕业去向落实率为 92.36%，其中继续深造比例为 24.18%。"),
+            (8, "推荐免试研究生名额占本科毕业生人数比例约 6.40%。"),
+        ],
+        domain="school",
+        entity_code="0142",
+        entity_name="沈阳工业大学",
+        metric_year=2024,
+        source_title="2023-2024年本科教学质量报告",
+        source_url="https://www.sut.edu.cn/info/1584/67026.htm",
+        source_date="2024-12-31",
+        availability_date="2025-01-01",
+    )
+
+    assert {row["metric_key"] for row in rows} >= {"employment_rate", "postgrad_rate", "keep_research_rate"}
+    assert any(row["candidate_value"] == "0.9236" for row in rows)
+    assert any(row["match_alias"] == "推荐免试" for row in rows)
+    assert all(row["review_status"] == "needs_review" for row in rows)
+
+    output = tmp_path / "outcome_candidates.csv"
+    write_outcome_metric_candidate_csv(output, rows)
+    with output.open(encoding="utf-8", newline="") as f:
+        written = list(csv.DictReader(f))
+    assert set(written[0]).issuperset(CANDIDATE_COLUMNS)
+    assert written[0]["source_url"] == "https://www.sut.edu.cn/info/1584/67026.htm"
 
 
 def test_audit_outcome_collection_plan_reports_progress_and_errors(tmp_path: Path):

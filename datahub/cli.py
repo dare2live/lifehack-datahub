@@ -72,6 +72,10 @@ from .parsers.ln_score_distribution_ocr import (
 from .parsers.ln_score_distribution import parse_ln_score_distribution_pdf
 from .parsers.moe_major_catalog import parse_moe_major_catalog_pdf
 from .parsers.moe_school_profile import parse_moe_school_profile_xls
+from .parsers.outcome_report import (
+    extract_outcome_metric_candidates_from_pdf,
+    write_outcome_metric_candidate_csv,
+)
 from .source_audit import audit_sources
 from .validators.package_validator import validate_manifest
 
@@ -356,6 +360,21 @@ def main() -> int:
     build_outcome_from_collection.add_argument("--source-version")
     build_outcome_from_collection.add_argument("--source-date")
     build_outcome_from_collection.add_argument("--availability-date")
+
+    extract_outcome_candidates = sub.add_parser(
+        "extract-outcome-report-candidates",
+        help="Extract reviewable school/major outcome metric candidates from report PDFs",
+    )
+    extract_outcome_candidates.add_argument("--input", required=True, action="append", type=Path)
+    extract_outcome_candidates.add_argument("--output", required=True, type=Path)
+    extract_outcome_candidates.add_argument("--domain", required=True, choices=["school", "major"])
+    extract_outcome_candidates.add_argument("--entity-code", required=True)
+    extract_outcome_candidates.add_argument("--entity-name", required=True)
+    extract_outcome_candidates.add_argument("--metric-year", required=True, type=int)
+    extract_outcome_candidates.add_argument("--source-title", required=True)
+    extract_outcome_candidates.add_argument("--source-url", required=True)
+    extract_outcome_candidates.add_argument("--source-date", required=True)
+    extract_outcome_candidates.add_argument("--availability-date", required=True)
 
     build_career_source_plan_parser = sub.add_parser(
         "build-career-source-plan",
@@ -791,6 +810,23 @@ def main() -> int:
             availability_date=args.availability_date,
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+    if args.cmd == "extract-outcome-report-candidates":
+        rows = []
+        for input_path in args.input:
+            rows.extend(extract_outcome_metric_candidates_from_pdf(
+                input_path,
+                domain=args.domain,
+                entity_code=args.entity_code,
+                entity_name=args.entity_name,
+                metric_year=args.metric_year,
+                source_title=args.source_title,
+                source_url=args.source_url,
+                source_date=args.source_date,
+                availability_date=args.availability_date,
+            ))
+        write_outcome_metric_candidate_csv(args.output, rows)
+        print(json.dumps({"output": str(args.output), "rows": len(rows)}, ensure_ascii=False, indent=2))
         return 0
     if args.cmd == "build-career-source-plan":
         result = build_career_source_plan(

@@ -481,6 +481,24 @@ python3 scripts/build_package.py audit-outcome-collection-plan \
 
 真实 smoke：用 core DB 生成学校 5 个、专业 5 个的小样本采集队列，共 40 条任务；审计结果为 `todo=40`、`complete_rows=0`、`errors=[]`，说明当前仍是采集计划，不能作为 outcome 数据包导入 core。
 
+报告 PDF 只能先转成待复核候选，不直接改采集计划。`extract-outcome-report-candidates` 使用 `config/outcome_metrics.json` 中的 `aliases` 从 PDF 文本抽取指标候选，输出列包含 `candidate_value/evidence_quote/page_number/match_alias/confidence/review_status`。`review_status` 固定为 `needs_review`，人工核对报告上下文后，才能把值、摘录和口径复制到 outcome collection batch：
+
+```bash
+python3 scripts/build_package.py extract-outcome-report-candidates \
+  --input raw/outcome_report/2022-12-31/lnu_2022_employment_quality.pdf \
+  --output staging/outcome_report_candidates/lnu_2022_candidates.csv \
+  --domain school \
+  --entity-code 10140 \
+  --entity-name 辽宁大学 \
+  --metric-year 2022 \
+  --source-title '辽宁大学2022届毕业生就业质量年度报告' \
+  --source-url 'https://www.lnu.edu.cn/info/15026/78891.htm' \
+  --source-date 2022-12-31 \
+  --availability-date 2022-12-31
+```
+
+真实 smoke：辽宁大学官方 2022 届毕业生就业质量年度报告 PDF 产出 4 条 `civil_service_rate` 候选；沈阳工业大学官方 2023-2024 本科教学质量报告 PDF 产出 1 条 `employment_rate` 候选。候选 CSV 只用于复核，不是 data package，也不会导入 core。
+
 当采集任务被人工核对并标记为完成状态后，才可从采集表生成标准 outcome 数据包：
 
 ```bash

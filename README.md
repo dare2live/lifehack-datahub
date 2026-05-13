@@ -462,6 +462,24 @@ python3 scripts/build_package.py audit-outcome-collection-plan \
   --report staging/outcome_collection/outcome_collection_audit.json
 ```
 
+学校或专业报告 PDF 可以先进入候选提取，不直接写回采集计划。`extract-outcome-report-candidates` 按 `config/outcome_metrics.json` 里的指标标签和 aliases 从 PDF 文本中提取百分比/分值，输出 `needs_review` 候选 CSV；候选值必须人工核对原文上下文后，才能复制到 outcome collection batch 的证据列：
+
+```bash
+python3 scripts/build_package.py extract-outcome-report-candidates \
+  --input raw/outcome_report/2022-12-31/lnu_2022_employment_quality.pdf \
+  --output staging/outcome_report_candidates/lnu_2022_candidates.csv \
+  --domain school \
+  --entity-code 10140 \
+  --entity-name 辽宁大学 \
+  --metric-year 2022 \
+  --source-title '辽宁大学2022届毕业生就业质量年度报告' \
+  --source-url 'https://www.lnu.edu.cn/info/15026/78891.htm' \
+  --source-date 2022-12-31 \
+  --availability-date 2022-12-31
+```
+
+真实 smoke：辽宁大学 2022 届毕业生就业质量年度报告 PDF 可提取 4 条体制内去向比例候选；沈阳工业大学 2023-2024 本科教学质量报告 PDF 可提取 1 条毕业去向落实率候选。两次输出均为本地 ignored staging CSV，且 `review_status=needs_review`，不会生成 outcome data package。
+
 采集任务经过人工核对并标记为 `verified/ready/collected` 后，再从采集表生成标准 outcome 数据包。该入口会先运行采集审计，再复用 `build-local` 的 schema、主键、metric key、单位和值域校验：
 
 ```bash
