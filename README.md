@@ -758,7 +758,7 @@ python3 scripts/build_package.py extract-outcome-report-candidates \
   --availability-date 2022-12-31
 ```
 
-真实 smoke：辽宁大学 2022 届毕业生就业质量年度报告 PDF 可提取 4 条体制内去向比例候选；沈阳工业大学 2023-2024 本科教学质量报告 PDF 可提取 1 条毕业去向落实率候选；辽宁大学 2023-2024 本科教学质量报告 PDF 可通过相邻行上下文提取毕业去向落实率和升学人数比例候选。保研率候选需要满足 `required_context_any`，避免把“推荐免试人数占攻读研究生人数比例”误当成保研率。输出均为本地 ignored staging CSV，且 `review_status=needs_review`，不会生成 outcome data package。
+真实 smoke：辽宁大学 2022 届毕业生就业质量年度报告 PDF 可提取 4 条体制内去向比例候选；辽宁大学 2023-2024 本科教学质量报告 PDF 可通过相邻行上下文提取毕业去向落实率和升学人数比例候选；大连交通大学 2023-2024 本科教学质量报告 PDF 可提取总体就业率和国有企业签约比例候选。保研率、就业率和体制内去向比例候选需要满足 `required_context_any`，避免把“推荐免试人数占攻读研究生人数比例”、“省内就业比例”或“岗位晋升比例”误当成目标指标。输出均为本地 ignored staging CSV，且 `review_status=needs_review`，不会生成 outcome data package。
 
 候选经过人工核对后，只把 `review_status=approved` 的行合并回完整采集计划。合并状态、目标状态和可回写列维护在 `config/outcome_collection.json` 的 `candidate_merge`，命令按 `domain, entity_code, metric_key, metric_year` 定位任务，不允许候选 CSV 篡改实体名称或优先级：
 

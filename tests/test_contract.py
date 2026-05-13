@@ -4293,6 +4293,9 @@ def test_extract_outcome_report_candidates_from_lines(tmp_path: Path):
             (9, "占比 36.34%；自由职业人数为 770 人，占比 17.84%。"),
             (10, "本科毕业生 4315 人中，攻读研究生 1549 人。其中，推荐免试攻读研究生"),
             (10, "582 人，占比 37.57%；考取本校研究生 150 人，占比 9.68%。"),
+            (11, "2024 届毕业生初次就业率显示：42.1%毕业生在辽宁省就业。"),
+            (12, "毕业授位 88 人，学位点就业率 100%。学员主要分布在国有企业单位。"),
+            (12, "毕业生职业发展情况良好，毕业生近三年内 47.6%岗位得到晋升。"),
         ],
         domain="school",
         entity_code="0142",
@@ -4310,6 +4313,8 @@ def test_extract_outcome_report_candidates_from_lines(tmp_path: Path):
     assert any(row["match_alias"] == "升学人数" and row["candidate_value"] == "0.3634" for row in rows)
     assert any(row["match_alias"] == "推荐免试" for row in rows)
     assert not any(row["metric_key"] == "keep_research_rate" and row["candidate_value"] == "0.3757" for row in rows)
+    assert not any(row["metric_key"] == "employment_rate" and row["candidate_value"] in {"0.421", "1"} for row in rows)
+    assert not any(row["metric_key"] == "civil_service_rate" and row["candidate_value"] == "0.476" for row in rows)
     assert all(row["review_status"] == "needs_review" for row in rows)
 
     output = tmp_path / "outcome_candidates.csv"
