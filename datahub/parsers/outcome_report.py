@@ -97,6 +97,8 @@ def extract_outcome_metric_candidates_from_lines(
             alias = _matched_alias(base_line, metric)
             if not alias:
                 continue
+            if not _context_allowed(context_line, metric):
+                continue
             values = _candidate_values(context_line, metric, alias)
             for text_value, numeric_value in values:
                 evidence_quote = _quote(context_line)
@@ -178,6 +180,14 @@ def _matched_alias(line: str, metric: dict[str, Any]) -> str:
         if alias and alias in line:
             return alias
     return ""
+
+
+def _context_allowed(line: str, metric: dict[str, Any]) -> bool:
+    blocked = [str(item) for item in metric.get("blocked_context_any", []) if str(item).strip()]
+    if any(item in line for item in blocked):
+        return False
+    required = [str(item) for item in metric.get("required_context_any", []) if str(item).strip()]
+    return not required or any(item in line for item in required)
 
 
 def _candidate_values(line: str, metric: dict[str, Any], alias: str) -> list[tuple[str, float]]:

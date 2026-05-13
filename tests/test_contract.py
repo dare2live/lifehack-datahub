@@ -4291,6 +4291,8 @@ def test_extract_outcome_report_candidates_from_lines(tmp_path: Path):
             (9, "本科应届毕业生 4315 人，已就业人数为 3703 人，毕业去向落实率"),
             (9, "为 85.82%。其中，单位就业人数为 1352 人，占比 31.33%；升学人数为 1568 人，"),
             (9, "占比 36.34%；自由职业人数为 770 人，占比 17.84%。"),
+            (10, "本科毕业生 4315 人中，攻读研究生 1549 人。其中，推荐免试攻读研究生"),
+            (10, "582 人，占比 37.57%；考取本校研究生 150 人，占比 9.68%。"),
         ],
         domain="school",
         entity_code="0142",
@@ -4307,6 +4309,7 @@ def test_extract_outcome_report_candidates_from_lines(tmp_path: Path):
     assert any(row["candidate_value"] == "0.8582" for row in rows)
     assert any(row["match_alias"] == "升学人数" and row["candidate_value"] == "0.3634" for row in rows)
     assert any(row["match_alias"] == "推荐免试" for row in rows)
+    assert not any(row["metric_key"] == "keep_research_rate" and row["candidate_value"] == "0.3757" for row in rows)
     assert all(row["review_status"] == "needs_review" for row in rows)
 
     output = tmp_path / "outcome_candidates.csv"
