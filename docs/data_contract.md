@@ -98,6 +98,14 @@ python3 scripts/build_package.py merge-admission-plan-reconciliation-review-batc
   --output staging/admission_plan_reconciliation_2026/admission_plan_reconciliation_plan_merged.csv
 ```
 
+core-backed `exclude_row` 不进入普通 data package，而是单独生成删除迁移计划。该命令要求完整 plan 已复核完成，只输出待删除主键 CSV/JSON，不执行 SQL，不写 core，不是 data package：
+
+```bash
+python3 scripts/build_package.py build-admission-plan-delete-plan \
+  --plan-csv staging/admission_plan_reconciliation_2026/admission_plan_reconciliation_plan_merged.csv \
+  --output-dir staging/admission_plan_reconciliation_2026/delete_plan
+```
+
 ### 招生计划过渡包
 
 `ln_admission_plan` 的完整官方分发目前是志愿填报系统和《辽宁招生考试》杂志，公开站点没有稳定完整附件。为了让 core 里现有清洗数据也进入 DataHub 包链路，可先生成过渡 snapshot：

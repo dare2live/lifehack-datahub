@@ -14,6 +14,7 @@ from .builders.admission_plan_reconciliation_batch import (
     build_admission_plan_reconciliation_review_batch,
     merge_admission_plan_reconciliation_review_batch,
 )
+from .builders.admission_plan_reconciliation_delete_plan import build_admission_plan_delete_plan_from_reconciliation_plan
 from .builders.outcome_collection_batch import (
     build_outcome_collection_batch,
     merge_outcome_collection_batch,
@@ -203,6 +204,13 @@ def main() -> int:
     merge_admission_reconciliation_batch.add_argument("--batch-csv", required=True, type=Path)
     merge_admission_reconciliation_batch.add_argument("--output", required=True, type=Path)
     merge_admission_reconciliation_batch.add_argument("--report", type=Path)
+
+    build_admission_delete_plan = sub.add_parser(
+        "build-admission-plan-delete-plan",
+        help="Build non-executing delete migration plan from reviewed core-backed admission-plan exclude decisions",
+    )
+    build_admission_delete_plan.add_argument("--plan-csv", required=True, type=Path)
+    build_admission_delete_plan.add_argument("--output-dir", required=True, type=Path)
 
     build_score_snapshot = sub.add_parser(
         "build-score-history-snapshot",
@@ -598,6 +606,13 @@ def main() -> int:
             args.report.parent.mkdir(parents=True, exist_ok=True)
             args.report.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         print(json.dumps(report, ensure_ascii=False, indent=2))
+        return 0
+    if args.cmd == "build-admission-plan-delete-plan":
+        result = build_admission_plan_delete_plan_from_reconciliation_plan(
+            plan_csv=args.plan_csv,
+            output_dir=args.output_dir,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
     if args.cmd == "build-score-history-snapshot":
         result = build_score_history_snapshot_package(

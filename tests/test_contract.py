@@ -15,6 +15,7 @@ from datahub.builders.admission_plan_reconciliation_batch import (
     build_admission_plan_reconciliation_review_batch,
     merge_admission_plan_reconciliation_review_batch,
 )
+from datahub.builders.admission_plan_reconciliation_delete_plan import build_admission_plan_delete_plan_from_reconciliation_plan
 from datahub.connectors.page_images import download_page_images
 from datahub.builders.outcome_collection_audit import audit_outcome_collection_plan
 from datahub.builders.outcome_collection_batch import (
@@ -2923,6 +2924,86 @@ def test_build_and_merge_admission_plan_reconciliation_review_batch(tmp_path: Pa
     assert by_id["v1"]["review_decision"] == "use_package_row"
     assert by_id["p1"]["status"] == "todo"
     assert by_id["c1"]["status"] == "reviewed"
+
+
+def test_build_admission_plan_delete_plan_rejects_unready(tmp_path: Path):
+    plan = tmp_path / "admission_plan_reconciliation_plan.csv"
+    rows = [
+        _admission_reconciliation_row("c1", "core_only_unmatched", priority="3", status="todo", school_code="1004"),
+    ]
+    _write_admission_reconciliation_plan(plan, rows)
+
+    try:
+        build_admission_plan_delete_plan_from_reconciliation_plan(
+            plan_csv=plan,
+            output_dir=tmp_path / "delete_plan",
+        )
+        rejected = False
+    except ValueError as exc:
+        rejected = "not ready for delete planning" in str(exc)
+    assert rejected
+
+
+def test_build_admission_plan_delete_plan_from_reviewed_core_excludes(tmp_path: Path):
+    plan = tmp_path / "admission_plan_reconciliation_plan.csv"
+    core_exclude = _admission_reconciliation_row(
+        "core-delete-1",
+        "core_only_unmatched",
+        priority="3",
+        status="reviewed",
+        review_decision="exclude_row",
+        school_code="1004",
+    )
+    core_exclude.update({
+        "package_major_code": "",
+        "core_major_code": "04",
+        "package_school_name": "",
+        "core_school_name": "沈阳工业大学",
+        "package_major_full": "",
+        "core_major_full": "自动化",
+        "package_plan_count": "",
+        "core_plan_count": "12",
+        "package_key_json": "{}",
+        "core_key_json": json.dumps({
+            "school_code": "1004",
+            "major_code": "04",
+            "batch": "本科批",
+            "subject_cat": "物理类",
+        }, ensure_ascii=False),
+    })
+    package_exclude = _admission_reconciliation_row(
+        "package-exclude-1",
+        "package_only_unmatched",
+        priority="2",
+        status="reviewed",
+        review_decision="exclude_row",
+        school_code="1005",
+    )
+    package_exclude.update({
+        "package_key_json": json.dumps({
+            "school_code": "1005",
+            "major_code": "05",
+            "batch": "本科批",
+            "subject_cat": "物理类",
+        }, ensure_ascii=False),
+        "core_key_json": "{}",
+    })
+    _write_admission_reconciliation_plan(plan, [core_exclude, package_exclude])
+
+    result = build_admission_plan_delete_plan_from_reconciliation_plan(
+        plan_csv=plan,
+        output_dir=tmp_path / "delete_plan",
+    )
+
+    assert result["rows"] == 1
+    with Path(result["csv"]).open(encoding="utf-8", newline="") as f:
+        delete_rows = list(csv.DictReader(f))
+    assert delete_rows[0]["school_code"] == "1004"
+    assert delete_rows[0]["major_code"] == "04"
+    assert delete_rows[0]["school_name"] == "沈阳工业大学"
+    assert delete_rows[0]["plan_count"] == "12"
+    manifest = json.loads(Path(result["manifest"]).read_text(encoding="utf-8"))
+    assert manifest["notes"].startswith("Delete migration plan only")
 
 
 def _admission_reconciliation_row(
