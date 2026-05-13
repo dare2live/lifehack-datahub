@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import csv
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 from zipfile import ZipFile
@@ -46,6 +47,7 @@ POSITION_COLUMNS = [
     "consult_phone_1",
     "consult_phone_2",
     "consult_phone_3",
+    "built_at",
 ]
 
 
@@ -60,6 +62,7 @@ def parse_scs_position_workbook(
 ) -> list[dict[str, str]]:
     parser_config = _parser_config(source_key)
     workbook = xlrd.open_workbook(file_contents=_workbook_bytes(input_path))
+    built_at = datetime.utcnow().replace(microsecond=0).isoformat()
     rows: list[dict[str, str]] = []
     for sheet in workbook.sheets():
         rows.extend(_parse_sheet(
@@ -70,6 +73,7 @@ def parse_scs_position_workbook(
             source_url=source_url,
             source_date=source_date,
             availability_date=availability_date,
+            built_at=built_at,
         ))
     return rows
 
@@ -91,6 +95,7 @@ def _parse_sheet(
     source_url: str,
     source_date: str,
     availability_date: str,
+    built_at: str,
 ) -> list[dict[str, str]]:
     header_row_index = int(parser_config.get("header_row_index", 1))
     if sheet.nrows <= header_row_index:
@@ -113,6 +118,7 @@ def _parse_sheet(
             "source_url": source_url,
             "source_date": source_date,
             "availability_date": availability_date,
+            "built_at": built_at,
             "sheet_name": sheet.name,
             "row_number": str(row_index + 1),
         }

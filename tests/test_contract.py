@@ -562,7 +562,10 @@ def test_audit_sources_marks_admission_plan_manual():
     assert by_key["major_city_employment_fit"]["target_tables"] == ["fa_mart_major_city_employment_fit"]
     assert by_key["career_occupation_catalog"]["target_tables"] == ["fa_dim_career_occupation"]
     assert by_key["career_civil_service_posts"]["status"] == "configured_web_api_raw_intake"
-    assert by_key["career_civil_service_posts"]["target_tables"] == ["fa_fact_career_signal"]
+    assert by_key["career_civil_service_posts"]["target_tables"] == [
+        "fa_fact_civil_service_position",
+        "fa_fact_career_signal",
+    ]
     assert by_key["career_signal"]["status"] == "source_collection_required"
     assert by_key["career_score"]["status"] == "derived_from_datahub_signals"
     assert by_key["policy_industry_map"]["status"] == "curated_seed_configured"
@@ -584,6 +587,7 @@ def test_evidence_domain_schemas_are_package_ready():
         "fa_meta_update_run",
         "fa_meta_update_run_step",
         "fa_meta_nonstandard_review_queue",
+        "fa_fact_civil_service_position",
         "fa_fact_campus_surrounding_poi",
         "fa_fact_campus_housing_market",
         "fa_fact_region_living_cost",
@@ -3209,12 +3213,26 @@ def test_parse_scs_position_workbook_from_zip(tmp_path: Path, monkeypatch):
     assert row["recruit_count"] == "1"
     assert "会计学" in row["major_requirement"]
     assert row["work_location"] == "北京市"
+    assert row["built_at"]
 
     output = tmp_path / "scs_positions.csv"
     write_scs_position_csv(output, rows)
     with output.open(encoding="utf-8", newline="") as f:
         written = list(csv.DictReader(f))
     assert written[0]["position_name"] == "财务管理岗位"
+
+    result = build_local_package(
+        source_key="career_civil_service_posts",
+        table_name="fa_fact_civil_service_position",
+        input_path=output,
+        output_root=tmp_path / "exports",
+        package_id="scs-position-test",
+        source_version="fixture-scs-position",
+    )
+    package_dir = Path(result["package_dir"])
+    assert result["rows"] == 1
+    assert result["quality_report"]["errors"] == []
+    assert validate_manifest(package_dir / "manifest.json")["errors"] == []
 
 
 def test_build_career_source_review_batch_limits_pending_rows(tmp_path: Path):
@@ -3770,6 +3788,8 @@ def test_data_update_policy_config_and_schemas():
     assert schemas["fa_meta_update_run"]["primary_key"] == ["update_run_id"]
     assert schemas["fa_meta_update_run_step"]["primary_key"] == ["update_run_id", "source_key", "step_key"]
     assert schemas["fa_meta_nonstandard_review_queue"]["primary_key"] == ["review_id"]
+    assert schemas["fa_fact_civil_service_position"]["source_key"] == "career_civil_service_posts"
+    assert schemas["fa_fact_civil_service_position"]["primary_key"] == ["source_date", "sheet_name", "row_number"]
 
 
 def test_build_data_update_plan_with_dependencies(tmp_path: Path):
