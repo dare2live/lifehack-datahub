@@ -11,6 +11,7 @@ from datahub.config import get_table_schema
 from datahub.exporters.package_exporter import write_manifest
 from datahub.normalizers.admission import normalize_rows_for_schema
 from datahub.parsers.tabular_parser import parse_tabular
+from datahub.validators.career_metrics import validate_career_metrics
 from datahub.validators.outcome_metrics import validate_outcome_metrics
 from datahub.validators.score_distribution import validate_score_distribution
 
@@ -37,7 +38,7 @@ def build_local_package(
     quality = build_quality_report(normalized, schema, table_name)
     if quality["errors"]:
         raise ValueError("; ".join(quality["errors"]))
-    source_lineage = _load_intake_lineage(intake_manifest, source_key, table_name) if intake_manifest else None
+    source_lineage = _load_intake_lineage(intake_manifest, source_key, table_name, schema) if intake_manifest else None
 
     package_id = package_id or f"{datetime.utcnow().date().isoformat()}_{source_key}"
     package_dir = output_root / package_id
@@ -95,6 +96,10 @@ def build_quality_report(rows: list[dict[str, Any]], schema: dict[str, Any], tab
     errors.extend(outcome_report["errors"])
     warnings.extend(outcome_report["warnings"])
 
+    career_report = validate_career_metrics(rows, table_name)
+    errors.extend(career_report["errors"])
+    warnings.extend(career_report["warnings"])
+
     score_distribution_report = validate_score_distribution(rows, schema, table_name)
     errors.extend(score_distribution_report["errors"])
     warnings.extend(score_distribution_report["warnings"])
@@ -120,12 +125,16 @@ def _write_csv(path: Path, rows: list[dict[str, Any]], columns: list[str]) -> No
         writer.writerows(rows)
 
 
-def _load_intake_lineage(path: Path, source_key: str, table_name: str) -> dict[str, Any]:
+def _load_intake_lineage(path: Path, source_key: str, table_name: str, schema: dict[str, Any]) -> dict[str, Any]:
     if not path.exists():
         raise ValueError(f"intake manifest not found: {path}")
     data = json.loads(path.read_text(encoding="utf-8"))
-    if data.get("source_key") != source_key:
-        raise ValueError(f"intake manifest source_key mismatch: {data.get('source_key')} != {source_key}")
+    intake_source_key = data.get("source_key")
+    allowed_source_keys = [source_key] + list(schema.get("accepted_intake_source_keys", []))
+    if intake_source_key not in allowed_source_keys:
+        raise ValueError(
+            f"intake manifest source_key mismatch: {intake_source_key} not in {allowed_source_keys}"
+        )
     target_tables = data.get("target_tables") or []
     if target_tables and table_name not in target_tables:
         raise ValueError(f"intake manifest does not target {table_name}: {target_tables}")
@@ -142,7 +151,8 @@ def _load_intake_lineage(path: Path, source_key: str, table_name: str) -> dict[s
             "path": item.get("path"),
         })
     return {
-        "source_key": source_key,
+        "source_key": intake_source_key,
+        "target_source_key": source_key,
         "source_name": data.get("source_name"),
         "source_kind": data.get("source_kind"),
         "source_date": data.get("source_date"),

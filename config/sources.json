@@ -18,6 +18,22 @@
       },
       "target_tables": ["fa_dim_ln_admission_plan"]
     },
+    "ln_application_workbook": {
+      "name": "辽宁本地报考工作簿",
+      "kind": "controlled_manual_cleaned_workbook",
+      "owner": "lifehack-datahub",
+      "raw_glob": "raw/ln_application_workbook/**/*.xlsx",
+      "remote_files": [],
+      "acquisition": {
+        "status": "manual_required",
+        "official_distribution": "顾问本地已清洗报考工作簿；上游应追溯到网报志愿系统和《辽宁招生考试》杂志",
+        "evidence_urls": [
+          "https://jyt.ln.gov.cn/jyt/jyzx/jyyw/2025062010482638109/index.shtml"
+        ],
+        "notes": "多 sheet 工作簿可同时产出招生计划与历史分数/位次 cleaned CSV。Excel 原文件只进入 raw intake manifest，不进入 Git；解析规则维护在 config/ln_application_workbook.json。"
+      },
+      "target_tables": ["fa_dim_ln_admission_plan", "fa_fact_ln_score_history"]
+    },
     "ln_score_history": {
       "name": "辽宁历史分数线",
       "kind": "official_source_research",
@@ -512,6 +528,50 @@
         "notes": "专业层数据优先保留有明确来源的就业方向、升学去向、考公适配、薪资或需求指标；没有来源的主观判断不得进入数据包。"
       },
       "target_tables": ["fa_fact_major_outcome"]
+    },
+    "career_occupation_catalog": {
+      "name": "职业分类与岗位标准",
+      "kind": "official_catalog",
+      "owner": "lifehack-datahub",
+      "raw_glob": "raw/career_occupation_catalog/**/*",
+      "remote_files": [],
+      "acquisition": {
+        "status": "source_collection_required",
+        "official_distribution": "人社部、国家职业分类大典、国家职业标准公开目录",
+        "evidence_urls": [
+          "https://www.mohrss.gov.cn/"
+        ],
+        "notes": "职业中间层数据源。只维护可追溯职业代码、岗位名称、技能关键词和行业映射，不在 core 中硬编码职业枚举。"
+      },
+      "target_tables": ["fa_dim_career_occupation"]
+    },
+    "career_signal": {
+      "name": "职业需求、薪资与稳定性信号",
+      "kind": "career_market_metrics",
+      "owner": "lifehack-datahub",
+      "raw_glob": "raw/career_signal/**/*",
+      "remote_files": [],
+      "acquisition": {
+        "status": "source_collection_required",
+        "official_distribution": "招聘平台公开快照、职位表、薪酬调查、就业质量报告；遵守来源 ToS，优先官方附件和受控人工导出",
+        "evidence_urls": [],
+        "notes": "职业信号原始采集、清洗和加工都在 DataHub。每条信号必须带 source_url/evidence_quote/source_date，避免把无来源判断导入 core。"
+      },
+      "target_tables": ["fa_fact_career_signal"]
+    },
+    "career_score": {
+      "name": "职业评分加工表",
+      "kind": "derived_career_mart",
+      "owner": "lifehack-datahub",
+      "raw_glob": "raw/career_score/**/*",
+      "remote_files": [],
+      "acquisition": {
+        "status": "derived_from_datahub_signals",
+        "official_distribution": "fa_fact_career_signal + config/career_data_sources.json",
+        "evidence_urls": [],
+        "notes": "由职业信号按配置权重加工，不直接采集；每行保留 signal_contribution_json 和 pit_lineage_json。"
+      },
+      "target_tables": ["fa_mart_career_score"]
     },
     "policy_industry_map": {
       "name": "十五五政策行业映射",

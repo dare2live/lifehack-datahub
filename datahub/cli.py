@@ -15,6 +15,8 @@ from .builders.admission_plan_reconciliation_batch import (
     merge_admission_plan_reconciliation_review_batch,
 )
 from .builders.admission_plan_reconciliation_delete_plan import build_admission_plan_delete_plan_from_reconciliation_plan
+from .builders.career_score import build_career_score_package
+from .builders.career_source_plan import build_career_source_plan
 from .builders.outcome_collection_batch import (
     build_outcome_collection_batch,
     merge_outcome_collection_batch,
@@ -353,6 +355,25 @@ def main() -> int:
     build_outcome_from_collection.add_argument("--source-version")
     build_outcome_from_collection.add_argument("--source-date")
     build_outcome_from_collection.add_argument("--availability-date")
+
+    build_career_source_plan_parser = sub.add_parser(
+        "build-career-source-plan",
+        help="Build a career data collection task plan from config",
+    )
+    build_career_source_plan_parser.add_argument("--output-dir", required=True, type=Path)
+    build_career_source_plan_parser.add_argument("--source-key", action="append", dest="source_keys")
+    build_career_source_plan_parser.add_argument("--metric-year", type=int)
+    build_career_source_plan_parser.add_argument("--city")
+
+    build_career_score = sub.add_parser(
+        "build-career-score",
+        help="Build fa_mart_career_score from cleaned fa_fact_career_signal rows",
+    )
+    build_career_score.add_argument("--signal-input", required=True, type=Path)
+    build_career_score.add_argument("--output-root", required=True, type=Path)
+    build_career_score.add_argument("--package-id")
+    build_career_score.add_argument("--source-version")
+    build_career_score.add_argument("--sheet")
 
     parse_moe = sub.add_parser("parse-moe-major-catalog", help="Parse MOE major catalog PDF to cleaned CSV")
     parse_moe.add_argument("--input", required=True, type=Path)
@@ -759,6 +780,25 @@ def main() -> int:
             source_version=args.source_version,
             source_date=args.source_date,
             availability_date=args.availability_date,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+    if args.cmd == "build-career-source-plan":
+        result = build_career_source_plan(
+            output_dir=args.output_dir,
+            source_keys=args.source_keys,
+            metric_year=args.metric_year,
+            city=args.city,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+    if args.cmd == "build-career-score":
+        result = build_career_score_package(
+            signal_input=args.signal_input,
+            output_root=args.output_root,
+            package_id=args.package_id,
+            source_version=args.source_version,
+            sheet=args.sheet,
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0

@@ -40,6 +40,31 @@ exports/YYYY-MM-DD_ln_admission_plan/
 
 Phase 5+：已固化数据包契约和模块边界，提供本地已清洗 CSV/TSV/XLSX 到 data package 的生成入口，支持远程文件下载、受控手工 intake、教育部目录解析、辽宁投档分解析、辽宁一分一段转录校验与 OCR 复核工作区、学校身份桥表、历史位次 legacy snapshot、专业映射复核晋级，以及配置驱动的政策表数据包生成。
 
+## 职业数据链路
+
+职业相关数据不放在 core 里硬编码。DataHub 先生成采集计划，再把受控清洗后的职业信号发布为 `fa_fact_career_signal`，最后加工为 `fa_mart_career_score`：
+
+```bash
+python3 scripts/build_package.py build-career-source-plan \
+  --output-dir staging/career_source_plan \
+  --city 沈阳 \
+  --metric-year 2026
+
+python3 scripts/build_package.py build-local \
+  --source-key career_signal \
+  --table fa_fact_career_signal \
+  --input cleaned/career_signal_2026_shenyang.csv \
+  --output-root exports \
+  --package-id 2026_career_signal_shenyang
+
+python3 scripts/build_package.py build-career-score \
+  --signal-input cleaned/career_signal_2026_shenyang.csv \
+  --output-root exports \
+  --package-id 2026_career_score_shenyang
+```
+
+采集源、指标口径、评分权重维护在 `config/career_data_sources.json`；目标表契约维护在 `config/source_schemas.json`。招聘平台数据只允许通过公开授权 API、官方附件、人工导出或可复核快照进入 raw，不在本项目写反爬绕过逻辑。
+
 ## 本地数据包生成
 
 先审计数据源获取状态：

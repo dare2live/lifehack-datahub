@@ -1,0 +1,127 @@
+{
+  "version": "1",
+  "updated_at": "2026-05-13",
+  "notes": "职业相关数据源和加工规则。DataHub 负责采集、清洗、加工；core 只导入 fa_ 数据包，不直接爬站或解析原始文件。",
+  "defaults": {
+    "status": "todo",
+    "metric_year": 2026,
+    "city": "全国"
+  },
+  "source_plan": {
+    "sources": {
+      "career_occupation_catalog": {
+        "name": "职业分类与岗位标准",
+        "kind": "official_catalog",
+        "target_tables": ["fa_dim_career_occupation"],
+        "official_distribution": "人社部、国家职业分类大典、国家职业标准公开目录",
+        "collection_methods": ["download_remote_file", "manual_pdf_table_review"],
+        "evidence_urls": [
+          "https://www.mohrss.gov.cn/"
+        ],
+        "metrics": [],
+        "query_templates": [
+          "国家职业分类大典 {metric_year} 职业代码",
+          "国家职业标准 {entity_name} 职业"
+        ],
+        "notes": "用于建立专业到职业的中间层，不在 core 里手写岗位枚举。"
+      },
+      "career_recruitment_snapshot": {
+        "name": "招聘需求与薪资快照",
+        "kind": "controlled_market_snapshot",
+        "target_tables": ["fa_fact_career_signal"],
+        "official_distribution": "招聘平台公开聚合页、企业招聘页、第三方报告；遵守目标站点 ToS，优先人工导出或公开数据集",
+        "collection_methods": ["manual_platform_export", "controlled_html_snapshot", "api_adapter_when_allowed"],
+        "evidence_urls": [],
+        "metrics": ["job_posting_count", "salary_median", "salary_p75", "work_intensity_index"],
+        "query_templates": [
+          "{entity_name} 招聘 薪资 {city} {metric_year}",
+          "{entity_name} 岗位 JD 加班 强度 {city}"
+        ],
+        "notes": "不在本项目维护平台反爬绕过逻辑；只保留可复现、可引用、可人工复核的快照。"
+      },
+      "career_civil_service_posts": {
+        "name": "公考与事业编岗位目录",
+        "kind": "official_attachment",
+        "target_tables": ["fa_fact_career_signal"],
+        "official_distribution": "国考、省考、事业单位招录职位表",
+        "collection_methods": ["download_remote_file", "parse_xlsx", "manual_review"],
+        "evidence_urls": [
+          "https://bm.scs.gov.cn/kl2026"
+        ],
+        "metrics": ["civil_service_post_count", "public_sector_fit_score"],
+        "query_templates": [
+          "{entity_name} 国考 职位表 专业要求 {metric_year}",
+          "{entity_name} 辽宁 事业单位 招聘 专业要求 {metric_year}"
+        ],
+        "notes": "用于判断专业的考公/编制岗位可见度，必须保留职位表来源和统计口径。"
+      },
+      "career_salary_survey": {
+        "name": "职业薪酬调查",
+        "kind": "official_or_report_metric",
+        "target_tables": ["fa_fact_career_signal"],
+        "official_distribution": "统计部门工资价位、行业薪酬报告、学校就业质量报告",
+        "collection_methods": ["download_remote_file", "manual_report_metric"],
+        "evidence_urls": [],
+        "metrics": ["salary_median", "salary_p25", "salary_p75"],
+        "query_templates": [
+          "{entity_name} 薪酬 中位数 {metric_year}",
+          "{entity_name} 就业质量报告 薪资 {metric_year}"
+        ],
+        "notes": "薪资必须注明城市、样本来源、税前税后口径。"
+      }
+    }
+  },
+  "metrics": {
+    "job_posting_count": {
+      "label": "招聘岗位数",
+      "unit": "count",
+      "min_value": 0,
+      "score": {"component": "growth_score", "weight": 0.18, "method": "range", "min": 0, "max": 5000, "polarity": "positive"}
+    },
+    "salary_median": {
+      "label": "月薪中位数",
+      "unit": "cny_month",
+      "min_value": 0,
+      "score": {"component": "income_score", "weight": 0.24, "method": "range", "min": 3000, "max": 30000, "polarity": "positive"}
+    },
+    "salary_p25": {
+      "label": "月薪25分位",
+      "unit": "cny_month",
+      "min_value": 0,
+      "score": {"component": "stability_score", "weight": 0.08, "method": "range", "min": 2500, "max": 18000, "polarity": "positive"}
+    },
+    "salary_p75": {
+      "label": "月薪75分位",
+      "unit": "cny_month",
+      "min_value": 0,
+      "score": {"component": "income_score", "weight": 0.10, "method": "range", "min": 5000, "max": 50000, "polarity": "positive"}
+    },
+    "civil_service_post_count": {
+      "label": "公考岗位数",
+      "unit": "count",
+      "min_value": 0,
+      "score": {"component": "stability_score", "weight": 0.16, "method": "range", "min": 0, "max": 800, "polarity": "positive"}
+    },
+    "public_sector_fit_score": {
+      "label": "体制内适配分",
+      "unit": "score",
+      "min_value": 0,
+      "max_value": 100,
+      "score": {"component": "stability_score", "weight": 0.12, "method": "range", "min": 0, "max": 100, "polarity": "positive"}
+    },
+    "work_intensity_index": {
+      "label": "工作强度指数",
+      "unit": "score",
+      "min_value": 0,
+      "max_value": 100,
+      "score": {"component": "intensity_risk_score", "weight": 0.12, "method": "range", "min": 0, "max": 100, "polarity": "negative"}
+    }
+  },
+  "score_profile": {
+    "profile_id": "career_default_v1",
+    "snapshot_date": "2026-05-13",
+    "minimum_signal_count": 2,
+    "output_table": "fa_mart_career_score",
+    "friendly_35_components": ["income_score", "growth_score", "stability_score", "intensity_risk_score"]
+  }
+}

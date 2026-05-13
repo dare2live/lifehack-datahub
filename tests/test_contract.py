@@ -16,6 +16,8 @@ from datahub.builders.admission_plan_reconciliation_batch import (
     merge_admission_plan_reconciliation_review_batch,
 )
 from datahub.builders.admission_plan_reconciliation_delete_plan import build_admission_plan_delete_plan_from_reconciliation_plan
+from datahub.builders.career_score import build_career_score_package
+from datahub.builders.career_source_plan import PLAN_COLUMNS as CAREER_PLAN_COLUMNS, build_career_source_plan
 from datahub.connectors.page_images import download_page_images
 from datahub.builders.outcome_collection_audit import audit_outcome_collection_plan
 from datahub.builders.outcome_collection_batch import (
@@ -46,7 +48,7 @@ from datahub.builders.score_distribution_review_workspace import (
     merge_score_distribution_review_workspace,
 )
 from datahub.builders.score_distribution_readiness import audit_score_distribution_readiness
-from datahub.config import get_table_schema, load_outcome_metrics, load_source_schemas
+from datahub.config import get_table_schema, load_career_data_sources, load_outcome_metrics, load_source_schemas
 from datahub.builders.school_identity import build_school_identity_package
 from datahub.connectors.manual_files import intake_manual_assets
 from datahub.connectors.macos_vision_ocr import ocr_page_images
@@ -171,6 +173,63 @@ def test_build_local_package_includes_intake_lineage(tmp_path: Path):
     assert manifest["source_lineage"]["files"][0]["sha256"] == "abc123"
     assert manifest["source_lineage"]["evidence_urls"] == ["https://example.edu/evidence"]
     assert result["source_lineage"]["source_date"] == "2026-06-20"
+    assert result["source_lineage"]["target_source_key"] == "ln_admission_plan"
+
+
+def test_build_local_package_accepts_configured_shared_intake_source(tmp_path: Path):
+    source = tmp_path / "score_history.csv"
+    with source.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(
+            f,
+            fieldnames=["school_code", "major_code", "batch", "subject_cat", "score_year", "min_score", "min_rank"],
+        )
+        writer.writeheader()
+        writer.writerow({
+            "school_code": "0140",
+            "major_code": "01",
+            "batch": "本科批",
+            "subject_cat": "历史类",
+            "score_year": "2025",
+            "min_score": "620",
+            "min_rank": "1200",
+        })
+    intake_manifest = tmp_path / "_intake_manifest.json"
+    intake_manifest.write_text(json.dumps({
+        "source_key": "ln_application_workbook",
+        "source_name": "辽宁本地报考工作簿",
+        "source_kind": "controlled_manual_cleaned_workbook",
+        "source_date": "2025-08-27",
+        "intake_at": "2026-05-13T00:00:00",
+        "acquired_by": "fixture",
+        "official_distribution": "本地报考工作簿",
+        "evidence_urls": ["https://example.edu/evidence"],
+        "target_tables": ["fa_dim_ln_admission_plan", "fa_fact_ln_score_history"],
+        "files": [
+            {
+                "file_name": "application_workbook.xlsx",
+                "path": "/tmp/application_workbook.xlsx",
+                "size_bytes": 128,
+                "sha256": "shared-source-sha256",
+            }
+        ],
+    }, ensure_ascii=False), encoding="utf-8")
+
+    result = build_local_package(
+        source_key="ln_score_history",
+        table_name="fa_fact_ln_score_history",
+        input_path=source,
+        output_root=tmp_path / "exports",
+        package_id="pkg-shared-intake-test",
+        source_version="fixture-shared-intake",
+        intake_manifest=intake_manifest,
+    )
+
+    package_dir = Path(result["package_dir"])
+    manifest = json.loads((package_dir / "manifest.json").read_text(encoding="utf-8"))
+    assert manifest["source_lineage"]["source_key"] == "ln_application_workbook"
+    assert manifest["source_lineage"]["target_source_key"] == "ln_score_history"
+    assert manifest["source_lineage"]["files"][0]["sha256"] == "shared-source-sha256"
+    assert validate_manifest(package_dir / "manifest.json")["errors"] == []
 
 
 def test_build_local_score_distribution_package_from_transcript_with_image_lineage(tmp_path: Path):
@@ -369,6 +428,11 @@ def test_audit_sources_marks_admission_plan_manual():
     report = audit_sources()
     by_key = {item["source_key"]: item for item in report["sources"]}
     assert by_key["ln_admission_plan"]["status"] == "manual_required"
+    assert by_key["ln_application_workbook"]["status"] == "manual_required"
+    assert by_key["ln_application_workbook"]["target_tables"] == [
+        "fa_dim_ln_admission_plan",
+        "fa_fact_ln_score_history",
+    ]
     assert by_key["ln_admission_plan"]["official_distribution"]
     assert by_key["ln_projection_score"]["status"] == "remote_configured"
     assert by_key["ln_projection_score"]["research_candidate_count"] >= 4
@@ -382,6 +446,9 @@ def test_audit_sources_marks_admission_plan_manual():
     assert by_key["school_identity_bridge"]["status"] == "local_db_configured"
     assert by_key["school_outcome"]["target_tables"] == ["fa_fact_school_outcome"]
     assert by_key["major_outcome"]["status"] == "source_collection_required"
+    assert by_key["career_occupation_catalog"]["target_tables"] == ["fa_dim_career_occupation"]
+    assert by_key["career_signal"]["status"] == "source_collection_required"
+    assert by_key["career_score"]["status"] == "derived_from_datahub_signals"
     assert by_key["policy_industry_map"]["status"] == "curated_seed_configured"
     assert by_key["policy_plan_history"]["status"] == "curated_seed_configured"
 
@@ -393,6 +460,9 @@ def test_evidence_domain_schemas_are_package_ready():
         "fa_bridge_school_identity",
         "fa_fact_school_outcome",
         "fa_fact_major_outcome",
+        "fa_dim_career_occupation",
+        "fa_fact_career_signal",
+        "fa_mart_career_score",
         "fa_dim_policy_industry_map",
         "fa_dim_policy_plan_history",
     ]:
@@ -2329,6 +2399,223 @@ def test_outcome_metric_registry_rejects_unknown_keys(tmp_path: Path):
     except ValueError as exc:
         rejected = "unregistered metric_key" in str(exc)
     assert rejected
+
+
+def test_build_career_source_plan_from_config(tmp_path: Path):
+    config = load_career_data_sources()
+    assert "salary_median" in config["metrics"]
+
+    result = build_career_source_plan(
+        output_dir=tmp_path / "career_plan",
+        source_keys=["career_recruitment_snapshot", "career_civil_service_posts"],
+        metric_year=2026,
+        city="沈阳",
+    )
+
+    assert result["rows"] == 6
+    with Path(result["csv"]).open(encoding="utf-8", newline="") as f:
+        rows = list(csv.DictReader(f))
+    assert set(rows[0]).issuperset(CAREER_PLAN_COLUMNS)
+    assert {row["source_key"] for row in rows} == {"career_recruitment_snapshot", "career_civil_service_posts"}
+    assert any(row["metric_key"] == "salary_median" for row in rows)
+    assert any(row["target_table"] == "fa_fact_career_signal" for row in rows)
+    assert all(row["city"] == "沈阳" for row in rows)
+    manifest = json.loads(Path(result["manifest"]).read_text(encoding="utf-8"))
+    assert manifest["notes"].startswith("Collection plan only")
+
+
+def test_build_career_signal_package_from_cleaned_csv(tmp_path: Path):
+    source = tmp_path / "career_signal.csv"
+    with source.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(
+            f,
+            fieldnames=[
+                "职业代码",
+                "职业名称",
+                "通达信二级行业代码",
+                "通达信二级行业",
+                "城市",
+                "指标键",
+                "指标名称",
+                "指标值",
+                "单位",
+                "指标年份",
+                "统计口径",
+                "来源标题",
+                "来源链接",
+                "证据摘录",
+                "来源日期",
+                "可用日期",
+                "构建时间",
+            ],
+        )
+        writer.writeheader()
+        writer.writerow({
+            "职业代码": "15-102",
+            "职业名称": "软件工程师",
+            "通达信二级行业代码": "T1205",
+            "通达信二级行业": "软件服务",
+            "城市": "沈阳",
+            "指标键": "salary_median",
+            "指标名称": "月薪中位数",
+            "指标值": "12000",
+            "单位": "cny_month",
+            "指标年份": "2026",
+            "统计口径": "公开招聘样本",
+            "来源标题": "招聘快照",
+            "来源链接": "https://example.com/jobs/software",
+            "证据摘录": "软件工程师薪资中位数约12000元/月。",
+            "来源日期": "2026-05-13",
+            "可用日期": "2026-05-13",
+            "构建时间": "2026-05-13T00:00:00",
+        })
+
+    result = build_local_package(
+        source_key="career_signal",
+        table_name="fa_fact_career_signal",
+        input_path=source,
+        output_root=tmp_path / "exports",
+        package_id="pkg-career-signal-test",
+        source_version="fixture-career-signal",
+    )
+    package_dir = Path(result["package_dir"])
+    assert validate_manifest(package_dir / "manifest.json")["errors"] == []
+    assert result["rows"] == 1
+    with (package_dir / "fa_fact_career_signal.csv").open(encoding="utf-8", newline="") as f:
+        rows = list(csv.DictReader(f))
+    assert rows[0]["metric_key"] == "salary_median"
+    assert rows[0]["metric_unit"] == "cny_month"
+    assert rows[0]["occupation_name"] == "软件工程师"
+
+
+def test_career_metric_registry_rejects_unknown_keys(tmp_path: Path):
+    source = tmp_path / "career_signal_bad.csv"
+    with source.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(
+            f,
+            fieldnames=[
+                "occupation_code",
+                "occupation_name",
+                "city",
+                "metric_key",
+                "metric_name",
+                "metric_value",
+                "metric_unit",
+                "metric_year",
+                "source_title",
+                "source_url",
+                "evidence_quote",
+                "source_date",
+                "availability_date",
+                "built_at",
+            ],
+        )
+        writer.writeheader()
+        writer.writerow({
+            "occupation_code": "15-102",
+            "occupation_name": "软件工程师",
+            "city": "沈阳",
+            "metric_key": "made_up_career_metric",
+            "metric_name": "任意指标",
+            "metric_value": "1",
+            "metric_unit": "score",
+            "metric_year": "2026",
+            "source_title": "fixture",
+            "source_url": "https://example.com",
+            "evidence_quote": "fixture quote",
+            "source_date": "2026-05-13",
+            "availability_date": "2026-05-13",
+            "built_at": "2026-05-13T00:00:00",
+        })
+    try:
+        build_local_package(
+            source_key="career_signal",
+            table_name="fa_fact_career_signal",
+            input_path=source,
+            output_root=tmp_path / "exports",
+            package_id="pkg-career-signal-bad-test",
+            source_version="fixture-career-signal-bad",
+        )
+        rejected = False
+    except ValueError as exc:
+        rejected = "unregistered career metric_key" in str(exc)
+    assert rejected
+
+
+def test_build_career_score_package_from_signals(tmp_path: Path):
+    source = tmp_path / "career_signal.csv"
+    with source.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(
+            f,
+            fieldnames=[
+                "occupation_code",
+                "occupation_name",
+                "tdx_l2",
+                "tdx_l2_name",
+                "city",
+                "metric_key",
+                "metric_name",
+                "metric_value",
+                "metric_unit",
+                "metric_year",
+                "metric_scope",
+                "source_title",
+                "source_url",
+                "evidence_quote",
+                "source_date",
+                "availability_date",
+                "built_at",
+            ],
+        )
+        writer.writeheader()
+        base = {
+            "occupation_code": "15-102",
+            "occupation_name": "软件工程师",
+            "tdx_l2": "T1205",
+            "tdx_l2_name": "软件服务",
+            "city": "沈阳",
+            "metric_year": "2026",
+            "metric_scope": "公开样本",
+            "source_title": "fixture",
+            "source_date": "2026-05-13",
+            "availability_date": "2026-05-13",
+            "built_at": "2026-05-13T00:00:00",
+        }
+        rows = [
+            ("salary_median", "月薪中位数", "12000", "cny_month", "https://example.com/salary", "薪资中位数约12000元/月。"),
+            ("job_posting_count", "招聘岗位数", "1200", "count", "https://example.com/jobs", "近30天公开岗位1200个。"),
+            ("civil_service_post_count", "公考岗位数", "80", "count", "https://example.com/civil", "可匹配职位80个。"),
+            ("work_intensity_index", "工作强度指数", "65", "score", "https://example.com/intensity", "强度指数65分。"),
+        ]
+        for metric_key, metric_name, value, unit, url, quote in rows:
+            writer.writerow({
+                **base,
+                "metric_key": metric_key,
+                "metric_name": metric_name,
+                "metric_value": value,
+                "metric_unit": unit,
+                "source_url": url,
+                "evidence_quote": quote,
+            })
+
+    result = build_career_score_package(
+        signal_input=source,
+        output_root=tmp_path / "exports",
+        package_id="pkg-career-score-test",
+        source_version="fixture-career-score",
+    )
+
+    package_dir = Path(result["package_dir"])
+    assert validate_manifest(package_dir / "manifest.json")["errors"] == []
+    assert result["rows"] == 1
+    with (package_dir / "fa_mart_career_score.csv").open(encoding="utf-8", newline="") as f:
+        rows = list(csv.DictReader(f))
+    assert rows[0]["occupation_code"] == "15-102"
+    assert rows[0]["score_profile"] == "career_default_v1"
+    assert float(rows[0]["friendly_35_score"]) > 0
+    assert int(float(rows[0]["signal_count"])) == 4
+    lineage = json.loads(rows[0]["pit_lineage_json"])
+    assert "fa_fact_career_signal" in lineage["tables"]
 
 
 def test_build_outcome_collection_plan_from_core_admission_plan(tmp_path: Path):
