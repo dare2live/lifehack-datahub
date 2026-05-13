@@ -63,6 +63,14 @@ def build_outcome_packages_from_collection_plan(
         if missing_dates:
             raise ValueError(f"{domain} outcome rows missing source_date/availability_date: {len(missing_dates)}")
         source_key, table_name = DOMAIN_TABLES[domain]
+        lineage = _source_lineage(
+            plan_csv=plan_csv,
+            source_key=source_key,
+            table_name=table_name,
+            domain=domain,
+            rows=domain_rows,
+            audit=audit,
+        )
         package_results.append(_build_domain_package(
             rows=domain_rows,
             output_root=output_root,
@@ -70,6 +78,7 @@ def build_outcome_packages_from_collection_plan(
             table_name=table_name,
             package_id=_domain_package_id(package_id, source_key, domain),
             source_version=source_version or plan_csv.name,
+            source_lineage=lineage,
         ))
 
     if not package_results:
@@ -128,6 +137,7 @@ def _build_domain_package(
     table_name: str,
     package_id: str | None,
     source_version: str,
+    source_lineage: dict[str, Any],
 ) -> dict[str, Any]:
     with tempfile.TemporaryDirectory(prefix="lifehack_outcome_") as temp_dir:
         source = Path(temp_dir) / f"{table_name}.csv"
@@ -139,6 +149,7 @@ def _build_domain_package(
             output_root=output_root,
             package_id=package_id,
             source_version=source_version,
+            source_lineage=source_lineage,
         )
 
 
@@ -148,6 +159,42 @@ def _domain_package_id(package_id: str | None, source_key: str, domain: str) -> 
     if "{domain}" in package_id or "{source_key}" in package_id:
         return package_id.format(domain=domain, source_key=source_key)
     return f"{package_id}_{domain}"
+
+
+def _source_lineage(
+    *,
+    plan_csv: Path,
+    source_key: str,
+    table_name: str,
+    domain: str,
+    rows: list[dict[str, Any]],
+    audit: dict[str, Any],
+) -> dict[str, Any]:
+    source_urls = sorted({str(row.get("source_url") or "").strip() for row in rows if row.get("source_url")})
+    source_titles = sorted({str(row.get("source_title") or "").strip() for row in rows if row.get("source_title")})
+    source_dates = sorted({str(row.get("source_date") or "").strip() for row in rows if row.get("source_date")})
+    availability_dates = sorted({
+        str(row.get("availability_date") or "").strip()
+        for row in rows
+        if row.get("availability_date")
+    })
+    return {
+        "source_key": source_key,
+        "target_source_key": source_key,
+        "source_name": f"{domain} outcome collection plan",
+        "source_kind": "verified_outcome_collection_plan",
+        "target_table": table_name,
+        "domain": domain,
+        "collection_plan": str(plan_csv),
+        "row_count": len(rows),
+        "metric_keys": sorted({str(row.get("metric_key") or "") for row in rows if row.get("metric_key")}),
+        "status_counts": audit.get("status_counts", {}),
+        "evidence_urls": source_urls,
+        "source_titles": source_titles,
+        "source_dates": source_dates,
+        "availability_dates": availability_dates,
+        "notes": "Outcome package built from audited complete collection rows; row-level evidence_quote remains in the fa_ table.",
+    }
 
 
 def _write_csv(path: Path, rows: list[dict[str, Any]]) -> None:

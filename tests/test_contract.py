@@ -3195,6 +3195,11 @@ def test_build_outcome_packages_from_verified_collection_plan(tmp_path: Path):
     assert packages["fa_fact_major_outcome"]["rows"] == 1
     school_package = Path(packages["fa_fact_school_outcome"]["package_dir"])
     assert validate_manifest(school_package / "manifest.json")["errors"] == []
+    manifest = json.loads((school_package / "manifest.json").read_text(encoding="utf-8"))
+    assert manifest["source_lineage"]["source_kind"] == "verified_outcome_collection_plan"
+    assert manifest["source_lineage"]["collection_plan"] == str(plan)
+    assert manifest["source_lineage"]["evidence_urls"] == ["https://example.edu/report.pdf"]
+    assert packages["fa_fact_school_outcome"]["source_lineage"]["target_table"] == "fa_fact_school_outcome"
     with (school_package / "fa_fact_school_outcome.csv").open(encoding="utf-8", newline="") as f:
         rows = list(csv.DictReader(f))
     assert rows[0]["school_code"] == "10145"

@@ -26,6 +26,7 @@ def build_local_package(
     source_version: str | None = None,
     sheet: str | None = None,
     intake_manifest: Path | None = None,
+    source_lineage: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     if not table_name.startswith("fa_"):
         raise ValueError(f"table must use fa_ prefix: {table_name}")
@@ -38,7 +39,11 @@ def build_local_package(
     quality = build_quality_report(normalized, schema, table_name)
     if quality["errors"]:
         raise ValueError("; ".join(quality["errors"]))
-    source_lineage = _load_intake_lineage(intake_manifest, source_key, table_name, schema) if intake_manifest else None
+    if intake_manifest and source_lineage:
+        raise ValueError("use either intake_manifest or source_lineage, not both")
+    lineage = source_lineage or (
+        _load_intake_lineage(intake_manifest, source_key, table_name, schema) if intake_manifest else None
+    )
 
     package_id = package_id or f"{datetime.utcnow().date().isoformat()}_{source_key}"
     package_dir = output_root / package_id
@@ -53,7 +58,7 @@ def build_local_package(
         files=[table_file],
         tables=[{"name": table_name, "file": table_file}],
         source_version=source_version or input_path.name,
-        source_lineage=source_lineage,
+        source_lineage=lineage,
     )
     return {
         "package_id": package_id,
@@ -61,7 +66,7 @@ def build_local_package(
         "table": table_name,
         "rows": len(normalized),
         "quality_report": quality,
-        "source_lineage": source_lineage,
+        "source_lineage": lineage,
     }
 
 

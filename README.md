@@ -501,7 +501,7 @@ python3 scripts/build_package.py build-outcome-from-collection-plan \
   --package-id 2026_outcome_collection
 ```
 
-真实 smoke：上述辽宁大学单条 approved 候选合并后的采集计划已生成 `lnu_2022_outcome_candidate_merge_smoke_school` 标准包，`fa_fact_school_outcome` 1 行，quality report 无错误；`validate` 通过，core importer `--dry-run` 通过，未写入实际 core DB。
+真实 smoke：上述辽宁大学单条 approved 候选合并后的采集计划已生成 `lnu_2022_outcome_candidate_merge_smoke_school` 标准包，`fa_fact_school_outcome` 1 行，quality report 无错误；manifest 已写入 `source_lineage`，包含采集计划路径、来源 URL、报告标题、指标和状态统计；`validate` 通过，core importer `--dry-run` 通过，未写入实际 core DB。
 
 ## 政策表数据包
 
