@@ -39,6 +39,7 @@ def parse_digital_occupation_catalog_html(
     availability_date: str,
 ) -> list[dict[str, Any]]:
     family_by_prefix = _family_by_prefix()
+    tdx_rules = _occupation_tdx_rules()
     table_rows = _extract_table_rows(html)
     built_at = datetime.utcnow().replace(microsecond=0).isoformat()
     rows: list[dict[str, Any]] = []
@@ -53,13 +54,14 @@ def parse_digital_occupation_catalog_html(
             continue
         seen_codes.add(code_cell)
         prefix = code_cell.split("-", 1)[0]
+        tdx_l2, tdx_l2_name = _match_tdx_rule(name, tdx_rules)
         rows.append({
             "occupation_code": code_cell,
             "occupation_name": name,
             "occupation_family": family_by_prefix.get(prefix, ""),
             "occupation_level": _occupation_level(code_cell),
-            "tdx_l2": "",
-            "tdx_l2_name": "",
+            "tdx_l2": tdx_l2,
+            "tdx_l2_name": tdx_l2_name,
             "major_keywords_json": "[]",
             "skill_keywords_json": "[]",
             "source_title": source_title,
@@ -109,6 +111,34 @@ def _family_by_prefix() -> dict[str, str]:
     if not isinstance(mapping, dict):
         raise ValueError("career_data_sources.occupation_family_by_code_prefix is required")
     return {str(key): str(value) for key, value in mapping.items()}
+
+
+def _occupation_tdx_rules() -> list[dict[str, Any]]:
+    config = load_career_data_sources()
+    rules = config.get("occupation_tdx_rules", [])
+    if not isinstance(rules, list):
+        raise ValueError("career_data_sources.occupation_tdx_rules must be a list")
+    normalized_rules = []
+    for index, rule in enumerate(rules):
+        if not isinstance(rule, dict):
+            raise ValueError(f"occupation_tdx_rules[{index}] must be an object")
+        keywords = rule.get("keywords", [])
+        if not rule.get("tdx_l2") or not rule.get("tdx_l2_name") or not isinstance(keywords, list):
+            raise ValueError(f"occupation_tdx_rules[{index}] needs tdx_l2, tdx_l2_name, and keywords")
+        normalized_rules.append({
+            "tdx_l2": str(rule["tdx_l2"]),
+            "tdx_l2_name": str(rule["tdx_l2_name"]),
+            "keywords": [_compact_text(str(keyword)) for keyword in keywords if str(keyword).strip()],
+        })
+    return normalized_rules
+
+
+def _match_tdx_rule(name: str, rules: list[dict[str, Any]]) -> tuple[str, str]:
+    compact_name = _compact_text(name)
+    for rule in rules:
+        if any(keyword and keyword in compact_name for keyword in rule["keywords"]):
+            return rule["tdx_l2"], rule["tdx_l2_name"]
+    return "", ""
 
 
 def _extract_table_rows(html: str) -> list[list[str]]:
@@ -168,3 +198,7 @@ class _TableTextParser(HTMLParser):
 
 def _normalize_text(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
+
+
+def _compact_text(text: str) -> str:
+    return re.sub(r"\s+", "", text).strip()

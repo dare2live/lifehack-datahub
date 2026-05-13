@@ -17,6 +17,80 @@
     "7": "军人",
     "8": "不便分类的其他从业人员"
   },
+  "occupation_tdx_rules": [
+    {
+      "rule_id": "software_data_security",
+      "tdx_l2": "T1205",
+      "tdx_l2_name": "软件服务",
+      "keywords": ["软件", "程序", "计算机网络", "嵌入式", "信息系统", "信息管理", "数据", "数据库", "人工智能", "区块链", "信息安全", "网络与信息安全", "数字化解决方案"]
+    },
+    {
+      "rule_id": "communication_network",
+      "tdx_l2": "T1202",
+      "tdx_l2_name": "通信设备",
+      "keywords": ["通信", "信息通信", "无线电", "雷达", "广播电视传输", "广播视听设备"]
+    },
+    {
+      "rule_id": "geospatial_monitoring",
+      "tdx_l2": "T1301",
+      "tdx_l2_name": "综合类",
+      "keywords": ["地球物理", "地球化学", "测量", "测绘", "遥感", "地图", "地理", "导航与位置", "地质", "海洋", "气象", "天气", "气候", "地震"]
+    },
+    {
+      "rule_id": "industrial_equipment",
+      "tdx_l2": "T0705",
+      "tdx_l2_name": "工业机械",
+      "keywords": ["自动控制", "工业设计", "增材制造", "工业机器人", "工业视觉", "服务机器人"]
+    },
+    {
+      "rule_id": "building_digital",
+      "tdx_l2": "T1101",
+      "tdx_l2_name": "建筑",
+      "keywords": ["智能楼宇", "建筑信息模型"]
+    },
+    {
+      "rule_id": "logistics_supply_chain",
+      "tdx_l2": "T0902",
+      "tdx_l2_name": "仓储物流",
+      "keywords": ["物流", "供应链"]
+    },
+    {
+      "rule_id": "digital_finance",
+      "tdx_l2": "T1004",
+      "tdx_l2_name": "多元金融",
+      "keywords": ["金融科技"]
+    },
+    {
+      "rule_id": "digital_media",
+      "tdx_l2": "T0601",
+      "tdx_l2_name": "传媒娱乐",
+      "keywords": ["数字媒体", "数字出版", "网络编辑", "全媒体", "电子竞技"]
+    },
+    {
+      "rule_id": "ecommerce_trade",
+      "tdx_l2": "T0502",
+      "tdx_l2_name": "商贸代理",
+      "keywords": ["电子商务", "互联网营销"]
+    },
+    {
+      "rule_id": "green_environment",
+      "tdx_l2": "T0805",
+      "tdx_l2_name": "环境保护",
+      "keywords": ["碳汇"]
+    },
+    {
+      "rule_id": "digital_agriculture",
+      "tdx_l2": "T0302",
+      "tdx_l2_name": "农林牧渔",
+      "keywords": ["农业数字化"]
+    },
+    {
+      "rule_id": "chemical_process",
+      "tdx_l2": "T0204",
+      "tdx_l2_name": "化工",
+      "keywords": ["化工"]
+    }
+  ],
   "audit": {
     "pending_statuses": ["todo", "in_progress"],
     "complete_statuses": ["verified", "ready", "collected"],

@@ -2557,6 +2557,10 @@ def test_parse_digital_occupation_catalog_html_builds_catalog_package(tmp_path: 
     assert rows[0]["occupation_family"] == "专业技术人员"
     assert rows[1]["occupation_family"] == "社会生产服务和生活服务类"
     assert rows[0]["occupation_level"] == 4
+    assert rows[0]["tdx_l2"] == "T1301"
+    assert rows[0]["tdx_l2_name"] == "综合类"
+    assert rows[1]["tdx_l2"] == "T0502"
+    assert rows[1]["tdx_l2_name"] == "商贸代理"
     assert rows[0]["major_keywords_json"] == "[]"
 
     cleaned = tmp_path / "digital_occupation_catalog.csv"
