@@ -630,6 +630,10 @@ python3 scripts/build_package.py build-outcome-collection-plan \
 python3 scripts/build_package.py build-outcome-report-source-plan \
   --plan-csv staging/outcome_collection/outcome_collection_plan.csv \
   --output-dir staging/outcome_report_sources
+
+python3 scripts/build_package.py audit-outcome-report-source-plan \
+  --plan-csv staging/outcome_report_sources/outcome_report_source_plan.csv \
+  --report staging/outcome_report_sources/outcome_report_source_audit.json
 ```
 
 采集计划 CSV 预留 `metric_value/source_url/evidence_quote/metric_scope` 等证据列，人工或后续采集器补齐后，可先跑审计报告确认指标、状态和证据完整度：

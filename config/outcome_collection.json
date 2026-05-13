@@ -50,6 +50,15 @@
   "report_source_plan": {
     "status": "todo",
     "limit_per_domain": 40,
+    "pending_statuses": ["todo", "in_progress", "needs_review"],
+    "complete_statuses": ["candidate_found", "verified", "ready"],
+    "blocked_statuses": ["not_found", "blocked"],
+    "required_source_columns": [
+      "candidate_report_title",
+      "candidate_report_url",
+      "candidate_source_date",
+      "availability_date"
+    ],
     "report_scopes": {
       "school": [
         {
