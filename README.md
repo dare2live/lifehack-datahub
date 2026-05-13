@@ -624,7 +624,15 @@ python3 scripts/build_package.py build-outcome-collection-plan \
   --major-limit 80
 ```
 
-该命令只读 core DB，默认按配置过滤普通类本科批，输出 CSV/JSON 采集计划，不是 data package，也不能导入 core。采集计划 CSV 预留 `metric_value/source_url/evidence_quote/metric_scope` 等证据列，人工或后续采集器补齐后，可先跑审计报告确认指标、状态和证据完整度：
+该命令只读 core DB，默认按配置过滤普通类本科批，输出 CSV/JSON 采集计划，不是 data package，也不能导入 core。先用报告源计划把同一学校/专业的多个指标聚合成“找报告”任务，避免重复搜索同一份就业质量报告或本科教学质量报告：
+
+```bash
+python3 scripts/build_package.py build-outcome-report-source-plan \
+  --plan-csv staging/outcome_collection/outcome_collection_plan.csv \
+  --output-dir staging/outcome_report_sources
+```
+
+采集计划 CSV 预留 `metric_value/source_url/evidence_quote/metric_scope` 等证据列，人工或后续采集器补齐后，可先跑审计报告确认指标、状态和证据完整度：
 
 采集执行时不要直接多人编辑总计划。先按配置中的 `review_batch.limit_per_domain`、`selection_statuses` 和 `editable_columns` 拆出本地批次；人工、浏览器自动化或后续采集器只编辑批次中的证据列，再受控合并回总计划：
 

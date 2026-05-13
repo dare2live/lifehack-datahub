@@ -47,6 +47,39 @@
       "notes"
     ]
   },
+  "report_source_plan": {
+    "status": "todo",
+    "limit_per_domain": 40,
+    "report_scopes": {
+      "school": [
+        {
+          "report_scope": "employment_quality_report",
+          "query_templates": [
+            "{entity_name} {metric_year} 毕业生就业质量报告 filetype:pdf",
+            "{entity_name} {metric_year} 就业质量报告 PDF",
+            "{entity_name} {metric_year} 届毕业生就业质量年度报告"
+          ]
+        },
+        {
+          "report_scope": "undergraduate_teaching_quality_report",
+          "query_templates": [
+            "{entity_name} {metric_year} 本科教学质量报告 就业",
+            "{entity_name} {metric_year} 本科教学质量报告 PDF"
+          ]
+        }
+      ],
+      "major": [
+        {
+          "report_scope": "school_major_outcome_section",
+          "query_templates": [
+            "{entity_name} 专业 {metric_year} 就业质量报告",
+            "{entity_name} 专业 就业去向 升学 考公",
+            "{entity_name} 专业 本科教学质量报告 就业"
+          ]
+        }
+      ]
+    }
+  },
   "domains": {
     "school": {
       "source_table": "fa_dim_ln_admission_plan",

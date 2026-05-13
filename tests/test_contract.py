@@ -49,6 +49,7 @@ from datahub.builders.outcome_collection_package import build_outcome_packages_f
 from datahub.builders.major_mapping_review import build_major_mapping_review_package
 from datahub.builders.local_package import build_local_package
 from datahub.builders.outcome_collection_plan import PLAN_COLUMNS as OUTCOME_PLAN_COLUMNS, build_outcome_collection_plan
+from datahub.builders.outcome_report_source_plan import build_outcome_report_source_plan
 from datahub.builders.policy_tables import (
     build_policy_industry_map_package,
     build_policy_plan_history_package,
@@ -4130,6 +4131,39 @@ def test_extract_outcome_report_candidates_from_lines(tmp_path: Path):
         written = list(csv.DictReader(f))
     assert set(written[0]).issuperset(CANDIDATE_COLUMNS)
     assert written[0]["source_url"] == "https://www.sut.edu.cn/info/1584/67026.htm"
+
+
+def test_build_outcome_report_source_plan_groups_metric_tasks(tmp_path: Path):
+    plan = tmp_path / "outcome_collection_plan.csv"
+    rows = [
+        _outcome_plan_row("school", "10140", "辽宁大学", "postgrad_rate", status="todo", priority_rank="1"),
+        _outcome_plan_row("school", "10140", "辽宁大学", "employment_rate", status="todo", priority_rank="1"),
+        _outcome_plan_row("major", "法学", "法学", "employment_rate", status="todo", priority_rank="2"),
+    ]
+    _write_outcome_plan(plan, rows)
+
+    result = build_outcome_report_source_plan(
+        plan_csv=plan,
+        output_dir=tmp_path / "report_sources",
+        domains=["school"],
+    )
+
+    assert result["rows"] == 2
+    with Path(result["csv"]).open(encoding="utf-8", newline="") as f:
+        source_rows = list(csv.DictReader(f))
+    assert {row["report_scope"] for row in source_rows} == {
+        "employment_quality_report",
+        "undergraduate_teaching_quality_report",
+    }
+    assert source_rows[0]["entity_name"] == "辽宁大学"
+    assert json.loads(source_rows[0]["planned_metric_keys"]) == ["employment_rate", "postgrad_rate"]
+    assert "辽宁大学 2025" in json.loads(source_rows[0]["search_queries"])[0]
+    assert source_rows[0]["candidate_report_url"] == ""
+    assert source_rows[0]["status"] == "todo"
+
+    manifest = json.loads(Path(result["manifest"]).read_text(encoding="utf-8"))
+    assert manifest["notes"].startswith("Report-source discovery plan only")
+    assert manifest["rows"] == 2
 
 
 def test_audit_outcome_collection_plan_reports_progress_and_errors(tmp_path: Path):

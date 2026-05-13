@@ -47,6 +47,7 @@ from .builders.outcome_collection_package import build_outcome_packages_from_col
 from .builders.major_mapping_review import build_major_mapping_review_package
 from .builders.local_package import build_local_package
 from .builders.outcome_collection_plan import build_outcome_collection_plan
+from .builders.outcome_report_source_plan import build_outcome_report_source_plan
 from .builders.policy_tables import (
     build_policy_industry_map_package,
     build_policy_plan_history_package,
@@ -453,6 +454,15 @@ def main() -> int:
     merge_outcome_candidates.add_argument("--candidate-csv", required=True, type=Path)
     merge_outcome_candidates.add_argument("--output", required=True, type=Path)
     merge_outcome_candidates.add_argument("--report", type=Path)
+
+    build_outcome_report_sources = sub.add_parser(
+        "build-outcome-report-source-plan",
+        help="Build report-level source discovery tasks from an outcome collection plan",
+    )
+    build_outcome_report_sources.add_argument("--plan-csv", required=True, type=Path)
+    build_outcome_report_sources.add_argument("--output-dir", required=True, type=Path)
+    build_outcome_report_sources.add_argument("--domain", action="append", dest="domains")
+    build_outcome_report_sources.add_argument("--limit-per-domain", type=int)
 
     build_outcome_from_collection = sub.add_parser(
         "build-outcome-from-collection-plan",
@@ -1149,6 +1159,15 @@ def main() -> int:
             args.report.parent.mkdir(parents=True, exist_ok=True)
             args.report.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         print(json.dumps(report, ensure_ascii=False, indent=2))
+        return 0
+    if args.cmd == "build-outcome-report-source-plan":
+        result = build_outcome_report_source_plan(
+            plan_csv=args.plan_csv,
+            output_dir=args.output_dir,
+            domains=args.domains,
+            limit_per_domain=args.limit_per_domain,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
     if args.cmd == "build-outcome-from-collection-plan":
         result = build_outcome_packages_from_collection_plan(
