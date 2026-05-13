@@ -742,7 +742,7 @@ python3 scripts/build_package.py audit-outcome-collection-plan \
   --report staging/outcome_collection/outcome_collection_audit.json
 ```
 
-学校或专业报告 PDF 可以先进入候选提取，不直接写回采集计划。`extract-outcome-report-candidates` 按 `config/outcome_metrics.json` 里的指标标签和 aliases 从 PDF 文本中提取百分比/分值，输出 `needs_review` 候选 CSV；候选值必须人工核对原文上下文后，才能复制到 outcome collection batch 的证据列：
+学校或专业报告 PDF 可以先进入候选提取，不直接写回采集计划。`extract-outcome-report-candidates` 按 `config/outcome_metrics.json` 里的指标标签、aliases 和 `extraction.max_context_lines` 从 PDF 文本中提取百分比/分值；PDF 把指标名和数值拆到相邻行时，候选提取会拼接同页向后上下文。输出仍是 `needs_review` 候选 CSV，候选值必须人工核对原文上下文后，才能复制到 outcome collection batch 的证据列：
 
 ```bash
 python3 scripts/build_package.py extract-outcome-report-candidates \
@@ -758,7 +758,7 @@ python3 scripts/build_package.py extract-outcome-report-candidates \
   --availability-date 2022-12-31
 ```
 
-真实 smoke：辽宁大学 2022 届毕业生就业质量年度报告 PDF 可提取 4 条体制内去向比例候选；沈阳工业大学 2023-2024 本科教学质量报告 PDF 可提取 1 条毕业去向落实率候选。两次输出均为本地 ignored staging CSV，且 `review_status=needs_review`，不会生成 outcome data package。
+真实 smoke：辽宁大学 2022 届毕业生就业质量年度报告 PDF 可提取 4 条体制内去向比例候选；沈阳工业大学 2023-2024 本科教学质量报告 PDF 可提取 1 条毕业去向落实率候选；辽宁大学 2023-2024 本科教学质量报告 PDF 可通过相邻行上下文提取毕业去向落实率、升学人数比例和推荐免试候选。输出均为本地 ignored staging CSV，且 `review_status=needs_review`，不会生成 outcome data package。
 
 候选经过人工核对后，只把 `review_status=approved` 的行合并回完整采集计划。合并状态、目标状态和可回写列维护在 `config/outcome_collection.json` 的 `candidate_merge`，命令按 `domain, entity_code, metric_key, metric_year` 定位任务，不允许候选 CSV 篡改实体名称或优先级：
 

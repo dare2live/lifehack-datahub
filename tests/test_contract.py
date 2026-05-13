@@ -4288,6 +4288,9 @@ def test_extract_outcome_report_candidates_from_lines(tmp_path: Path):
         [
             (3, "学校本科毕业生毕业去向落实率为 92.36%，其中继续深造比例为 24.18%。"),
             (8, "推荐免试研究生名额占本科毕业生人数比例约 6.40%。"),
+            (9, "本科应届毕业生 4315 人，已就业人数为 3703 人，毕业去向落实率"),
+            (9, "为 85.82%。其中，单位就业人数为 1352 人，占比 31.33%；升学人数为 1568 人，"),
+            (9, "占比 36.34%；自由职业人数为 770 人，占比 17.84%。"),
         ],
         domain="school",
         entity_code="0142",
@@ -4301,6 +4304,8 @@ def test_extract_outcome_report_candidates_from_lines(tmp_path: Path):
 
     assert {row["metric_key"] for row in rows} >= {"employment_rate", "postgrad_rate", "keep_research_rate"}
     assert any(row["candidate_value"] == "0.9236" for row in rows)
+    assert any(row["candidate_value"] == "0.8582" for row in rows)
+    assert any(row["match_alias"] == "升学人数" and row["candidate_value"] == "0.3634" for row in rows)
     assert any(row["match_alias"] == "推荐免试" for row in rows)
     assert all(row["review_status"] == "needs_review" for row in rows)
 

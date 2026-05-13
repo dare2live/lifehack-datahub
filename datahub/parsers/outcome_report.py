@@ -81,23 +81,25 @@ def extract_outcome_metric_candidates_from_lines(
     source_date: str,
     availability_date: str,
 ) -> list[dict[str, Any]]:
-    metrics = load_outcome_metrics().get("domains", {}).get(domain)
+    config = load_outcome_metrics()
+    metrics = config.get("domains", {}).get(domain)
     if not isinstance(metrics, dict):
         raise KeyError(f"unknown outcome domain: {domain}")
 
     rows: list[dict[str, Any]] = []
     seen: set[tuple[str, str, str, str]] = set()
-    for page_number, raw_line in _iter_page_lines(lines):
-        line = _clean_line(raw_line)
-        if not line:
+    context_line_count = _context_line_count(config)
+    page_lines = list(_iter_page_lines(lines))
+    for page_number, base_line, context_line in _iter_context_lines(page_lines, context_line_count):
+        if not base_line:
             continue
         for metric_key, metric in metrics.items():
-            alias = _matched_alias(line, metric)
+            alias = _matched_alias(base_line, metric)
             if not alias:
                 continue
-            values = _candidate_values(line, metric, alias)
+            values = _candidate_values(context_line, metric, alias)
             for text_value, numeric_value in values:
-                evidence_quote = _quote(line)
+                evidence_quote = _quote(context_line)
                 key = (metric_key, str(numeric_value), evidence_quote, str(page_number))
                 if key in seen:
                     continue
@@ -141,6 +143,32 @@ def _iter_page_lines(lines: Iterable[str | tuple[int, str]]) -> Iterable[tuple[i
             yield int(item[0]), str(item[1])
         else:
             yield 1, str(item)
+
+
+def _iter_context_lines(
+    page_lines: list[tuple[int, str]],
+    context_line_count: int,
+) -> Iterable[tuple[int, str, str]]:
+    for index, (page_number, raw_line) in enumerate(page_lines):
+        base_line = _clean_line(raw_line)
+        context_parts = [base_line] if base_line else []
+        for next_page_number, next_raw_line in page_lines[index + 1:index + context_line_count]:
+            if next_page_number != page_number:
+                break
+            next_line = _clean_line(next_raw_line)
+            if next_line:
+                context_parts.append(next_line)
+        yield page_number, base_line, _clean_line(" ".join(context_parts))
+
+
+def _context_line_count(config: dict[str, Any]) -> int:
+    extraction_config = config.get("extraction") or {}
+    value = extraction_config.get("max_context_lines", 1)
+    try:
+        count = int(value)
+    except (TypeError, ValueError):
+        return 1
+    return max(1, min(count, 5))
 
 
 def _matched_alias(line: str, metric: dict[str, Any]) -> str:
