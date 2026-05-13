@@ -14,8 +14,10 @@
   },
   "defaults": {
     "campus_key": "main",
+    "campus_key_template": "ln_{local_school_code}",
     "campus_name": "主校区",
-    "campus_type": "main",
+    "campus_name_template": "{school_name}",
+    "campus_type": "admission_unit",
     "ready_status": "ready",
     "blocked_status": "blocked"
   },

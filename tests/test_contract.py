@@ -4514,6 +4514,8 @@ def test_build_school_location_geocode_input_plan(tmp_path: Path):
             INSERT INTO fa_dim_ln_admission_plan VALUES
             ('10145', '东北大学', '辽宁沈阳', '本科批'),
             ('10145', '东北大学', '辽宁沈阳', '本科批'),
+            ('10183', '吉林大学', '吉林省长春市', '本科批'),
+            ('9145', '东北大学秦皇岛分校', '河北秦皇岛', '本科批'),
             ('99999', '测试学院', '辽宁大连', '本科批'),
             ('88888', '未匹配学院', '辽宁鞍山', '专科批'),
             ('77777', '过滤学院', '辽宁沈阳', '艺术类')
@@ -4540,12 +4542,19 @@ def test_build_school_location_geocode_input_plan(tmp_path: Path):
             "province": "辽宁省",
             "city": "大连市",
         })
+        writer.writerow({
+            "national_school_code": "4122010183",
+            "school_name": "吉林大学",
+            "province": "吉林省",
+            "city": "长春市",
+        })
 
     identity_csv = tmp_path / "school_identity.csv"
     with identity_csv.open("w", encoding="utf-8", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=["local_school_code", "national_school_code"])
         writer.writeheader()
         writer.writerow({"local_school_code": "99999", "national_school_code": "4121099999"})
+        writer.writerow({"local_school_code": "9145", "national_school_code": "4121010145"})
 
     result = build_school_location_geocode_input_plan(
         core_db=core_db,
@@ -4555,14 +4564,21 @@ def test_build_school_location_geocode_input_plan(tmp_path: Path):
         source_date="2026-05-13",
     )
 
-    assert result["rows"] == 3
-    assert result["ready_rows"] == 2
+    assert result["rows"] == 5
+    assert result["ready_rows"] == 4
     assert result["blocked_rows"] == 1
     with Path(result["amap_input_csv"]).open(encoding="utf-8", newline="") as f:
         input_rows = list(csv.DictReader(f))
-    assert {row["national_school_code"] for row in input_rows} == {"4121010145", "4121099999"}
+    assert {row["national_school_code"] for row in input_rows} == {"4121010145", "4121099999", "4122010183"}
     assert any(row["geocode_query"] == "沈阳市东北大学" for row in input_rows)
     assert any(row["city"] == "大连市" and row["local_school_code"] == "99999" for row in input_rows)
+    branch = next(row for row in input_rows if row["local_school_code"] == "9145")
+    assert branch["campus_key"] == "ln_9145"
+    assert branch["city"] == "秦皇岛"
+    assert branch["geocode_query"] == "秦皇岛东北大学秦皇岛分校"
+    jlu = next(row for row in input_rows if row["local_school_code"] == "10183")
+    assert jlu["city"] == "长春市"
+    assert jlu["geocode_query"] == "长春市吉林大学"
     with Path(result["plan_csv"]).open(encoding="utf-8", newline="") as f:
         plan_rows = list(csv.DictReader(f))
     blocked = [row for row in plan_rows if row["request_status"] == "blocked"]

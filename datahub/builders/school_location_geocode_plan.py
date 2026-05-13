@@ -231,9 +231,16 @@ def _build_plan_row(
     defaults = config["defaults"]
     national_code, profile, match_method = _match_profile(local, profiles, profiles_by_name, identity)
     region_geo = _region_geo(local.get("region"), config.get("province_prefixes", []))
-    province = profile.get("province") if profile else region_geo.get("province")
-    city = profile.get("city") if profile else region_geo.get("city")
+    province = region_geo.get("province") or (profile.get("province") if profile else None)
+    city = _preferred_city(region_geo.get("city"), profile.get("city") if profile else None)
     query = _format_query(config["query"]["template"], school_name=local["school_name"], province=province, city=city)
+    campus_values = {
+        "local_school_code": local.get("local_school_code"),
+        "national_school_code": national_code,
+        "school_name": local.get("school_name"),
+    }
+    campus_key = _format_query(defaults.get("campus_key_template") or defaults["campus_key"], **campus_values)
+    campus_name = _format_query(defaults.get("campus_name_template") or defaults["campus_name"], **campus_values)
     blocking = []
     if not national_code:
         blocking.append("missing_national_school_code")
@@ -246,8 +253,8 @@ def _build_plan_row(
         "local_school_code": local.get("local_school_code"),
         "school_name": local.get("school_name"),
         "national_school_code": national_code,
-        "campus_key": defaults["campus_key"],
-        "campus_name": defaults["campus_name"],
+        "campus_key": campus_key,
+        "campus_name": campus_name,
         "campus_type": defaults["campus_type"],
         "province": province,
         "city": city,
@@ -285,9 +292,25 @@ def _region_geo(region: str | None, province_prefixes: list[str]) -> dict[str, s
     value = str(region or "").strip()
     for prefix in province_prefixes:
         if value.startswith(prefix):
-            city = value[len(prefix):].strip()
+            city = _clean_region_city(value[len(prefix):].strip())
             return {"province": prefix, "city": city or prefix}
     return {"province": None, "city": value or None}
+
+
+def _clean_region_city(value: str) -> str:
+    city = str(value or "").strip()
+    for marker in ("壮族自治区", "回族自治区", "维吾尔自治区", "自治区", "省", "市"):
+        if city.startswith(marker):
+            city = city[len(marker):].strip()
+    return city
+
+
+def _preferred_city(region_city: str | None, profile_city: str | None) -> str | None:
+    region_value = str(region_city or "").strip()
+    profile_value = str(profile_city or "").strip()
+    if region_value and profile_value and region_value in profile_value:
+        return profile_value
+    return region_value or profile_value or None
 
 
 def _format_query(template: str, **values: Any) -> str | None:
