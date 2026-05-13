@@ -585,7 +585,7 @@ python3 scripts/build_package.py audit-outcome-collection-plan \
 
 真实 smoke：用 core DB 生成学校 5 个、专业 5 个的小样本采集队列，共 40 条任务；审计结果为 `todo=40`、`complete_rows=0`、`errors=[]`，说明当前仍是采集计划，不能作为 outcome 数据包导入 core。
 
-报告 PDF 只能先转成待复核候选，不直接改采集计划。`extract-outcome-report-candidates` 使用 `config/outcome_metrics.json` 中的 `aliases` 从 PDF 文本抽取指标候选，输出列包含 `candidate_value/evidence_quote/page_number/match_alias/confidence/review_status`。`review_status` 固定为 `needs_review`，人工核对报告上下文后，才能把值、摘录和口径复制到 outcome collection batch：
+报告 PDF/OFD 只能先转成待复核候选，不直接改采集计划。`extract-outcome-report-candidates` 使用 `config/outcome_metrics.json` 中的 `aliases` 从报告文本抽取指标候选，输出列包含 `candidate_value/evidence_quote/page_number/match_alias/confidence/review_status`。`review_status` 固定为 `needs_review`，人工核对报告上下文后，才能把值、摘录和口径复制到 outcome collection batch：
 
 ```bash
 python3 scripts/build_package.py extract-outcome-report-candidates \
@@ -601,7 +601,7 @@ python3 scripts/build_package.py extract-outcome-report-candidates \
   --availability-date 2022-12-31
 ```
 
-真实 smoke：辽宁大学官方 2022 届毕业生就业质量年度报告 PDF 产出 4 条 `civil_service_rate` 候选；沈阳工业大学官方 2023-2024 本科教学质量报告 PDF 产出 1 条 `employment_rate` 候选。候选 CSV 只用于复核，不是 data package，也不会导入 core。
+真实 smoke：辽宁大学官方 2022 届毕业生就业质量年度报告 PDF 产出 4 条 `civil_service_rate` 候选；沈阳工业大学官方 2023-2024 本科教学质量报告 PDF 产出 1 条 `employment_rate` 候选；东北财经大学 2023-2024 本科教学质量报告 OFD 可从 `TextObject/TextCode` 抽取 1 条 `employment_rate=0.8864` 候选。候选 CSV 只用于复核，不是 data package，也不会导入 core。
 
 候选人工核对后，通过 `merge-outcome-report-candidates` 回写完整采集计划。该命令只接受 `config/outcome_collection.json.candidate_merge.approved_statuses` 中配置的状态，默认仅 `approved`；合并后目标状态、可回写列也由同一段配置控制：
 
@@ -626,7 +626,7 @@ python3 scripts/build_package.py build-outcome-from-collection-plan \
 
 该入口只读取 `verified/ready/collected` 行，会先运行 outcome collection audit，再复用 `build-local` 的 schema、主键、metric key、单位和值域校验。真实 smoke：`/tmp` 中 1 条学校 verified outcome 和 1 条专业 verified outcome 成功生成 `fa_fact_school_outcome`、`fa_fact_major_outcome` 两个标准包，质量报告无错误。
 
-端到端真实 smoke：辽宁大学报告候选合并后的 1 条 `verified` 采集行已生成 `lnu_2022_outcome_candidate_merge_smoke_school` 包，`fa_fact_school_outcome` 1 行，quality report 无错误；manifest `source_lineage` 已记录采集计划路径、来源 URL、报告标题、指标和状态统计；DataHub `validate` 返回 `errors=[]`，core importer `--dry-run` 通过。2024 学校 outcome 复核种子当前覆盖 9 条已核指标：辽宁大学就业率/升学率、渤海大学就业率、大连交通大学就业率/国企签约比例、大连工业大学就业率/考研比例/党政机关事业单位等去向比例、大连民族大学就业率；种子重放、采集计划审计、`ln_outcome_school_2024_seeded_v3_school` manifest 校验、core importer `--dry-run` 和本地 core 实导均通过。
+端到端真实 smoke：辽宁大学报告候选合并后的 1 条 `verified` 采集行已生成 `lnu_2022_outcome_candidate_merge_smoke_school` 包，`fa_fact_school_outcome` 1 行，quality report 无错误；manifest `source_lineage` 已记录采集计划路径、来源 URL、报告标题、指标和状态统计；DataHub `validate` 返回 `errors=[]`，core importer `--dry-run` 通过。2024 学校 outcome 复核种子当前覆盖 10 条已核指标：辽宁大学就业率/升学率、渤海大学就业率、大连交通大学就业率/国企签约比例、大连工业大学就业率/考研比例/党政机关事业单位等去向比例、大连民族大学就业率、东北财经大学就业率；种子重放、采集计划审计、`ln_outcome_school_2024_seeded_v4_school` manifest 校验、core importer `--dry-run` 和本地 core 实导均通过。
 
 政策映射和规划兑现回测不再由 core 建表脚本生产。DataHub 用版本化配置生成标准包：
 

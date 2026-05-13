@@ -41,6 +41,7 @@ def build_outcome_report_extraction_plan(
     config = load_outcome_collection()
     extraction_config = _extraction_config(config)
     selected_statuses = set(statuses or extraction_config.get("source_statuses", []))
+    supported_extensions = _supported_extensions(extraction_config)
     if not selected_statuses:
         raise ValueError("outcome_collection.report_extraction_plan.source_statuses is required")
 
@@ -49,6 +50,7 @@ def build_outcome_report_extraction_plan(
         output_dir=output_dir,
         extraction_config=extraction_config,
         selected_statuses=selected_statuses,
+        supported_extensions=supported_extensions,
     )
     output_dir.mkdir(parents=True, exist_ok=True)
     csv_path = output_dir / "outcome_report_extraction_plan.csv"
@@ -60,6 +62,7 @@ def build_outcome_report_extraction_plan(
         "config_version": config.get("version"),
         "report_source_csv": str(report_source_csv),
         "source_statuses": sorted(selected_statuses),
+        "supported_extensions": sorted(supported_extensions),
         "rows": len(rows),
         "ready_rows": ready_rows,
         "blocked_rows": len(rows) - ready_rows,
@@ -92,6 +95,7 @@ def _build_rows(
     output_dir: Path,
     extraction_config: dict[str, Any],
     selected_statuses: set[str],
+    supported_extensions: set[str],
 ) -> list[dict[str, Any]]:
     ready_status = extraction_config.get("ready_status", "ready")
     blocked_status = extraction_config.get("blocked_status", "blocked")
@@ -100,7 +104,7 @@ def _build_rows(
         if str(source_row.get("status") or "").strip() not in selected_statuses:
             continue
         input_path = str(source_row.get("local_report_path") or "").strip()
-        block_reason = _block_reason(input_path)
+        block_reason = _block_reason(input_path, supported_extensions=supported_extensions)
         extraction_status = blocked_status if block_reason else ready_status
         output_path = output_dir / _output_relative_path(source_row, extraction_config)
         rows.append({
@@ -123,13 +127,25 @@ def _build_rows(
     return rows
 
 
-def _block_reason(input_path: str) -> str:
+def _supported_extensions(config: dict[str, Any]) -> set[str]:
+    raw_extensions = config.get("supported_extensions", [".pdf"])
+    if not isinstance(raw_extensions, list):
+        raw_extensions = [".pdf"]
+    extensions = {
+        item if str(item).startswith(".") else f".{item}"
+        for item in (str(value).strip().lower() for value in raw_extensions)
+        if item
+    }
+    return extensions or {".pdf"}
+
+
+def _block_reason(input_path: str, *, supported_extensions: set[str]) -> str:
     if not input_path:
         return "missing_local_report_path"
     path = Path(input_path)
     if not path.exists():
         return "local_report_path_not_found"
-    if path.suffix.lower() != ".pdf":
+    if path.suffix.lower() not in supported_extensions:
         return "unsupported_report_format"
     return ""
 

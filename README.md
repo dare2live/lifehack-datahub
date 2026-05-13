@@ -790,9 +790,9 @@ python3 scripts/build_package.py run-outcome-report-extraction-plan \
   --report staging/outcome_report_candidates/outcome_report_extraction_report.json
 ```
 
-`config/outcome_report_sources.json` 保存已经确认的学校/专业报告来源种子，例如辽宁大学 2022 届毕业生就业质量报告，以及辽宁大学、吉林大学、辽宁工程技术大学、东北财经大学、沈阳工业大学、大连交通大学、沈阳师范大学、大连外国语大学、辽宁师范大学、渤海大学、大连大学、大连工业大学、大连民族大学 2023-2024 学年本科教学质量报告。先用 `audit-outcome-report-source-seeds` 检查种子 ID、必填字段、URL 和状态是否符合配置，再用 `apply-outcome-report-source-seeds` 合并到 report-source plan，状态变成 `candidate_found`。随后用 `build-outcome-report-intake-plan` 生成受控下载/本地登记清单；`download-outcome-report-intake-assets` 可读取该清单，从官方 HTML 页面中匹配报告附件、Chaoxing/engine2 云盘 zip 附件或直接下载文件，写入 ignored raw 路径并输出带 `local_report_path/intake_status=downloaded` 的 CSV；也可以人工补同样字段。报告下载常见部分成功、部分验证码或 manual intake，批处理可显式加 `--allow-failures` 继续后续 merge/extraction，但失败行仍保留 `download_status=failed` 和 `download_error`，不会被推进到 ready。再用 `merge-outcome-report-intake-results` 写回 report-source plan。只有本地报告路径真实存在的行会被推进到 `ready`，`build-outcome-report-extraction-plan` 才会进入 ready；当前自动候选提取只支持 PDF，OFD、验证码下载页或只提供 `vsb_pdf_image_data` 图片页的报告会保持 blocked/manual intake，不进入候选提取。PDF 下载、受控 intake、本地文件路径、候选提取、人工核对和 outcome 数据包生成仍然是彼此独立的门禁。
+`config/outcome_report_sources.json` 保存已经确认的学校/专业报告来源种子，例如辽宁大学 2022 届毕业生就业质量报告，以及辽宁大学、吉林大学、辽宁工程技术大学、东北财经大学、沈阳工业大学、大连交通大学、沈阳师范大学、大连外国语大学、辽宁师范大学、渤海大学、大连大学、大连工业大学、大连民族大学 2023-2024 学年本科教学质量报告。先用 `audit-outcome-report-source-seeds` 检查种子 ID、必填字段、URL 和状态是否符合配置，再用 `apply-outcome-report-source-seeds` 合并到 report-source plan，状态变成 `candidate_found`。随后用 `build-outcome-report-intake-plan` 生成受控下载/本地登记清单；`download-outcome-report-intake-assets` 可读取该清单，从官方 HTML 页面中匹配报告附件、Chaoxing/engine2 云盘 zip 附件或直接下载文件，写入 ignored raw 路径并输出带 `local_report_path/intake_status=downloaded` 的 CSV；也可以人工补同样字段。报告下载常见部分成功、部分验证码或 manual intake，批处理可显式加 `--allow-failures` 继续后续 merge/extraction，但失败行仍保留 `download_status=failed` 和 `download_error`，不会被推进到 ready。再用 `merge-outcome-report-intake-results` 写回 report-source plan。只有本地报告路径真实存在的行会被推进到 `ready`，`build-outcome-report-extraction-plan` 才会进入 ready；当前自动候选提取支持 PDF 和 OFD，验证码下载页或只提供 `vsb_pdf_image_data` 图片页的报告会保持 blocked/manual intake，不进入候选提取。报告下载、受控 intake、本地文件路径、候选提取、人工核对和 outcome 数据包生成仍然是彼此独立的门禁。
 
-真实 2024 学校 outcome smoke：以当前 core 前 200 所本科批学校生成 800 条学校指标任务和 42 条报告源任务；`report_source_plan.include_seeded_entities_beyond_limit=true` 会保留已配置的报告来源种子，即使默认 40 行上限会截掉对应学校。14 个配置种子中 13 个匹配当前 2024 计划，唯一未匹配的是辽宁大学 2022 就业质量报告；自动 intake 当前下载 7 份报告，6 份保留为验证码或图片页/manual intake，merge 后 7 行进入 `ready`，其中 6 份 PDF 进入候选提取、1 份 OFD 被阻断。候选提取共生成 10 条 `needs_review` 候选：辽宁大学就业率/升学率、渤海大学就业率、大连交通大学就业率/国企去向比例、大连工业大学就业率/升学率/党政机关事业单位等去向比例、大连民族大学就业率。所有输出仍在 ignored `raw/`、`staging/`，未人工核对前不生成 outcome 数据包。
+真实 2024 学校 outcome smoke：以当前 core 前 200 所本科批学校生成 800 条学校指标任务和 42 条报告源任务；`report_source_plan.include_seeded_entities_beyond_limit=true` 会保留已配置的报告来源种子，即使默认 40 行上限会截掉对应学校。14 个配置种子中 13 个匹配当前 2024 计划，唯一未匹配的是辽宁大学 2022 就业质量报告；自动 intake 当前下载 7 份报告，6 份保留为验证码或图片页/manual intake，merge 后 7 行进入 `ready`，其中 6 份 PDF 和 1 份 OFD 进入候选提取。候选提取共生成 11 条 `needs_review` 候选：辽宁大学就业率/升学率、渤海大学就业率、大连交通大学就业率/国企去向比例、大连工业大学就业率/升学率/党政机关事业单位等去向比例、大连民族大学就业率、东北财经大学就业率。所有输出仍在 ignored `raw/`、`staging/`，未人工核对前不生成 outcome 数据包。
 
 采集计划 CSV 预留 `metric_value/source_url/evidence_quote/metric_scope` 等证据列，人工或后续采集器补齐后，可先跑审计报告确认指标、状态和证据完整度：
 
@@ -833,7 +833,7 @@ python3 scripts/build_package.py audit-outcome-collection-plan \
   --report staging/outcome_collection/outcome_collection_seeded_audit.json
 ```
 
-学校或专业报告 PDF 可以先进入候选提取，不直接写回采集计划。`extract-outcome-report-candidates` 按 `config/outcome_metrics.json` 里的指标标签、aliases 和 `extraction.max_context_lines` 从 PDF 文本中提取百分比/分值；PDF 把指标名和数值拆到相邻行时，候选提取会拼接同页向后上下文。输出仍是 `needs_review` 候选 CSV，候选值必须人工核对原文上下文后，才能复制到 outcome collection batch 的证据列：
+学校或专业报告 PDF/OFD 可以先进入候选提取，不直接写回采集计划。`extract-outcome-report-candidates` 按 `config/outcome_metrics.json` 里的指标标签、aliases 和 `extraction.max_context_lines` 从报告文本中提取百分比/分值；报告把指标名和数值拆到相邻行时，候选提取会拼接同页向后上下文。输出仍是 `needs_review` 候选 CSV，候选值必须人工核对原文上下文后，才能复制到 outcome collection batch 的证据列：
 
 ```bash
 python3 scripts/build_package.py extract-outcome-report-candidates \
@@ -849,7 +849,7 @@ python3 scripts/build_package.py extract-outcome-report-candidates \
   --availability-date 2022-12-31
 ```
 
-真实 smoke：辽宁大学 2022 届毕业生就业质量年度报告 PDF 可提取 4 条体制内去向比例候选；辽宁大学 2023-2024 本科教学质量报告 PDF 可通过相邻行上下文提取毕业去向落实率和升学人数比例候选；渤海大学 2023-2024 本科教学质量报告 PDF 可提取总体就业率；大连交通大学 2023-2024 本科教学质量报告 PDF 可提取总体就业率和国有企业签约比例候选；大连工业大学 2023～2024 本科教学质量报告 PDF 可提取就业率、考取研究生比例和党政机关/事业单位/部队/国家项目去向比例；大连民族大学 2023-2024 本科教学质量报告 PDF 可提取初次毕业去向落实率。保研率、就业率和体制内去向比例候选需要满足 `required_context_any`/`blocked_context_any`，避免把“推荐免试人数占攻读研究生人数比例”、“其中推免生但百分比属于考研总占比”、“师范生/非师范生分组落实率”、“省内就业比例”或“岗位晋升比例”误当成目标指标。输出均为本地 ignored staging CSV，且 `review_status=needs_review`，不会生成 outcome data package。
+真实 smoke：辽宁大学 2022 届毕业生就业质量年度报告 PDF 可提取 4 条体制内去向比例候选；辽宁大学 2023-2024 本科教学质量报告 PDF 可通过相邻行上下文提取毕业去向落实率和升学人数比例候选；渤海大学 2023-2024 本科教学质量报告 PDF 可提取总体就业率；大连交通大学 2023-2024 本科教学质量报告 PDF 可提取总体就业率和国有企业签约比例候选；大连工业大学 2023～2024 本科教学质量报告 PDF 可提取就业率、考取研究生比例和党政机关/事业单位/部队/国家项目去向比例；大连民族大学 2023-2024 本科教学质量报告 PDF 可提取初次毕业去向落实率；东北财经大学 2023-2024 本科教学质量报告 OFD 可提取初次毕业去向落实率。保研率、就业率和体制内去向比例候选需要满足 `required_context_any`/`blocked_context_any`，避免把“推荐免试人数占攻读研究生人数比例”、“其中推免生但百分比属于考研总占比”、“师范生/非师范生分组落实率”、“省内就业比例”或“岗位晋升比例”误当成目标指标。输出均为本地 ignored staging CSV，且 `review_status=needs_review`，不会生成 outcome data package。
 
 候选经过人工核对后，只把 `review_status=approved` 的行合并回完整采集计划。合并状态、目标状态和可回写列维护在 `config/outcome_collection.json` 的 `candidate_merge`，命令按 `domain, entity_code, metric_key, metric_year` 定位任务，不允许候选 CSV 篡改实体名称或优先级：
 
@@ -872,7 +872,7 @@ python3 scripts/build_package.py build-outcome-from-collection-plan \
   --package-id 2026_outcome_collection
 ```
 
-真实 smoke：上述辽宁大学单条 approved 候选合并后的采集计划已生成 `lnu_2022_outcome_candidate_merge_smoke_school` 标准包，`fa_fact_school_outcome` 1 行，quality report 无错误；manifest 已写入 `source_lineage`，包含采集计划路径、来源 URL、报告标题、指标和状态统计；`validate` 通过，core importer `--dry-run` 通过。2024 学校 outcome 复核种子已覆盖辽宁大学就业率/升学率、渤海大学就业率、大连交通大学就业率/国企签约比例、大连工业大学就业率/考研比例/党政机关事业单位等去向比例、大连民族大学就业率 9 条已核指标；真实重放命中 9 条、更新 9 条、无 unmatched seed，重放后的 800 行采集计划审计 `errors=[]/warnings=[]`；从该计划生成的 `ln_outcome_school_2024_seeded_v3_school` 包含 `fa_fact_school_outcome` 9 行，manifest 校验、core importer `--dry-run` 和本地 core 实导均通过。
+真实 smoke：上述辽宁大学单条 approved 候选合并后的采集计划已生成 `lnu_2022_outcome_candidate_merge_smoke_school` 标准包，`fa_fact_school_outcome` 1 行，quality report 无错误；manifest 已写入 `source_lineage`，包含采集计划路径、来源 URL、报告标题、指标和状态统计；`validate` 通过，core importer `--dry-run` 通过。2024 学校 outcome 复核种子已覆盖辽宁大学就业率/升学率、渤海大学就业率、大连交通大学就业率/国企签约比例、大连工业大学就业率/考研比例/党政机关事业单位等去向比例、大连民族大学就业率、东北财经大学就业率 10 条已核指标；真实重放命中 10 条、更新 10 条、无 unmatched seed，重放后的 800 行采集计划审计 `errors=[]/warnings=[]`；从该计划生成的 `ln_outcome_school_2024_seeded_v4_school` 包含 `fa_fact_school_outcome` 10 行，manifest 校验、core importer `--dry-run` 和本地 core 实导均通过。
 
 ## 政策表数据包
 

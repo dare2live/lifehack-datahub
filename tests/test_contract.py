@@ -153,6 +153,7 @@ from datahub.parsers.digital_occupation_catalog import (
 from datahub.parsers.outcome_report import (
     CANDIDATE_COLUMNS,
     extract_outcome_metric_candidates_from_lines,
+    extract_outcome_metric_candidates_from_ofd,
     write_outcome_metric_candidate_csv,
 )
 from datahub.source_audit import audit_sources
@@ -5165,6 +5166,44 @@ def test_extract_outcome_report_candidates_from_lines(tmp_path: Path):
     assert written[0]["source_url"] == "https://www.sut.edu.cn/info/1584/67026.htm"
 
 
+def test_extract_outcome_report_candidates_from_ofd(tmp_path: Path):
+    path = tmp_path / "dufe.ofd"
+    with ZipFile(path, "w") as zf:
+        zf.writestr(
+            "Doc_0/Pages/Page_28/Content.xml",
+            """<?xml version="1.0" encoding="UTF-8"?>
+<ofd:Content xmlns:ofd="http://www.ofdspec.org/2016">
+  <ofd:Layer>
+    <ofd:TextObject ID="1" Boundary="10 30 60 5">
+      <ofd:TextCode>2024届本科毕业生初次毕业去向落实率为</ofd:TextCode>
+    </ofd:TextObject>
+    <ofd:TextObject ID="2" Boundary="70 30.2 30 5">
+      <ofd:TextCode>88.64%。</ofd:TextCode>
+    </ofd:TextObject>
+  </ofd:Layer>
+</ofd:Content>
+""",
+        )
+
+    rows = extract_outcome_metric_candidates_from_ofd(
+        path,
+        domain="school",
+        entity_code="0173",
+        entity_name="东北财经大学",
+        metric_year=2024,
+        source_title="东北财经大学2023-2024学年本科教学质量报告",
+        source_url="https://xxgk.dufe.edu.cn/content_88732.html",
+        source_date="2024-12-05",
+        availability_date="2024-12-05",
+    )
+
+    assert len(rows) == 1
+    assert rows[0]["metric_key"] == "employment_rate"
+    assert rows[0]["candidate_value"] == "0.8864"
+    assert rows[0]["page_number"] == 29
+    assert "88.64%" in rows[0]["evidence_quote"]
+
+
 def test_build_outcome_report_source_plan_groups_metric_tasks(tmp_path: Path):
     plan = tmp_path / "outcome_collection_plan.csv"
     rows = [
@@ -5795,15 +5834,15 @@ def test_build_outcome_report_extraction_plan_requires_local_file(tmp_path: Path
     )
 
     assert result["rows"] == 2
-    assert result["ready_rows"] == 1
-    assert result["blocked_rows"] == 1
+    assert result["ready_rows"] == 2
+    assert result["blocked_rows"] == 0
     with Path(result["csv"]).open(encoding="utf-8", newline="") as f:
         extraction_rows = list(csv.DictReader(f))
     assert extraction_rows[0]["extraction_status"] == "ready"
     assert extraction_rows[0]["input_path"] == str(local_pdf)
     assert extraction_rows[0]["output_path"].endswith("school_10140_2025_employment_quality_report_candidates.csv")
-    assert extraction_rows[1]["extraction_status"] == "blocked"
-    assert extraction_rows[1]["block_reason"] == "unsupported_report_format"
+    assert extraction_rows[1]["extraction_status"] == "ready"
+    assert extraction_rows[1]["block_reason"] == ""
 
 
 def test_run_outcome_report_extraction_plan_writes_candidate_csv(tmp_path: Path, monkeypatch):
@@ -5896,7 +5935,7 @@ def test_run_outcome_report_extraction_plan_writes_candidate_csv(tmp_path: Path,
         }]
 
     monkeypatch.setattr(
-        "datahub.builders.outcome_report_extraction_runner.extract_outcome_metric_candidates_from_pdf",
+        "datahub.builders.outcome_report_extraction_runner.extract_outcome_metric_candidates_from_report",
         fake_extract,
     )
     report = run_outcome_report_extraction_plan(plan_csv=plan, report_path=tmp_path / "extract_report.json")
@@ -6021,8 +6060,8 @@ def test_build_outcome_collection_batch_limits_pending_rows(tmp_path: Path):
 def test_apply_outcome_collection_review_seeds_updates_matching_rows(tmp_path: Path):
     audit = audit_outcome_collection_review_seeds()
     assert audit["errors"] == []
-    assert audit["seed_count"] == 9
-    assert audit["status_counts"] == {"verified": 9}
+    assert audit["seed_count"] == 10
+    assert audit["status_counts"] == {"verified": 10}
 
     plan = tmp_path / "outcome_collection_plan.csv"
     seeded = _outcome_plan_row("school", "0140", "辽宁大学", "employment_rate", status="todo", priority_rank="1")
@@ -6031,14 +6070,16 @@ def test_apply_outcome_collection_review_seeds_updates_matching_rows(tmp_path: P
     dlpu["metric_year"] = "2024"
     bohai = _outcome_plan_row("school", "0167", "渤海大学", "employment_rate", status="todo", priority_rank="3")
     bohai["metric_year"] = "2024"
+    dufe = _outcome_plan_row("school", "0173", "东北财经大学", "employment_rate", status="todo", priority_rank="4")
+    dufe["metric_year"] = "2024"
     pending = _outcome_plan_row("school", "0166", "沈阳师范大学", "employment_rate", status="todo", priority_rank="2")
     pending["metric_year"] = "2024"
-    _write_outcome_plan(plan, [seeded, dlpu, bohai, pending])
+    _write_outcome_plan(plan, [seeded, dlpu, bohai, dufe, pending])
 
     output = tmp_path / "outcome_collection_plan_seeded.csv"
     report = apply_outcome_collection_review_seeds(plan_csv=plan, output=output)
-    assert report["matched_rows"] == 3
-    assert report["updated_rows"] == 3
+    assert report["matched_rows"] == 4
+    assert report["updated_rows"] == 4
     assert report["unmatched_seeds"] == 6
 
     with output.open(encoding="utf-8", newline="") as f:
@@ -6057,6 +6098,9 @@ def test_apply_outcome_collection_review_seeds_updates_matching_rows(tmp_path: P
     bohai_employment = by_entity[("0167", "employment_rate")]
     assert bohai_employment["status"] == "verified"
     assert bohai_employment["metric_value"] == "0.8754"
+    dufe_employment = by_entity[("0173", "employment_rate")]
+    assert dufe_employment["status"] == "verified"
+    assert dufe_employment["metric_value"] == "0.8864"
     assert by_entity[("0166", "employment_rate")]["status"] == "todo"
 
 

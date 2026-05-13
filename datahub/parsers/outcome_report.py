@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import csv
 import re
+import zipfile
+import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -37,6 +39,8 @@ CANDIDATE_COLUMNS = [
 PERCENT_RE = re.compile(r"(?<!\d)(\d{1,3}(?:\.\d+)?)\s*%")
 NUMBER_RE = re.compile(r"(?<!\d)(\d{1,3}(?:\.\d+)?)(?!\d)")
 SPACE_RE = re.compile(r"\s+")
+OFD_PAGE_RE = re.compile(r"(?:^|/)Pages/Page_(\d+)/Content\.xml$")
+OFD_BOUNDARY_RE = re.compile(r"[-+]?\d+(?:\.\d+)?")
 
 
 def extract_outcome_metric_candidates_from_pdf(
@@ -56,6 +60,62 @@ def extract_outcome_metric_candidates_from_pdf(
     for page_index, page in enumerate(reader.pages, start=1):
         text = page.extract_text() or ""
         page_lines.extend((page_index, line) for line in text.splitlines())
+    return extract_outcome_metric_candidates_from_lines(
+        page_lines,
+        domain=domain,
+        entity_code=entity_code,
+        entity_name=entity_name,
+        metric_year=metric_year,
+        source_title=source_title,
+        source_url=source_url,
+        source_date=source_date,
+        availability_date=availability_date,
+    )
+
+
+def extract_outcome_metric_candidates_from_report(
+    path: Path,
+    *,
+    domain: str,
+    entity_code: str,
+    entity_name: str,
+    metric_year: int,
+    source_title: str,
+    source_url: str,
+    source_date: str,
+    availability_date: str,
+) -> list[dict[str, Any]]:
+    suffix = path.suffix.lower()
+    kwargs = {
+        "domain": domain,
+        "entity_code": entity_code,
+        "entity_name": entity_name,
+        "metric_year": metric_year,
+        "source_title": source_title,
+        "source_url": source_url,
+        "source_date": source_date,
+        "availability_date": availability_date,
+    }
+    if suffix == ".pdf":
+        return extract_outcome_metric_candidates_from_pdf(path, **kwargs)
+    if suffix == ".ofd":
+        return extract_outcome_metric_candidates_from_ofd(path, **kwargs)
+    raise ValueError(f"unsupported report format: {suffix or '<none>'}")
+
+
+def extract_outcome_metric_candidates_from_ofd(
+    path: Path,
+    *,
+    domain: str,
+    entity_code: str,
+    entity_name: str,
+    metric_year: int,
+    source_title: str,
+    source_url: str,
+    source_date: str,
+    availability_date: str,
+) -> list[dict[str, Any]]:
+    page_lines = _extract_ofd_page_lines(path)
     return extract_outcome_metric_candidates_from_lines(
         page_lines,
         domain=domain,
@@ -137,6 +197,85 @@ def write_outcome_metric_candidate_csv(path: Path, rows: list[dict[str, Any]]) -
         writer = csv.DictWriter(f, fieldnames=CANDIDATE_COLUMNS, extrasaction="ignore")
         writer.writeheader()
         writer.writerows(rows)
+
+
+def _extract_ofd_page_lines(path: Path) -> list[tuple[int, str]]:
+    page_lines: list[tuple[int, str]] = []
+    with zipfile.ZipFile(path) as zf:
+        page_names = sorted(
+            (name for name in zf.namelist() if OFD_PAGE_RE.search(name)),
+            key=_ofd_page_sort_key,
+        )
+        for page_name in page_names:
+            page_number = _ofd_page_number(page_name)
+            with zf.open(page_name) as f:
+                objects = _extract_ofd_text_objects(f.read())
+            for line in _group_ofd_text_objects(objects):
+                page_lines.append((page_number, line))
+    return page_lines
+
+
+def _extract_ofd_text_objects(content_xml: bytes) -> list[dict[str, Any]]:
+    root = ET.fromstring(content_xml)
+    objects: list[dict[str, Any]] = []
+    for element in root.iter():
+        if _local_name(element.tag) != "TextObject":
+            continue
+        text = "".join(
+            str(child.text or "")
+            for child in element.iter()
+            if _local_name(child.tag) == "TextCode"
+        ).strip()
+        if not text:
+            continue
+        boundary = _parse_ofd_boundary(element.attrib.get("Boundary", ""))
+        if not boundary:
+            continue
+        objects.append({
+            "x": boundary[0],
+            "y": boundary[1],
+            "text": text,
+        })
+    return objects
+
+
+def _group_ofd_text_objects(
+    objects: list[dict[str, Any]],
+    *,
+    y_tolerance: float = 1.2,
+) -> list[str]:
+    rows: list[list[dict[str, Any]]] = []
+    for item in sorted(objects, key=lambda obj: (obj["y"], obj["x"])):
+        if rows and abs(rows[-1][0]["y"] - item["y"]) <= y_tolerance:
+            rows[-1].append(item)
+        else:
+            rows.append([item])
+    lines = []
+    for row in rows:
+        line = "".join(item["text"] for item in sorted(row, key=lambda obj: obj["x"]))
+        if _clean_line(line):
+            lines.append(line)
+    return lines
+
+
+def _parse_ofd_boundary(value: str) -> tuple[float, float, float, float] | None:
+    numbers = [float(item) for item in OFD_BOUNDARY_RE.findall(str(value or ""))]
+    if len(numbers) < 4:
+        return None
+    return numbers[0], numbers[1], numbers[2], numbers[3]
+
+
+def _ofd_page_sort_key(name: str) -> int:
+    match = OFD_PAGE_RE.search(name)
+    return int(match.group(1)) if match else 0
+
+
+def _ofd_page_number(name: str) -> int:
+    return _ofd_page_sort_key(name) + 1
+
+
+def _local_name(tag: str) -> str:
+    return str(tag).rsplit("}", 1)[-1]
 
 
 def _iter_page_lines(lines: Iterable[str | tuple[int, str]]) -> Iterable[tuple[int, str]]:

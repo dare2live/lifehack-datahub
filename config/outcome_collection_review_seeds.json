@@ -173,6 +173,25 @@
       "reviewer": "codex",
       "reviewed_at": "2026-05-14",
       "review_note": "原文明确截至 2024 年 8 月 31 日应届本科毕业生总体就业率 87.54%；师范生/非师范生分组落实率未作为总体指标。"
+    },
+    {
+      "seed_id": "dufe_2024_undergraduate_employment_rate",
+      "domain": "school",
+      "entity_code": "0173",
+      "entity_name": "东北财经大学",
+      "metric_key": "employment_rate",
+      "metric_year": 2024,
+      "status": "verified",
+      "metric_value": 0.8864,
+      "source_title": "东北财经大学2023-2024学年本科教学质量报告",
+      "source_url": "https://xxgk.dufe.edu.cn/content_88732.html",
+      "evidence_quote": "2024届本科毕业生初次毕业去向落实率为88.64%。",
+      "metric_scope": "2024届本科毕业生初次毕业去向落实率",
+      "source_date": "2024-12-05",
+      "availability_date": "2024-12-05",
+      "reviewer": "codex",
+      "reviewed_at": "2026-05-14",
+      "review_note": "源文件为 OFD，本次只采用原文明确给出的总体毕业去向落实率；机关事业单位和升学人数未换算为比例。"
     }
   ]
 }

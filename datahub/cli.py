@@ -142,7 +142,7 @@ from .parsers.digital_occupation_catalog import (
     write_digital_occupation_catalog_csv,
 )
 from .parsers.outcome_report import (
-    extract_outcome_metric_candidates_from_pdf,
+    extract_outcome_metric_candidates_from_report,
     write_outcome_metric_candidate_csv,
 )
 from .source_audit import audit_sources
@@ -614,7 +614,7 @@ def main() -> int:
 
     extract_outcome_candidates = sub.add_parser(
         "extract-outcome-report-candidates",
-        help="Extract reviewable school/major outcome metric candidates from report PDFs",
+        help="Extract reviewable school/major outcome metric candidates from report PDFs or OFDs",
     )
     extract_outcome_candidates.add_argument("--input", required=True, action="append", type=Path)
     extract_outcome_candidates.add_argument("--output", required=True, type=Path)
@@ -1523,7 +1523,7 @@ def main() -> int:
     if args.cmd == "extract-outcome-report-candidates":
         rows = []
         for input_path in args.input:
-            rows.extend(extract_outcome_metric_candidates_from_pdf(
+            rows.extend(extract_outcome_metric_candidates_from_report(
                 input_path,
                 domain=args.domain,
                 entity_code=args.entity_code,

@@ -8,7 +8,7 @@ from typing import Any
 
 from datahub.builders.outcome_report_extraction_plan import PLAN_COLUMNS
 from datahub.parsers.outcome_report import (
-    extract_outcome_metric_candidates_from_pdf,
+    extract_outcome_metric_candidates_from_report,
     write_outcome_metric_candidate_csv,
 )
 
@@ -33,8 +33,9 @@ def run_outcome_report_extraction_plan(
             skipped_rows += 1
             continue
         try:
-            candidates = extract_outcome_metric_candidates_from_pdf(
-                Path(row["input_path"]),
+            input_path = Path(row["input_path"])
+            candidates = extract_outcome_metric_candidates_from_report(
+                input_path,
                 domain=row["domain"],
                 entity_code=row["entity_code"],
                 entity_name=row["entity_name"],
