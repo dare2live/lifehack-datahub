@@ -558,9 +558,15 @@ python3 scripts/build_package.py download-page-images \
 2023/2024 官方图片页已在 `config/sources.json` 配置普通类分组：1-4 张为历史类，5-8 张为物理类，后续体育/艺术图片不参与普通投档位次派生。分组只解决“哪些图属于哪张表”，不能替代质量审计；grid OCR 输出必须先和镜像 PDF、人工复核结果或其他基准 CSV 对账：
 
 ```bash
+python3 scripts/build_package.py parse-ln-score-distribution-image-groups \
+  --manifest raw/ln_score_distribution/2024-06-25/_page_images_index.json \
+  --output-dir staging/ln_score_distribution_2024_official_grid_candidates \
+  --work-dir staging/ln_score_distribution_2024_official_grid_rows \
+  --summary-report staging/ln_score_distribution_2024_official_grid_candidates/summary.json
+
 python3 scripts/build_package.py audit-score-distribution-csvs \
-  --candidate staging/ln_score_distribution_2024_history_official_grid_probe.csv \
-  --candidate staging/ln_score_distribution_2024_physics_official_grid_probe.csv \
+  --candidate staging/ln_score_distribution_2024_official_grid_candidates/ln_score_distribution_2024_ordinary_history_official_grid_candidate.csv \
+  --candidate staging/ln_score_distribution_2024_official_grid_candidates/ln_score_distribution_2024_ordinary_physics_official_grid_candidate.csv \
   --baseline cleaned/ln_score_distribution_2024_jhgk_mirror.csv \
   --report staging/ln_score_distribution_2024_official_grid_vs_mirror.json
 ```

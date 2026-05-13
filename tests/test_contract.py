@@ -83,6 +83,7 @@ from datahub.builders.score_history_reconciliation_plan import PLAN_COLUMNS, bui
 from datahub.builders.score_history_snapshot import build_score_history_snapshot_package
 from datahub.builders.score_source_coverage import audit_score_source_coverage
 from datahub.builders.score_distribution_csv_audit import audit_score_distribution_csvs
+from datahub.builders import score_distribution_image_groups as image_group_parser
 from datahub.builders.score_distribution_review_workspace import (
     build_score_distribution_review_workspace,
     merge_score_distribution_review_workspace,
@@ -739,6 +740,79 @@ def test_audit_score_distribution_csvs_blocks_drift_and_missing_rows(tmp_path: P
     assert report["decision"]["reconciliation_required"] is True
     assert report["samples"]["different_rows"][0]["diffs"]["score_count"]["candidate"] == 11
     assert report["sequence_summary"]["baseline"][0]["missing_score_count"] == 0
+
+
+def test_parse_score_distribution_image_groups_uses_configured_manifest_indexes(tmp_path: Path, monkeypatch):
+    manifest = tmp_path / "_page_images_index.json"
+    files = [
+        {
+            "file_name": f"ln_score_distribution_2024_{index:03d}.jpg",
+            "path": str(tmp_path / f"page_{index:03d}.jpg"),
+        }
+        for index in range(1, 9)
+    ]
+    manifest.write_text(
+        json.dumps(
+            {
+                "source_key": "ln_score_distribution",
+                "source_date": "2024-06-25",
+                "page_url": "https://jyt.ln.gov.cn/jyt/jyzx/jyyw/2024062510394164694/index.shtml",
+                "files": files,
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    calls = []
+
+    def fake_parse(image_paths, *, subject_cat, score_year, source_date, work_dir, swiftc):
+        calls.append({
+            "image_paths": [path.name for path in image_paths],
+            "subject_cat": subject_cat,
+            "score_year": score_year,
+            "source_date": source_date,
+            "work_dir": work_dir.name,
+            "swiftc": swiftc,
+        })
+        return (
+            [
+                {
+                    "subject_cat": subject_cat,
+                    "score_year": score_year,
+                    "score": 676,
+                    "score_count": 12,
+                    "cumulative_rank": 12,
+                    "source_date": source_date,
+                }
+            ],
+            {"quality_errors": [], "output_rows": 1},
+        )
+
+    monkeypatch.setattr(image_group_parser, "parse_score_distribution_grid_images", fake_parse)
+
+    result = image_group_parser.parse_score_distribution_image_groups(
+        manifest_path=manifest,
+        output_dir=tmp_path / "out",
+        work_dir=tmp_path / "rows",
+        group_keys=["ordinary_physics"],
+        swiftc="swiftc-test",
+        summary_report_path=tmp_path / "summary.json",
+    )
+
+    assert result["group_count"] == 1
+    assert calls == [
+        {
+            "image_paths": [f"page_{index:03d}.jpg" for index in range(5, 9)],
+            "subject_cat": "物理类",
+            "score_year": 2024,
+            "source_date": "2024-06-25",
+            "work_dir": "ordinary_physics",
+            "swiftc": "swiftc-test",
+        }
+    ]
+    output_csv = tmp_path / "out" / "ln_score_distribution_2024_ordinary_physics_official_grid_candidate.csv"
+    assert output_csv.exists()
+    assert (tmp_path / "summary.json").exists()
 
 
 def test_parse_ln_score_distribution_ocr_jsonl_candidates(tmp_path: Path):

@@ -81,6 +81,7 @@ from .builders.score_history_reconciliation_plan import build_score_history_reco
 from .builders.score_history_snapshot import build_score_history_snapshot_package
 from .builders.score_source_coverage import audit_score_source_coverage
 from .builders.score_distribution_csv_audit import audit_score_distribution_csvs
+from .builders.score_distribution_image_groups import parse_score_distribution_image_groups
 from .builders.school_identity_review_plan import build_school_identity_review_plan
 from .builders.school_location_geocode_audit import audit_school_location_geocode_input
 from .builders.school_location_from_amap import build_school_location_package_from_amap_geocode
@@ -831,6 +832,17 @@ def main() -> int:
     parse_distribution_grid.add_argument("--source-date", required=True)
     parse_distribution_grid.add_argument("--subject-cat", required=True)
     parse_distribution_grid.add_argument("--swiftc", default="swiftc")
+
+    parse_distribution_groups = sub.add_parser(
+        "parse-ln-score-distribution-image-groups",
+        help="Parse configured score-distribution image groups from a manifest",
+    )
+    parse_distribution_groups.add_argument("--manifest", required=True, type=Path)
+    parse_distribution_groups.add_argument("--output-dir", required=True, type=Path)
+    parse_distribution_groups.add_argument("--work-dir", required=True, type=Path)
+    parse_distribution_groups.add_argument("--group-key", action="append", dest="group_keys")
+    parse_distribution_groups.add_argument("--summary-report", type=Path)
+    parse_distribution_groups.add_argument("--swiftc", default="swiftc")
 
     audit_distribution_csv = sub.add_parser(
         "audit-score-distribution-csvs",
@@ -1675,6 +1687,17 @@ def main() -> int:
             "report": str(report_path),
             **report,
         }, ensure_ascii=False, indent=2))
+        return 0
+    if args.cmd == "parse-ln-score-distribution-image-groups":
+        result = parse_score_distribution_image_groups(
+            manifest_path=args.manifest,
+            output_dir=args.output_dir,
+            work_dir=args.work_dir,
+            group_keys=args.group_keys,
+            swiftc=args.swiftc,
+            summary_report_path=args.summary_report,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
     if args.cmd == "audit-score-distribution-csvs":
         report = audit_score_distribution_csvs(
