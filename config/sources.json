@@ -304,10 +304,28 @@
           "score_year": 2023,
           "file_prefix": "ln_score_distribution_2023",
           "include": "/jyt/imageDir/2023/06/img_pc_site/",
+          "image_groups": [
+            {
+              "group_key": "ordinary_history",
+              "subject_cat": "历史类",
+              "exam_category": "普通类",
+              "file_index_range": [1, 4],
+              "parse_mode": "grid_image_table",
+              "publish_gate": "audit_against_baseline_or_review"
+            },
+            {
+              "group_key": "ordinary_physics",
+              "subject_cat": "物理类",
+              "exam_category": "普通类",
+              "file_index_range": [5, 8],
+              "parse_mode": "grid_image_table",
+              "publish_gate": "audit_against_baseline_or_review"
+            }
+          ],
           "headers": {
             "User-Agent": "Mozilla/5.0"
           },
-          "notes": "2023 辽宁成绩统计表官方图片页，需 OCR 或受控人工转录后进入 cleaned CSV。"
+          "notes": "2023 辽宁成绩统计表官方图片页；普通类图片分组已配置，但 grid_image_table 解析结果必须先与基准 CSV 或人工复核结果审计一致，不能仅凭累计自洽晋级。"
         },
         {
           "page_url": "https://jyt.ln.gov.cn/jyt/jyzx/jyyw/2024062510394164694/index.shtml",
@@ -315,10 +333,28 @@
           "score_year": 2024,
           "file_prefix": "ln_score_distribution_2024",
           "include": "/jyt/imageDir/2024/06/img_pc_site/",
+          "image_groups": [
+            {
+              "group_key": "ordinary_history",
+              "subject_cat": "历史类",
+              "exam_category": "普通类",
+              "file_index_range": [1, 4],
+              "parse_mode": "grid_image_table",
+              "publish_gate": "audit_against_baseline_or_review"
+            },
+            {
+              "group_key": "ordinary_physics",
+              "subject_cat": "物理类",
+              "exam_category": "普通类",
+              "file_index_range": [5, 8],
+              "parse_mode": "grid_image_table",
+              "publish_gate": "audit_against_baseline_or_review"
+            }
+          ],
           "headers": {
             "User-Agent": "Mozilla/5.0"
           },
-          "notes": "2024 辽宁成绩统计表官方图片页，需 OCR 或受控人工转录后进入 cleaned CSV。"
+          "notes": "2024 辽宁成绩统计表官方图片页；普通类图片分组已配置，但 grid_image_table 解析结果必须先与基准 CSV 或人工复核结果审计一致，不能仅凭累计自洽晋级。"
         }
       ],
       "research_candidates": [

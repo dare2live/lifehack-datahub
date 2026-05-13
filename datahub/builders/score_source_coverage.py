@@ -108,6 +108,9 @@ def _distribution_coverage(source: dict[str, Any]) -> dict[int, dict[str, Any]]:
             entry["official_page_image_count"] += 1
             if _page_image_parse_mode(item) == "grid_image_table":
                 entry["official_grid_image_count"] += 1
+            for group in item.get("image_groups") or []:
+                if _page_image_parse_mode(group) == "grid_image_table":
+                    entry["official_grid_image_group_count"] += 1
         else:
             entry["mirror_page_image_count"] += 1
         entry["image_source_urls"].append(item.get("page_url", ""))
@@ -130,6 +133,7 @@ def _empty_entry(year: int) -> dict[str, Any]:
         "mirror_remote_file_count": 0,
         "official_page_image_count": 0,
         "official_grid_image_count": 0,
+        "official_grid_image_group_count": 0,
         "mirror_page_image_count": 0,
         "research_candidate_count": 0,
         "subjects": set(),
@@ -198,6 +202,10 @@ def _distribution_status(entry: dict[str, Any]) -> str:
         return "official_remote_ready"
     if entry["official_grid_image_count"] >= 2:
         return "official_image_grid_ready"
+    if entry["remote_file_count"] >= 2 and entry["official_grid_image_group_count"] >= 2:
+        return "mirror_remote_with_official_grid_review"
+    if entry["official_grid_image_group_count"] >= 2:
+        return "official_image_grid_requires_review"
     if entry["remote_file_count"] >= 2 and entry["official_page_image_count"]:
         return "mirror_remote_with_official_images"
     if entry["remote_file_count"] >= 2:
@@ -220,6 +228,8 @@ def _derivation_status(projection_status: str, distribution_status: str) -> str:
         return "blocked_projection_missing"
     if distribution_status == "official_image_requires_ocr":
         return "requires_distribution_ocr_review"
+    if distribution_status == "official_image_grid_requires_review":
+        return "requires_distribution_grid_review"
     if distribution_status in {"candidate_only", "missing"}:
         return "blocked_distribution_source"
     if "mirror" in projection_status or "mirror" in distribution_status:
@@ -237,6 +247,10 @@ def _year_gaps(year: int, projection_status: str, distribution_status: str) -> l
         gaps.append(f"{year}: 投档最低分为镜像附件，需继续寻找辽宁官网原始长期源")
     if distribution_status == "official_image_requires_ocr":
         gaps.append(f"{year}: 一分一段为官方图片源，需 OCR/人工复核后才能进入 cleaned CSV")
+    if distribution_status == "official_image_grid_requires_review":
+        gaps.append(f"{year}: 一分一段普通类官方图片已分组，但需差异审计或人工复核后才能晋级")
+    if distribution_status == "mirror_remote_with_official_grid_review":
+        gaps.append(f"{year}: 一分一段可用镜像 PDF 解析；官方图片分组已配置，但需差异审计后才能替换镜像")
     if distribution_status == "mirror_remote_with_official_images":
         gaps.append(f"{year}: 一分一段可用镜像 PDF 解析，但官方源仍是图片页，需保留镜像降级标记")
     if distribution_status == "mirror_remote_ready":

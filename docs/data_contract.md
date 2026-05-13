@@ -325,6 +325,18 @@ python3 scripts/build_package.py download-page-images \
 
 2022 官方图片源 smoke：8 张官方图经 macOS Vision 生成 1,302 条 OCR observation；物理类解析 400 条候选，其中 337 条完整、71 条待复核；历史类解析 295 条候选，其中 131 条完整、177 条待复核。readiness audit 仍报告严格合并不可通过，必须人工核对 248 条复核任务后才能生成 cleaned CSV。相比此前 2022 中新网镜像 1,225 条待复核任务，官方图显著降低人工复核量。后续 source probe 还登记了学信网页面列出的 2022 历史/物理 DOCX 附件 URL，但直连仍返回 412，只能保留在 `research_candidates`，不能晋级为 `remote_files`。
 
+2023/2024 官方图片页已配置普通类图片分组：1-4 张为历史类，5-8 张为物理类，后续体育/艺术图片不参与普通投档位次派生。该配置只定义来源切片，不代表解析结果可发布。grid OCR 候选 CSV 必须先与镜像 PDF、人工复核结果或其他基准 CSV 做差异审计：
+
+```bash
+python3 scripts/build_package.py audit-score-distribution-csvs \
+  --candidate staging/ln_score_distribution_2024_history_official_grid_probe.csv \
+  --candidate staging/ln_score_distribution_2024_physics_official_grid_probe.csv \
+  --baseline cleaned/ln_score_distribution_2024_jhgk_mirror.csv \
+  --report staging/ln_score_distribution_2024_official_grid_vs_mirror.json
+```
+
+该命令只读 CSV，不写 core。报告会按 `subject_cat, score_year, score` 主键比较候选和基准的 `score_count/cumulative_rank`，并给出缺行、独有行、数值差异和分数序列摘要；`decision.reconciliation_required=true` 时，候选来源不能晋级为标准包。
+
 macOS 环境可使用系统 Vision OCR 生成可复查的 JSONL 中间产物。OCR 参数不写在代码里，由 `config/sources.json` 的 `ln_score_distribution.ocr` 维护：
 
 ```bash

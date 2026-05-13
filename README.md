@@ -555,6 +555,18 @@ python3 scripts/build_package.py download-page-images \
   --output-root raw
 ```
 
+2023/2024 官方图片页已在 `config/sources.json` 配置普通类分组：1-4 张为历史类，5-8 张为物理类，后续体育/艺术图片不参与普通投档位次派生。分组只解决“哪些图属于哪张表”，不能替代质量审计；grid OCR 输出必须先和镜像 PDF、人工复核结果或其他基准 CSV 对账：
+
+```bash
+python3 scripts/build_package.py audit-score-distribution-csvs \
+  --candidate staging/ln_score_distribution_2024_history_official_grid_probe.csv \
+  --candidate staging/ln_score_distribution_2024_physics_official_grid_probe.csv \
+  --baseline cleaned/ln_score_distribution_2024_jhgk_mirror.csv \
+  --report staging/ln_score_distribution_2024_official_grid_vs_mirror.json
+```
+
+该审计只读 CSV，不写 core。若 `decision.reconciliation_required=true`，说明存在缺行、候选独有行、基准独有行或 `score_count/cumulative_rank` 差异，不能把候选来源晋级为标准包。
+
 macOS 环境可使用系统 Vision OCR 生成可复查的 JSONL 中间产物，识别语言和等级由 `config/sources.json` 维护：
 
 ```bash

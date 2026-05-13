@@ -80,6 +80,7 @@ from .builders.score_history_reconciliation_package import build_score_history_p
 from .builders.score_history_reconciliation_plan import build_score_history_reconciliation_plan
 from .builders.score_history_snapshot import build_score_history_snapshot_package
 from .builders.score_source_coverage import audit_score_source_coverage
+from .builders.score_distribution_csv_audit import audit_score_distribution_csvs
 from .builders.school_identity_review_plan import build_school_identity_review_plan
 from .builders.school_location_geocode_audit import audit_school_location_geocode_input
 from .builders.school_location_from_amap import build_school_location_package_from_amap_geocode
@@ -830,6 +831,15 @@ def main() -> int:
     parse_distribution_grid.add_argument("--source-date", required=True)
     parse_distribution_grid.add_argument("--subject-cat", required=True)
     parse_distribution_grid.add_argument("--swiftc", default="swiftc")
+
+    audit_distribution_csv = sub.add_parser(
+        "audit-score-distribution-csvs",
+        help="Compare candidate score-distribution CSVs with baseline CSVs",
+    )
+    audit_distribution_csv.add_argument("--candidate", required=True, action="append", dest="candidate_csvs", type=Path)
+    audit_distribution_csv.add_argument("--baseline", required=True, action="append", dest="baseline_csvs", type=Path)
+    audit_distribution_csv.add_argument("--report", type=Path)
+    audit_distribution_csv.add_argument("--sample-limit", type=int, default=20)
 
     parse_distribution_ocr = sub.add_parser(
         "parse-ln-score-distribution-ocr",
@@ -1666,6 +1676,15 @@ def main() -> int:
             **report,
         }, ensure_ascii=False, indent=2))
         return 0
+    if args.cmd == "audit-score-distribution-csvs":
+        report = audit_score_distribution_csvs(
+            candidate_csvs=args.candidate_csvs,
+            baseline_csvs=args.baseline_csvs,
+            report_path=args.report,
+            sample_limit=args.sample_limit,
+        )
+        print(json.dumps(report, ensure_ascii=False, indent=2))
+        return 0 if not report["errors"] else 1
     if args.cmd == "parse-ln-score-distribution-ocr":
         rows, report = parse_ln_score_distribution_ocr_jsonl(
             args.ocr_jsonl,

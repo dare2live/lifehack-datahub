@@ -82,6 +82,7 @@ from datahub.builders.score_history_reconciliation_package import build_score_hi
 from datahub.builders.score_history_reconciliation_plan import PLAN_COLUMNS, build_score_history_reconciliation_plan
 from datahub.builders.score_history_snapshot import build_score_history_snapshot_package
 from datahub.builders.score_source_coverage import audit_score_source_coverage
+from datahub.builders.score_distribution_csv_audit import audit_score_distribution_csvs
 from datahub.builders.score_distribution_review_workspace import (
     build_score_distribution_review_workspace,
     merge_score_distribution_review_workspace,
@@ -686,6 +687,58 @@ def test_parse_score_distribution_grid_images_preserves_score_gaps(tmp_path: Pat
     assert by_score[662]["score_count"] == 3
     assert by_score[662]["cumulative_rank"] == 17
     assert report["quality_errors"] == []
+
+
+def test_audit_score_distribution_csvs_blocks_drift_and_missing_rows(tmp_path: Path):
+    baseline = tmp_path / "baseline.csv"
+    candidate = tmp_path / "candidate.csv"
+    columns = ["subject_cat", "score_year", "score", "score_count", "cumulative_rank", "source_date"]
+    with baseline.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=columns)
+        writer.writeheader()
+        writer.writerows([
+            {
+                "subject_cat": "历史类",
+                "score_year": "2024",
+                "score": "676",
+                "score_count": "12",
+                "cumulative_rank": "12",
+                "source_date": "2024-06-24",
+            },
+            {
+                "subject_cat": "历史类",
+                "score_year": "2024",
+                "score": "675",
+                "score_count": "3",
+                "cumulative_rank": "15",
+                "source_date": "2024-06-24",
+            },
+        ])
+    with candidate.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=columns)
+        writer.writeheader()
+        writer.writerow({
+            "subject_cat": "历史类",
+            "score_year": "2024",
+            "score": "676",
+            "score_count": "11",
+            "cumulative_rank": "11",
+            "source_date": "2024-06-25",
+        })
+
+    report = audit_score_distribution_csvs(
+        candidate_csvs=[candidate],
+        baseline_csvs=[baseline],
+        report_path=tmp_path / "audit.json",
+    )
+
+    assert report["counts"]["matched_rows"] == 1
+    assert report["counts"]["baseline_only_rows"] == 1
+    assert report["counts"]["different_rows"] == 1
+    assert report["decision"]["safe_to_promote_without_review"] is False
+    assert report["decision"]["reconciliation_required"] is True
+    assert report["samples"]["different_rows"][0]["diffs"]["score_count"]["candidate"] == 11
+    assert report["sequence_summary"]["baseline"][0]["missing_score_count"] == 0
 
 
 def test_parse_ln_score_distribution_ocr_jsonl_candidates(tmp_path: Path):
@@ -3569,7 +3622,9 @@ def test_audit_score_source_coverage_tracks_derivation_gaps(tmp_path: Path):
     assert by_year[2025]["distribution_status"] == "official_remote_ready"
     assert by_year[2024]["derivation_status"] == "derivable_with_mirror_inputs"
     assert by_year[2024]["score_distribution"]["official_page_image_count"] >= 1
+    assert by_year[2024]["score_distribution"]["official_grid_image_group_count"] == 2
     assert by_year[2023]["projection_status"] == "mirror_remote_ready"
+    assert by_year[2023]["score_distribution"]["official_grid_image_group_count"] == 2
     assert by_year[2022]["projection_status"] == "official_remote_ready"
     assert by_year[2022]["score_distribution"]["official_grid_image_count"] == 2
     assert by_year[2022]["derivation_status"] == "official_image_derivable"
