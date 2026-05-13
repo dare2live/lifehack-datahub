@@ -276,14 +276,47 @@ def _evidence_quote(rows: list[dict[str, Any]], limit: int, keywords: list[str],
     examples = []
     for row in rows[:limit]:
         name = str(row.get("position_name") or "").strip()
-        major = str(row.get("major_requirement") or "").strip()
         recruit = str(row.get("recruit_count") or "").strip()
-        if not name and not major:
+        details = _evidence_details(row, keywords, fields)
+        if not name and not details:
             continue
         matched_keywords = _matched_keywords(row, keywords, fields)
         matched_text = f"，命中：{'/'.join(matched_keywords[:5])}" if matched_keywords else ""
-        examples.append(f"{name}（{major}，招{recruit or '0'}人{matched_text}）")
+        examples.append(f"{name}（{details}，招{recruit or '0'}人{matched_text}）")
     return "；".join(examples)
+
+
+def _evidence_details(row: dict[str, Any], keywords: list[str], fields: list[str]) -> str:
+    parts = []
+    for field in fields:
+        value = str(row.get(field) or "").strip()
+        if not value or field == "position_name":
+            continue
+        if field != "major_requirement" and not _field_matches_keywords(value, keywords):
+            continue
+        parts.append(f"{_field_label(field)}：{_trim_evidence_value(value)}")
+    return "；".join(parts)
+
+
+def _field_matches_keywords(value: str, keywords: list[str]) -> bool:
+    text = _compact_text(value)
+    return any(keyword and keyword in text for keyword in keywords)
+
+
+def _field_label(field: str) -> str:
+    labels = {
+        "major_requirement": "专业",
+        "position_description": "简介",
+        "remarks": "备注",
+    }
+    return labels.get(field, field)
+
+
+def _trim_evidence_value(value: str, limit: int = 180) -> str:
+    text = re.sub(r"\s+", " ", value).strip()
+    if len(text) <= limit:
+        return text
+    return text[:limit].rstrip() + "..."
 
 
 def _matched_keywords(row: dict[str, Any], keywords: list[str], fields: list[str]) -> list[str]:

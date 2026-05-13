@@ -3507,6 +3507,58 @@ def test_civil_service_signal_plan_prioritizes_specific_evidence(tmp_path: Path)
     assert "命中：计算机/软件/计算机软件" in rows[0]["evidence_quote"]
 
 
+def test_civil_service_signal_plan_exposes_hidden_match_context(tmp_path: Path):
+    positions = tmp_path / "scs_positions.csv"
+    position_rows = [{
+        "source_key": "career_civil_service_posts",
+        "source_title": "中央机关及其直属机构2026年度考试录用公务员招考简章",
+        "source_url": "http://dl.scs.gov.cn/download/resource-main",
+        "source_date": "2025-10-14",
+        "availability_date": "2025-10-14",
+        "sheet_name": "中央国家行政机关",
+        "row_number": "3",
+        "position_code": "100110001001",
+        "position_name": "平台监管岗位",
+        "position_description": "从事跨境电子商务监管与数据核验",
+        "recruit_count": "1",
+        "major_requirement": "本科：1202工商管理类",
+        "work_location": "北京市",
+        "remarks": "",
+    }]
+    with positions.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=position_rows[0].keys())
+        writer.writeheader()
+        writer.writerows(position_rows)
+
+    occupations = tmp_path / "occupations.csv"
+    occupation_rows = [{
+        "occupation_code": "4-01-06-01",
+        "occupation_name": "电子商务师",
+        "tdx_l2": "T0502",
+        "tdx_l2_name": "商贸代理",
+        "major_keywords_json": "[]",
+        "skill_keywords_json": "[]",
+    }]
+    with occupations.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=occupation_rows[0].keys())
+        writer.writeheader()
+        writer.writerows(occupation_rows)
+
+    result = build_civil_service_signal_plan(
+        positions_csv=positions,
+        occupation_input=occupations,
+        output_dir=tmp_path / "civil_service_signal",
+        metric_year=2026,
+    )
+
+    with Path(result["csv"]).open(encoding="utf-8", newline="") as f:
+        rows = list(csv.DictReader(f))
+    assert rows[0]["metric_value"] == "1"
+    assert "专业：本科：1202工商管理类" in rows[0]["evidence_quote"]
+    assert "简介：从事跨境电子商务监管与数据核验" in rows[0]["evidence_quote"]
+    assert "命中：电子商务" in rows[0]["evidence_quote"]
+
+
 def test_build_career_source_review_batch_limits_pending_rows(tmp_path: Path):
     plan = tmp_path / "career_source_plan.csv"
     rows = [
