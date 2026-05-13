@@ -2,9 +2,11 @@
 from __future__ import annotations
 
 import csv
+import hashlib
 import json
 import re
 from collections import Counter
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -24,6 +26,7 @@ def parse_ln_application_workbooks(
     profile: str = "default",
 ) -> dict[str, Any]:
     config = _load_profile(config_path, profile)
+    config["built_at"] = datetime.utcnow().replace(microsecond=0).isoformat()
     plan_rows: list[dict[str, Any]] = []
     score_rows: list[dict[str, Any]] = []
     sheet_reports = []
@@ -131,7 +134,7 @@ def _parse_workbook(path: Path, config: dict[str, Any]) -> tuple[list[dict[str, 
             if not all(base.get(column) for column in ["school_code", "school_name", "major_code", "major_full"]):
                 skipped_missing_key += 1
                 continue
-            plan_rows.append(_plan_row(row, headers, base, config))
+            plan_rows.append(_plan_row(row, headers, base, config, source_file=path.name))
             sheet_plan_count += 1
             built_score_rows, skip_counts = _score_rows(row, headers, base, config)
             score_rows.extend(built_score_rows)
@@ -173,19 +176,45 @@ def _plan_row(
     headers: list[str],
     base: dict[str, Any],
     config: dict[str, Any],
+    *,
+    source_file: str,
 ) -> dict[str, Any]:
     aliases = config["field_aliases"]
-    plan_year = int(config["plan_count_year"])
-    score_year = _score_year_config(config, plan_year)
+    plan_count_year = int(config["plan_count_year"])
+    plan_year = int(config.get("plan_year") or plan_count_year)
+    score_year = _score_year_config(config, plan_count_year)
     return {
+        "id": _make_id(base["school_code"], base["major_code"], base["batch"], base["subject_cat"], plan_year),
         **base,
+        "year": plan_year,
         "major_short": _clean_text(_value(row, headers, aliases.get("major_short", []))),
+        "department": _clean_text(_value(row, headers, aliases.get("department", []))),
         "school_tier": _clean_text(_value(row, headers, aliases.get("school_tier", []))),
         "region": _clean_text(_value(row, headers, aliases.get("region", []))),
         "plan_count": _coerce_number(_value(row, headers, score_year.get("plan_count_aliases", []))),
+        "tuition": _coerce_number(_value(row, headers, aliases.get("tuition", []))),
         "school_type": _clean_text(_value(row, headers, aliases.get("school_type", []))),
+        "school_nature": _clean_text(_value(row, headers, aliases.get("school_nature", []))),
+        "city": _clean_text(_value(row, headers, aliases.get("city", []))),
         "city_level_tag": _clean_text(_value(row, headers, aliases.get("city_level_tag", []))),
+        "school_rank": _clean_text(_value(row, headers, aliases.get("school_rank", []))),
+        "subject_eval": _clean_text(_value(row, headers, aliases.get("subject_eval", []))),
+        "top_discipline": _flag_value(_value(row, headers, aliases.get("top_discipline", []))),
+        "grad_school_type": _clean_text(_value(row, headers, aliases.get("grad_school_type", []))),
         "postgrad_rate": _coerce_number(_value(row, headers, aliases.get("postgrad_rate", []))),
+        "keep_research_rate": _coerce_number(_value(row, headers, aliases.get("keep_research_rate", []))),
+        "transfer_policy": _clean_text(_value(row, headers, aliases.get("transfer_policy", []))),
+        "study_years": _coerce_number(_value(row, headers, aliases.get("study_years", []))),
+        "is_new": _flag_value(_value(row, headers, aliases.get("is_new", []))),
+        "postgrad_field": _clean_text(_value(row, headers, aliases.get("postgrad_field", []))),
+        "core_courses": _clean_text(_value(row, headers, aliases.get("core_courses", []))),
+        "employment_directions": _clean_text(_value(row, headers, aliases.get("employment_directions", []))),
+        "notes": _clean_text(_value(row, headers, aliases.get("notes", []))),
+        "subject_requirement": _clean_text(_value(row, headers, aliases.get("subject_requirement", []))),
+        "source_file": source_file,
+        "source_date": config.get("source_date"),
+        "availability_date": config.get("availability_date") or config.get("source_date"),
+        "built_at": config["built_at"],
     }
 
 
@@ -206,6 +235,7 @@ def _score_rows(
             skip_counts[str(year)] += 1
             continue
         rows.append({
+            "id": _make_id(base["school_code"], base["major_code"], base["batch"], base["subject_cat"], year),
             "school_code": base["school_code"],
             "major_code": base["major_code"],
             "batch": base["batch"],
@@ -214,6 +244,10 @@ def _score_rows(
             "min_score": _coerce_number(min_score),
             "min_rank": _coerce_number(min_rank),
             "plan_count": _coerce_number(_value(row, headers, score_year.get("plan_count_aliases", []))),
+            "score_type": config.get("score_type", "最低分"),
+            "source_date": config.get("source_date"),
+            "availability_date": config.get("availability_date") or config.get("source_date"),
+            "built_at": config["built_at"],
         })
     return rows, skip_counts
 
@@ -225,7 +259,16 @@ def _load_profile(config_path: Path | None, profile: str) -> dict[str, Any]:
     if profile not in profiles:
         raise KeyError(f"unknown ln application workbook profile: {profile}")
     config = profiles[profile]
-    required = ["sheet_rules", "field_aliases", "score_years", "duplicate_policy", "plan_count_year", "empty_values"]
+    required = [
+        "sheet_rules",
+        "field_aliases",
+        "score_years",
+        "duplicate_policy",
+        "plan_count_year",
+        "source_date",
+        "availability_date",
+        "empty_values",
+    ]
     missing = [key for key in required if key not in config]
     if missing:
         raise ValueError(f"ln application workbook profile missing config: {', '.join(missing)}")
@@ -320,6 +363,16 @@ def _coerce_number(value: Any) -> int | float | None:
         if percent:
             number = number / 100
     return int(number) if number.is_integer() else number
+
+
+def _flag_value(value: Any) -> int:
+    text = str(value or "").strip()
+    return 0 if text in ("", "None", "nan", "0", "否", "-", "/") else 1
+
+
+def _make_id(*parts: Any) -> str:
+    raw = "||".join(str(part) for part in parts)
+    return hashlib.md5(raw.encode()).hexdigest()[:16]
 
 
 def _write_csv(path: Path, rows: list[dict[str, Any]], columns: list[str]) -> None:

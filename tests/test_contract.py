@@ -158,7 +158,7 @@ def test_manifest_requires_fa_prefix(tmp_path: Path):
 def test_build_local_package_from_cleaned_csv(tmp_path: Path):
     source = tmp_path / "cleaned.csv"
     with source.open("w", encoding="utf-8", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=["院校代码", "院校名称", "专业代码", "专业名称", "批次", "科类", "计划数"])
+        writer = csv.DictWriter(f, fieldnames=["院校代码", "院校名称", "专业代码", "专业名称", "批次", "科类", "年份", "计划数"])
         writer.writeheader()
         writer.writerow({
             "院校代码": "0142",
@@ -167,6 +167,7 @@ def test_build_local_package_from_cleaned_csv(tmp_path: Path):
             "专业名称": "土木工程",
             "批次": "本科批",
             "科类": "物理类",
+            "年份": "2026",
             "计划数": "12",
         })
 
@@ -191,7 +192,7 @@ def test_build_local_package_from_cleaned_csv(tmp_path: Path):
 def test_build_local_package_includes_intake_lineage(tmp_path: Path):
     source = tmp_path / "cleaned.csv"
     with source.open("w", encoding="utf-8", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=["院校代码", "院校名称", "专业代码", "专业名称", "批次", "科类"])
+        writer = csv.DictWriter(f, fieldnames=["院校代码", "院校名称", "专业代码", "专业名称", "批次", "科类", "年份"])
         writer.writeheader()
         writer.writerow({
             "院校代码": "0140",
@@ -200,6 +201,7 @@ def test_build_local_package_includes_intake_lineage(tmp_path: Path):
             "专业名称": "法学",
             "批次": "本科批",
             "科类": "历史类",
+            "年份": "2026",
         })
     intake_manifest = tmp_path / "_intake_manifest.json"
     intake_manifest.write_text(json.dumps({
@@ -5251,6 +5253,7 @@ def test_audit_admission_plan_package_against_core_reports_scope_drift(tmp_path:
                 major_short VARCHAR,
                 batch VARCHAR,
                 subject_cat VARCHAR,
+                year INTEGER,
                 school_tier VARCHAR,
                 region VARCHAR,
                 plan_count INTEGER,
@@ -5261,10 +5264,10 @@ def test_audit_admission_plan_package_against_core_reports_scope_drift(tmp_path:
         """)
         con.execute("""
             INSERT INTO fa_dim_ln_admission_plan VALUES
-                ('1001', '东北大学', '01', '计算机类', '计算机类', '本科批', '物理类', '985', '辽宁省沈阳市', 10, '公办', '新一线', 0.28),
-                ('1002', '辽宁大学', '02', '法学', '法学', '本科批', '物理类', '211', '辽宁省沈阳市', 9, '公办', '新一线', 0.12),
-                ('1003', '大连理工大学', '03', '软件工程', '软件工程', '本科批', '物理类', '985', '辽宁省大连市', 6, '公办', '新一线', 0.30),
-                ('2001', '历史大学', '01', '汉语言文学', '汉语言文学', '本科批', '历史类', '普通本科', '辽宁省', 5, '公办', '其他', 0.05)
+                ('1001', '东北大学', '01', '计算机类', '计算机类', '本科批', '物理类', 2026, '985', '辽宁省沈阳市', 10, '公办', '新一线', 0.28),
+                ('1002', '辽宁大学', '02', '法学', '法学', '本科批', '物理类', 2026, '211', '辽宁省沈阳市', 9, '公办', '新一线', 0.12),
+                ('1003', '大连理工大学', '03', '软件工程', '软件工程', '本科批', '物理类', 2026, '985', '辽宁省大连市', 6, '公办', '新一线', 0.30),
+                ('2001', '历史大学', '01', '汉语言文学', '汉语言文学', '本科批', '历史类', 2026, '普通本科', '辽宁省', 5, '公办', '其他', 0.05)
         """)
     finally:
         con.close()
@@ -5284,6 +5287,7 @@ def test_audit_admission_plan_package_against_core_reports_scope_drift(tmp_path:
                 "major_short": "计算机类",
                 "batch": "本科批",
                 "subject_cat": "物理类",
+                "year": "2026",
                 "school_tier": "985",
                 "region": "辽宁省沈阳市",
                 "plan_count": "10",
@@ -5299,6 +5303,7 @@ def test_audit_admission_plan_package_against_core_reports_scope_drift(tmp_path:
                 "major_short": "法学",
                 "batch": "本科批",
                 "subject_cat": "物理类",
+                "year": "2026",
                 "school_tier": "211",
                 "region": "辽宁省沈阳市",
                 "plan_count": "8",
@@ -5314,6 +5319,7 @@ def test_audit_admission_plan_package_against_core_reports_scope_drift(tmp_path:
                 "major_short": "自动化",
                 "batch": "本科批",
                 "subject_cat": "物理类",
+                "year": "2026",
                 "school_tier": "普通本科",
                 "region": "辽宁省沈阳市",
                 "plan_count": "12",
@@ -5365,15 +5371,16 @@ def test_build_admission_plan_reconciliation_plan_from_audit_inputs(tmp_path: Pa
                 major_short VARCHAR,
                 batch VARCHAR,
                 subject_cat VARCHAR,
+                year INTEGER,
                 region VARCHAR,
                 plan_count INTEGER
             )
         """)
         con.execute("""
             INSERT INTO fa_dim_ln_admission_plan VALUES
-                ('1001', '东北大学', '01', '计算机类', '计算机类', '本科批', '物理类', '辽宁省沈阳市', 10),
-                ('1002', '辽宁大学', '02', '法学', '法学', '本科批', '物理类', '辽宁省沈阳市', 9),
-                ('1003', '大连理工大学', '03', '软件工程', '软件工程', '本科批', '物理类', '辽宁省大连市', 6)
+                ('1001', '东北大学', '01', '计算机类', '计算机类', '本科批', '物理类', 2026, '辽宁省沈阳市', 10),
+                ('1002', '辽宁大学', '02', '法学', '法学', '本科批', '物理类', 2026, '辽宁省沈阳市', 9),
+                ('1003', '大连理工大学', '03', '软件工程', '软件工程', '本科批', '物理类', 2026, '辽宁省大连市', 6)
         """)
     finally:
         con.close()
@@ -5393,6 +5400,7 @@ def test_build_admission_plan_reconciliation_plan_from_audit_inputs(tmp_path: Pa
                 "major_short": "计算机类",
                 "batch": "本科批",
                 "subject_cat": "物理类",
+                "year": "2026",
                 "region": "辽宁省沈阳市",
                 "plan_count": "10",
             },
@@ -5404,6 +5412,7 @@ def test_build_admission_plan_reconciliation_plan_from_audit_inputs(tmp_path: Pa
                 "major_short": "法学",
                 "batch": "本科批",
                 "subject_cat": "物理类",
+                "year": "2026",
                 "region": "辽宁省沈阳市",
                 "plan_count": "8",
             },
@@ -5415,6 +5424,7 @@ def test_build_admission_plan_reconciliation_plan_from_audit_inputs(tmp_path: Pa
                 "major_short": "自动化",
                 "batch": "本科批",
                 "subject_cat": "物理类",
+                "year": "2026",
                 "region": "辽宁省沈阳市",
                 "plan_count": "12",
             },
@@ -5562,6 +5572,7 @@ def test_build_admission_plan_delete_plan_from_reviewed_core_excludes(tmp_path: 
             "major_code": "04",
             "batch": "本科批",
             "subject_cat": "物理类",
+            "year": "2026",
         }, ensure_ascii=False),
     })
     package_exclude = _admission_reconciliation_row(
@@ -5578,6 +5589,7 @@ def test_build_admission_plan_delete_plan_from_reviewed_core_excludes(tmp_path: 
             "major_code": "05",
             "batch": "本科批",
             "subject_cat": "物理类",
+            "year": "2026",
         }, ensure_ascii=False),
         "core_key_json": "{}",
     })
@@ -5593,6 +5605,7 @@ def test_build_admission_plan_delete_plan_from_reviewed_core_excludes(tmp_path: 
         delete_rows = list(csv.DictReader(f))
     assert delete_rows[0]["school_code"] == "1004"
     assert delete_rows[0]["major_code"] == "04"
+    assert delete_rows[0]["year"] == "2026"
     assert delete_rows[0]["school_name"] == "沈阳工业大学"
     assert delete_rows[0]["plan_count"] == "12"
     manifest = json.loads(Path(result["manifest"]).read_text(encoding="utf-8"))
@@ -5617,6 +5630,7 @@ def _admission_reconciliation_row(
         "match_confidence": "primary_key_match",
         "batch": "本科批",
         "subject_cat": "物理类",
+        "year": "2026",
         "school_code": school_code,
         "package_major_code": "01",
         "core_major_code": "01",
@@ -6003,11 +6017,15 @@ def test_build_admission_plan_snapshot_filters_incomplete_rows(tmp_path: Path):
                 major_short VARCHAR,
                 batch VARCHAR,
                 subject_cat VARCHAR,
+                year INTEGER,
                 school_tier VARCHAR,
                 region VARCHAR,
                 plan_count INTEGER,
                 school_type VARCHAR,
+                city VARCHAR,
                 city_level_tag VARCHAR,
+                school_rank VARCHAR,
+                subject_eval VARCHAR,
                 postgrad_rate DOUBLE,
                 source_date VARCHAR
             )
@@ -6015,9 +6033,9 @@ def test_build_admission_plan_snapshot_filters_incomplete_rows(tmp_path: Path):
         con.execute("""
             INSERT INTO fa_dim_ln_admission_plan VALUES
                 ('0140', '辽宁大学', '01', '汉语言文学', '汉语言文学', '本科批', '历史类',
-                 '211', '沈阳', 12, '综合', '省会城市', 0.12, '2026-05-12'),
+                 2026, '211', '沈阳', 12, '综合', '沈阳', '省会城市', '100', 'B+', 0.12, '2026-05-12'),
                 ('0140', '辽宁大学', '02', NULL, '新闻学', '本科批', '历史类',
-                 '211', '沈阳', 8, '综合', '省会城市', 0.12, '2026-05-12')
+                 2026, '211', '沈阳', 8, '综合', '沈阳', '省会城市', '100', 'B+', 0.12, '2026-05-12')
         """)
     finally:
         con.close()
@@ -6642,12 +6660,18 @@ def test_parse_ln_application_workbook_outputs_plan_and_score_history(tmp_path: 
         plan_rows = list(csv.DictReader(f))
     assert plan_rows[0]["batch"] == "本科批"
     assert plan_rows[0]["subject_cat"] == "物理类"
+    assert plan_rows[0]["year"] == "2026"
     assert plan_rows[0]["plan_count"] == "2"
-    assert plan_rows[0]["postgrad_rate"] == "0.65"
+    assert plan_rows[0]["keep_research_rate"] == "0.65"
+    assert plan_rows[0]["school_nature"] == "公办"
+    assert plan_rows[0]["source_date"] == "2025-08-27"
+    assert plan_rows[0]["id"]
     with (tmp_path / "score.csv").open(encoding="utf-8", newline="") as f:
         score_rows = list(csv.DictReader(f))
     assert {row["score_year"] for row in score_rows} == {"2024", "2025"}
     assert score_rows[0]["min_rank"] == "100"
+    assert score_rows[0]["score_type"] == "最低分"
+    assert score_rows[0]["built_at"]
 
 
 def test_parse_ln_projection_score_xlsx(tmp_path: Path):

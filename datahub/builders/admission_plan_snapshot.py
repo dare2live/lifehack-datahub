@@ -77,9 +77,16 @@ def _read_admission_plan(
 ) -> tuple[list[dict[str, Any]], list[str], int]:
     con = duckdb.connect(str(core_db), read_only=True)
     try:
-        select_columns = ", ".join(_quote_ident(column) for column in export_columns)
+        existing_columns = {
+            str(row[0])
+            for row in con.execute(f"DESCRIBE {TARGET_TABLE}").fetchall()
+        }
+        select_columns = ", ".join(
+            _select_expr(column, existing_columns)
+            for column in export_columns
+        )
         rows = con.execute(f"""
-            SELECT {select_columns}, source_date
+            SELECT {select_columns}
             FROM {TARGET_TABLE}
             WHERE school_code IS NOT NULL
               AND school_name IS NOT NULL
@@ -105,7 +112,7 @@ def _read_admission_plan(
     output = []
     source_dates = []
     for row in rows:
-        item = dict(zip(export_columns + ["source_date"], row))
+        item = dict(zip(export_columns, row))
         source_date = str(item.get("source_date") or "").strip()
         if source_date:
             source_dates.append(source_date)
@@ -171,3 +178,10 @@ def _write_csv(path: Path, rows: list[dict[str, Any]], columns: list[str]) -> No
 
 def _quote_ident(value: str) -> str:
     return '"' + value.replace('"', '""') + '"'
+
+
+def _select_expr(column: str, existing_columns: set[str]) -> str:
+    quoted = _quote_ident(column)
+    if column in existing_columns:
+        return quoted
+    return f"NULL AS {quoted}"

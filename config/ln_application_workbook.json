@@ -5,7 +5,10 @@
   "profiles": {
     "default": {
       "duplicate_policy": "keep_first",
+      "plan_year": 2026,
       "plan_count_year": 2025,
+      "source_date": "2025-08-27",
+      "availability_date": "2026-05-13",
       "empty_values": ["", "无", "0", "0.0", "-", "/"],
       "sheet_rules": [
         {
@@ -25,11 +28,28 @@
         "major_code": ["专业代码", "major_code"],
         "major_full": ["专业全称", "专业名称", "major_full"],
         "major_short": ["专业简称", "major_short"],
+        "department": ["所属学院", "院系", "学院", "department"],
+        "tuition": ["学费", "收费标准", "tuition"],
         "school_tier": ["院校水平", "院校层次", "school_tier"],
         "region": ["地域", "地区", "省份", "院校所在地", "region"],
-        "school_type": ["办学性质", "性质", "院校性质", "school_type"],
+        "school_type": ["院校性质", "院校类型", "学校类型", "school_type"],
+        "school_nature": ["性质", "办学性质", "school_nature"],
+        "city": ["城市", "院校城市", "city"],
         "city_level_tag": ["城市水平标签", "城市标签", "city_level_tag"],
-        "postgrad_rate": ["保研率", "postgrad_rate"]
+        "school_rank": ["院校排名", "学校排名", "school_rank"],
+        "subject_eval": ["第四轮学科评估", "学科评估", "subject_eval"],
+        "top_discipline": ["一流学科", "双一流学科", "top_discipline"],
+        "grad_school_type": ["硕博点", "硕士点博士点", "grad_school_type"],
+        "postgrad_rate": ["升学率", "升学比例", "postgrad_rate"],
+        "keep_research_rate": ["保研率", "推免率", "keep_research_rate"],
+        "transfer_policy": ["转专业情况", "转专业政策", "transfer_policy"],
+        "study_years": ["学制", "study_years"],
+        "is_new": ["是否新增", "新增专业", "is_new"],
+        "postgrad_field": ["考研学科领域", "升学方向", "postgrad_field"],
+        "core_courses": ["专业主干课程", "主干课程", "core_courses"],
+        "employment_directions": ["就业方向", "职业方向", "employment_directions"],
+        "notes": ["院校专业备注", "备注", "notes"],
+        "subject_requirement": ["选科要求", "再选科目要求", "subject_requirement"]
       },
       "score_years": [
         {

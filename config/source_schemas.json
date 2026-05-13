@@ -1,30 +1,53 @@
 {
   "version": "1",
-  "updated_at": "2026-05-12",
+  "updated_at": "2026-05-13",
   "tables": {
     "fa_dim_ln_admission_plan": {
       "source_key": "ln_admission_plan",
       "accepted_intake_source_keys": ["ln_application_workbook"],
-      "primary_key": ["school_code", "major_code", "batch", "subject_cat"],
-      "required": ["school_code", "school_name", "major_code", "major_full", "batch", "subject_cat"],
+      "primary_key": ["school_code", "major_code", "batch", "subject_cat", "year"],
+      "required": ["school_code", "school_name", "major_code", "major_full", "batch", "subject_cat", "year"],
       "columns": [
+        "id",
         "school_code",
-        "school_name",
         "major_code",
-        "major_full",
+        "school_name",
         "major_short",
+        "major_full",
+        "department",
         "batch",
         "subject_cat",
-        "school_tier",
-        "region",
+        "year",
         "plan_count",
+        "tuition",
+        "school_tier",
         "school_type",
+        "school_nature",
+        "school_rank",
+        "region",
+        "city",
         "city_level_tag",
-        "postgrad_rate"
+        "subject_eval",
+        "top_discipline",
+        "grad_school_type",
+        "postgrad_rate",
+        "keep_research_rate",
+        "transfer_policy",
+        "study_years",
+        "is_new",
+        "postgrad_field",
+        "core_courses",
+        "employment_directions",
+        "notes",
+        "subject_requirement",
+        "source_file",
+        "source_date",
+        "availability_date",
+        "built_at"
       ],
-      "numeric": ["plan_count", "postgrad_rate"],
+      "numeric": ["year", "plan_count", "tuition", "top_discipline", "postgrad_rate", "keep_research_rate", "study_years", "is_new"],
       "audit": {
-        "scope_columns": ["batch", "subject_cat"],
+        "scope_columns": ["year", "batch", "subject_cat"],
         "compare_columns": [
           "school_name",
           "major_full",
@@ -70,19 +93,42 @@
         }
       },
       "aliases": {
+        "id": ["id"],
         "school_code": ["school_code", "院校代码", "学校代码", "院校专业组代码"],
         "school_name": ["school_name", "院校名称", "学校名称"],
         "major_code": ["major_code", "专业代码", "专业组代码"],
         "major_full": ["major_full", "专业名称", "专业全称"],
         "major_short": ["major_short", "专业简称"],
+        "department": ["department", "所属学院", "院系", "学院"],
         "batch": ["batch", "批次", "录取批次"],
         "subject_cat": ["subject_cat", "科类", "首选科目", "选科"],
+        "year": ["year", "年份", "招生年份", "计划年份"],
+        "tuition": ["tuition", "学费", "收费标准"],
         "school_tier": ["school_tier", "院校层次", "学校层次"],
         "region": ["region", "地区", "城市", "院校所在地"],
         "plan_count": ["plan_count", "计划数", "招生计划", "招生人数"],
-        "school_type": ["school_type", "院校类型", "学校类型"],
+        "school_type": ["school_type", "院校性质", "院校类型", "学校类型"],
+        "school_nature": ["school_nature", "性质", "办学性质"],
+        "city": ["city", "城市", "院校城市"],
         "city_level_tag": ["city_level_tag", "城市标签"],
-        "postgrad_rate": ["postgrad_rate", "保研率"]
+        "school_rank": ["school_rank", "院校排名", "学校排名"],
+        "subject_eval": ["subject_eval", "第四轮学科评估", "学科评估"],
+        "top_discipline": ["top_discipline", "一流学科", "双一流学科"],
+        "grad_school_type": ["grad_school_type", "硕博点", "硕士点博士点"],
+        "postgrad_rate": ["postgrad_rate", "升学率", "升学比例"],
+        "keep_research_rate": ["keep_research_rate", "保研率", "推免率"],
+        "transfer_policy": ["transfer_policy", "转专业情况", "转专业政策"],
+        "study_years": ["study_years", "学制"],
+        "is_new": ["is_new", "是否新增", "新增专业"],
+        "postgrad_field": ["postgrad_field", "考研学科领域", "升学方向"],
+        "core_courses": ["core_courses", "专业主干课程", "主干课程"],
+        "employment_directions": ["employment_directions", "就业方向", "职业方向"],
+        "notes": ["notes", "院校专业备注", "备注"],
+        "subject_requirement": ["subject_requirement", "选科要求", "再选科目要求"],
+        "source_file": ["source_file", "来源文件"],
+        "source_date": ["source_date", "来源日期"],
+        "availability_date": ["availability_date", "可用日期"],
+        "built_at": ["built_at", "构建时间"]
       }
     },
     "fa_fact_ln_score_history": {
@@ -91,6 +137,7 @@
       "primary_key": ["school_code", "major_code", "batch", "subject_cat", "score_year"],
       "required": ["school_code", "major_code", "batch", "subject_cat", "score_year", "min_score", "min_rank"],
       "columns": [
+        "id",
         "school_code",
         "major_code",
         "batch",
@@ -98,7 +145,11 @@
         "score_year",
         "min_score",
         "min_rank",
-        "plan_count"
+        "plan_count",
+        "score_type",
+        "source_date",
+        "availability_date",
+        "built_at"
       ],
       "numeric": ["score_year", "min_score", "min_rank", "plan_count"],
       "audit": {
@@ -161,6 +212,7 @@
         "sample_limit": 20
       },
       "aliases": {
+        "id": ["id"],
         "school_code": ["school_code", "院校代码", "学校代码", "院校专业组代码"],
         "major_code": ["major_code", "专业代码", "专业组代码"],
         "batch": ["batch", "批次", "录取批次"],
@@ -168,7 +220,11 @@
         "score_year": ["score_year", "年份", "录取年份"],
         "min_score": ["min_score", "最低分", "最低录取分"],
         "min_rank": ["min_rank", "最低位次", "最低排名"],
-        "plan_count": ["plan_count", "计划数", "招生计划", "招生人数"]
+        "plan_count": ["plan_count", "计划数", "招生计划", "招生人数"],
+        "score_type": ["score_type", "分数类型"],
+        "source_date": ["source_date", "来源日期"],
+        "availability_date": ["availability_date", "可用日期"],
+        "built_at": ["built_at", "构建时间"]
       }
     },
     "fa_fact_ln_projection_score": {
