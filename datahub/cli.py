@@ -33,6 +33,7 @@ from .builders.city_context_collection_plan import build_city_context_collection
 from .builders.city_context_target_cities import build_city_context_target_cities
 from .builders.city_development_score import build_city_development_score_package
 from .builders.city_listed_company_signal import build_city_listed_company_signal_package
+from .builders.data_update_plan import build_data_update_plan
 from .builders.entity_normalization_registry import build_entity_normalization_registry_package
 from .builders.major_city_employment_fit import build_major_city_employment_fit_package
 from .builders.outcome_collection_batch import (
@@ -625,6 +626,15 @@ def main() -> int:
     build_city_context_from_plan.add_argument("--domain", action="append", dest="domains")
     build_city_context_from_plan.add_argument("--package-id")
     build_city_context_from_plan.add_argument("--source-version")
+
+    build_data_update_plan_parser = sub.add_parser(
+        "build-data-update-plan",
+        help="Build a dependency-aware update execution plan from config/data_update_policy.json",
+    )
+    build_data_update_plan_parser.add_argument("--output-dir", required=True, type=Path)
+    build_data_update_plan_parser.add_argument("--source-key", action="append", dest="source_keys")
+    build_data_update_plan_parser.add_argument("--no-include-dependencies", action="store_true")
+    build_data_update_plan_parser.add_argument("--update-run-id")
 
     build_entity_normalization_registry = sub.add_parser(
         "build-entity-normalization-registry",
@@ -1307,6 +1317,15 @@ def main() -> int:
             domains=args.domains,
             package_id=args.package_id,
             source_version=args.source_version,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+    if args.cmd == "build-data-update-plan":
+        result = build_data_update_plan(
+            output_dir=args.output_dir,
+            source_keys=args.source_keys,
+            include_dependencies=not args.no_include_dependencies,
+            update_run_id=args.update_run_id,
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0

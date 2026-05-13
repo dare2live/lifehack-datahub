@@ -34,6 +34,7 @@ from datahub.builders.city_context_collection_plan import build_city_context_col
 from datahub.builders.city_context_target_cities import build_city_context_target_cities
 from datahub.builders.city_development_score import build_city_development_score_package
 from datahub.builders.city_listed_company_signal import build_city_listed_company_signal_package
+from datahub.builders.data_update_plan import build_data_update_plan
 from datahub.builders.entity_normalization_registry import build_entity_normalization_registry_package
 from datahub.builders.major_city_employment_fit import build_major_city_employment_fit_package
 from datahub.connectors.page_images import download_page_images
@@ -3314,8 +3315,16 @@ def test_data_update_policy_config_and_schemas():
     assert "append_snapshot" in config["update_modes"]
     assert config["nonstandard_policy"]["old_data_policy"]["never_delete_without_delete_plan"] is True
     assert config["scheduler"]["failure_policy"]["block_dependents_on_source_failure"] is True
+    assert "amap_api_limited" in config["scheduler"]["serial_groups"]
+    assert "city_collection_parallel" in config["scheduler"]["parallel_groups"]
+    assert config["source_policies"]["ln_admission_plan"]["depends_on"] == ["ln_application_workbook"]
+    assert config["source_policies"]["ln_score_history"]["depends_on"] == [
+        "ln_projection_score",
+        "ln_score_distribution",
+    ]
     assert config["source_policies"]["city_economic_indicator"]["parallelizable"] is True
     assert config["source_policies"]["region_profile_geocode"]["parallelizable"] is False
+    assert "city_listed_company_signal" in config["source_policies"]["city_development_score"]["depends_on"]
 
     schemas = load_source_schemas()["tables"]
     assert schemas["fa_meta_source_snapshot"]["primary_key"] == ["source_key", "snapshot_id"]
@@ -3323,6 +3332,71 @@ def test_data_update_policy_config_and_schemas():
     assert schemas["fa_meta_update_run"]["primary_key"] == ["update_run_id"]
     assert schemas["fa_meta_update_run_step"]["primary_key"] == ["update_run_id", "source_key", "step_key"]
     assert schemas["fa_meta_nonstandard_review_queue"]["primary_key"] == ["review_id"]
+
+
+def test_build_data_update_plan_with_dependencies(tmp_path: Path):
+    result = build_data_update_plan(
+        output_dir=tmp_path / "update_plan",
+        source_keys=["city_development_score"],
+        update_run_id="fixture_city_update",
+    )
+
+    assert result["blocked_steps"] == 0
+    with Path(result["csv"]).open(encoding="utf-8", newline="") as f:
+        rows = list(csv.DictReader(f))
+    by_key = {row["source_key"]: row for row in rows}
+    assert set(by_key) == {
+        "region_profile_geocode",
+        "city_economic_indicator",
+        "city_public_resource",
+        "city_listed_company_signal",
+        "city_ranking_signal",
+        "city_development_score",
+    }
+
+    assert int(by_key["region_profile_geocode"]["phase"]) == 1
+    assert int(by_key["city_economic_indicator"]["phase"]) > int(by_key["region_profile_geocode"]["phase"])
+    assert int(by_key["city_public_resource"]["phase"]) == int(by_key["city_economic_indicator"]["phase"])
+    assert int(by_key["city_listed_company_signal"]["phase"]) == int(by_key["city_economic_indicator"]["phase"])
+    assert int(by_key["city_development_score"]["phase"]) > int(by_key["city_economic_indicator"]["phase"])
+    assert by_key["region_profile_geocode"]["execution_group"] == "serial:amap_api_limited"
+    assert by_key["city_economic_indicator"]["execution_group"] == "parallel:city_collection_parallel"
+    assert by_key["city_listed_company_signal"]["execution_group"] == "parallel:city_collection_parallel"
+    assert "metric_registered" in json.loads(by_key["city_ranking_signal"]["validity_checks"])
+    assert json.loads(by_key["city_development_score"]["depends_on"]) == [
+        "city_economic_indicator",
+        "city_public_resource",
+        "city_listed_company_signal",
+        "city_ranking_signal",
+    ]
+
+    manifest = json.loads(Path(result["manifest"]).read_text(encoding="utf-8"))
+    assert manifest["update_run_id"] == "fixture_city_update"
+    assert manifest["include_dependencies"] is True
+    assert "2" in manifest["phases"]
+    assert manifest["phases"]["2"]["execution_groups"]["parallel:city_collection_parallel"]
+
+
+def test_build_data_update_plan_without_dependencies_marks_blocked(tmp_path: Path):
+    result = build_data_update_plan(
+        output_dir=tmp_path / "partial_update_plan",
+        source_keys=["city_development_score"],
+        include_dependencies=False,
+        update_run_id="fixture_partial_update",
+    )
+
+    with Path(result["csv"]).open(encoding="utf-8", newline="") as f:
+        rows = list(csv.DictReader(f))
+    assert len(rows) == 1
+    assert rows[0]["source_key"] == "city_development_score"
+    assert rows[0]["step_status"] == "blocked"
+    assert "dependency_not_in_plan" in rows[0]["block_reason"]
+    assert set(json.loads(rows[0]["missing_dependencies"])) == {
+        "city_economic_indicator",
+        "city_public_resource",
+        "city_listed_company_signal",
+        "city_ranking_signal",
+    }
 
 
 def test_build_entity_normalization_registry_package(tmp_path: Path):

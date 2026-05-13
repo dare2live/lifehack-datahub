@@ -119,6 +119,14 @@ python3 scripts/build_package.py build-entity-normalization-registry \
 
 数据更新治理用于确定数据什么时候重跑、怎么增量、旧数据如何覆盖、失败来源如何阻断依赖。`config/data_update_policy.json` 统一维护 `full_replace/partition_replace/primary_key_upsert/append_snapshot/manual_review_promote/derived_rebuild` 六类更新模式、非标数据晋级规则、来源有效性检测和串并行调度分组；运行元数据进入 `fa_meta_source_snapshot/fa_meta_source_health/fa_meta_update_run/fa_meta_update_run_step/fa_meta_nonstandard_review_queue`。非标数据只允许停留在 raw、候选和复核队列，复核通过后才发布标准包。
 
+`build-data-update-plan` 会把更新策略拓扑排序成可审计执行计划，用于判断哪些源必须串行、哪些源可以同阶段并行、哪些衍生 mart 要等待上游数据包完成。该输出不是 data package，不抓取数据，也不写 core：
+
+```bash
+python3 scripts/build_package.py build-data-update-plan \
+  --source-key city_development_score \
+  --output-dir staging/update_plans/city_development
+```
+
 城市上市公司信号由已复核的公司城市快照聚合，不直接读取或写入 ChunkyMonkey。字段别名、默认口径和聚合指标维护在 `config/city_listed_company_signal.json`：
 
 ```bash

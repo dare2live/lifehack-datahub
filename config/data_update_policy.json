@@ -40,8 +40,22 @@
   },
   "scheduler": {
     "default_max_parallel": 3,
-    "serial_groups": ["core_import", "delete_migration", "same_target_table"],
-    "parallel_groups": ["remote_probe", "manual_intake", "independent_collection_batch", "derived_readonly_mart"],
+    "serial_groups": [
+      "core_import",
+      "delete_migration",
+      "same_target_table",
+      "core_admission_serial",
+      "amap_api_limited"
+    ],
+    "parallel_groups": [
+      "remote_probe",
+      "manual_intake",
+      "independent_collection_batch",
+      "official_reference_parallel",
+      "city_collection_parallel",
+      "nonstandard_review",
+      "derived_readonly_mart"
+    ],
     "failure_policy": {
       "block_dependents_on_source_failure": true,
       "allow_independent_sources_to_continue": true,
@@ -49,6 +63,16 @@
     }
   },
   "source_policies": {
+    "ln_application_workbook": {
+      "update_mode": "manual_review_promote",
+      "cadence": "annual_after_release",
+      "partition_keys": ["year", "batch", "subject_cat"],
+      "concurrency_group": "core_admission_serial",
+      "parallelizable": false,
+      "validity_profile": "manual_file",
+      "promotion_gate": "intake_manifest_ready",
+      "notes": "Excel 原件只进入 raw intake，不进入 Git；解析后产出的招生计划和历史分数包仍需 reconciliation 门禁。"
+    },
     "ln_admission_plan": {
       "update_mode": "manual_review_promote",
       "cadence": "annual_after_release",
@@ -58,6 +82,26 @@
       "depends_on": ["ln_application_workbook"],
       "validity_profile": "manual_file",
       "promotion_gate": "reconciliation_plan_ready"
+    },
+    "ln_projection_score": {
+      "update_mode": "partition_replace",
+      "cadence": "annual_after_score_release",
+      "partition_keys": ["score_year", "batch", "subject_cat"],
+      "concurrency_group": "official_reference_parallel",
+      "parallelizable": true,
+      "validity_profile": "remote_file",
+      "promotion_gate": "package_quality_ok",
+      "notes": "投档最低分可并行下载与解析，但只作为历史位次派生输入之一。"
+    },
+    "ln_score_distribution": {
+      "update_mode": "partition_replace",
+      "cadence": "annual_after_score_release",
+      "partition_keys": ["score_year", "subject_cat"],
+      "concurrency_group": "official_reference_parallel",
+      "parallelizable": true,
+      "validity_profile": "remote_file",
+      "promotion_gate": "package_quality_ok",
+      "notes": "可解析 PDF 走 remote_file；OCR 或镜像图片必须先进入人工复核链路。"
     },
     "ln_score_history": {
       "update_mode": "partition_replace",
@@ -76,6 +120,16 @@
       "parallelizable": true,
       "validity_profile": "remote_file",
       "promotion_gate": "package_quality_ok"
+    },
+    "school_identity_bridge": {
+      "update_mode": "manual_review_promote",
+      "cadence": "after_school_or_admission_scope_change",
+      "concurrency_group": "derived_readonly_mart",
+      "parallelizable": true,
+      "depends_on": ["school_profile", "ln_admission_plan"],
+      "validity_profile": "derived_mart",
+      "promotion_gate": "identity_review_ok",
+      "notes": "只读 core 招生计划和学校画像，未唯一匹配的学校进入人工复核计划。"
     },
     "region_profile_geocode": {
       "update_mode": "full_replace",
@@ -141,6 +195,26 @@
       "depends_on": ["region_profile_geocode"],
       "validity_profile": "collection_plan",
       "promotion_gate": "collection_audit_ok"
+    },
+    "city_listed_company_signal": {
+      "update_mode": "append_snapshot",
+      "cadence": "monthly_or_after_company_snapshot",
+      "partition_keys": ["metric_year", "city"],
+      "concurrency_group": "city_collection_parallel",
+      "parallelizable": true,
+      "depends_on": ["region_profile_geocode"],
+      "validity_profile": "manual_file",
+      "promotion_gate": "package_quality_ok",
+      "notes": "只能读取已复核公司城市快照或 smartmoney 只读快照，不能写 smartmoney，也不能 import ChunkyMonkey 模块。"
+    },
+    "career_occupation_catalog": {
+      "update_mode": "full_replace",
+      "cadence": "annual_or_catalog_release",
+      "concurrency_group": "official_reference_parallel",
+      "parallelizable": true,
+      "validity_profile": "remote_file",
+      "promotion_gate": "package_quality_ok",
+      "notes": "职业目录是职业信号的规范化输入；新增职业别名先进入实体/指标注册链路。"
     },
     "career_signal": {
       "update_mode": "append_snapshot",
