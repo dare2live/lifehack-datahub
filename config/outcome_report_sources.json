@@ -67,6 +67,18 @@
     },
     {
       "domain": "school",
+      "entity_name": "沈阳师范大学",
+      "metric_year": 2024,
+      "report_scope": "undergraduate_teaching_quality_report",
+      "candidate_report_title": "沈阳师范大学2023-2024学年本科教学质量报告",
+      "candidate_report_url": "https://www.synu.edu.cn/xxgk_7073/listm.htm",
+      "candidate_file_name": "沈阳师范大学2023-2024学年本科教学质量报告.pdf",
+      "candidate_source_date": "2025-10-31",
+      "availability_date": "2025-10-31",
+      "evidence_note": "沈阳师范大学信息公开列表发布本科教学质量报告附件；列表页未展示单条发布日期，当前使用附件 HTTP Last-Modified 作为可用日期。"
+    },
+    {
+      "domain": "school",
       "entity_name": "东北财经大学",
       "metric_year": 2024,
       "report_scope": "undergraduate_teaching_quality_report",
@@ -88,6 +100,18 @@
       "candidate_source_date": "2024-12-12",
       "availability_date": "2024-12-12",
       "evidence_note": "大连交通大学官网通知页面发布，正文说明报告公开发布并列出 PDF 附件。"
+    },
+    {
+      "domain": "school",
+      "entity_name": "大连外国语大学",
+      "metric_year": 2024,
+      "report_scope": "undergraduate_teaching_quality_report",
+      "candidate_report_title": "大连外国语大学2023-2024学年本科教学质量报告",
+      "candidate_report_url": "https://xxgk.dlufl.edu.cn/info/1004/2001.htm",
+      "candidate_file_name": "大连外国语大学2023-2024学年本科教学质量报告.pdf",
+      "candidate_source_date": "2024-12-05",
+      "availability_date": "2024-12-05",
+      "evidence_note": "大连外国语大学信息公开网页发布，页面列出发布时间和 PDF 附件；附件下载页需要验证码时保持 manual intake。"
     }
   ]
 }

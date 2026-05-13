@@ -4649,6 +4649,8 @@ def test_audit_outcome_report_source_seeds_validates_config(tmp_path: Path):
     assert report["applied_status"] == "candidate_found"
     assert any(row["entity_name"] == "辽宁大学" for row in report["seed_rows"])
     assert any(row["entity_name"] == "吉林大学" and row["metric_year"] == 2024 for row in report["seed_rows"])
+    assert any(row["entity_name"] == "沈阳师范大学" and row["metric_year"] == 2024 for row in report["seed_rows"])
+    assert any(row["entity_name"] == "大连外国语大学" and row["metric_year"] == 2024 for row in report["seed_rows"])
     assert (tmp_path / "seed_audit.json").exists()
 
 
