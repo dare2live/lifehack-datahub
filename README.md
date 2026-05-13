@@ -815,6 +815,22 @@ python3 scripts/build_package.py audit-outcome-collection-plan \
   --report staging/outcome_collection/outcome_collection_audit.json
 ```
 
+已经人工核对的 outcome 结论可以沉淀到 `config/outcome_collection_review_seeds.json`，再重放到重新生成的采集计划。种子只保存指标值、来源 URL、摘录、口径和复核说明，不提交 PDF 原文或 ignored staging 文件：
+
+```bash
+python3 scripts/build_package.py audit-outcome-collection-review-seeds \
+  --report staging/outcome_collection/outcome_review_seed_audit.json
+
+python3 scripts/build_package.py apply-outcome-collection-review-seeds \
+  --plan-csv staging/outcome_collection/outcome_collection_plan.csv \
+  --output staging/outcome_collection/outcome_collection_plan.seeded.csv \
+  --report staging/outcome_collection/outcome_review_seed_apply.json
+
+python3 scripts/build_package.py audit-outcome-collection-plan \
+  --plan-csv staging/outcome_collection/outcome_collection_plan.seeded.csv \
+  --report staging/outcome_collection/outcome_collection_seeded_audit.json
+```
+
 学校或专业报告 PDF 可以先进入候选提取，不直接写回采集计划。`extract-outcome-report-candidates` 按 `config/outcome_metrics.json` 里的指标标签、aliases 和 `extraction.max_context_lines` 从 PDF 文本中提取百分比/分值；PDF 把指标名和数值拆到相邻行时，候选提取会拼接同页向后上下文。输出仍是 `needs_review` 候选 CSV，候选值必须人工核对原文上下文后，才能复制到 outcome collection batch 的证据列：
 
 ```bash
@@ -854,7 +870,7 @@ python3 scripts/build_package.py build-outcome-from-collection-plan \
   --package-id 2026_outcome_collection
 ```
 
-真实 smoke：上述辽宁大学单条 approved 候选合并后的采集计划已生成 `lnu_2022_outcome_candidate_merge_smoke_school` 标准包，`fa_fact_school_outcome` 1 行，quality report 无错误；manifest 已写入 `source_lineage`，包含采集计划路径、来源 URL、报告标题、指标和状态统计；`validate` 通过，core importer `--dry-run` 通过，未写入实际 core DB。
+真实 smoke：上述辽宁大学单条 approved 候选合并后的采集计划已生成 `lnu_2022_outcome_candidate_merge_smoke_school` 标准包，`fa_fact_school_outcome` 1 行，quality report 无错误；manifest 已写入 `source_lineage`，包含采集计划路径、来源 URL、报告标题、指标和状态统计；`validate` 通过，core importer `--dry-run` 通过，未写入实际 core DB。2024 学校 outcome 复核种子已覆盖辽宁大学就业率/升学率、大连交通大学就业率/国企签约比例 4 条已核指标；真实重放命中 4 条、更新 4 条、无 unmatched seed，重放后的 800 行采集计划审计 `errors=[]/warnings=[]`；从该计划生成的 `lnu_djtu_2024_teaching_outcome_school_seeded_v1_school` 包含 `fa_fact_school_outcome` 4 行，manifest 校验和 core importer `--dry-run` 均通过。
 
 ## 政策表数据包
 

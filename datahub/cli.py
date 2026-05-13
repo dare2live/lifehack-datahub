@@ -50,6 +50,10 @@ from .builders.outcome_collection_batch import (
     build_outcome_collection_batch,
     merge_outcome_collection_batch,
 )
+from .builders.outcome_collection_seed_merge import (
+    apply_outcome_collection_review_seeds,
+    audit_outcome_collection_review_seeds,
+)
 from .builders.outcome_candidate_merge import merge_outcome_report_candidates
 from .builders.outcome_collection_audit import audit_outcome_collection_plan
 from .builders.outcome_collection_package import build_outcome_packages_from_collection_plan
@@ -477,6 +481,21 @@ def main() -> int:
     merge_outcome_collection_batch_parser.add_argument("--batch-csv", required=True, type=Path)
     merge_outcome_collection_batch_parser.add_argument("--output", required=True, type=Path)
     merge_outcome_collection_batch_parser.add_argument("--report", type=Path)
+
+    audit_outcome_collection_review_seeds_parser = sub.add_parser(
+        "audit-outcome-collection-review-seeds",
+        help="Audit configured outcome collection review seeds",
+    )
+    audit_outcome_collection_review_seeds_parser.add_argument("--report", type=Path)
+
+    apply_outcome_collection_review_seeds_parser = sub.add_parser(
+        "apply-outcome-collection-review-seeds",
+        help="Apply configured outcome collection review seeds to a full outcome collection plan",
+    )
+    apply_outcome_collection_review_seeds_parser.add_argument("--plan-csv", required=True, type=Path)
+    apply_outcome_collection_review_seeds_parser.add_argument("--output", required=True, type=Path)
+    apply_outcome_collection_review_seeds_parser.add_argument("--report", type=Path)
+    apply_outcome_collection_review_seeds_parser.add_argument("--overwrite", action="store_true")
 
     merge_outcome_candidates = sub.add_parser(
         "merge-outcome-report-candidates",
@@ -1376,6 +1395,19 @@ def main() -> int:
         if args.report:
             args.report.parent.mkdir(parents=True, exist_ok=True)
             args.report.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        print(json.dumps(report, ensure_ascii=False, indent=2))
+        return 0
+    if args.cmd == "audit-outcome-collection-review-seeds":
+        report = audit_outcome_collection_review_seeds(report_path=args.report)
+        print(json.dumps(report, ensure_ascii=False, indent=2))
+        return 0
+    if args.cmd == "apply-outcome-collection-review-seeds":
+        report = apply_outcome_collection_review_seeds(
+            plan_csv=args.plan_csv,
+            output=args.output,
+            report_path=args.report,
+            overwrite=args.overwrite,
+        )
         print(json.dumps(report, ensure_ascii=False, indent=2))
         return 0
     if args.cmd == "merge-outcome-report-candidates":

@@ -54,6 +54,10 @@ from datahub.builders.outcome_collection_batch import (
     build_outcome_collection_batch,
     merge_outcome_collection_batch,
 )
+from datahub.builders.outcome_collection_seed_merge import (
+    apply_outcome_collection_review_seeds,
+    audit_outcome_collection_review_seeds,
+)
 from datahub.builders.outcome_candidate_merge import merge_outcome_report_candidates
 from datahub.builders.outcome_collection_package import build_outcome_packages_from_collection_plan
 from datahub.builders.major_mapping_review import build_major_mapping_review_package
@@ -5872,6 +5876,37 @@ def test_build_outcome_collection_batch_limits_pending_rows(tmp_path: Path):
     manifest = json.loads(Path(result["manifest"]).read_text(encoding="utf-8"))
     assert manifest["task_key_columns"] == ["domain", "entity_code", "metric_key", "metric_year"]
     assert "source_url" in manifest["editable_columns"]
+
+
+def test_apply_outcome_collection_review_seeds_updates_matching_rows(tmp_path: Path):
+    audit = audit_outcome_collection_review_seeds()
+    assert audit["errors"] == []
+    assert audit["seed_count"] == 4
+    assert audit["status_counts"] == {"verified": 4}
+
+    plan = tmp_path / "outcome_collection_plan.csv"
+    seeded = _outcome_plan_row("school", "0140", "辽宁大学", "employment_rate", status="todo", priority_rank="1")
+    seeded["metric_year"] = "2024"
+    pending = _outcome_plan_row("school", "0166", "沈阳师范大学", "employment_rate", status="todo", priority_rank="2")
+    pending["metric_year"] = "2024"
+    _write_outcome_plan(plan, [seeded, pending])
+
+    output = tmp_path / "outcome_collection_plan_seeded.csv"
+    report = apply_outcome_collection_review_seeds(plan_csv=plan, output=output)
+    assert report["matched_rows"] == 1
+    assert report["updated_rows"] == 1
+    assert report["unmatched_seeds"] == 3
+
+    with output.open(encoding="utf-8", newline="") as f:
+        rows = list(csv.DictReader(f))
+    by_entity = {(row["entity_code"], row["metric_key"]): row for row in rows}
+    lnu = by_entity[("0140", "employment_rate")]
+    assert lnu["status"] == "verified"
+    assert lnu["metric_value"] == "0.8582"
+    assert lnu["metric_scope"] == "2024届本科应届毕业生，毕业去向落实率"
+    assert lnu["source_url"] == "https://xxgk.lnu.edu.cn/info/13534/68147.htm"
+    assert "seed_review=" in lnu["notes"]
+    assert by_entity[("0166", "employment_rate")]["status"] == "todo"
 
 
 def test_merge_outcome_collection_batch_updates_only_editable_columns(tmp_path: Path):
