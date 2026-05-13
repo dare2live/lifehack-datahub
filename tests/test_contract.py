@@ -49,6 +49,7 @@ from datahub.builders.outcome_collection_package import build_outcome_packages_f
 from datahub.builders.major_mapping_review import build_major_mapping_review_package
 from datahub.builders.local_package import build_local_package
 from datahub.builders.outcome_collection_plan import PLAN_COLUMNS as OUTCOME_PLAN_COLUMNS, build_outcome_collection_plan
+from datahub.builders.outcome_report_extraction_plan import build_outcome_report_extraction_plan
 from datahub.builders.outcome_report_source_audit import audit_outcome_report_source_plan
 from datahub.builders.outcome_report_source_plan import build_outcome_report_source_plan
 from datahub.builders.policy_tables import (
@@ -4210,6 +4211,60 @@ def test_audit_outcome_report_source_plan_requires_confirmed_source(tmp_path: Pa
     assert ready_report["errors"] == []
     assert ready_report["complete_rows"] == 1
     assert ready_report["ready_for_report_intake"] is True
+
+
+def test_build_outcome_report_extraction_plan_requires_local_file(tmp_path: Path):
+    plan = tmp_path / "outcome_collection_plan.csv"
+    rows = [
+        _outcome_plan_row("school", "10140", "辽宁大学", "postgrad_rate", status="todo", priority_rank="1"),
+    ]
+    _write_outcome_plan(plan, rows)
+    source_result = build_outcome_report_source_plan(
+        plan_csv=plan,
+        output_dir=tmp_path / "report_sources",
+        domains=["school"],
+    )
+    with Path(source_result["csv"]).open(encoding="utf-8", newline="") as f:
+        source_rows = list(csv.DictReader(f))
+    local_pdf = tmp_path / "raw" / "lnu2025.pdf"
+    local_pdf.parent.mkdir(parents=True)
+    local_pdf.write_bytes(b"%PDF-1.4\n")
+    source_rows[0].update({
+        "status": "verified",
+        "candidate_report_title": "辽宁大学2025届毕业生就业质量报告",
+        "candidate_report_url": "https://example.edu/lnu2025.pdf",
+        "candidate_source_date": "2025-12-31",
+        "availability_date": "2026-01-05",
+        "local_report_path": str(local_pdf),
+    })
+    source_rows[1].update({
+        "status": "verified",
+        "candidate_report_title": "辽宁大学2025年本科教学质量报告",
+        "candidate_report_url": "https://example.edu/lnu_teaching2025.pdf",
+        "candidate_source_date": "2025-12-31",
+        "availability_date": "2026-01-05",
+    })
+    report_source_csv = tmp_path / "outcome_report_source_plan_verified.csv"
+    with report_source_csv.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=source_rows[0].keys())
+        writer.writeheader()
+        writer.writerows(source_rows)
+
+    result = build_outcome_report_extraction_plan(
+        report_source_csv=report_source_csv,
+        output_dir=tmp_path / "extract",
+    )
+
+    assert result["rows"] == 2
+    assert result["ready_rows"] == 1
+    assert result["blocked_rows"] == 1
+    with Path(result["csv"]).open(encoding="utf-8", newline="") as f:
+        extraction_rows = list(csv.DictReader(f))
+    assert extraction_rows[0]["extraction_status"] == "ready"
+    assert extraction_rows[0]["input_path"] == str(local_pdf)
+    assert extraction_rows[0]["output_path"].endswith("school_10140_2025_employment_quality_report_candidates.csv")
+    assert extraction_rows[1]["extraction_status"] == "blocked"
+    assert extraction_rows[1]["block_reason"] == "missing_local_report_path"
 
 
 def test_audit_outcome_collection_plan_reports_progress_and_errors(tmp_path: Path):
