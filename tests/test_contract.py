@@ -73,6 +73,7 @@ from datahub.builders.score_history_reconciliation_delete_plan import build_scor
 from datahub.builders.score_history_reconciliation_package import build_score_history_package_from_reconciliation_plan
 from datahub.builders.score_history_reconciliation_plan import PLAN_COLUMNS, build_score_history_reconciliation_plan
 from datahub.builders.score_history_snapshot import build_score_history_snapshot_package
+from datahub.builders.score_source_coverage import audit_score_source_coverage
 from datahub.builders.score_distribution_review_workspace import (
     build_score_distribution_review_workspace,
     merge_score_distribution_review_workspace,
@@ -3446,6 +3447,24 @@ def test_build_data_update_readiness_plan_blocks_missing_dependencies(tmp_path: 
         rows = list(csv.DictReader(f))
     assert {row["current_status"] for row in rows} == {"blocked_by_dependency"}
     assert "dependency_not_in_plan" in rows[0]["notes"]
+
+
+def test_audit_score_source_coverage_tracks_derivation_gaps(tmp_path: Path):
+    report_path = tmp_path / "score_source_coverage.json"
+    report = audit_score_source_coverage(report_path=report_path)
+
+    assert report_path.exists()
+    by_year = {row["score_year"]: row for row in report["coverage_by_year"]}
+    assert by_year[2025]["derivation_status"] == "official_remote_derivable"
+    assert by_year[2025]["projection_status"] == "official_remote_ready"
+    assert by_year[2025]["distribution_status"] == "official_remote_ready"
+    assert by_year[2024]["derivation_status"] == "derivable_with_mirror_inputs"
+    assert by_year[2024]["score_distribution"]["official_page_image_count"] >= 1
+    assert by_year[2023]["projection_status"] == "mirror_remote_ready"
+    assert by_year[2022]["projection_status"] == "candidate_only"
+    assert by_year[2022]["derivation_status"] == "blocked_projection_candidate_only"
+    assert any("2022: 投档最低分只有候选来源" in gap for gap in report["gaps"])
+    assert report["summary"]["derivable_years"] == [2023, 2024, 2025]
 
 
 def test_audit_data_update_policy_has_no_errors():

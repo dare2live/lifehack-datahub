@@ -71,6 +71,7 @@ from .builders.score_history_reconciliation_delete_plan import build_score_histo
 from .builders.score_history_reconciliation_package import build_score_history_package_from_reconciliation_plan
 from .builders.score_history_reconciliation_plan import build_score_history_reconciliation_plan
 from .builders.score_history_snapshot import build_score_history_snapshot_package
+from .builders.score_source_coverage import audit_score_source_coverage
 from .builders.school_identity_review_plan import build_school_identity_review_plan
 from .builders.school_location_geocode_audit import audit_school_location_geocode_input
 from .builders.school_location_from_amap import build_school_location_package_from_amap_geocode
@@ -799,6 +800,12 @@ def main() -> int:
     audit_distribution_readiness.add_argument("--review-csv", type=Path)
     audit_distribution_readiness.add_argument("--cleaned-csv", type=Path)
     audit_distribution_readiness.add_argument("--report", type=Path)
+
+    audit_score_source_coverage_parser = sub.add_parser(
+        "audit-score-source-coverage",
+        help="Audit configured projection-score and score-distribution source coverage by year",
+    )
+    audit_score_source_coverage_parser.add_argument("--report", type=Path)
 
     prefill_distribution_review = sub.add_parser(
         "prefill-ln-score-distribution-review-suggestions",
@@ -1593,6 +1600,10 @@ def main() -> int:
         if args.report:
             args.report.parent.mkdir(parents=True, exist_ok=True)
             args.report.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        print(json.dumps(report, ensure_ascii=False, indent=2))
+        return 0
+    if args.cmd == "audit-score-source-coverage":
+        report = audit_score_source_coverage(report_path=args.report)
         print(json.dumps(report, ensure_ascii=False, indent=2))
         return 0
     if args.cmd == "prefill-ln-score-distribution-review-suggestions":

@@ -243,6 +243,15 @@ python3 scripts/build_package.py probe-source-candidates \
   --output staging/source_research/ln_projection_score_candidates.json
 ```
 
+历史位次派生依赖“投档最低分 + 一分一段”两类输入。来源研究先跑覆盖审计，按年份标出官方文件、镜像文件、官方图片、候选链接和派生阻断项，不下载、不入库、不晋级候选：
+
+```bash
+python3 scripts/build_package.py audit-score-source-coverage \
+  --report staging/source_research/score_source_coverage.json
+```
+
+当前配置下，2025 为官方远程文件可派生；2024 投档最低分是辽宁官网附件、一分一段仍用镜像 PDF 加官方图片页留痕；2023 两类输入均含镜像降级；2022 投档最低分仍只有候选来源，因此不能自动构建可导入历史位次包。
+
 高德地图数据走 Web API connector。API key 只从环境变量读取，不写入配置或 manifest；原始响应写入 ignored `raw/`，后续再由 parser/normalizer 生成标准包：
 
 ```bash
