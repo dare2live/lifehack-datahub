@@ -75,6 +75,10 @@ from .parsers.ln_score_distribution_ocr import (
     write_cleaned_score_distribution_csv,
     write_review_task_csv,
 )
+from .parsers.ln_score_distribution_grid_images import (
+    parse_score_distribution_grid_images,
+    write_score_distribution_grid_csv,
+)
 from .parsers.ln_score_distribution import parse_ln_score_distribution_pdf
 from .parsers.moe_major_catalog import parse_moe_major_catalog_pdf
 from .parsers.moe_school_profile import parse_moe_school_profile_xls
@@ -485,6 +489,19 @@ def main() -> int:
     parse_distribution.add_argument("--score-year", required=True, type=int)
     parse_distribution.add_argument("--source-date", required=True)
     parse_distribution.add_argument("--subject-cat", action="append", dest="subject_cats", default=[])
+
+    parse_distribution_grid = sub.add_parser(
+        "parse-ln-score-distribution-grid-images",
+        help="Parse dense Liaoning score distribution table images with row-level OCR",
+    )
+    parse_distribution_grid.add_argument("--input", required=True, action="append", type=Path)
+    parse_distribution_grid.add_argument("--output", required=True, type=Path)
+    parse_distribution_grid.add_argument("--report", type=Path)
+    parse_distribution_grid.add_argument("--work-dir", required=True, type=Path)
+    parse_distribution_grid.add_argument("--score-year", required=True, type=int)
+    parse_distribution_grid.add_argument("--source-date", required=True)
+    parse_distribution_grid.add_argument("--subject-cat", required=True)
+    parse_distribution_grid.add_argument("--swiftc", default="swiftc")
 
     parse_distribution_ocr = sub.add_parser(
         "parse-ln-score-distribution-ocr",
@@ -1011,6 +1028,25 @@ def main() -> int:
             writer.writeheader()
             writer.writerows(rows)
         print(json.dumps({"output": str(args.output), "rows": len(rows)}, ensure_ascii=False, indent=2))
+        return 0
+    if args.cmd == "parse-ln-score-distribution-grid-images":
+        rows, report = parse_score_distribution_grid_images(
+            args.input,
+            subject_cat=args.subject_cat,
+            score_year=args.score_year,
+            source_date=args.source_date,
+            work_dir=args.work_dir,
+            swiftc=args.swiftc,
+        )
+        write_score_distribution_grid_csv(args.output, rows)
+        report_path = args.report or args.output.with_suffix(".report.json")
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        report_path.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        print(json.dumps({
+            "output": str(args.output),
+            "report": str(report_path),
+            **report,
+        }, ensure_ascii=False, indent=2))
         return 0
     if args.cmd == "parse-ln-score-distribution-ocr":
         rows, report = parse_ln_score_distribution_ocr_jsonl(

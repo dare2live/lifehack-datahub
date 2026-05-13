@@ -76,6 +76,7 @@ from datahub.parsers.ln_score_distribution_ocr import (
     write_cleaned_score_distribution_csv,
     write_review_task_csv,
 )
+from datahub.parsers import ln_score_distribution_grid_images as grid_parser
 from datahub.parsers.ln_score_distribution import parse_ln_score_distribution_lines
 from datahub.parsers.moe_major_catalog import parse_moe_major_catalog_lines
 from datahub.parsers.moe_school_profile import parse_moe_school_profile_rows
@@ -459,6 +460,18 @@ def test_audit_sources_marks_admission_plan_manual():
     assert by_key["ln_score_distribution"]["ocr_engine"] == "macos_vision"
     assert by_key["major_mapping_review"]["status"] == "local_db_configured"
     assert by_key["school_profile"]["status"] == "remote_configured"
+    assert by_key["school_location_geocode"]["status"] == "mcp_configured_requires_connector"
+    assert by_key["school_location_geocode"]["target_tables"] == ["fa_dim_school_location"]
+    assert by_key["region_profile_geocode"]["status"] == "mcp_configured_requires_connector"
+    assert by_key["region_profile_geocode"]["target_tables"] == ["fa_dim_region_profile"]
+    assert by_key["campus_surrounding_poi"]["status"] == "mcp_configured_requires_connector"
+    assert by_key["campus_surrounding_poi"]["target_tables"] == ["fa_fact_campus_surrounding_poi"]
+    assert by_key["campus_housing_market"]["status"] == "source_collection_required"
+    assert by_key["campus_housing_market"]["target_tables"] == ["fa_fact_campus_housing_market"]
+    assert by_key["region_living_cost"]["status"] == "source_collection_required"
+    assert by_key["region_living_cost"]["target_tables"] == ["fa_fact_region_living_cost"]
+    assert by_key["campus_living_score"]["status"] == "derived_from_datahub_signals"
+    assert by_key["campus_living_score"]["target_tables"] == ["fa_mart_campus_living_score"]
     assert by_key["school_identity_bridge"]["status"] == "local_db_configured"
     assert by_key["school_outcome"]["target_tables"] == ["fa_fact_school_outcome"]
     assert by_key["major_outcome"]["status"] == "source_collection_required"
@@ -473,6 +486,12 @@ def test_evidence_domain_schemas_are_package_ready():
     schemas = load_source_schemas()["tables"]
     for table_name in [
         "fa_dim_school_profile",
+        "fa_dim_school_location",
+        "fa_dim_region_profile",
+        "fa_fact_campus_surrounding_poi",
+        "fa_fact_campus_housing_market",
+        "fa_fact_region_living_cost",
+        "fa_mart_campus_living_score",
         "fa_bridge_school_identity",
         "fa_fact_school_outcome",
         "fa_fact_major_outcome",
@@ -519,6 +538,57 @@ def test_parse_ln_score_distribution_lines():
     assert by_score[707]["cumulative_rank"] == 11
     assert by_score[665]["cumulative_rank"] == 1048
     assert by_score[663]["subject_cat"] == "物理类"
+
+
+def test_parse_score_distribution_grid_images_preserves_score_gaps(tmp_path: Path, monkeypatch):
+    image = tmp_path / "page.png"
+    image.write_bytes(b"placeholder")
+    row_images = [
+        grid_parser.GridRowImage("page.png", 1, 1, 0.88, tmp_path / "r1.png"),
+        grid_parser.GridRowImage("page.png", 1, 2, 0.86, tmp_path / "r2.png"),
+        grid_parser.GridRowImage("page.png", 1, 3, 0.84, tmp_path / "r3.png"),
+    ]
+    ocr_results = [
+        {
+            "image_path": str(row_images[0].path),
+            "observations": [
+                {"text": "665及以上 12", "x": 0.17},
+                {"text": "12", "x": 0.82},
+            ],
+        },
+        {
+            "image_path": str(row_images[1].path),
+            "observations": [
+                {"text": "663", "x": 0.17},
+                {"text": "2", "x": 0.55},
+                {"text": "14", "x": 0.82},
+            ],
+        },
+        {
+            "image_path": str(row_images[2].path),
+            "observations": [
+                {"text": "662", "x": 0.17},
+                {"text": "17", "x": 0.82},
+            ],
+        },
+    ]
+    monkeypatch.setattr(grid_parser, "_build_row_images", lambda *args, **kwargs: row_images)
+    monkeypatch.setattr(grid_parser, "_run_row_ocr", lambda *args, **kwargs: ocr_results)
+
+    rows, report = grid_parser.parse_score_distribution_grid_images(
+        [image],
+        subject_cat="历史类",
+        score_year=2022,
+        source_date="2022-06-23",
+        work_dir=tmp_path / "rows",
+    )
+
+    by_score = {row["score"]: row for row in rows}
+    assert sorted(by_score, reverse=True) == [665, 663, 662]
+    assert by_score[663]["score_count"] == 2
+    assert by_score[662]["score_count"] == 3
+    assert by_score[662]["cumulative_rank"] == 17
+    assert report["quality_errors"] == []
 
 
 def test_parse_ln_score_distribution_ocr_jsonl_candidates(tmp_path: Path):

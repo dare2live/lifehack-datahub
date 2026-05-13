@@ -386,6 +386,32 @@
             [0.72, 0.96]
           ]
         },
+        "grid_image_table": {
+          "table_y_min": 0.04,
+          "table_y_max": 0.91,
+          "block_x_ranges": [
+            [0.04, 0.27],
+            [0.27, 0.49],
+            [0.49, 0.72],
+            [0.72, 0.96]
+          ],
+          "column_x_ranges": {
+            "score_max": 0.36,
+            "score_count_min": 0.32,
+            "score_count_max": 0.68,
+            "cumulative_min": 0.68
+          },
+          "line_black_threshold": 80,
+          "row_line_black_ratio": 0.55,
+          "row_min_height_px": 20,
+          "row_padding_px": 2,
+          "upscale": 5,
+          "contrast": 1.8,
+          "ocr_languages": ["en-US"],
+          "recognition_level": "accurate",
+          "uses_language_correction": false,
+          "max_score_count": 6000
+        },
         "ocr_review": {
           "complete_parse_statuses": ["parsed", "inferred_score", "inferred_row"],
           "ok_math_status": "ok",
@@ -512,6 +538,245 @@
         "notes": "用于生成 fa_dim_school_profile。教育部学校标识码不是辽宁招生计划本地院校代码，后续需用 fa_bridge_school_identity 对齐。"
       },
       "target_tables": ["fa_dim_school_profile"]
+    },
+    "school_location_geocode": {
+      "name": "高校地理位置增强",
+      "kind": "verified_address_plus_amap_mcp_geocode",
+      "owner": "lifehack-datahub",
+      "raw_glob": "raw/school_location/**/*",
+      "remote_files": [],
+      "interfaces": {
+        "preferred": "mcp",
+        "mcp": {
+          "provider": "amap_mcp",
+          "server_hint": "amap",
+          "required_tools": ["geocode", "regeocode", "district"],
+          "secret_handling": "configured_in_mcp_server"
+        },
+        "web_service_fallback": {
+          "provider": "amap_web_service",
+          "key_env": "AMAP_WEB_SERVICE_KEY",
+          "endpoints": {
+            "geocode": "https://restapi.amap.com/v3/geocode/geo",
+            "regeocode": "https://restapi.amap.com/v3/geocode/regeo",
+            "district": "https://restapi.amap.com/v3/config/district"
+          }
+        },
+        "coordinate_system": "GCJ-02",
+        "request_policy": {
+          "timeout_seconds": 10,
+          "retry_count": 2,
+          "rate_limit_per_second": 2,
+          "cache_raw_response": true
+        },
+        "address_resolution_order": [
+          "school_official_site_campus_address",
+          "admission_plan_region_plus_school_name",
+          "moe_school_profile_city_plus_school_name"
+        ]
+      },
+      "acquisition": {
+        "status": "mcp_configured_requires_connector",
+        "official_distribution": "学校官网或权威名录地址 + 高德地图 MCP 地理编码/逆地理编码/行政区划查询",
+        "evidence_urls": [
+          "https://lbs.amap.com/api/webservice/guide/api/georegeo",
+          "https://lbs.amap.com/api/webservice/guide/api/district"
+        ],
+        "notes": "高德 MCP 只作为地理增强来源，不替代学校身份、校区归属和官方地址来源。密钥应配置在 MCP server 或 AMAP_WEB_SERVICE_KEY 兜底环境变量中，不能写入 Git；原始响应应缓存到 ignored raw/staging 并以 geocode_raw_hash 追溯。"
+      },
+      "target_tables": ["fa_dim_school_location"]
+    },
+    "region_profile_geocode": {
+      "name": "城市与行政区基础信息",
+      "kind": "amap_mcp_district_profile",
+      "owner": "lifehack-datahub",
+      "raw_glob": "raw/region_profile/**/*",
+      "remote_files": [],
+      "interfaces": {
+        "preferred": "mcp",
+        "mcp": {
+          "provider": "amap_mcp",
+          "server_hint": "amap",
+          "required_tools": ["district"],
+          "secret_handling": "configured_in_mcp_server"
+        },
+        "web_service_fallback": {
+          "provider": "amap_web_service",
+          "key_env": "AMAP_WEB_SERVICE_KEY",
+          "endpoints": {
+            "district": "https://restapi.amap.com/v3/config/district"
+          }
+        },
+        "coordinate_system": "GCJ-02",
+        "request_policy": {
+          "timeout_seconds": 10,
+          "retry_count": 2,
+          "rate_limit_per_second": 2,
+          "cache_raw_response": true
+        },
+        "scope": {
+          "province": "辽宁省",
+          "include_levels": ["province", "city", "district"]
+        }
+      },
+      "acquisition": {
+        "status": "mcp_configured_requires_connector",
+        "official_distribution": "高德地图 MCP 行政区划查询，用于城市、区县、adcode 和中心点基础信息补全",
+        "evidence_urls": [
+          "https://lbs.amap.com/api/webservice/guide/api/district"
+        ],
+        "notes": "该表服务城市距离、区域筛选、校区归属和城市/区县展示。行政区划结果应生成 raw manifest 与标准包，core 不实时调用 MCP。"
+      },
+      "target_tables": ["fa_dim_region_profile"]
+    },
+    "campus_surrounding_poi": {
+      "name": "校区周边设施与交通",
+      "kind": "amap_mcp_poi_around_snapshot",
+      "owner": "lifehack-datahub",
+      "raw_glob": "raw/campus_surrounding_poi/**/*",
+      "remote_files": [],
+      "interfaces": {
+        "preferred": "mcp",
+        "mcp": {
+          "provider": "amap_mcp",
+          "server_hint": "amap",
+          "required_tools": ["place_around", "route_distance"],
+          "secret_handling": "configured_in_mcp_server"
+        },
+        "web_service_fallback": {
+          "provider": "amap_web_service",
+          "key_env": "AMAP_WEB_SERVICE_KEY"
+        },
+        "coordinate_system": "GCJ-02",
+        "radii_m": [800, 1500, 3000],
+        "category_groups": {
+          "metro": ["地铁站"],
+          "bus": ["公交车站"],
+          "commerce": ["商场", "商业街", "超市"],
+          "medical": ["医院", "门诊"],
+          "green_space": ["公园", "运动场馆"],
+          "rail_air": ["火车站", "机场"]
+        },
+        "request_policy": {
+          "timeout_seconds": 10,
+          "retry_count": 2,
+          "rate_limit_per_second": 2,
+          "cache_raw_response": true
+        }
+      },
+      "acquisition": {
+        "status": "mcp_configured_requires_connector",
+        "official_distribution": "高德地图 MCP 周边 POI 与路径距离查询",
+        "evidence_urls": [],
+        "notes": "围绕 fa_dim_school_location 的校区坐标采集商圈、地铁、公交、医疗、公园等周边设施。POI 属于快照数据，应保留 snapshot_date 和 raw_response_hash；core 不实时调用 MCP。"
+      },
+      "target_tables": ["fa_fact_campus_surrounding_poi"]
+    },
+    "campus_housing_market": {
+      "name": "校区周边租售价格快照",
+      "kind": "housing_listing_or_public_market_snapshot",
+      "owner": "lifehack-datahub",
+      "raw_glob": "raw/campus_housing_market/**/*",
+      "remote_files": [],
+      "collection_plan": {
+        "radii_m": [1000, 2000, 3000],
+        "listing_types": ["rent", "sale"],
+        "metrics": [
+          "median_monthly_rent",
+          "median_rent_per_sqm",
+          "median_sale_price_per_sqm",
+          "sample_count"
+        ],
+        "preferred_sources": [
+          "official_housing_market_report",
+          "platform_public_listing_snapshot",
+          "manual_verified_export"
+        ]
+      },
+      "acquisition": {
+        "status": "source_collection_required",
+        "official_distribution": "公开住房租赁/二手房市场报告或合规平台列表快照",
+        "evidence_urls": [],
+        "notes": "租售价格高频变化，只能作为带 source_date/snapshot_date 的生活成本快照，不作为静态事实。DataHub 只保存聚合统计和来源证据，不把原始房源明细提交 Git；具体平台需逐一确认使用条款和反爬限制。"
+      },
+      "target_tables": ["fa_fact_campus_housing_market"]
+    },
+    "region_living_cost": {
+      "name": "城市与区县生活成本指标",
+      "kind": "public_statistics_and_market_snapshot",
+      "owner": "lifehack-datahub",
+      "raw_glob": "raw/region_living_cost/**/*",
+      "remote_files": [],
+      "collection_plan": {
+        "region_source_table": "fa_dim_region_profile",
+        "levels": ["city", "district"],
+        "metric_groups": {
+          "housing": [
+            "median_monthly_rent",
+            "median_rent_per_sqm",
+            "median_sale_price_per_sqm"
+          ],
+          "transport": [
+            "transit_fare_baseline",
+            "taxi_start_fare",
+            "commute_time_to_city_center"
+          ],
+          "daily_spend": [
+            "consumer_price_index",
+            "student_meal_baseline",
+            "living_service_density"
+          ],
+          "income_context": [
+            "urban_avg_wage",
+            "graduate_entry_salary_proxy"
+          ]
+        },
+        "preferred_sources": [
+          "statistical_yearbook",
+          "government_open_data",
+          "amap_poi_density",
+          "housing_market_snapshot",
+          "manual_verified_report"
+        ]
+      },
+      "acquisition": {
+        "status": "source_collection_required",
+        "official_distribution": "统计年鉴、政府开放数据、合规市场报告、高德 MCP 区域与 POI 密度快照",
+        "evidence_urls": [],
+        "notes": "城市生活成本必须保存 metric_year、snapshot_date、source_scope 和样本数。租售价格使用校区周边 housing 快照优先，城市/区县均值只作为背景基准。"
+      },
+      "target_tables": ["fa_fact_region_living_cost"]
+    },
+    "campus_living_score": {
+      "name": "校区生活便利与成本评分",
+      "kind": "derived_from_campus_geo_poi_and_housing",
+      "owner": "lifehack-datahub",
+      "raw_glob": "raw/campus_living_score/**/*",
+      "remote_files": [],
+      "derivation": {
+        "source_tables": [
+          "fa_dim_school_location",
+          "fa_dim_region_profile",
+          "fa_fact_campus_surrounding_poi",
+          "fa_fact_campus_housing_market",
+          "fa_fact_region_living_cost"
+        ],
+        "score_profiles": ["student_living_default"],
+        "default_weights": {
+          "transit_score": 0.30,
+          "commerce_score": 0.20,
+          "housing_cost_score": 0.25,
+          "medical_score": 0.10,
+          "green_space_score": 0.15
+        }
+      },
+      "acquisition": {
+        "status": "derived_from_datahub_signals",
+        "official_distribution": "DataHub 校区位置、周边设施和住房价格快照加工结果",
+        "evidence_urls": [],
+        "notes": "用于辅助比较校外租房、通勤便利和生活成本，不替代录取概率、学校层级或专业前景。评分权重后续应迁入独立配置。"
+      },
+      "target_tables": ["fa_mart_campus_living_score"]
     },
     "school_identity_bridge": {
       "name": "辽宁院校代码与教育部学校标识码桥表",
