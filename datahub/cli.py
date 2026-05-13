@@ -17,6 +17,10 @@ from .builders.admission_plan_reconciliation_batch import (
 from .builders.admission_plan_reconciliation_delete_plan import build_admission_plan_delete_plan_from_reconciliation_plan
 from .builders.career_score import build_career_score_package
 from .builders.career_source_audit import audit_career_source_plan
+from .builders.career_source_batch import (
+    build_career_source_review_batch,
+    merge_career_source_review_batch,
+)
 from .builders.career_source_plan import build_career_source_plan
 from .builders.outcome_collection_batch import (
     build_outcome_collection_batch,
@@ -402,6 +406,24 @@ def main() -> int:
     )
     audit_career_source_plan_parser.add_argument("--plan-csv", required=True, type=Path)
     audit_career_source_plan_parser.add_argument("--report", type=Path)
+
+    build_career_source_batch_parser = sub.add_parser(
+        "build-career-source-review-batch",
+        help="Build a small editable CSV batch of pending career source tasks",
+    )
+    build_career_source_batch_parser.add_argument("--plan-csv", required=True, type=Path)
+    build_career_source_batch_parser.add_argument("--output-dir", required=True, type=Path)
+    build_career_source_batch_parser.add_argument("--source-key", action="append", dest="source_keys")
+    build_career_source_batch_parser.add_argument("--limit-per-source", type=int)
+
+    merge_career_source_batch_parser = sub.add_parser(
+        "merge-career-source-review-batch",
+        help="Merge edited career source batch rows back into a full career source plan",
+    )
+    merge_career_source_batch_parser.add_argument("--plan-csv", required=True, type=Path)
+    merge_career_source_batch_parser.add_argument("--batch-csv", required=True, type=Path)
+    merge_career_source_batch_parser.add_argument("--output", required=True, type=Path)
+    merge_career_source_batch_parser.add_argument("--report", type=Path)
 
     build_career_score = sub.add_parser(
         "build-career-score",
@@ -861,6 +883,26 @@ def main() -> int:
         return 0
     if args.cmd == "audit-career-source-plan":
         report = audit_career_source_plan(args.plan_csv)
+        if args.report:
+            args.report.parent.mkdir(parents=True, exist_ok=True)
+            args.report.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        print(json.dumps(report, ensure_ascii=False, indent=2))
+        return 0
+    if args.cmd == "build-career-source-review-batch":
+        result = build_career_source_review_batch(
+            plan_csv=args.plan_csv,
+            output_dir=args.output_dir,
+            source_keys=args.source_keys,
+            limit_per_source=args.limit_per_source,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+    if args.cmd == "merge-career-source-review-batch":
+        report = merge_career_source_review_batch(
+            plan_csv=args.plan_csv,
+            batch_csv=args.batch_csv,
+            output=args.output,
+        )
         if args.report:
             args.report.parent.mkdir(parents=True, exist_ok=True)
             args.report.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

@@ -18,6 +18,10 @@ from datahub.builders.admission_plan_reconciliation_batch import (
 from datahub.builders.admission_plan_reconciliation_delete_plan import build_admission_plan_delete_plan_from_reconciliation_plan
 from datahub.builders.career_score import build_career_score_package
 from datahub.builders.career_source_audit import audit_career_source_plan
+from datahub.builders.career_source_batch import (
+    build_career_source_review_batch,
+    merge_career_source_review_batch,
+)
 from datahub.builders.career_source_plan import PLAN_COLUMNS as CAREER_PLAN_COLUMNS, build_career_source_plan
 from datahub.connectors.page_images import download_page_images
 from datahub.builders.outcome_collection_audit import audit_outcome_collection_plan
@@ -2591,6 +2595,87 @@ def test_audit_career_source_plan_reports_progress_and_errors(tmp_path: Path):
     assert any("complete status missing evidence" in error for error in report["errors"])
 
 
+def test_build_career_source_review_batch_limits_pending_rows(tmp_path: Path):
+    plan = tmp_path / "career_source_plan.csv"
+    rows = [
+        _career_plan_row("career_recruitment_snapshot", "fa_fact_career_signal", "salary_median", status="todo"),
+        _career_plan_row("career_recruitment_snapshot", "fa_fact_career_signal", "work_intensity_index", status="in_progress"),
+        _career_plan_row("career_recruitment_snapshot", "fa_fact_career_signal", "salary_p75", status="verified"),
+        _career_plan_row("career_civil_service_posts", "fa_fact_career_signal", "civil_service_post_count", status="todo"),
+    ]
+    _write_career_plan(plan, rows)
+
+    result = build_career_source_review_batch(
+        plan_csv=plan,
+        output_dir=tmp_path / "career_batch",
+        limit_per_source=1,
+    )
+
+    assert result["rows"] == 2
+    assert result["source_counts"] == {
+        "career_civil_service_posts": 1,
+        "career_recruitment_snapshot": 1,
+    }
+    with Path(result["csv"]).open(encoding="utf-8", newline="") as f:
+        batch_rows = list(csv.DictReader(f))
+    assert {row["status"] for row in batch_rows} <= {"todo", "in_progress"}
+    assert all(row["metric_key"] != "salary_p75" for row in batch_rows)
+    manifest = json.loads(Path(result["manifest"]).read_text(encoding="utf-8"))
+    assert manifest["task_key_columns"] == [
+        "source_key",
+        "target_table",
+        "occupation_code",
+        "occupation_name",
+        "metric_key",
+        "metric_year",
+        "city",
+    ]
+    assert "source_url" in manifest["editable_columns"]
+
+
+def test_merge_career_source_review_batch_updates_only_editable_columns(tmp_path: Path):
+    plan = tmp_path / "career_source_plan.csv"
+    rows = [
+        _career_plan_row("career_recruitment_snapshot", "fa_fact_career_signal", "salary_median", status="todo"),
+        _career_plan_row("career_civil_service_posts", "fa_fact_career_signal", "civil_service_post_count", status="todo"),
+    ]
+    _write_career_plan(plan, rows)
+    batch = tmp_path / "career_source_review_batch.csv"
+    edited_row = {**rows[0]}
+    edited_row.update({
+        "source_name": "被篡改的来源名",
+        "status": "verified",
+        "metric_value": "12000",
+        "metric_scope": "公开招聘样本，税前月薪",
+        "source_title": "招聘薪资快照",
+        "source_url": "https://example.com/jobs/software",
+        "evidence_quote": "软件工程师薪资中位数约12000元/月。",
+        "source_date": "2026-05-13",
+        "availability_date": "2026-05-13",
+        "reviewer": "fixture",
+        "reviewed_at": "2026-05-13T00:00:00",
+        "notes": "核对完成",
+    })
+    _write_career_plan(batch, [edited_row])
+
+    output = tmp_path / "career_source_plan_merged.csv"
+    report = merge_career_source_review_batch(
+        plan_csv=plan,
+        batch_csv=batch,
+        output=output,
+    )
+
+    assert report["updated_rows"] == 1
+    assert report["status_counts"] == {"todo": 1, "verified": 1}
+    with output.open(encoding="utf-8", newline="") as f:
+        merged_rows = list(csv.DictReader(f))
+    assert merged_rows[0]["source_name"] == "招聘需求与薪资快照"
+    assert merged_rows[0]["status"] == "verified"
+    assert merged_rows[0]["source_url"] == "https://example.com/jobs/software"
+    assert merged_rows[0]["notes"] == "核对完成"
+    assert merged_rows[1]["status"] == "todo"
+
+
 def test_build_career_signal_package_from_cleaned_csv(tmp_path: Path):
     source = tmp_path / "career_signal.csv"
     with source.open("w", encoding="utf-8", newline="") as f:
@@ -3654,6 +3739,60 @@ def _outcome_plan_row(
 def _write_outcome_plan(path: Path, rows: list[dict[str, str]]) -> None:
     with path.open("w", encoding="utf-8", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=OUTCOME_PLAN_COLUMNS, extrasaction="ignore")
+        writer.writeheader()
+        writer.writerows(rows)
+
+
+def _career_plan_row(
+    source_key: str,
+    target_table: str,
+    metric_key: str,
+    *,
+    status: str,
+) -> dict[str, str]:
+    source_name = {
+        "career_recruitment_snapshot": "招聘需求与薪资快照",
+        "career_civil_service_posts": "公考与事业编岗位目录",
+    }.get(source_key, source_key)
+    metric_label = {
+        "salary_median": "月薪中位数",
+        "salary_p75": "月薪75分位",
+        "work_intensity_index": "工作强度指数",
+        "civil_service_post_count": "公考岗位数",
+    }.get(metric_key, metric_key)
+    metric_unit = {
+        "salary_median": "cny_month",
+        "salary_p75": "cny_month",
+        "work_intensity_index": "score",
+        "civil_service_post_count": "count",
+    }.get(metric_key, "")
+    row = {column: "" for column in CAREER_PLAN_COLUMNS}
+    row.update({
+        "source_key": source_key,
+        "source_name": source_name,
+        "source_kind": "controlled_market_snapshot",
+        "target_table": target_table,
+        "occupation_code": "15-102",
+        "occupation_name": "软件工程师",
+        "tdx_l2": "T1205",
+        "tdx_l2_name": "软件服务",
+        "metric_key": metric_key,
+        "metric_label": metric_label,
+        "metric_unit": metric_unit,
+        "metric_year": "2026",
+        "city": "沈阳",
+        "collection_methods": '["manual_platform_export"]',
+        "official_distribution": "公开可复核来源",
+        "evidence_urls": "[]",
+        "search_queries": json.dumps([f"软件工程师 {metric_label} 沈阳 2026"], ensure_ascii=False),
+        "status": status,
+    })
+    return row
+
+
+def _write_career_plan(path: Path, rows: list[dict[str, str]]) -> None:
+    with path.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=CAREER_PLAN_COLUMNS, extrasaction="ignore")
         writer.writeheader()
         writer.writerows(rows)
 

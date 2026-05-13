@@ -175,7 +175,7 @@ python3 scripts/build_package.py intake-manual \
   --input ~/Downloads/2026_liaoning_plan.xlsx \
   --output-root raw \
   --source-date 2026-06-20 \
-  --acquired-by consultant \
+  --acquired-by data_reviewer \
   --official-distribution 网报志愿系统 \
   --evidence-url https://jyt.ln.gov.cn/jyt/jyzx/jyyw/2025062010482638109/index.shtml \
   --notes "从官方志愿系统导出，未人工改列名"
@@ -443,6 +443,35 @@ python3 scripts/build_package.py build-local \
 这些表的字段、别名、必填列、数字列维护在 `config/source_schemas.json`；来源状态维护在 `config/sources.json`。没有明确来源 URL 或证据摘录的主观判断不得发布为 outcome 数据包。
 
 学校和专业 outcome 的 `metric_key` 必须先登记到 `config/outcome_metrics.json`。`build-local` 会校验 metric key、单位和取值范围；未登记指标不会被打包发布。
+
+## 职业数据链路
+
+职业相关数据先由配置生成采集计划，再由受控批次补证据和指标值，最后发布 `fa_fact_career_signal` 并加工 `fa_mart_career_score`。采集源、指标口径、值域、评分权重和批次可回写列维护在 `config/career_data_sources.json`，表结构维护在 `config/source_schemas.json`：
+
+```bash
+python3 scripts/build_package.py build-career-source-plan \
+  --output-dir staging/career_source_plan \
+  --occupation-input cleaned/career_occupation_seed.csv \
+  --city 沈阳 \
+  --metric-year 2026
+
+python3 scripts/build_package.py build-career-source-review-batch \
+  --plan-csv staging/career_source_plan/career_source_plan.csv \
+  --output-dir staging/career_source_plan/batch_001 \
+  --limit-per-source 20
+
+python3 scripts/build_package.py merge-career-source-review-batch \
+  --plan-csv staging/career_source_plan/career_source_plan.csv \
+  --batch-csv staging/career_source_plan/batch_001/career_source_review_batch.csv \
+  --output staging/career_source_plan/career_source_plan_merged.csv \
+  --report staging/career_source_plan/career_source_merge.json
+
+python3 scripts/build_package.py audit-career-source-plan \
+  --plan-csv staging/career_source_plan/career_source_plan_merged.csv \
+  --report staging/career_source_plan/career_source_audit.json
+```
+
+批次命令按 `source_key, target_table, occupation_code, occupation_name, metric_key, metric_year, city` 定位任务，只允许回写配置列，防止局部文件改掉职业、指标、来源或目标表。通过审计后，再用 `build-local` 生成 `fa_fact_career_signal` 标准包，并用 `build-career-score` 生成职业评分加工包。
 
 Outcome 数据采集不直接从搜索结果进 core。先用 core 招生计划生成高优先级采集队列：
 
