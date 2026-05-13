@@ -30,6 +30,11 @@ def load_outcome_collection() -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def load_outcome_report_sources() -> dict[str, Any]:
+    path = CONFIG_DIR / "outcome_report_sources.json"
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
 def load_career_data_sources() -> dict[str, Any]:
     path = CONFIG_DIR / "career_data_sources.json"
     return json.loads(path.read_text(encoding="utf-8"))

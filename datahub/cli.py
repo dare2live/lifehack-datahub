@@ -56,6 +56,7 @@ from .builders.outcome_report_source_batch import (
     merge_outcome_report_source_review_batch,
 )
 from .builders.outcome_report_source_plan import build_outcome_report_source_plan
+from .builders.outcome_report_source_seed_merge import apply_outcome_report_source_seeds
 from .builders.policy_tables import (
     build_policy_industry_map_package,
     build_policy_plan_history_package,
@@ -497,6 +498,15 @@ def main() -> int:
     merge_outcome_report_source_batch.add_argument("--batch-csv", required=True, type=Path)
     merge_outcome_report_source_batch.add_argument("--output", required=True, type=Path)
     merge_outcome_report_source_batch.add_argument("--report", type=Path)
+
+    apply_outcome_report_source_seeds_parser = sub.add_parser(
+        "apply-outcome-report-source-seeds",
+        help="Apply configured report-source seeds to a full report-source plan",
+    )
+    apply_outcome_report_source_seeds_parser.add_argument("--plan-csv", required=True, type=Path)
+    apply_outcome_report_source_seeds_parser.add_argument("--output", required=True, type=Path)
+    apply_outcome_report_source_seeds_parser.add_argument("--report", type=Path)
+    apply_outcome_report_source_seeds_parser.add_argument("--overwrite", action="store_true")
 
     build_outcome_report_extraction = sub.add_parser(
         "build-outcome-report-extraction-plan",
@@ -1258,6 +1268,15 @@ def main() -> int:
         )
         print(json.dumps(report, ensure_ascii=False, indent=2))
         return 0 if not report["errors"] else 1
+    if args.cmd == "apply-outcome-report-source-seeds":
+        report = apply_outcome_report_source_seeds(
+            plan_csv=args.plan_csv,
+            output=args.output,
+            report_path=args.report,
+            overwrite=args.overwrite,
+        )
+        print(json.dumps(report, ensure_ascii=False, indent=2))
+        return 0
     if args.cmd == "build-outcome-report-extraction-plan":
         result = build_outcome_report_extraction_plan(
             report_source_csv=args.report_source_csv,

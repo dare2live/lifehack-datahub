@@ -1,0 +1,33 @@
+{
+  "version": "1",
+  "updated_at": "2026-05-13",
+  "notes": "已确认的学校/专业 outcome 报告来源种子。只用于预填 outcome_report_source_plan，不下载文件、不生成 data package。",
+  "applied_status": "candidate_found",
+  "reviewer": "datahub_seed",
+  "seeds": [
+    {
+      "domain": "school",
+      "entity_name": "辽宁大学",
+      "metric_year": 2022,
+      "report_scope": "employment_quality_report",
+      "candidate_report_title": "辽宁大学2022届毕业生就业质量年度报告",
+      "candidate_report_url": "https://www.lnu.edu.cn/info/15026/78891.htm",
+      "candidate_file_name": "辽宁大学2022届毕业生就业质量年度报告.pdf",
+      "candidate_source_date": "2023-01-05",
+      "availability_date": "2023-01-05",
+      "evidence_note": "辽宁大学官网通知公告页面发布，页面说明报告见附件。"
+    },
+    {
+      "domain": "school",
+      "entity_name": "沈阳工业大学",
+      "metric_year": 2024,
+      "report_scope": "undergraduate_teaching_quality_report",
+      "candidate_report_title": "2023-2024年沈阳工业大学本科教学质量报告",
+      "candidate_report_url": "https://www.sut.edu.cn/info/1584/67026.htm",
+      "candidate_file_name": "2023-2024年沈阳工业大学本科教学质量报告.pdf",
+      "candidate_source_date": "2024-12-05",
+      "availability_date": "2024-12-05",
+      "evidence_note": "沈阳工业大学官网信息公开页发布，页面列出本科教学质量报告附件。"
+    }
+  ]
+}

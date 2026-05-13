@@ -664,14 +664,21 @@ python3 scripts/build_package.py merge-outcome-report-source-review-batch \
   --output staging/outcome_report_sources/outcome_report_source_plan.reviewed.csv \
   --report staging/outcome_report_sources/outcome_report_source_merge.json
 
+python3 scripts/build_package.py apply-outcome-report-source-seeds \
+  --plan-csv staging/outcome_report_sources/outcome_report_source_plan.csv \
+  --output staging/outcome_report_sources/outcome_report_source_plan.seeded.csv \
+  --report staging/outcome_report_sources/outcome_report_source_seed_merge.json
+
 python3 scripts/build_package.py build-outcome-report-extraction-plan \
-  --report-source-csv staging/outcome_report_sources/outcome_report_source_plan.reviewed.csv \
+  --report-source-csv staging/outcome_report_sources/outcome_report_source_plan.seeded.csv \
   --output-dir staging/outcome_report_candidates
 
 python3 scripts/build_package.py run-outcome-report-extraction-plan \
   --plan-csv staging/outcome_report_candidates/outcome_report_extraction_plan.csv \
   --report staging/outcome_report_candidates/outcome_report_extraction_report.json
 ```
+
+`config/outcome_report_sources.json` 保存已经确认的学校/专业报告来源种子，例如辽宁大学 2022 届毕业生就业质量报告和沈阳工业大学 2023-2024 本科教学质量报告。`apply-outcome-report-source-seeds` 只把这些种子合并到 report-source plan，状态变成 `candidate_found`；PDF 下载、受控 intake、本地文件路径、候选提取、人工核对和 outcome 数据包生成仍然是后续独立门禁。
 
 采集计划 CSV 预留 `metric_value/source_url/evidence_quote/metric_scope` 等证据列，人工或后续采集器补齐后，可先跑审计报告确认指标、状态和证据完整度：
 

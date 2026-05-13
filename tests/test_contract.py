@@ -58,6 +58,7 @@ from datahub.builders.outcome_report_source_batch import (
     merge_outcome_report_source_review_batch,
 )
 from datahub.builders.outcome_report_source_plan import build_outcome_report_source_plan
+from datahub.builders.outcome_report_source_seed_merge import apply_outcome_report_source_seeds
 from datahub.builders.policy_tables import (
     build_policy_industry_map_package,
     build_policy_plan_history_package,
@@ -85,6 +86,7 @@ from datahub.config import (
     load_data_update_policy,
     load_entity_normalization,
     load_outcome_metrics,
+    load_outcome_report_sources,
     load_source_schemas,
 )
 from datahub.builders.school_identity import build_school_identity_package
@@ -4329,6 +4331,45 @@ def test_outcome_report_source_review_batch_merge_is_surgical(tmp_path: Path):
     assert school_row["candidate_report_url"] == "https://example.edu/lnu2025.pdf"
     assert school_row["local_report_path"] == "/tmp/lnu2025.pdf"
     assert any(row["domain"] == "major" and row["status"] == "todo" for row in merged_rows)
+
+
+def test_apply_outcome_report_source_seeds_updates_matching_pending_rows(tmp_path: Path):
+    seed_config = load_outcome_report_sources()
+    assert seed_config["applied_status"] == "candidate_found"
+    plan = tmp_path / "outcome_collection_plan.csv"
+    rows = [
+        _outcome_plan_row("school", "10140", "辽宁大学", "employment_rate", status="todo", priority_rank="1"),
+        _outcome_plan_row("school", "10142", "沈阳工业大学", "employment_rate", status="todo", priority_rank="1"),
+        _outcome_plan_row("major", "法学", "法学", "employment_rate", status="todo", priority_rank="2"),
+    ]
+    rows[0]["metric_year"] = "2022"
+    rows[1]["metric_year"] = "2024"
+    rows[2]["metric_year"] = "2022"
+    _write_outcome_plan(plan, rows)
+    source_result = build_outcome_report_source_plan(
+        plan_csv=plan,
+        output_dir=tmp_path / "report_sources",
+    )
+
+    output = tmp_path / "report_sources" / "outcome_report_source_plan_seeded.csv"
+    report = apply_outcome_report_source_seeds(
+        plan_csv=Path(source_result["csv"]),
+        output=output,
+        report_path=tmp_path / "report_sources" / "seed_merge.json",
+    )
+
+    assert report["updated_rows"] == 2
+    assert report["unmatched_seed_ids"] == []
+    with output.open(encoding="utf-8", newline="") as f:
+        merged_rows = list(csv.DictReader(f))
+    lnu = next(row for row in merged_rows if row["entity_name"] == "辽宁大学" and row["report_scope"] == "employment_quality_report")
+    assert lnu["status"] == "candidate_found"
+    assert lnu["candidate_report_url"] == "https://www.lnu.edu.cn/info/15026/78891.htm"
+    assert lnu["candidate_source_date"] == "2023-01-05"
+    sut = next(row for row in merged_rows if row["entity_name"] == "沈阳工业大学" and row["report_scope"] == "undergraduate_teaching_quality_report")
+    assert sut["candidate_report_url"] == "https://www.sut.edu.cn/info/1584/67026.htm"
+    major = next(row for row in merged_rows if row["domain"] == "major")
+    assert major["status"] == "todo"
 
 
 def test_build_outcome_report_extraction_plan_requires_local_file(tmp_path: Path):
