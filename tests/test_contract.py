@@ -5,6 +5,7 @@ import json
 from zipfile import ZipFile
 
 import duckdb
+import pytest
 from openpyxl import Workbook
 
 from datahub.builders.admission_plan_snapshot import build_admission_plan_snapshot_package
@@ -2841,6 +2842,57 @@ def test_outcome_metric_registry_rejects_unknown_keys(tmp_path: Path):
     except ValueError as exc:
         rejected = "unregistered metric_key" in str(exc)
     assert rejected
+
+
+def test_outcome_metric_registry_requires_metric_scope(tmp_path: Path):
+    source = tmp_path / "school_outcome_missing_scope.csv"
+    with source.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(
+            f,
+            fieldnames=[
+                "院校代码",
+                "院校名称",
+                "指标键",
+                "指标名称",
+                "指标值",
+                "单位",
+                "指标年份",
+                "统计口径",
+                "来源标题",
+                "来源链接",
+                "证据摘录",
+                "来源日期",
+                "可用日期",
+                "构建时间",
+            ],
+        )
+        writer.writeheader()
+        writer.writerow({
+            "院校代码": "10145",
+            "院校名称": "东北大学",
+            "指标键": "civil_service_rate",
+            "指标名称": "体制内去向比例",
+            "指标值": "34.6%",
+            "单位": "ratio",
+            "指标年份": "2025",
+            "统计口径": "",
+            "来源标题": "2025届毕业生就业质量报告",
+            "来源链接": "https://example.edu/report.pdf",
+            "证据摘录": "国有企业签约比例为34.6%。",
+            "来源日期": "2025-12-31",
+            "可用日期": "2026-01-05",
+            "构建时间": "2026-05-13T00:00:00",
+        })
+
+    with pytest.raises(ValueError, match="missing metric_scope"):
+        build_local_package(
+            source_key="school_outcome",
+            table_name="fa_fact_school_outcome",
+            input_path=source,
+            output_root=tmp_path / "exports",
+            package_id="pkg-school-outcome-missing-scope",
+            source_version="fixture-school-outcome",
+        )
 
 
 def test_build_career_source_plan_from_config(tmp_path: Path):

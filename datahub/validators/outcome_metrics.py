@@ -48,4 +48,6 @@ def validate_outcome_metrics(rows: list[dict[str, Any]], table_name: str) -> dic
         metric_name = row.get("metric_name")
         if not metric_name:
             warnings.append(f"row {index} missing metric_name for {metric_key}")
+        if not str(row.get("metric_scope") or "").strip():
+            errors.append(f"row {index} missing metric_scope for {metric_key}")
     return {"errors": errors, "warnings": warnings}
