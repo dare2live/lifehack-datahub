@@ -103,6 +103,23 @@
     "editable_columns": ["status", "metric_value", "metric_scope", "source_title", "source_url", "evidence_quote", "source_date", "availability_date", "reviewer", "reviewed_at", "notes"],
     "limit_per_source": 50
   },
+  "civil_service_signal_plan": {
+    "source_key": "career_civil_service_posts",
+    "target_table": "fa_fact_career_signal",
+    "metric_key": "civil_service_post_count",
+    "candidate_status": "in_progress",
+    "default_city": "全国",
+    "metric_value_field": "position_count",
+    "max_evidence_positions": 5,
+    "match_text_fields": ["major_requirement", "position_name", "position_description", "remarks"],
+    "keyword_stopwords": ["工程", "技术", "人员", "职业", "岗位", "相关", "管理"],
+    "occupation_name_suffixes": ["工程技术人员", "技术人员", "工作人员", "人员", "工程师", "师"],
+    "derived_keyword_terms": [
+      "计算机", "软件", "数据", "网络", "信息", "通信", "电子", "会计", "财务", "审计", "法学", "法律",
+      "测绘", "遥感", "地理", "地质", "气象", "海洋", "化工", "机械", "机器人", "物流", "供应链",
+      "金融", "统计", "数学", "中文", "新闻", "传媒", "设计", "环境", "农业"
+    ]
+  },
   "source_plan": {
     "sources": {
       "career_occupation_catalog": {

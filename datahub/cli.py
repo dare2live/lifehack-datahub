@@ -16,6 +16,7 @@ from .builders.admission_plan_reconciliation_batch import (
 )
 from .builders.admission_plan_reconciliation_delete_plan import build_admission_plan_delete_plan_from_reconciliation_plan
 from .builders.career_score import build_career_score_package
+from .builders.career_civil_service_signal_plan import build_civil_service_signal_plan
 from .builders.career_source_audit import audit_career_source_plan
 from .builders.career_source_coverage import audit_career_source_coverage
 from .builders.career_source_batch import (
@@ -657,6 +658,17 @@ def main() -> int:
     build_career_signal_from_plan.add_argument("--source-key", action="append", dest="source_keys")
     build_career_signal_from_plan.add_argument("--package-id")
     build_career_signal_from_plan.add_argument("--source-version")
+
+    build_civil_service_signal_plan_parser = sub.add_parser(
+        "build-civil-service-signal-plan",
+        help="Build reviewable career signal rows from parsed official civil-service positions",
+    )
+    build_civil_service_signal_plan_parser.add_argument("--positions-csv", required=True, type=Path)
+    build_civil_service_signal_plan_parser.add_argument("--output-dir", required=True, type=Path)
+    build_civil_service_signal_plan_parser.add_argument("--occupation-input", type=Path)
+    build_civil_service_signal_plan_parser.add_argument("--core-db", type=Path)
+    build_civil_service_signal_plan_parser.add_argument("--metric-year", type=int)
+    build_civil_service_signal_plan_parser.add_argument("--city")
 
     build_career_score = sub.add_parser(
         "build-career-score",
@@ -1513,6 +1525,17 @@ def main() -> int:
             source_keys=args.source_keys,
             package_id=args.package_id,
             source_version=args.source_version,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+    if args.cmd == "build-civil-service-signal-plan":
+        result = build_civil_service_signal_plan(
+            positions_csv=args.positions_csv,
+            output_dir=args.output_dir,
+            occupation_input=args.occupation_input,
+            core_db=args.core_db,
+            metric_year=args.metric_year,
+            city=args.city,
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0

@@ -17,6 +17,7 @@ from datahub.builders.admission_plan_reconciliation_batch import (
 )
 from datahub.builders.admission_plan_reconciliation_delete_plan import build_admission_plan_delete_plan_from_reconciliation_plan
 from datahub.builders.career_score import build_career_score_package
+from datahub.builders.career_civil_service_signal_plan import build_civil_service_signal_plan
 from datahub.builders.career_source_audit import audit_career_source_plan
 from datahub.builders.career_source_coverage import audit_career_source_coverage
 from datahub.builders.career_source_batch import (
@@ -3233,6 +3234,94 @@ def test_parse_scs_position_workbook_from_zip(tmp_path: Path, monkeypatch):
     assert result["rows"] == 1
     assert result["quality_report"]["errors"] == []
     assert validate_manifest(package_dir / "manifest.json")["errors"] == []
+
+
+def test_build_civil_service_signal_plan_from_positions(tmp_path: Path):
+    positions = tmp_path / "scs_positions.csv"
+    position_rows = [
+        {
+            "source_key": "career_civil_service_posts",
+            "source_title": "中央机关及其直属机构2026年度考试录用公务员招考简章",
+            "source_url": "http://dl.scs.gov.cn/download/resource-main",
+            "source_date": "2025-10-14",
+            "availability_date": "2025-10-14",
+            "sheet_name": "中央国家行政机关",
+            "row_number": "3",
+            "position_code": "100110001002",
+            "position_name": "信息化建设岗位",
+            "position_description": "从事软件系统建设和数据治理工作",
+            "recruit_count": "2",
+            "major_requirement": "本科：080901计算机科学与技术、080902软件工程",
+            "work_location": "北京市",
+            "remarks": "",
+        },
+        {
+            "source_key": "career_civil_service_posts",
+            "source_title": "中央机关及其直属机构2026年度考试录用公务员招考简章",
+            "source_url": "http://dl.scs.gov.cn/download/resource-main",
+            "source_date": "2025-10-14",
+            "availability_date": "2025-10-14",
+            "sheet_name": "中央党群机关",
+            "row_number": "4",
+            "position_code": "100110001003",
+            "position_name": "财务管理岗位",
+            "position_description": "从事财务管理相关工作",
+            "recruit_count": "1",
+            "major_requirement": "本科：120203K会计学、120204财务管理",
+            "work_location": "北京市",
+            "remarks": "",
+        },
+    ]
+    with positions.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=position_rows[0].keys())
+        writer.writeheader()
+        writer.writerows(position_rows)
+
+    occupations = tmp_path / "occupations.csv"
+    occupation_rows = [
+        {
+            "occupation_code": "2-02-10-03",
+            "occupation_name": "计算机软件工程技术人员",
+            "tdx_l2": "T1205",
+            "tdx_l2_name": "软件服务",
+            "major_keywords_json": "[]",
+            "skill_keywords_json": "[]",
+        },
+        {
+            "occupation_code": "2-06-04-00",
+            "occupation_name": "会计专业人员",
+            "tdx_l2": "T1001",
+            "tdx_l2_name": "银行",
+            "major_keywords_json": "[\"会计\", \"财务\"]",
+            "skill_keywords_json": "[]",
+        },
+    ]
+    with occupations.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=occupation_rows[0].keys())
+        writer.writeheader()
+        writer.writerows(occupation_rows)
+
+    result = build_civil_service_signal_plan(
+        positions_csv=positions,
+        occupation_input=occupations,
+        output_dir=tmp_path / "civil_service_signal",
+        metric_year=2026,
+    )
+
+    assert result["rows"] == 2
+    plan_csv = Path(result["csv"])
+    with plan_csv.open(encoding="utf-8", newline="") as f:
+        rows = list(csv.DictReader(f))
+    by_code = {row["occupation_code"]: row for row in rows}
+    assert by_code["2-02-10-03"]["metric_key"] == "civil_service_post_count"
+    assert by_code["2-02-10-03"]["metric_value"] == "1"
+    assert "招考人数2人" in by_code["2-02-10-03"]["metric_scope"]
+    assert "信息化建设岗位" in by_code["2-02-10-03"]["evidence_quote"]
+    assert by_code["2-06-04-00"]["status"] == "in_progress"
+
+    audit = audit_career_source_plan(plan_csv)
+    assert audit["errors"] == []
+    assert audit["status_counts"] == {"in_progress": 2}
 
 
 def test_build_career_source_review_batch_limits_pending_rows(tmp_path: Path):
