@@ -5126,6 +5126,7 @@ def test_extract_outcome_report_candidates_from_lines(tmp_path: Path):
             (9, "占比 36.34%；自由职业人数为 770 人，占比 17.84%。"),
             (10, "本科毕业生 4315 人中，攻读研究生 1549 人。其中，推荐免试攻读研究生"),
             (10, "582 人，占比 37.57%；考取本校研究生 150 人，占比 9.68%。"),
+            (10, "2024 届本科毕业生考取研究生 876 人(其中推免生 143 人),占本科毕业生总数的 25.47%,"),
             (11, "2024 届毕业生初次就业率显示：42.1%毕业生在辽宁省就业。"),
             (12, "毕业授位 88 人，学位点就业率 100%。学员主要分布在国有企业单位。"),
             (12, "毕业生职业发展情况良好，毕业生近三年内 47.6%岗位得到晋升。"),
@@ -5144,8 +5145,10 @@ def test_extract_outcome_report_candidates_from_lines(tmp_path: Path):
     assert any(row["candidate_value"] == "0.9236" for row in rows)
     assert any(row["candidate_value"] == "0.8582" for row in rows)
     assert any(row["match_alias"] == "升学人数" and row["candidate_value"] == "0.3634" for row in rows)
+    assert any(row["match_alias"] == "考取研究生" and row["candidate_value"] == "0.2547" for row in rows)
     assert any(row["match_alias"] == "推荐免试" for row in rows)
     assert not any(row["metric_key"] == "keep_research_rate" and row["candidate_value"] == "0.3757" for row in rows)
+    assert not any(row["metric_key"] == "keep_research_rate" and row["candidate_value"] == "0.2547" for row in rows)
     assert not any(row["metric_key"] == "employment_rate" and row["candidate_value"] in {"0.421", "1"} for row in rows)
     assert not any(row["metric_key"] == "civil_service_rate" and row["candidate_value"] == "0.476" for row in rows)
     assert all(row["review_status"] == "needs_review" for row in rows)
@@ -5924,21 +5927,23 @@ def test_build_outcome_collection_batch_limits_pending_rows(tmp_path: Path):
 def test_apply_outcome_collection_review_seeds_updates_matching_rows(tmp_path: Path):
     audit = audit_outcome_collection_review_seeds()
     assert audit["errors"] == []
-    assert audit["seed_count"] == 4
-    assert audit["status_counts"] == {"verified": 4}
+    assert audit["seed_count"] == 8
+    assert audit["status_counts"] == {"verified": 8}
 
     plan = tmp_path / "outcome_collection_plan.csv"
     seeded = _outcome_plan_row("school", "0140", "辽宁大学", "employment_rate", status="todo", priority_rank="1")
     seeded["metric_year"] = "2024"
+    dlpu = _outcome_plan_row("school", "0152", "大连工业大学", "postgrad_rate", status="todo", priority_rank="2")
+    dlpu["metric_year"] = "2024"
     pending = _outcome_plan_row("school", "0166", "沈阳师范大学", "employment_rate", status="todo", priority_rank="2")
     pending["metric_year"] = "2024"
-    _write_outcome_plan(plan, [seeded, pending])
+    _write_outcome_plan(plan, [seeded, dlpu, pending])
 
     output = tmp_path / "outcome_collection_plan_seeded.csv"
     report = apply_outcome_collection_review_seeds(plan_csv=plan, output=output)
-    assert report["matched_rows"] == 1
-    assert report["updated_rows"] == 1
-    assert report["unmatched_seeds"] == 3
+    assert report["matched_rows"] == 2
+    assert report["updated_rows"] == 2
+    assert report["unmatched_seeds"] == 6
 
     with output.open(encoding="utf-8", newline="") as f:
         rows = list(csv.DictReader(f))
@@ -5949,6 +5954,10 @@ def test_apply_outcome_collection_review_seeds_updates_matching_rows(tmp_path: P
     assert lnu["metric_scope"] == "2024届本科应届毕业生，毕业去向落实率"
     assert lnu["source_url"] == "https://xxgk.lnu.edu.cn/info/13534/68147.htm"
     assert "seed_review=" in lnu["notes"]
+    dlpu_postgrad = by_entity[("0152", "postgrad_rate")]
+    assert dlpu_postgrad["status"] == "verified"
+    assert dlpu_postgrad["metric_value"] == "0.2547"
+    assert "不是保研率" in dlpu_postgrad["metric_scope"]
     assert by_entity[("0166", "employment_rate")]["status"] == "todo"
 
 
