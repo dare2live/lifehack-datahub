@@ -36,6 +36,7 @@ def build_career_source_review_batch(
     selected_sources = set(source_keys or config.get("source_plan", {}).get("sources", {}).keys())
     _validate_sources(config, selected_sources)
     limit = int(limit_per_source or batch_config["limit_per_source"])
+    sort_rules = batch_config["sort"]
 
     rows, fieldnames = _read_csv(plan_csv)
     _ensure_columns(fieldnames, "plan csv")
@@ -51,14 +52,7 @@ def build_career_source_review_batch(
     for source_key in _source_order(config, selected_sources):
         source_rows = sorted(
             grouped.get(source_key, []),
-            key=lambda row: (
-                str(row.get("target_table") or ""),
-                str(row.get("occupation_name") or ""),
-                str(row.get("occupation_code") or ""),
-                str(row.get("metric_key") or ""),
-                str(row.get("metric_year") or ""),
-                str(row.get("city") or ""),
-            ),
+            key=lambda row: _sort_key(row, sort_rules),
         )
         batch_rows.extend(source_rows[:limit])
 
@@ -76,6 +70,7 @@ def build_career_source_review_batch(
         "selected_sources": sorted(selected_sources),
         "selection_statuses": sorted(selection_statuses),
         "limit_per_source": limit,
+        "sort": sort_rules,
         "rows": len(batch_rows),
         "source_counts": dict(sorted(source_counts.items())),
         "target_counts": dict(sorted(target_counts.items())),
@@ -180,10 +175,35 @@ def _batch_config(config: dict[str, Any]) -> dict[str, Any]:
     limit = batch.get("limit_per_source")
     if not isinstance(limit, int) or limit < 1:
         raise ValueError("career_data_sources.review_batch.limit_per_source must be a positive integer")
+    sort = batch.get("sort") or [
+        {"field": "target_table", "type": "text", "direction": "asc"},
+        {"field": "occupation_name", "type": "text", "direction": "asc"},
+        {"field": "occupation_code", "type": "text", "direction": "asc"},
+        {"field": "metric_key", "type": "text", "direction": "asc"},
+        {"field": "metric_year", "type": "text", "direction": "asc"},
+        {"field": "city", "type": "text", "direction": "asc"},
+    ]
+    if not isinstance(sort, list):
+        raise ValueError("career_data_sources.review_batch.sort must be a list")
+    normalized_sort = []
+    for index, item in enumerate(sort, start=1):
+        if not isinstance(item, dict):
+            raise ValueError(f"career_data_sources.review_batch.sort item {index} must be an object")
+        field = str(item.get("field") or "").strip()
+        value_type = str(item.get("type") or "text").strip()
+        direction = str(item.get("direction") or "asc").strip()
+        if field not in PLAN_COLUMNS:
+            raise ValueError(f"career_data_sources.review_batch.sort unknown field: {field}")
+        if value_type not in {"text", "number"}:
+            raise ValueError(f"career_data_sources.review_batch.sort unsupported type: {value_type}")
+        if direction not in {"asc", "desc"}:
+            raise ValueError(f"career_data_sources.review_batch.sort unsupported direction: {direction}")
+        normalized_sort.append({"field": field, "type": value_type, "direction": direction})
     return {
         "selection_statuses": [str(item) for item in batch["selection_statuses"]],
         "editable_columns": [str(item) for item in batch["editable_columns"]],
         "limit_per_source": limit,
+        "sort": normalized_sort,
     }
 
 
@@ -196,6 +216,39 @@ def _validate_sources(config: dict[str, Any], selected_sources: set[str]) -> Non
 
 def _source_order(config: dict[str, Any], selected_sources: set[str]) -> list[str]:
     return [source_key for source_key in config.get("source_plan", {}).get("sources", {}) if source_key in selected_sources]
+
+
+def _sort_key(row: dict[str, Any], sort_rules: list[dict[str, str]]) -> tuple[Any, ...]:
+    key: list[Any] = []
+    for rule in sort_rules:
+        field = rule["field"]
+        if rule["type"] == "number":
+            number = _to_number(row.get(field))
+            missing = number is None
+            value = 0.0 if number is None else number
+            if rule["direction"] == "desc":
+                value = -value
+            key.append((missing, value))
+        else:
+            text = str(row.get(field) or "").strip()
+            if rule["direction"] == "desc":
+                text = _reverse_text_key(text)
+            key.append(text)
+    return tuple(key)
+
+
+def _to_number(value: Any) -> float | None:
+    text = str(value or "").strip()
+    if not text:
+        return None
+    try:
+        return float(text)
+    except ValueError:
+        return None
+
+
+def _reverse_text_key(value: str) -> tuple[int, ...]:
+    return tuple(-ord(ch) for ch in value)
 
 
 def _task_key(row: dict[str, Any]) -> tuple[str, ...]:

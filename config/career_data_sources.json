@@ -101,7 +101,16 @@
   "review_batch": {
     "selection_statuses": ["todo", "in_progress"],
     "editable_columns": ["status", "metric_value", "metric_scope", "source_title", "source_url", "evidence_quote", "source_date", "availability_date", "reviewer", "reviewed_at", "notes"],
-    "limit_per_source": 50
+    "limit_per_source": 50,
+    "sort": [
+      {"field": "target_table", "type": "text", "direction": "asc"},
+      {"field": "metric_value", "type": "number", "direction": "desc"},
+      {"field": "occupation_name", "type": "text", "direction": "asc"},
+      {"field": "occupation_code", "type": "text", "direction": "asc"},
+      {"field": "metric_key", "type": "text", "direction": "asc"},
+      {"field": "metric_year", "type": "number", "direction": "desc"},
+      {"field": "city", "type": "text", "direction": "asc"}
+    ]
   },
   "civil_service_signal_plan": {
     "source_key": "career_civil_service_posts",

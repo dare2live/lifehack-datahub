@@ -149,7 +149,7 @@ python3 scripts/build_package.py build-major-outcome-from-civil-service \
   --metric-year 2026
 ```
 
-`build-career-source-plan` 可选读取标准职业清单（`occupation_code/occupation_name/tdx_l2/tdx_l2_name`），把来源配置展开成“职业 × 指标 × 城市”的采集任务；`audit-career-source-plan` 检查状态、指标注册、证据 URL、摘录、来源日期和值域。采集执行时先用 `build-career-source-review-batch` 从总计划拆出小批 CSV，只补 `config/career_data_sources.json.review_batch.editable_columns` 允许的证据列，再用 `merge-career-source-review-batch` 回写总计划；职业、指标、城市、来源和目标表字段不会被批次覆盖。`build-career-signal-from-source-plan` 只读取完整状态的职业信号行，并复用标准数据包质量门禁生成 `fa_fact_career_signal`。采集源、指标口径、评分权重维护在 `config/career_data_sources.json`；目标表契约维护在 `config/source_schemas.json`。招聘平台数据只允许通过公开授权 API、官方附件、人工导出或可复核快照进入 raw，不在本项目写反爬绕过逻辑。
+`build-career-source-plan` 可选读取标准职业清单（`occupation_code/occupation_name/tdx_l2/tdx_l2_name`），把来源配置展开成“职业 × 指标 × 城市”的采集任务；`audit-career-source-plan` 检查状态、指标注册、证据 URL、摘录、来源日期和值域。采集执行时先用 `build-career-source-review-batch` 从总计划拆出小批 CSV，只补 `config/career_data_sources.json.review_batch.editable_columns` 允许的证据列，再用 `merge-career-source-review-batch` 回写总计划；职业、指标、城市、来源和目标表字段不会被批次覆盖。批次选择顺序同样由 `review_batch.sort` 配置，默认在同一来源内优先抽取 `metric_value` 更高、影响更大的待复核行，避免人工先处理低影响候选。`build-career-signal-from-source-plan` 只读取完整状态的职业信号行，并复用标准数据包质量门禁生成 `fa_fact_career_signal`。采集源、指标口径、评分权重维护在 `config/career_data_sources.json`；目标表契约维护在 `config/source_schemas.json`。招聘平台数据只允许通过公开授权 API、官方附件、人工导出或可复核快照进入 raw，不在本项目写反爬绕过逻辑。
 
 当 core 已导入 `fa_dim_career_occupation` 时，`build-career-source-plan --core-db ...` 可只读读取职业目录生成采集任务，避免另存一份职业 CSV。真实 smoke 用本地 core DB 和 3 个职业目录行生成 12 条招聘快照任务；输出仍在 ignored staging/tmp，不是 data package。
 

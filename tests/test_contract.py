@@ -3445,6 +3445,9 @@ def test_build_career_source_review_batch_limits_pending_rows(tmp_path: Path):
         _career_plan_row("career_recruitment_snapshot", "fa_fact_career_signal", "salary_p75", status="verified"),
         _career_plan_row("career_civil_service_posts", "fa_fact_career_signal", "civil_service_post_count", status="todo"),
     ]
+    rows[0]["metric_value"] = "12000"
+    rows[1]["metric_value"] = "65"
+    rows[3]["metric_value"] = "80"
     _write_career_plan(plan, rows)
 
     result = build_career_source_review_batch(
@@ -3461,6 +3464,8 @@ def test_build_career_source_review_batch_limits_pending_rows(tmp_path: Path):
     with Path(result["csv"]).open(encoding="utf-8", newline="") as f:
         batch_rows = list(csv.DictReader(f))
     assert {row["status"] for row in batch_rows} <= {"todo", "in_progress"}
+    assert any(row["metric_key"] == "salary_median" for row in batch_rows)
+    assert not any(row["metric_key"] == "work_intensity_index" for row in batch_rows)
     assert all(row["metric_key"] != "salary_p75" for row in batch_rows)
     manifest = json.loads(Path(result["manifest"]).read_text(encoding="utf-8"))
     assert manifest["task_key_columns"] == [
@@ -3473,6 +3478,7 @@ def test_build_career_source_review_batch_limits_pending_rows(tmp_path: Path):
         "city",
     ]
     assert "source_url" in manifest["editable_columns"]
+    assert manifest["sort"][1] == {"field": "metric_value", "type": "number", "direction": "desc"}
 
 
 def test_merge_career_source_review_batch_updates_only_editable_columns(tmp_path: Path):
