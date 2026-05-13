@@ -144,6 +144,19 @@
         "evidence_urls": [
           "https://bm.scs.gov.cn/kl2026"
         ],
+        "resource_api": {
+          "page_url": "http://bm.scs.gov.cn/pp/gkweb/core/web/ui/business/download/gkdownloads.html",
+          "api_url": "http://dl.scs.gov.cn/api/res/8a81f6d9980207bb0198ab5683670008/1110",
+          "download_base_url": "http://dl.scs.gov.cn/download/",
+          "source_date": "2025-10-14",
+          "availability_date": "2025-10-14",
+          "include_resource_keywords": ["考试录用公务员招考简章"],
+          "exclude_resource_keywords": ["报名登记表", "报名推荐表", "面试人员名单", "进入面试人员名单", "调剂职位表", "补充录用"],
+          "allowed_file_types": [".zip", ".xls", ".xlsx"],
+          "headers": {
+            "User-Agent": "Mozilla/5.0"
+          }
+        },
         "metrics": ["civil_service_post_count", "public_sector_fit_score"],
         "query_templates": [
           "{entity_name} 国考 职位表 专业要求 {metric_year}",

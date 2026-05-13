@@ -108,6 +108,7 @@ from datahub.connectors.manual_files import intake_manual_assets
 from datahub.connectors.macos_vision_ocr import ocr_page_images
 from datahub.connectors.outcome_report_download import download_outcome_report_intake_assets
 from datahub.connectors.remote_files import download_remote_assets
+from datahub.connectors.scs_resources import download_scs_resources
 from datahub.connectors.registry import discover_assets
 from datahub.connectors.source_candidates import probe_source_candidates
 from datahub.parsers.ln_projection_score import parse_ln_projection_score_file
@@ -556,6 +557,8 @@ def test_audit_sources_marks_admission_plan_manual():
     assert by_key["major_city_employment_fit"]["status"] == "derived_from_datahub_signals"
     assert by_key["major_city_employment_fit"]["target_tables"] == ["fa_mart_major_city_employment_fit"]
     assert by_key["career_occupation_catalog"]["target_tables"] == ["fa_dim_career_occupation"]
+    assert by_key["career_civil_service_posts"]["status"] == "configured_web_api_raw_intake"
+    assert by_key["career_civil_service_posts"]["target_tables"] == ["fa_fact_career_signal"]
     assert by_key["career_signal"]["status"] == "source_collection_required"
     assert by_key["career_score"]["status"] == "derived_from_datahub_signals"
     assert by_key["policy_industry_map"]["status"] == "curated_seed_configured"
@@ -3007,6 +3010,95 @@ def test_audit_career_source_coverage_maps_metrics_to_sources(tmp_path: Path):
     assert report["summary"]["covered_metric_count"] == report["metric_count"]
 
 
+def test_download_scs_resources_writes_raw_manifest(tmp_path: Path, monkeypatch):
+    api_body = json.dumps({
+        "resList": [
+            {
+                "fileType": ".zip",
+                "resResourceId": "resource-main",
+                "resourceName": "中央机关及其直属机构2026年度考试录用公务员招考简章.zip",
+                "resourceComment": "2026年度考试录用公务员招考简章",
+            },
+            {
+                "fileType": ".docx",
+                "resResourceId": "resource-form",
+                "resourceName": "2026年度考试录用公务员报名登记表.docx",
+                "resourceComment": "报名登记表",
+            },
+        ]
+    }, ensure_ascii=False).encode("utf-8")
+    zip_body = b"PK\x03\x04 fixture"
+
+    monkeypatch.setattr(
+        "datahub.connectors.scs_resources.load_career_data_sources",
+        lambda: {
+            "source_plan": {
+                "sources": {
+                    "career_civil_service_posts": {
+                        "name": "公考与事业编岗位目录",
+                        "kind": "official_attachment",
+                        "target_tables": ["fa_fact_career_signal"],
+                        "official_distribution": "国考职位表",
+                        "evidence_urls": ["https://bm.scs.gov.cn/kl2026"],
+                        "resource_api": {
+                            "api_url": "https://example.gov/api/resources",
+                            "download_base_url": "https://example.gov/download/",
+                            "source_date": "2025-10-14",
+                            "availability_date": "2025-10-14",
+                            "include_resource_keywords": ["考试录用公务员招考简章"],
+                            "exclude_resource_keywords": ["报名登记表"],
+                            "allowed_file_types": [".zip"],
+                            "headers": {"User-Agent": "fixture"},
+                        },
+                    }
+                }
+            }
+        },
+    )
+
+    class FakeResponse:
+        def __init__(self, body: bytes):
+            self._body = body
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def read(self):
+            return self._body
+
+    def fake_urlopen(request, timeout=60):
+        if request.full_url == "https://example.gov/api/resources":
+            assert request.headers["User-agent"] == "fixture"
+            return FakeResponse(api_body)
+        if request.full_url == "https://example.gov/download/resource-main":
+            return FakeResponse(zip_body)
+        raise AssertionError(request.full_url)
+
+    monkeypatch.setattr("datahub.connectors.scs_resources.urlopen", fake_urlopen)
+
+    result = download_scs_resources(
+        source_key="career_civil_service_posts",
+        output_root=tmp_path / "raw",
+    )
+
+    assert result["resource_count"] == 2
+    assert result["selected_resource_count"] == 1
+    assert result["downloaded_files"] == 1
+    output_dir = tmp_path / "raw" / "career_civil_service_posts" / "2025-10-14"
+    assert (output_dir / "_scs_resource_api_response.json").read_bytes() == api_body
+    resource_file = output_dir / "中央机关及其直属机构2026年度考试录用公务员招考简章.zip"
+    assert resource_file.read_bytes() == zip_body
+    manifest = json.loads((output_dir / "_scs_resource_manifest.json").read_text(encoding="utf-8"))
+    assert manifest["source_key"] == "career_civil_service_posts"
+    assert manifest["target_tables"] == ["fa_fact_career_signal"]
+    assert manifest["api_response_sha256"] == hashlib.sha256(api_body).hexdigest()
+    assert manifest["files"][0]["resource_id"] == "resource-main"
+    assert manifest["files"][0]["sha256"] == hashlib.sha256(zip_body).hexdigest()
+
+
 def test_build_career_source_review_batch_limits_pending_rows(tmp_path: Path):
     plan = tmp_path / "career_source_plan.csv"
     rows = [
@@ -3551,6 +3643,8 @@ def test_data_update_policy_config_and_schemas():
     assert "city_listed_company_signal" in config["source_policies"]["city_development_score"]["depends_on"]
     assert "school_city_industry_fit" in config["source_policies"]
     assert "major_city_employment_fit" in config["source_policies"]
+    assert config["source_policies"]["career_civil_service_posts"]["validity_profile"] == "web_api"
+    assert "career_civil_service_posts" in config["source_policies"]["career_signal"]["depends_on"]
 
     schemas = load_source_schemas()["tables"]
     assert schemas["fa_meta_source_snapshot"]["primary_key"] == ["source_key", "snapshot_id"]

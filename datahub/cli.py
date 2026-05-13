@@ -100,6 +100,7 @@ from .connectors.outcome_report_download import download_outcome_report_intake_a
 from .connectors.page_images import download_page_images
 from .connectors.registry import discover_assets, list_source_keys
 from .connectors.remote_files import download_remote_assets
+from .connectors.scs_resources import download_scs_resources
 from .connectors.source_candidates import probe_source_candidates
 from .parsers.ln_projection_score import parse_ln_projection_score_files
 from .parsers.ln_application_workbook import (
@@ -603,6 +604,14 @@ def main() -> int:
     build_career_source_plan_parser.add_argument("--occupation-input", type=Path)
     build_career_source_plan_parser.add_argument("--core-db", type=Path)
     build_career_source_plan_parser.add_argument("--occupation-limit", type=int)
+
+    download_scs_resources_parser = sub.add_parser(
+        "download-scs-resources",
+        help="Download configured official State Civil Service resource attachments into raw storage",
+    )
+    download_scs_resources_parser.add_argument("--source-key", default="career_civil_service_posts")
+    download_scs_resources_parser.add_argument("--output-root", required=True, type=Path)
+    download_scs_resources_parser.add_argument("--timeout", type=int, default=60)
 
     audit_career_source_coverage_parser = sub.add_parser(
         "audit-career-source-coverage",
@@ -1439,6 +1448,14 @@ def main() -> int:
             occupation_input=args.occupation_input,
             core_db=args.core_db,
             occupation_limit=args.occupation_limit,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+    if args.cmd == "download-scs-resources":
+        result = download_scs_resources(
+            source_key=args.source_key,
+            output_root=args.output_root,
+            timeout=args.timeout,
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0

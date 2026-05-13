@@ -78,6 +78,10 @@ python3 scripts/build_package.py build-career-source-plan \
   --metric-year 2026 \
   --occupation-limit 80
 
+python3 scripts/build_package.py download-scs-resources \
+  --source-key career_civil_service_posts \
+  --output-root raw
+
 python3 scripts/build_package.py audit-career-source-coverage \
   --report staging/career_source_plan/career_source_coverage.json
 
@@ -110,6 +114,8 @@ python3 scripts/build_package.py build-career-score \
 `career_occupation_catalog` 已配置中国就业网数字职业 HTML 表格种子来源，`parse-digital-occupation-catalog` 会解析职业编码和名称，并用 `config/career_data_sources.json.occupation_family_by_code_prefix` 补齐职业大类，随后通过标准 `build-local` 生成 `fa_dim_career_occupation` 包。
 
 真实 smoke：远程下载已校验 SHA-256 并生成 `_remote_manifest.json`；HTML 解析出 73 条数字职业，`build-local --intake-manifest` 生成 `2022_digital_occupation_catalog` 标准包，quality report 无错误，manifest 校验通过，core importer `--dry-run` 通过。
+
+`career_civil_service_posts` 已登记国家公务员局下载资源 API。`download-scs-resources` 只下载配置筛选出的官方资源和 API 响应到 ignored `raw/career_civil_service_posts/{source_date}/`，manifest 记录 resource id、来源页、API URL、下载 URL、文件大小和 SHA-256。该步骤只是官方原始证据 intake，不解析职位表、不生成职业信号，也不会写 core。真实 smoke：API 返回 8 个资源，配置筛出 1 个“中央机关及其直属机构2026年度考试录用公务员招考简章.zip”，下载 1,860,532 字节，SHA-256 为 `0055e7eb78906e2dcefb8e31963e2fd74baf980aa98893eebb54fd9d7f9176cb`。
 
 `build-career-source-plan` 可选读取标准职业清单（`occupation_code/occupation_name/tdx_l2/tdx_l2_name`），把来源配置展开成“职业 × 指标 × 城市”的采集任务；`audit-career-source-plan` 检查状态、指标注册、证据 URL、摘录、来源日期和值域。采集执行时先用 `build-career-source-review-batch` 从总计划拆出小批 CSV，只补 `config/career_data_sources.json.review_batch.editable_columns` 允许的证据列，再用 `merge-career-source-review-batch` 回写总计划；职业、指标、城市、来源和目标表字段不会被批次覆盖。`build-career-signal-from-source-plan` 只读取完整状态的职业信号行，并复用标准数据包质量门禁生成 `fa_fact_career_signal`。采集源、指标口径、评分权重维护在 `config/career_data_sources.json`；目标表契约维护在 `config/source_schemas.json`。招聘平台数据只允许通过公开授权 API、官方附件、人工导出或可复核快照进入 raw，不在本项目写反爬绕过逻辑。
 

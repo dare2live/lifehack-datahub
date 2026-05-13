@@ -548,13 +548,24 @@
       "promotion_gate": "package_quality_ok",
       "notes": "职业目录是职业信号的规范化输入；新增职业别名先进入实体/指标注册链路。"
     },
+    "career_civil_service_posts": {
+      "update_mode": "append_snapshot",
+      "cadence": "annual_or_after_exam_release",
+      "partition_keys": ["metric_year"],
+      "concurrency_group": "nonstandard_review",
+      "parallelizable": true,
+      "depends_on": ["career_occupation_catalog"],
+      "validity_profile": "web_api",
+      "promotion_gate": "raw_snapshot_manifest_ready",
+      "notes": "国家公务员局职位表 raw intake。下载 API 响应和官方附件后只进入 raw snapshot；职位表解析、专业/职业统计和指标入包仍走 career_signal 复核链路。"
+    },
     "career_signal": {
       "update_mode": "append_snapshot",
       "cadence": "monthly_or_quarterly",
       "partition_keys": ["metric_year", "city", "occupation_code"],
       "concurrency_group": "nonstandard_review",
       "parallelizable": true,
-      "depends_on": ["career_occupation_catalog"],
+      "depends_on": ["career_occupation_catalog", "career_civil_service_posts"],
       "validity_profile": "collection_plan",
       "promotion_gate": "manual_review_approved"
     },

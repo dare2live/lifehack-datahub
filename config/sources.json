@@ -1468,6 +1468,23 @@
       },
       "target_tables": ["fa_dim_career_occupation"]
     },
+    "career_civil_service_posts": {
+      "name": "公考与事业编岗位目录",
+      "kind": "official_web_api_attachment",
+      "owner": "lifehack-datahub",
+      "raw_glob": "raw/career_civil_service_posts/**/*",
+      "remote_files": [],
+      "acquisition": {
+        "status": "configured_web_api_raw_intake",
+        "official_distribution": "国家公务员局下载资源 API 和职位表附件",
+        "evidence_urls": [
+          "http://bm.scs.gov.cn/pp/gkweb/core/web/ui/business/download/gkdownloads.html",
+          "http://dl.scs.gov.cn/api/res/8a81f6d9980207bb0198ab5683670008/1110"
+        ],
+        "notes": "职业信号的官方职位表入口。资源 API、筛选关键词和文件类型维护在 config/career_data_sources.json；该来源只做 raw intake，解析后仍需进入 career_source_plan 复核。"
+      },
+      "target_tables": ["fa_fact_career_signal"]
+    },
     "career_signal": {
       "name": "职业需求、薪资与稳定性信号",
       "kind": "career_market_metrics",
