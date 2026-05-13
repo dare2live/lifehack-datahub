@@ -104,6 +104,15 @@ python3 scripts/build_package.py audit-admission-plan-package-against-core \
   --report audits/admission_plan_2026_against_core.json
 ```
 
+若审计报告仍有 `package_only_rows`、`core_only_rows` 或 `different_rows`，再生成本地复核任务表。任务类型和优先级也维护在 `config/source_schemas.json`，任务表不是 data package，不能导入 core：
+
+```bash
+python3 scripts/build_package.py build-admission-plan-reconciliation-plan \
+  --core-db ../lifehack/backend/data/university.db \
+  --package-dir exports/2026_ln_admission_plan \
+  --output-dir staging/admission_plan_reconciliation_2026
+```
+
 当前 core 已有的清洗招生计划可先生成过渡 snapshot，避免核心库成为唯一数据落点。该包会标注 `legacy_core_snapshot`，不能替代后续官方系统/杂志导出的受控 intake：
 
 ```bash

@@ -31,7 +31,27 @@
           "region",
           "plan_count"
         ],
-        "sample_limit": 20
+        "sample_limit": 20,
+        "reconciliation": {
+          "default_status": "todo",
+          "issue_types": {
+            "value_drift": {
+              "priority": 1,
+              "match_confidence": "primary_key_match",
+              "suggested_action": "review_admission_field_conflict"
+            },
+            "package_only_unmatched": {
+              "priority": 2,
+              "match_confidence": "none",
+              "suggested_action": "review_package_only_admission_row"
+            },
+            "core_only_unmatched": {
+              "priority": 3,
+              "match_confidence": "none",
+              "suggested_action": "review_core_only_admission_row"
+            }
+          }
+        }
       },
       "aliases": {
         "school_code": ["school_code", "院校代码", "学校代码", "院校专业组代码"],

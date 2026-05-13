@@ -8,6 +8,7 @@ from pathlib import Path
 
 from .builders.admission_plan_snapshot import build_admission_plan_snapshot_package
 from .builders.admission_plan_package_audit import audit_admission_plan_package_against_core
+from .builders.admission_plan_reconciliation_plan import build_admission_plan_reconciliation_plan
 from .builders.outcome_collection_batch import (
     build_outcome_collection_batch,
     merge_outcome_collection_batch,
@@ -164,6 +165,14 @@ def main() -> int:
     audit_admission_plan_package.add_argument("--package-dir", required=True, action="append", dest="package_dirs", type=Path)
     audit_admission_plan_package.add_argument("--report", type=Path)
     audit_admission_plan_package.add_argument("--sample-limit", type=int)
+
+    build_admission_reconciliation = sub.add_parser(
+        "build-admission-plan-reconciliation-plan",
+        help="Build reviewable CSV tasks for fa_dim_ln_admission_plan package/core drift",
+    )
+    build_admission_reconciliation.add_argument("--core-db", required=True, type=Path)
+    build_admission_reconciliation.add_argument("--package-dir", required=True, action="append", dest="package_dirs", type=Path)
+    build_admission_reconciliation.add_argument("--output-dir", required=True, type=Path)
 
     build_score_snapshot = sub.add_parser(
         "build-score-history-snapshot",
@@ -525,6 +534,14 @@ def main() -> int:
             args.report.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         print(json.dumps(report, ensure_ascii=False, indent=2))
         return 0 if not report["errors"] else 1
+    if args.cmd == "build-admission-plan-reconciliation-plan":
+        result = build_admission_plan_reconciliation_plan(
+            core_db=args.core_db,
+            package_dirs=args.package_dirs,
+            output_dir=args.output_dir,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
     if args.cmd == "build-score-history-snapshot":
         result = build_score_history_snapshot_package(
             core_db=args.core_db,

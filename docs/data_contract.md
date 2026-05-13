@@ -71,6 +71,15 @@ python3 scripts/build_package.py audit-admission-plan-package-against-core \
   --report audits/admission_plan_2026_against_core.json
 ```
 
+审计后如仍需人工判断，使用 `build-admission-plan-reconciliation-plan` 生成本地 review plan。它只把审计差异转成 `value_drift/package_only_unmatched/core_only_unmatched` 任务，状态、优先级和建议动作来自 `config/source_schemas.json`，不能作为数据包导入 core：
+
+```bash
+python3 scripts/build_package.py build-admission-plan-reconciliation-plan \
+  --core-db /Users/dp/Documents/M/lifehack/backend/data/university.db \
+  --package-dir exports/2026_ln_admission_plan \
+  --output-dir staging/admission_plan_reconciliation_2026
+```
+
 ### 招生计划过渡包
 
 `ln_admission_plan` 的完整官方分发目前是志愿填报系统和《辽宁招生考试》杂志，公开站点没有稳定完整附件。为了让 core 里现有清洗数据也进入 DataHub 包链路，可先生成过渡 snapshot：
