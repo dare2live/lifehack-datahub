@@ -450,6 +450,17 @@
           "notes": "中国教育电视台转载页列出的普通类历史学科类附件；当前直连返回 412，需浏览器会话、稳定镜像或人工下载后才能晋级 remote_files。"
         },
         {
+          "label": "2023 辽沈晚报电子报成绩统计表版面探测",
+          "kind": "media_epaper_probe",
+          "url": "https://epaper.lnd.com.cn/lswbepaper/pc/layout/202306/25/node_A02.html",
+          "source_date": "2023-06-25",
+          "expected_table": "fa_fact_ln_score_distribution",
+          "headers": {
+            "User-Agent": "Mozilla/5.0"
+          },
+          "notes": "辽宁日报传媒集团/辽沈晚报电子报版面探测。正确附件路径含 /lswbepaper/pc/att/；2023-06-25 A01-A05 PDF 已核验可下载，A03/A05 标题含成绩统计表但 pypdf 文本不是完整逐分三列表，parse-ln-score-distribution 行数为 0；A01 仅有摘要区间。不能晋级 remote_files。"
+        },
+        {
           "label": "2024 中国教育电视台转载成绩统计表页面",
           "kind": "mirror_page",
           "url": "https://www.centv.cn/p/514016.html",
@@ -485,6 +496,17 @@
             "Referer": "https://www.centv.cn/p/514016.html"
           },
           "notes": "中国教育电视台转载页普通类历史学科类 PDF，HTTP 200、PDF 类型和 sha256 已核验；仍是镜像候选，不作为辽宁官网原始长期来源。"
+        },
+        {
+          "label": "2024 辽沈晚报电子报成绩统计表版面探测",
+          "kind": "media_epaper_probe",
+          "url": "https://epaper.lnd.com.cn/lswbepaper/pc/layout/202406/25/node_A02.html",
+          "source_date": "2024-06-25",
+          "expected_table": "fa_fact_ln_score_distribution",
+          "headers": {
+            "User-Agent": "Mozilla/5.0"
+          },
+          "notes": "辽宁日报传媒集团/辽沈晚报电子报版面探测。正确附件路径含 /lswbepaper/pc/att/；2024-06-25 A01-A08 PDF 已核验可下载，A02 PDF sha256=9095a75085d30addcf93654b586479a3901c2e11ccf8b1d77d52c885f8bdd194，parse-ln-score-distribution 行数为 0；同日版面未发现可文本解析的一分一段表。不能晋级 remote_files。"
         }
       ],
       "parser": {

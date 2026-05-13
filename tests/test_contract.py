@@ -4060,6 +4060,14 @@ def test_audit_score_source_coverage_tracks_derivation_gaps(tmp_path: Path):
         "https://gaokao.chsi.com.cn/news/file.do?method=downFile&id=2293096351&attach=true&hist=false"
         in by_year[2023]["score_distribution"]["candidate_urls"]
     )
+    assert (
+        "https://epaper.lnd.com.cn/lswbepaper/pc/layout/202306/25/node_A02.html"
+        in by_year[2023]["score_distribution"]["candidate_urls"]
+    )
+    assert (
+        "https://epaper.lnd.com.cn/lswbepaper/pc/layout/202406/25/node_A02.html"
+        in by_year[2024]["score_distribution"]["candidate_urls"]
+    )
     assert by_year[2022]["projection_status"] == "official_remote_ready"
     assert by_year[2022]["score_distribution"]["official_grid_image_count"] == 2
     assert by_year[2022]["derivation_status"] == "official_image_derivable"
