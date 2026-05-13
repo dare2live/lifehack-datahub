@@ -22,6 +22,7 @@ from datahub.builders.career_source_batch import (
     build_career_source_review_batch,
     merge_career_source_review_batch,
 )
+from datahub.builders.career_source_package import build_career_signal_package_from_source_plan
 from datahub.builders.career_source_plan import PLAN_COLUMNS as CAREER_PLAN_COLUMNS, build_career_source_plan
 from datahub.connectors.page_images import download_page_images
 from datahub.builders.outcome_collection_audit import audit_outcome_collection_plan
@@ -2674,6 +2675,51 @@ def test_merge_career_source_review_batch_updates_only_editable_columns(tmp_path
     assert merged_rows[0]["source_url"] == "https://example.com/jobs/software"
     assert merged_rows[0]["notes"] == "核对完成"
     assert merged_rows[1]["status"] == "todo"
+
+
+def test_build_career_signal_package_from_verified_source_plan(tmp_path: Path):
+    plan = tmp_path / "career_source_plan.csv"
+    verified_row = _career_plan_row(
+        "career_recruitment_snapshot",
+        "fa_fact_career_signal",
+        "salary_median",
+        status="verified",
+    )
+    verified_row.update({
+        "metric_value": "12000",
+        "metric_scope": "公开招聘样本，税前月薪",
+        "source_title": "招聘薪资快照",
+        "source_url": "https://example.com/jobs/software",
+        "evidence_quote": "软件工程师薪资中位数约12000元/月。",
+        "source_date": "2026-05-13",
+        "availability_date": "2026-05-13",
+    })
+    rows = [
+        verified_row,
+        _career_plan_row("career_recruitment_snapshot", "fa_fact_career_signal", "salary_p75", status="todo"),
+    ]
+    _write_career_plan(plan, rows)
+
+    result = build_career_signal_package_from_source_plan(
+        plan_csv=plan,
+        output_root=tmp_path / "exports",
+        package_id="career-signal-from-plan-test",
+        source_version="fixture-career-plan",
+    )
+
+    package = result["package"]
+    package_dir = Path(package["package_dir"])
+    assert result["rows"] == 1
+    assert package["rows"] == 1
+    assert package["quality_report"]["errors"] == []
+    assert validate_manifest(package_dir / "manifest.json")["errors"] == []
+    with (package_dir / "fa_fact_career_signal.csv").open(encoding="utf-8", newline="") as f:
+        signal_rows = list(csv.DictReader(f))
+    assert signal_rows[0]["metric_name"] == "月薪中位数"
+    assert signal_rows[0]["source_url"] == "https://example.com/jobs/software"
+    manifest = json.loads((package_dir / "manifest.json").read_text(encoding="utf-8"))
+    assert manifest["source_lineage"]["source_kind"] == "verified_career_source_plan"
+    assert manifest["source_lineage"]["metric_keys"] == ["salary_median"]
 
 
 def test_build_career_signal_package_from_cleaned_csv(tmp_path: Path):

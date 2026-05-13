@@ -21,6 +21,7 @@ from .builders.career_source_batch import (
     build_career_source_review_batch,
     merge_career_source_review_batch,
 )
+from .builders.career_source_package import build_career_signal_package_from_source_plan
 from .builders.career_source_plan import build_career_source_plan
 from .builders.outcome_collection_batch import (
     build_outcome_collection_batch,
@@ -424,6 +425,16 @@ def main() -> int:
     merge_career_source_batch_parser.add_argument("--batch-csv", required=True, type=Path)
     merge_career_source_batch_parser.add_argument("--output", required=True, type=Path)
     merge_career_source_batch_parser.add_argument("--report", type=Path)
+
+    build_career_signal_from_plan = sub.add_parser(
+        "build-career-signal-from-source-plan",
+        help="Build fa_fact_career_signal package from complete career source plan rows",
+    )
+    build_career_signal_from_plan.add_argument("--plan-csv", required=True, type=Path)
+    build_career_signal_from_plan.add_argument("--output-root", required=True, type=Path)
+    build_career_signal_from_plan.add_argument("--source-key", action="append", dest="source_keys")
+    build_career_signal_from_plan.add_argument("--package-id")
+    build_career_signal_from_plan.add_argument("--source-version")
 
     build_career_score = sub.add_parser(
         "build-career-score",
@@ -907,6 +918,16 @@ def main() -> int:
             args.report.parent.mkdir(parents=True, exist_ok=True)
             args.report.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         print(json.dumps(report, ensure_ascii=False, indent=2))
+        return 0
+    if args.cmd == "build-career-signal-from-source-plan":
+        result = build_career_signal_package_from_source_plan(
+            plan_csv=args.plan_csv,
+            output_root=args.output_root,
+            source_keys=args.source_keys,
+            package_id=args.package_id,
+            source_version=args.source_version,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
     if args.cmd == "build-career-score":
         result = build_career_score_package(

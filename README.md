@@ -66,20 +66,18 @@ python3 scripts/build_package.py merge-career-source-review-batch \
   --output staging/career_source_plan/career_source_plan_merged.csv \
   --report staging/career_source_plan/career_source_merge.json
 
-python3 scripts/build_package.py build-local \
-  --source-key career_signal \
-  --table fa_fact_career_signal \
-  --input cleaned/career_signal_2026_shenyang.csv \
+python3 scripts/build_package.py build-career-signal-from-source-plan \
+  --plan-csv staging/career_source_plan/career_source_plan_merged.csv \
   --output-root exports \
   --package-id 2026_career_signal_shenyang
 
 python3 scripts/build_package.py build-career-score \
-  --signal-input cleaned/career_signal_2026_shenyang.csv \
+  --signal-input exports/2026_career_signal_shenyang/fa_fact_career_signal.csv \
   --output-root exports \
   --package-id 2026_career_score_shenyang
 ```
 
-`build-career-source-plan` 可选读取标准职业清单（`occupation_code/occupation_name/tdx_l2/tdx_l2_name`），把来源配置展开成“职业 × 指标 × 城市”的采集任务；`audit-career-source-plan` 检查状态、指标注册、证据 URL、摘录、来源日期和值域。采集执行时先用 `build-career-source-review-batch` 从总计划拆出小批 CSV，只补 `config/career_data_sources.json.review_batch.editable_columns` 允许的证据列，再用 `merge-career-source-review-batch` 回写总计划；职业、指标、城市、来源和目标表字段不会被批次覆盖。采集源、指标口径、评分权重维护在 `config/career_data_sources.json`；目标表契约维护在 `config/source_schemas.json`。招聘平台数据只允许通过公开授权 API、官方附件、人工导出或可复核快照进入 raw，不在本项目写反爬绕过逻辑。
+`build-career-source-plan` 可选读取标准职业清单（`occupation_code/occupation_name/tdx_l2/tdx_l2_name`），把来源配置展开成“职业 × 指标 × 城市”的采集任务；`audit-career-source-plan` 检查状态、指标注册、证据 URL、摘录、来源日期和值域。采集执行时先用 `build-career-source-review-batch` 从总计划拆出小批 CSV，只补 `config/career_data_sources.json.review_batch.editable_columns` 允许的证据列，再用 `merge-career-source-review-batch` 回写总计划；职业、指标、城市、来源和目标表字段不会被批次覆盖。`build-career-signal-from-source-plan` 只读取完整状态的职业信号行，并复用标准数据包质量门禁生成 `fa_fact_career_signal`。采集源、指标口径、评分权重维护在 `config/career_data_sources.json`；目标表契约维护在 `config/source_schemas.json`。招聘平台数据只允许通过公开授权 API、官方附件、人工导出或可复核快照进入 raw，不在本项目写反爬绕过逻辑。
 
 真实 smoke：招聘快照来源生成 4 条职业信号采集任务，按 `limit_per_source=2` 拆出 2 条批次，原样合并 `updated_rows=0`，随后审计 `errors=[]`。输出均在 ignored `staging/`，不是 data package，也不会写 core。
 

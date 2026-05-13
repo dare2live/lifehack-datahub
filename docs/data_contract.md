@@ -469,9 +469,14 @@ python3 scripts/build_package.py merge-career-source-review-batch \
 python3 scripts/build_package.py audit-career-source-plan \
   --plan-csv staging/career_source_plan/career_source_plan_merged.csv \
   --report staging/career_source_plan/career_source_audit.json
+
+python3 scripts/build_package.py build-career-signal-from-source-plan \
+  --plan-csv staging/career_source_plan/career_source_plan_merged.csv \
+  --output-root exports \
+  --package-id 2026_career_signal_shenyang
 ```
 
-批次命令按 `source_key, target_table, occupation_code, occupation_name, metric_key, metric_year, city` 定位任务，只允许回写配置列，防止局部文件改掉职业、指标、来源或目标表。通过审计后，再用 `build-local` 生成 `fa_fact_career_signal` 标准包，并用 `build-career-score` 生成职业评分加工包。
+批次命令按 `source_key, target_table, occupation_code, occupation_name, metric_key, metric_year, city` 定位任务，只允许回写配置列，防止局部文件改掉职业、指标、来源或目标表。通过审计后，`build-career-signal-from-source-plan` 只读取完整状态的职业信号行，复用标准数据包质量门禁生成 `fa_fact_career_signal`，再用 `build-career-score` 生成职业评分加工包。
 
 Outcome 数据采集不直接从搜索结果进 core。先用 core 招生计划生成高优先级采集队列：
 
