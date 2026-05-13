@@ -648,6 +648,88 @@ def test_build_score_distribution_review_tasks_from_candidates(tmp_path: Path):
     assert written[0]["issue_type"] == "cumulative_mismatch"
 
 
+def test_build_score_distribution_review_tasks_prefills_sequence_suggestions(tmp_path: Path):
+    candidates = tmp_path / "candidates.csv"
+    rows = [
+        {
+            "subject_cat": "物理类",
+            "score_year": "2022",
+            "score": "487",
+            "score_count": "300",
+            "cumulative_rank": "51198",
+            "source_date": "2022-06-23",
+            "image_file": "page-1.png",
+            "block_index": "4",
+            "row_y": "0.08",
+            "ocr_confidence": "0.95",
+            "parse_status": "parsed",
+            "math_status": "ok",
+            "raw_text": "487 300 51,198",
+        },
+        {
+            "subject_cat": "物理类",
+            "score_year": "2022",
+            "score": "51562",
+            "score_count": "",
+            "cumulative_rank": "",
+            "source_date": "2022-06-23",
+            "image_file": "page-2.png",
+            "block_index": "1",
+            "row_y": "0.88",
+            "ocr_confidence": "0.70",
+            "parse_status": "invalid_score",
+            "math_status": "not_checked",
+            "raw_text": "51,562",
+        },
+        {
+            "subject_cat": "物理类",
+            "score_year": "2022",
+            "score": "5201",
+            "score_count": "1",
+            "cumulative_rank": "",
+            "source_date": "2022-06-23",
+            "image_file": "page-2.png",
+            "block_index": "1",
+            "row_y": "0.86",
+            "ocr_confidence": "0.60",
+            "parse_status": "invalid_score",
+            "math_status": "not_checked",
+            "raw_text": "52,01 1",
+        },
+        {
+            "subject_cat": "物理类",
+            "score_year": "2022",
+            "score": "484",
+            "score_count": "452",
+            "cumulative_rank": "52463",
+            "source_date": "2022-06-23",
+            "image_file": "page-2.png",
+            "block_index": "1",
+            "row_y": "0.84",
+            "ocr_confidence": "0.96",
+            "parse_status": "parsed",
+            "math_status": "cumulative_mismatch",
+            "raw_text": "484 452 52,463",
+        },
+    ]
+    write_candidate_csv(candidates, rows)
+
+    tasks, report = build_score_distribution_review_tasks(candidates)
+
+    assert report["review_task_rows"] == 3
+    assert report["suggested_review_rows"] == 3
+    by_text = {task["raw_text"]: task for task in tasks}
+    assert by_text["51,562"]["suggested_score"] == 486
+    assert by_text["51,562"]["suggested_score_count"] == 364
+    assert by_text["51,562"]["suggested_cumulative_rank"] == 51562
+    assert by_text["52,01 1"]["suggested_score"] == 485
+    assert by_text["52,01 1"]["suggested_score_count"] == 449
+    assert by_text["52,01 1"]["suggested_cumulative_rank"] == 52011
+    assert by_text["484 452 52,463"]["suggested_score"] == 484
+    assert by_text["484 452 52,463"]["suggested_score_count"] == 452
+    assert by_text["484 452 52,463"]["suggested_cumulative_rank"] == 52463
+
+
 def test_build_score_distribution_review_tasks_prefills_single_boundary_suggestions(tmp_path: Path):
     candidates = tmp_path / "candidates.csv"
     rows = []

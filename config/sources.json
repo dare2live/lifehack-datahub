@@ -308,6 +308,28 @@
           "notes": "搜索结果显示 2022 辽宁普通高校招生考试成绩统计表；当前直连返回 412，需继续寻找可重复采集形式。"
         },
         {
+          "label": "2022 学信网成绩统计表附件（普通类历史学科类 DOCX）",
+          "kind": "candidate_file",
+          "url": "https://gaokao.chsi.com.cn/news/file.do?attach=true&hist=false&id=2197680853&method=downFile",
+          "source_date": "2022-06-24",
+          "expected_table": "fa_fact_ln_score_distribution",
+          "headers": {
+            "User-Agent": "Mozilla/5.0"
+          },
+          "notes": "学信网页面列出的历史学科类 DOCX 附件；当前直连返回 412，需浏览器会话或稳定镜像后才能晋级 remote_files。"
+        },
+        {
+          "label": "2022 学信网成绩统计表附件（普通类物理学科类 DOCX）",
+          "kind": "candidate_file",
+          "url": "https://gaokao.chsi.com.cn/news/file.do?attach=true&hist=false&id=2197680854&method=downFile",
+          "source_date": "2022-06-24",
+          "expected_table": "fa_fact_ln_score_distribution",
+          "headers": {
+            "User-Agent": "Mozilla/5.0"
+          },
+          "notes": "学信网页面列出的物理学科类 DOCX 附件；当前直连返回 412，需浏览器会话或稳定镜像后才能晋级 remote_files。"
+        },
+        {
           "label": "2022 新浪转载历史学科类成绩统计表",
           "kind": "mirror_page",
           "url": "https://finance.sina.com.cn/tech/2022-06-24/doc-imizirav0240447.shtml",
@@ -346,6 +368,12 @@
           "infer_missing_score": true,
           "infer_single_number_rows": true,
           "score_inference_min_anchor_rows": 2,
+          "sequence_suggestion": {
+            "enabled": true,
+            "min_anchor_rows": 1,
+            "max_cumulative_digit_length": 6,
+            "max_suggested_score_count": 5000
+          },
           "single_boundary_suggestion": {
             "enabled": true,
             "min_group_rows": 10,

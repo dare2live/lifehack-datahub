@@ -326,8 +326,32 @@ def _load_ocr_table_config(source_key: str) -> dict[str, Any]:
         "infer_missing_score": bool(config.get("infer_missing_score")),
         "infer_single_number_rows": bool(config.get("infer_single_number_rows")),
         "score_inference_min_anchor_rows": int(config.get("score_inference_min_anchor_rows", 2)),
+        "sequence_suggestion": _sequence_suggestion_config(config),
         "single_boundary_suggestion": _single_boundary_suggestion_config(config),
         "block_x_ranges": [(float(item[0]), float(item[1])) for item in block_ranges],
+    }
+
+
+def _sequence_suggestion_config(config: dict[str, Any]) -> dict[str, Any]:
+    suggestion = config.get("sequence_suggestion") or {}
+    if not isinstance(suggestion, dict):
+        raise ValueError("ocr_table.sequence_suggestion must be an object")
+    if not suggestion.get("enabled"):
+        return {"enabled": False}
+    min_anchor_rows = int(suggestion.get("min_anchor_rows") or 1)
+    max_digit_length = int(suggestion.get("max_cumulative_digit_length") or 6)
+    max_score_count = int(suggestion.get("max_suggested_score_count") or 5000)
+    if min_anchor_rows <= 0:
+        raise ValueError("ocr_table.sequence_suggestion.min_anchor_rows must be positive")
+    if max_digit_length <= 0:
+        raise ValueError("ocr_table.sequence_suggestion.max_cumulative_digit_length must be positive")
+    if max_score_count <= 0:
+        raise ValueError("ocr_table.sequence_suggestion.max_suggested_score_count must be positive")
+    return {
+        "enabled": True,
+        "min_anchor_rows": min_anchor_rows,
+        "max_cumulative_digit_length": max_digit_length,
+        "max_suggested_score_count": max_score_count,
     }
 
 
@@ -798,6 +822,15 @@ def _build_review_suggestions(
     rows: list[dict[str, Any]],
     config: dict[str, Any],
 ) -> dict[tuple[str, str, str, str, str, str, str], dict[str, int]]:
+    suggestions = _build_sequence_review_suggestions(rows, config)
+    suggestions.update(_build_single_boundary_review_suggestions(rows, config))
+    return suggestions
+
+
+def _build_single_boundary_review_suggestions(
+    rows: list[dict[str, Any]],
+    config: dict[str, Any],
+) -> dict[tuple[str, str, str, str, str, str, str], dict[str, int]]:
     suggestion_config = config.get("single_boundary_suggestion") or {}
     if not suggestion_config.get("enabled"):
         return {}
@@ -847,6 +880,120 @@ def _build_review_suggestions(
             }
             previous_cumulative = cumulative_rank
     return suggestions
+
+
+def _build_sequence_review_suggestions(
+    rows: list[dict[str, Any]],
+    config: dict[str, Any],
+) -> dict[tuple[str, str, str, str, str, str, str], dict[str, int]]:
+    suggestion_config = config.get("sequence_suggestion") or {}
+    if not suggestion_config.get("enabled"):
+        return {}
+
+    expected_scores = _expected_scores_by_candidate(rows, suggestion_config)
+    cumulative_by_score: dict[tuple[str, int, int], int] = {}
+    row_by_key = {_candidate_key(row): row for row in rows}
+    for row in rows:
+        key = _candidate_key(row)
+        score = expected_scores.get(key) or _valid_int_score(row.get("score"))
+        if score is None:
+            continue
+        cumulative = _sequence_cumulative_candidate(
+            row,
+            expected_score=score,
+            max_digit_length=int(suggestion_config["max_cumulative_digit_length"]),
+        )
+        if cumulative is None:
+            continue
+        cumulative_by_score[(str(row.get("subject_cat") or ""), _as_int(row.get("score_year")), score)] = cumulative
+
+    suggestions: dict[tuple[str, str, str, str, str, str, str], dict[str, int]] = {}
+    for key, row in row_by_key.items():
+        score = expected_scores.get(key) or _valid_int_score(row.get("score"))
+        if score is None:
+            continue
+        cumulative = cumulative_by_score.get((str(row.get("subject_cat") or ""), _as_int(row.get("score_year")), score))
+        if cumulative is None:
+            continue
+        previous = cumulative_by_score.get((str(row.get("subject_cat") or ""), _as_int(row.get("score_year")), score + 1))
+        if previous is None:
+            if _int_like(row.get("score_count")) and _as_int(row.get("score_count")) == cumulative:
+                score_count = cumulative
+            else:
+                continue
+        else:
+            score_count = cumulative - previous
+        if score_count <= 0 or cumulative <= score_count:
+            continue
+        if score_count > int(suggestion_config["max_suggested_score_count"]):
+            continue
+        existing_count = _positive_int_or_none(row.get("score_count"))
+        if existing_count and _raw_digits_start_with_score(row, score) and existing_count != score_count:
+            continue
+        suggestions[key] = {
+            "score": score,
+            "score_count": score_count,
+            "cumulative_rank": cumulative,
+        }
+    return suggestions
+
+
+def _expected_scores_by_candidate(
+    rows: list[dict[str, Any]],
+    suggestion_config: dict[str, Any],
+) -> dict[tuple[str, str, str, str, str, str, str], int]:
+    min_anchor_rows = int(suggestion_config["min_anchor_rows"])
+    grouped: dict[tuple[str, int, str, int], list[dict[str, Any]]] = {}
+    for row in rows:
+        subject = str(row.get("subject_cat") or "")
+        year = _as_int(row.get("score_year"))
+        image_file = str(row.get("image_file") or "")
+        block_index = _as_int(row.get("block_index") or 0)
+        grouped.setdefault((subject, year, image_file, block_index), []).append(row)
+
+    expected: dict[tuple[str, str, str, str, str, str, str], int] = {}
+    for group_rows in grouped.values():
+        indexed_rows = list(enumerate(sorted(group_rows, key=lambda item: float(item["row_y"]), reverse=True)))
+        anchors = [
+            score + index
+            for index, row in indexed_rows
+            if (score := _valid_int_score(row.get("score"))) is not None
+            and row.get("parse_status") in COMPLETE_PARSE_STATUSES
+        ]
+        if not anchors:
+            continue
+        [(anchor_score, anchor_count)] = Counter(anchors).most_common(1)
+        if anchor_count < min_anchor_rows or not _valid_score(anchor_score):
+            continue
+        if not _anchor_matches_complete_rows(indexed_rows, anchor_score):
+            continue
+        for index, row in indexed_rows:
+            score = anchor_score - index
+            if _valid_score(score):
+                expected[_candidate_key(row)] = score
+    return expected
+
+
+def _sequence_cumulative_candidate(row: dict[str, Any], *, expected_score: int, max_digit_length: int) -> int | None:
+    existing = _positive_int_or_none(row.get("cumulative_rank"))
+    raw_text = str(row.get("raw_text") or "")
+    digits = re.sub(r"\D", "", raw_text)
+    if (
+        digits
+        and len(digits) <= max_digit_length
+        and not digits.startswith(str(expected_score))
+    ):
+        value = int(digits)
+        if value > expected_score:
+            return value
+    if existing:
+        return existing
+    return None
+
+
+def _raw_digits_start_with_score(row: dict[str, Any], score: int) -> bool:
+    digits = re.sub(r"\D", "", str(row.get("raw_text") or ""))
+    return bool(digits and digits.startswith(str(score)))
 
 
 def _single_boundary_anchor_score(
@@ -907,6 +1054,24 @@ def _has_digit(text: str) -> bool:
 
 def _valid_score(value: Any) -> bool:
     return isinstance(value, int) and 0 <= value <= 750
+
+
+def _valid_int_score(value: Any) -> int | None:
+    if not _int_like(value):
+        return None
+    score = _as_int(value)
+    if _valid_score(score):
+        return score
+    return None
+
+
+def _positive_int_or_none(value: Any) -> int | None:
+    if not _int_like(value):
+        return None
+    number = _as_int(value)
+    if number > 0:
+        return number
+    return None
 
 
 def _int_like(value: Any) -> bool:

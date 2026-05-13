@@ -317,7 +317,7 @@ python3 scripts/build_package.py download-page-images \
 
 真实 smoke 已验证该命令可采集 2022 辽宁招生考试之窗官方页 8 张图、2022 中新网镜像页 20 张图、2023 官方页 20 张图、2024 官方页 21 张图，共 69 张图。
 
-2022 官方图片源 smoke：8 张官方图经 macOS Vision 生成 1,302 条 OCR observation；物理类解析 400 条候选，其中 337 条完整、71 条待复核；历史类解析 295 条候选，其中 131 条完整、177 条待复核。readiness audit 仍报告严格合并不可通过，必须人工核对 248 条复核任务后才能生成 cleaned CSV。相比此前 2022 中新网镜像 1,225 条待复核任务，官方图显著降低人工复核量。
+2022 官方图片源 smoke：8 张官方图经 macOS Vision 生成 1,302 条 OCR observation；物理类解析 400 条候选，其中 337 条完整、71 条待复核；历史类解析 295 条候选，其中 131 条完整、177 条待复核。readiness audit 仍报告严格合并不可通过，必须人工核对 248 条复核任务后才能生成 cleaned CSV。相比此前 2022 中新网镜像 1,225 条待复核任务，官方图显著降低人工复核量。后续 source probe 还登记了学信网页面列出的 2022 历史/物理 DOCX 附件 URL，但直连仍返回 412，只能保留在 `research_candidates`，不能晋级为 `remote_files`。
 
 macOS 环境可使用系统 Vision OCR 生成可复查的 JSONL 中间产物。OCR 参数不写在代码里，由 `config/sources.json` 的 `ln_score_distribution.ocr` 维护：
 
@@ -350,9 +350,9 @@ python3 scripts/build_package.py build-ln-score-distribution-review \
   --output staging/ln_score_distribution_2024_review_tasks.csv
 ```
 
-低分段页面如果只有一侧边界锚点，复核任务表会按 `parser.ocr_table.single_boundary_suggestion` 生成 `suggested_score/suggested_score_count/suggested_cumulative_rank`。这些字段只降低人工抄录成本，不会被 `apply-ln-score-distribution-review` 自动采信；必须由人工核对原图后复制到 `corrected_score/corrected_score_count/corrected_cumulative_rank`，并把 `review_status` 改为 `approved` 或 `corrected` 后才会进入 cleaned CSV。
+低分段页面如果只有一侧边界锚点，复核任务表会按 `parser.ocr_table.single_boundary_suggestion` 生成 `suggested_score/suggested_score_count/suggested_cumulative_rank`。对官方图片中“只识别到累计人数”的行，复核任务表还会按 `parser.ocr_table.sequence_suggestion` 利用同一科类年份的连续分数、相邻累计人数和表格块锚点生成建议值。这些字段只降低人工抄录成本，不会被 `apply-ln-score-distribution-review` 自动采信；必须由人工核对原图后复制到 `corrected_score/corrected_score_count/corrected_cumulative_rank`，并把 `review_status` 改为 `approved` 或 `corrected` 后才会进入 cleaned CSV。
 
-真实 smoke：2024 候选生成 1,181 条复核任务，失败原因分布为 `incomplete=803, duplicate_score=184, invalid_score=122, cumulative_mismatch=68, extra_tokens=4`；2023 候选生成 1,185 条复核任务，失败原因分布为 `incomplete=975, invalid_score=130, duplicate_score=49, cumulative_mismatch=31`；2022 镜像候选生成 1,225 条复核任务，失败原因分布为 `incomplete=999, invalid_score=106, duplicate_score=87, cumulative_mismatch=33`。复核任务表只用于校对，不是 data package。
+真实 smoke：2024 候选生成 1,181 条复核任务，失败原因分布为 `incomplete=803, duplicate_score=184, invalid_score=122, cumulative_mismatch=68, extra_tokens=4`；2023 候选生成 1,185 条复核任务，失败原因分布为 `incomplete=975, invalid_score=130, duplicate_score=49, cumulative_mismatch=31`；2022 镜像候选生成 1,225 条复核任务，失败原因分布为 `incomplete=999, invalid_score=106, duplicate_score=87, cumulative_mismatch=33`；2022 官方图复核任务保持 248 条，其中物理类 71 条/13 条带建议值，历史类 177 条/13 条带建议值。复核任务表只用于校对，不是 data package。
 
 复核任务可继续拆成本地工作区。工作区按原图生成批次 CSV、进度 manifest 和 HTML 核对页；pending 状态和可编辑字段由 `config/sources.json` 的 `parser.ocr_review_workspace` 维护：
 
@@ -380,9 +380,9 @@ python3 scripts/build_package.py prefill-ln-score-distribution-review-suggestion
   --output staging/ln_score_distribution_2024_review_tasks_prefilled.csv
 ```
 
-真实 smoke：2022 镜像复核表 1,225 行中，预填 310 行 `corrected_*`，全部 `review_status` 仍为 `todo`；readiness audit 仍报告 `unresolved_rows=1225` 和 `strict_apply.ok=false`，证明预填不会绕过人工复核。
+真实 smoke：2022 镜像复核表 1,225 行中，预填 310 行 `corrected_*`，全部 `review_status` 仍为 `todo`；2022 官方图复核表中，物理类预填 13 行、历史类预填 13 行，`review_status` 仍全部为 `todo`。readiness audit 仍报告官方物理 `unresolved_rows=71`、官方历史 `unresolved_rows=177`，证明预填不会绕过人工复核。
 
-真实 smoke：2024 工作区生成 21 个图片批次、1,181 条待复核任务；2023 工作区生成 20 个图片批次、1,185 条待复核任务；2022 镜像工作区生成 19 个图片批次、1,225 条待复核任务。未修改批次可无损合并回总表，`updated_rows=0`。
+真实 smoke：2024 工作区生成 21 个图片批次、1,181 条待复核任务；2023 工作区生成 20 个图片批次、1,185 条待复核任务；2022 镜像工作区生成 19 个图片批次、1,225 条待复核任务；2022 官方图预填工作区生成物理 3 个图片批次/71 条任务、历史 4 个图片批次/177 条任务。未修改批次可无损合并回总表，`updated_rows=0`。
 
 工作区 HTML 会用 `ocr_table.block_x_ranges` 和任务中的 `row_y/block_index` 在原图上绘制定位框，帮助人工快速找到待核对行。定位框参数由 `parser.ocr_review_workspace.row_locator` 维护，只影响复核体验，不进入 cleaned CSV 或 package。真实 smoke：2022 镜像 prefilled review 生成 19 个图片批次，1,225 条任务均有 locator row。
 
