@@ -23,6 +23,8 @@ from .builders.career_source_batch import (
 )
 from .builders.career_source_package import build_career_signal_package_from_source_plan
 from .builders.career_source_plan import build_career_source_plan
+from .builders.city_context_collection_audit import audit_city_context_collection_plan
+from .builders.city_context_collection_plan import build_city_context_collection_plan
 from .builders.city_development_score import build_city_development_score_package
 from .builders.city_listed_company_signal import build_city_listed_company_signal_package
 from .builders.major_city_employment_fit import build_major_city_employment_fit_package
@@ -564,6 +566,22 @@ def main() -> int:
     build_city_listed_company_signal.add_argument("--source-date")
     build_city_listed_company_signal.add_argument("--availability-date")
     build_city_listed_company_signal.add_argument("--source-system")
+
+    build_city_context_plan = sub.add_parser(
+        "build-city-context-collection-plan",
+        help="Build city economic and public-resource collection tasks from a city list",
+    )
+    build_city_context_plan.add_argument("--city-input", required=True, type=Path)
+    build_city_context_plan.add_argument("--output-dir", required=True, type=Path)
+    build_city_context_plan.add_argument("--domain", action="append", dest="domains")
+    build_city_context_plan.add_argument("--metric-year", type=int)
+    build_city_context_plan.add_argument("--limit", type=int)
+
+    audit_city_context_plan = sub.add_parser(
+        "audit-city-context-collection-plan",
+        help="Audit city context collection plan evidence readiness",
+    )
+    audit_city_context_plan.add_argument("--plan-csv", required=True, type=Path)
 
     parse_moe = sub.add_parser("parse-moe-major-catalog", help="Parse MOE major catalog PDF to cleaned CSV")
     parse_moe.add_argument("--input", required=True, type=Path)
@@ -1183,6 +1201,20 @@ def main() -> int:
             availability_date=args.availability_date,
             source_system=args.source_system,
         )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+    if args.cmd == "build-city-context-collection-plan":
+        result = build_city_context_collection_plan(
+            city_input=args.city_input,
+            output_dir=args.output_dir,
+            domains=args.domains,
+            metric_year=args.metric_year,
+            limit=args.limit,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+    if args.cmd == "audit-city-context-collection-plan":
+        result = audit_city_context_collection_plan(plan_csv=args.plan_csv)
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
     if args.cmd == "parse-moe-major-catalog":

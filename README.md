@@ -117,6 +117,20 @@ python3 scripts/build_package.py build-city-listed-company-signal \
 
 输出 `fa_fact_city_listed_company_signal` 后，再作为城市发展底盘评分的上市公司产业厚度输入。
 
+城市经济和公共资源指标先生成采集计划，再按证据完整度审计。城市清单只需要 `adcode/province/city/region_level` 等列：
+
+```bash
+python3 scripts/build_package.py build-city-context-collection-plan \
+  --city-input staging/city_context/target_cities.csv \
+  --output-dir staging/city_context \
+  --metric-year 2025
+
+python3 scripts/build_package.py audit-city-context-collection-plan \
+  --plan-csv staging/city_context/city_context_collection_plan.csv
+```
+
+采集计划不是 data package，不能导入 core。只有证据列完整并通过审计的行，才允许整理为 `fa_fact_city_economic_indicator` 或 `fa_fact_city_public_resource` 标准表，再通过 `build-local` 出包。
+
 城市发展底盘评分不在 core 里直接计算。先由 DataHub 采集并复核 `fa_fact_city_economic_indicator`、`fa_fact_city_public_resource` 和 `fa_fact_city_listed_company_signal`，再统一生成 `fa_mart_city_development_score`：
 
 ```bash

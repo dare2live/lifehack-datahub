@@ -1,0 +1,64 @@
+{
+  "version": "1",
+  "updated_at": "2026-05-13",
+  "notes": "城市经济与公共资源指标采集任务配置。DataHub 生成采集队列和证据审计，不把未复核指标发布到 core。",
+  "defaults": {
+    "metric_year": 2025,
+    "status": "todo",
+    "region_level": "city"
+  },
+  "city_input_aliases": {
+    "adcode": ["adcode", "行政区划代码"],
+    "province": ["province", "省份"],
+    "city": ["city", "城市"],
+    "region_level": ["region_level", "行政层级"],
+    "priority_rank": ["priority_rank", "优先级"]
+  },
+  "audit": {
+    "pending_statuses": ["todo", "in_progress", "needs_review"],
+    "complete_statuses": ["collected", "verified", "ready"],
+    "blocked_statuses": ["blocked", "not_found", "not_applicable", "needs_source_research"],
+    "required_evidence_columns": ["metric_value", "source_title", "source_url", "evidence_quote", "source_date", "availability_date"]
+  },
+  "domains": {
+    "economic": {
+      "source_key": "city_economic_indicator",
+      "source_name": "城市经济指标",
+      "target_table": "fa_fact_city_economic_indicator",
+      "preferred_sources": ["statistical_yearbook", "government_statistical_bulletin", "national_bureau_of_statistics"],
+      "query_templates": [
+        "{city} {metric_year} 统计公报 {metric_label}",
+        "{city} {metric_year} 统计年鉴 {metric_label}",
+        "{province} {city} {metric_label} {metric_year}"
+      ],
+      "metrics": {
+        "gdp": {"label": "地区生产总值", "unit": "亿元", "min_value": 0},
+        "gdp_per_capita": {"label": "人均地区生产总值", "unit": "元", "min_value": 0},
+        "resident_population": {"label": "常住人口", "unit": "万人", "min_value": 0},
+        "urban_avg_wage": {"label": "城镇平均工资", "unit": "元", "min_value": 0},
+        "disposable_income_per_capita": {"label": "人均可支配收入", "unit": "元", "min_value": 0},
+        "tertiary_industry_share": {"label": "第三产业占比", "unit": "ratio", "min_value": 0, "max_value": 1},
+        "public_budget_revenue": {"label": "一般公共预算收入", "unit": "亿元", "min_value": 0}
+      }
+    },
+    "public_resource": {
+      "source_key": "city_public_resource",
+      "source_name": "城市公共资源指标",
+      "target_table": "fa_fact_city_public_resource",
+      "preferred_sources": ["statistical_yearbook", "health_commission_report", "education_bureau_report", "government_open_data"],
+      "query_templates": [
+        "{city} {metric_year} 统计公报 {metric_label}",
+        "{city} 卫生健康 教育 交通 统计年鉴 {metric_year} {metric_label}",
+        "{province} {city} {metric_label} {metric_year}"
+      ],
+      "metrics": {
+        "hospital_beds_per_1000": {"label": "每千人口医疗卫生机构床位数", "unit": "张/千人", "resource_domain": "medical", "min_value": 0},
+        "licensed_doctors_per_1000": {"label": "每千人口执业医师数", "unit": "人/千人", "resource_domain": "medical", "min_value": 0},
+        "tertiary_hospital_count": {"label": "三级医院数量", "unit": "所", "resource_domain": "medical", "min_value": 0},
+        "higher_education_institution_count": {"label": "普通高校数量", "unit": "所", "resource_domain": "education", "min_value": 0},
+        "public_library_count": {"label": "公共图书馆数量", "unit": "个", "resource_domain": "culture", "min_value": 0},
+        "rail_transit_mileage": {"label": "轨道交通运营里程", "unit": "公里", "resource_domain": "transport", "min_value": 0}
+      }
+    }
+  }
+}

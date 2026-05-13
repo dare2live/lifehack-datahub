@@ -24,6 +24,8 @@ from datahub.builders.career_source_batch import (
 )
 from datahub.builders.career_source_package import build_career_signal_package_from_source_plan
 from datahub.builders.career_source_plan import PLAN_COLUMNS as CAREER_PLAN_COLUMNS, build_career_source_plan
+from datahub.builders.city_context_collection_audit import audit_city_context_collection_plan
+from datahub.builders.city_context_collection_plan import build_city_context_collection_plan
 from datahub.builders.city_development_score import build_city_development_score_package
 from datahub.builders.city_listed_company_signal import build_city_listed_company_signal_package
 from datahub.builders.major_city_employment_fit import build_major_city_employment_fit_package
@@ -3308,6 +3310,60 @@ def test_build_city_listed_company_signal_package(tmp_path: Path):
     assert int(float(by_city_metric[("沈阳", "listed_company_revenue_proxy")]["metric_value"])) == 6000000000
     assert by_city_metric[("沈阳", "listed_company_count")]["source_scope"] == "city_total"
     assert result["quality_report"]["errors"] == []
+
+
+def test_build_and_audit_city_context_collection_plan(tmp_path: Path):
+    city_input = tmp_path / "cities.csv"
+    with city_input.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=["adcode", "province", "city", "region_level", "priority_rank"])
+        writer.writeheader()
+        writer.writerow({"adcode": "210100", "province": "辽宁", "city": "沈阳", "region_level": "city", "priority_rank": "1"})
+        writer.writerow({"adcode": "210200", "province": "辽宁", "city": "大连", "region_level": "city", "priority_rank": "2"})
+
+    result = build_city_context_collection_plan(
+        city_input=city_input,
+        output_dir=tmp_path / "city_context",
+        domains=["economic", "public_resource"],
+        metric_year=2025,
+        limit=1,
+    )
+
+    assert result["rows"] == 13
+    with Path(result["csv"]).open(encoding="utf-8", newline="") as f:
+        rows = list(csv.DictReader(f))
+    assert {row["domain"] for row in rows} == {"economic", "public_resource"}
+    assert all(json.loads(row["search_queries"]) for row in rows)
+    assert next(row for row in rows if row["metric_key"] == "hospital_beds_per_1000")["resource_domain"] == "medical"
+
+    audit = audit_city_context_collection_plan(Path(result["csv"]))
+    assert audit["errors"] == []
+    assert audit["progress"]["pending_rows"] == 13
+
+    reviewed = tmp_path / "city_context_reviewed.csv"
+    rows[0]["status"] = "verified"
+    rows[0]["metric_value"] = "9000"
+    rows[0]["source_title"] = "fixture bulletin"
+    rows[0]["source_url"] = "https://example.com/shenyang-gdp"
+    rows[0]["evidence_quote"] = "地区生产总值9000亿元"
+    rows[0]["source_date"] = "2026-05-13"
+    rows[0]["availability_date"] = "2026-05-13"
+    with reviewed.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=rows[0].keys())
+        writer.writeheader()
+        writer.writerows(rows)
+    reviewed_audit = audit_city_context_collection_plan(reviewed)
+    assert reviewed_audit["progress"]["complete_rows"] == 1
+    assert reviewed_audit["errors"] == []
+
+    rows[1]["status"] = "verified"
+    rows[1]["metric_value"] = "120"
+    bad = tmp_path / "city_context_bad.csv"
+    with bad.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=rows[0].keys())
+        writer.writeheader()
+        writer.writerows(rows)
+    bad_audit = audit_city_context_collection_plan(bad)
+    assert any("complete status missing evidence" in error for error in bad_audit["errors"])
 
 
 def test_build_major_city_employment_fit_package(tmp_path: Path):
