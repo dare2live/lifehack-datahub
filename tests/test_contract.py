@@ -475,6 +475,30 @@ def test_audit_sources_marks_admission_plan_manual():
     assert by_key["school_identity_bridge"]["status"] == "local_db_configured"
     assert by_key["school_outcome"]["target_tables"] == ["fa_fact_school_outcome"]
     assert by_key["major_outcome"]["status"] == "source_collection_required"
+    assert by_key["school_recruitment_event"]["status"] == "source_collection_required"
+    assert by_key["school_recruitment_event"]["target_tables"] == ["fa_fact_school_recruitment_event"]
+    assert by_key["school_research_industry_link"]["status"] == "source_collection_required"
+    assert by_key["school_research_industry_link"]["target_tables"] == ["fa_fact_school_research_industry_link"]
+    assert by_key["school_local_employment"]["status"] == "source_collection_required"
+    assert by_key["school_local_employment"]["target_tables"] == ["fa_fact_school_local_employment"]
+    assert by_key["city_industry_zone"]["status"] == "source_collection_required"
+    assert by_key["city_industry_zone"]["target_tables"] == ["fa_dim_city_industry_zone"]
+    assert by_key["school_city_industry_fit"]["status"] == "derived_from_datahub_signals"
+    assert by_key["school_city_industry_fit"]["target_tables"] == ["fa_mart_school_city_industry_fit"]
+    assert by_key["city_economic_indicator"]["status"] == "source_collection_required"
+    assert by_key["city_economic_indicator"]["target_tables"] == ["fa_fact_city_economic_indicator"]
+    assert by_key["city_public_resource"]["status"] == "source_collection_required"
+    assert by_key["city_public_resource"]["target_tables"] == ["fa_fact_city_public_resource"]
+    assert by_key["city_listed_company_signal"]["status"] == "source_collection_required"
+    assert by_key["city_listed_company_signal"]["target_tables"] == ["fa_fact_city_listed_company_signal"]
+    assert by_key["city_development_score"]["status"] == "derived_from_datahub_signals"
+    assert by_key["city_development_score"]["target_tables"] == ["fa_mart_city_development_score"]
+    assert by_key["major_employment_role_map"]["status"] == "curation_required"
+    assert by_key["major_employment_role_map"]["target_tables"] == ["fa_bridge_major_employment_role"]
+    assert by_key["company_role_demand_signal"]["status"] == "source_collection_required"
+    assert by_key["company_role_demand_signal"]["target_tables"] == ["fa_fact_company_role_demand_signal"]
+    assert by_key["major_city_employment_fit"]["status"] == "derived_from_datahub_signals"
+    assert by_key["major_city_employment_fit"]["target_tables"] == ["fa_mart_major_city_employment_fit"]
     assert by_key["career_occupation_catalog"]["target_tables"] == ["fa_dim_career_occupation"]
     assert by_key["career_signal"]["status"] == "source_collection_required"
     assert by_key["career_score"]["status"] == "derived_from_datahub_signals"
@@ -495,6 +519,18 @@ def test_evidence_domain_schemas_are_package_ready():
         "fa_bridge_school_identity",
         "fa_fact_school_outcome",
         "fa_fact_major_outcome",
+        "fa_fact_school_recruitment_event",
+        "fa_fact_school_research_industry_link",
+        "fa_fact_school_local_employment",
+        "fa_dim_city_industry_zone",
+        "fa_mart_school_city_industry_fit",
+        "fa_fact_city_economic_indicator",
+        "fa_fact_city_public_resource",
+        "fa_fact_city_listed_company_signal",
+        "fa_mart_city_development_score",
+        "fa_bridge_major_employment_role",
+        "fa_fact_company_role_demand_signal",
+        "fa_mart_major_city_employment_fit",
         "fa_dim_career_occupation",
         "fa_fact_career_signal",
         "fa_mart_career_score",

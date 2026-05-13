@@ -822,6 +822,369 @@
       },
       "target_tables": ["fa_fact_major_outcome"]
     },
+    "school_recruitment_event": {
+      "name": "学校招聘活动",
+      "kind": "campus_career_site_snapshot",
+      "owner": "lifehack-datahub",
+      "raw_glob": "raw/school_recruitment_event/**/*",
+      "remote_files": [],
+      "collection_plan": {
+        "identity_source_table": "fa_bridge_school_identity",
+        "profile_source_table": "fa_dim_school_profile",
+        "preferred_sources": [
+          "school_career_site",
+          "school_employment_site",
+          "verified_job_fair_page",
+          "controlled_manual_export"
+        ],
+        "event_types": ["宣讲会", "双选会", "招聘公告", "实习基地"],
+        "browser_tools": ["scrapy", "playwright", "chrome_profile_session"],
+        "normalization": {
+          "employer_canonical_name": "company_alias_rules",
+          "industry_mapping": "tdx_l2_by_company_or_keyword",
+          "target_majors": "moe_major_catalog"
+        }
+      },
+      "acquisition": {
+        "status": "source_collection_required",
+        "official_distribution": "高校就业网、学生就业平台、官方双选会公告和受控人工导出",
+        "evidence_urls": [],
+        "notes": "用于衡量学校在本地产业圈的真实连接强度。动态站点可用 Playwright/Chrome 登录会话采集，但原始响应只进 ignored raw/staging；每行必须保留 event_date、employer_name、source_url 和 raw_response_hash。"
+      },
+      "target_tables": ["fa_fact_school_recruitment_event"]
+    },
+    "school_research_industry_link": {
+      "name": "学校科研产业连接",
+      "kind": "official_research_platform_and_industry_mapping",
+      "owner": "lifehack-datahub",
+      "raw_glob": "raw/school_research_industry_link/**/*",
+      "remote_files": [],
+      "collection_plan": {
+        "preferred_sources": [
+          "school_research_office",
+          "school_key_lab_page",
+          "government_platform_list",
+          "industry_zone_public_page"
+        ],
+        "mapping_inputs": [
+          "platform_name",
+          "discipline",
+          "research_keywords_json",
+          "linked_company_name",
+          "industry_zone_name"
+        ],
+        "review_required": true
+      },
+      "acquisition": {
+        "status": "source_collection_required",
+        "official_distribution": "学校科研平台、重点实验室、工程中心、产学研合作基地和政府园区公开名单",
+        "evidence_urls": [],
+        "notes": "该表只保存可追溯的科研平台和产业映射证据，不把无来源的学校印象写入数据包。实验室/平台到 TDX L2 的映射必须保留 evidence_quote 并允许人工复核。"
+      },
+      "target_tables": ["fa_fact_school_research_industry_link"]
+    },
+    "school_local_employment": {
+      "name": "学校本地就业去向",
+      "kind": "annual_employment_report_metrics",
+      "owner": "lifehack-datahub",
+      "raw_glob": "raw/school_local_employment/**/*",
+      "remote_files": [],
+      "collection_plan": {
+        "preferred_sources": [
+          "employment_quality_report",
+          "undergraduate_quality_report",
+          "school_news_verified_statistics",
+          "controlled_manual_export"
+        ],
+        "metric_keys": [
+          "local_city_retention_rate",
+          "province_retention_rate",
+          "top_employer_hire_count",
+          "top_industry_share",
+          "graduate_entry_salary_proxy"
+        ],
+        "candidate_review_statuses": ["needs_review", "approved", "rejected"]
+      },
+      "acquisition": {
+        "status": "source_collection_required",
+        "official_distribution": "高校毕业生就业质量年度报告、本科教学质量报告和学校公开统计附件",
+        "evidence_urls": [],
+        "notes": "重点采集留在学校所在城市/省份的比例、重点雇主、重点行业和薪资代理指标。报告 PDF 解析只能进入候选表，必须经复核后生成标准包。"
+      },
+      "target_tables": ["fa_fact_school_local_employment"]
+    },
+    "city_industry_zone": {
+      "name": "城市产业园区",
+      "kind": "government_industry_zone_catalog",
+      "owner": "lifehack-datahub",
+      "raw_glob": "raw/city_industry_zone/**/*",
+      "remote_files": [],
+      "collection_plan": {
+        "preferred_sources": [
+          "government_open_data",
+          "development_zone_official_site",
+          "city_industry_plan",
+          "amap_mcp_geocode"
+        ],
+        "coordinate_system": "GCJ-02",
+        "mapping_review_required": true
+      },
+      "acquisition": {
+        "status": "source_collection_required",
+        "official_distribution": "政府产业园区公开名录、城市产业规划、开发区官网和高德 MCP 地理编码补全",
+        "evidence_urls": [],
+        "notes": "用于把专业/行业和城市空间机会连接起来。高德只补地址、坐标和行政区划，园区身份与主导产业仍以政府或园区官网公开信息为准。"
+      },
+      "target_tables": ["fa_dim_city_industry_zone"]
+    },
+    "school_city_industry_fit": {
+      "name": "学校城市产业连接评分",
+      "kind": "derived_school_city_industry_mart",
+      "owner": "lifehack-datahub",
+      "raw_glob": "raw/school_city_industry_fit/**/*",
+      "remote_files": [],
+      "derivation": {
+        "source_tables": [
+          "fa_fact_school_recruitment_event",
+          "fa_fact_school_research_industry_link",
+          "fa_fact_school_local_employment",
+          "fa_dim_city_industry_zone",
+          "fa_dim_school_location"
+        ],
+        "score_profiles": ["city_industry_default"],
+        "default_weights": {
+          "recruitment_score": 0.30,
+          "research_score": 0.20,
+          "local_employment_score": 0.20,
+          "internship_score": 0.10,
+          "zone_proximity_score": 0.10,
+          "resilience_score": 0.10
+        }
+      },
+      "acquisition": {
+        "status": "derived_from_datahub_signals",
+        "official_distribution": "DataHub 招聘活动、科研平台、本地就业、产业园区和校区坐标加工结果",
+        "evidence_urls": [],
+        "notes": "该评分回答“这个学校和这个城市的某个产业是否有真实连接”。评分只消费已核验证据，权重由配置维护，core 只读取 mart 与 lineage。"
+      },
+      "target_tables": ["fa_mart_school_city_industry_fit"]
+    },
+    "city_economic_indicator": {
+      "name": "城市经济指标",
+      "kind": "official_statistics_indicator",
+      "owner": "lifehack-datahub",
+      "raw_glob": "raw/city_economic_indicator/**/*",
+      "remote_files": [],
+      "collection_plan": {
+        "preferred_sources": [
+          "statistical_yearbook",
+          "government_statistical_bulletin",
+          "national_bureau_of_statistics",
+          "city_open_data"
+        ],
+        "metric_keys": [
+          "gdp",
+          "gdp_per_capita",
+          "resident_population",
+          "urban_avg_wage",
+          "disposable_income_per_capita",
+          "tertiary_industry_share",
+          "public_budget_revenue"
+        ],
+        "levels": ["province", "city"]
+      },
+      "acquisition": {
+        "status": "source_collection_required",
+        "official_distribution": "国家统计局、地方统计年鉴、统计公报和政府开放数据",
+        "evidence_urls": [],
+        "notes": "城市经济指标用于判断城市长期承载能力，不替代具体学校和专业证据。每个指标必须保留统计口径、年份、来源标题和链接。"
+      },
+      "target_tables": ["fa_fact_city_economic_indicator"]
+    },
+    "city_public_resource": {
+      "name": "城市公共资源指标",
+      "kind": "official_public_service_indicator",
+      "owner": "lifehack-datahub",
+      "raw_glob": "raw/city_public_resource/**/*",
+      "remote_files": [],
+      "collection_plan": {
+        "preferred_sources": [
+          "statistical_yearbook",
+          "health_commission_report",
+          "education_bureau_report",
+          "government_open_data"
+        ],
+        "resource_domains": ["medical", "education", "transport", "culture"],
+        "metric_keys": [
+          "hospital_beds_per_1000",
+          "licensed_doctors_per_1000",
+          "tertiary_hospital_count",
+          "higher_education_institution_count",
+          "public_library_count",
+          "rail_transit_mileage"
+        ],
+        "levels": ["province", "city"]
+      },
+      "acquisition": {
+        "status": "source_collection_required",
+        "official_distribution": "统计年鉴、卫健委、教育局、交通和文旅公开统计",
+        "evidence_urls": [],
+        "notes": "医疗、教育、交通和文化资源用于解释城市生活质量和家庭支持成本。人均指标优先，绝对数量只作为城市规模背景。"
+      },
+      "target_tables": ["fa_fact_city_public_resource"]
+    },
+    "city_listed_company_signal": {
+      "name": "城市上市公司信号",
+      "kind": "listed_company_city_aggregate",
+      "owner": "lifehack-datahub",
+      "raw_glob": "raw/city_listed_company_signal/**/*",
+      "remote_files": [],
+      "collection_plan": {
+        "preferred_sources": [
+          "core_fa_dim_company_city_snapshot",
+          "read_only_smartmoney_duckdb_snapshot",
+          "exchange_public_company_list"
+        ],
+        "read_only_constraints": {
+          "smartmoney_duckdb": "/Users/dp/Documents/M/stock/chunky-monkey-v2/data/smartmoney.duckdb",
+          "mode": "read_only",
+          "no_chunkymonkey_python_import": true
+        },
+        "metric_keys": [
+          "listed_company_count",
+          "listed_company_tdx_l2_count",
+          "listed_company_market_cap_proxy",
+          "listed_company_revenue_proxy"
+        ]
+      },
+      "acquisition": {
+        "status": "source_collection_required",
+        "official_distribution": "交易所公开上市公司列表、core 已有公司城市快照或 smartmoney 只读快照",
+        "evidence_urls": [],
+        "notes": "该源只能只读读取公司城市快照，绝不写 smartmoney.duckdb，也不 import ChunkyMonkey Python 模块。上市公司数量是城市产业厚度代理，不等于全部就业容量。"
+      },
+      "target_tables": ["fa_fact_city_listed_company_signal"]
+    },
+    "city_development_score": {
+      "name": "城市发展底盘评分",
+      "kind": "derived_city_context_mart",
+      "owner": "lifehack-datahub",
+      "raw_glob": "raw/city_development_score/**/*",
+      "remote_files": [],
+      "derivation": {
+        "source_tables": [
+          "fa_fact_city_economic_indicator",
+          "fa_fact_city_public_resource",
+          "fa_fact_city_listed_company_signal",
+          "fa_dim_region_profile"
+        ],
+        "score_profiles": ["city_development_default"],
+        "default_weights": {
+          "economic_score": 0.30,
+          "industry_depth_score": 0.30,
+          "medical_resource_score": 0.15,
+          "education_resource_score": 0.15,
+          "public_service_score": 0.10
+        }
+      },
+      "acquisition": {
+        "status": "derived_from_datahub_signals",
+        "official_distribution": "DataHub 城市经济、公共资源、上市公司和区域基础表加工结果",
+        "evidence_urls": [],
+        "notes": "用于解释城市底盘，不直接决定录取分档。评分权重由 DataHub 配置维护，core 只消费 mart 与 lineage。"
+      },
+      "target_tables": ["fa_mart_city_development_score"]
+    },
+    "major_employment_role_map": {
+      "name": "专业就业角色映射",
+      "kind": "curated_major_role_mapping",
+      "owner": "lifehack-datahub",
+      "raw_glob": "raw/major_employment_role_map/**/*",
+      "remote_files": [],
+      "collection_plan": {
+        "preferred_sources": [
+          "moe_major_catalog",
+          "occupation_catalog",
+          "school_training_plan",
+          "employment_quality_report",
+          "recruitment_snapshot",
+          "manual_reviewed_mapping"
+        ],
+        "role_types": ["direct", "generalist", "public_sector", "graduate_study"],
+        "generalist_examples": ["accounting", "human_resources", "legal_affairs", "administration", "content_operations"],
+        "review_required": true
+      },
+      "acquisition": {
+        "status": "curation_required",
+        "official_distribution": "教育部专业目录、人社职业分类、学校培养方案、就业质量报告和受控复核映射",
+        "evidence_urls": [],
+        "notes": "专业到行业映射不能替代就业角色映射。会计、人力资源、法律、中文、管理等通用专业应标注 generalist 角色，保留适配度、置信度和依据。"
+      },
+      "target_tables": ["fa_bridge_major_employment_role"]
+    },
+    "company_role_demand_signal": {
+      "name": "企业岗位需求信号",
+      "kind": "company_role_demand_snapshot",
+      "owner": "lifehack-datahub",
+      "raw_glob": "raw/company_role_demand_signal/**/*",
+      "remote_files": [],
+      "collection_plan": {
+        "preferred_sources": [
+          "listed_company_recruitment_site",
+          "school_recruitment_event",
+          "public_job_posting_snapshot",
+          "annual_report_employee_structure",
+          "controlled_manual_export"
+        ],
+        "metric_keys": [
+          "role_opening_count",
+          "role_salary_median",
+          "role_hiring_frequency",
+          "role_company_coverage",
+          "role_internship_opening_count"
+        ],
+        "company_scope": ["listed_company", "large_local_employer", "public_sector_employer"]
+      },
+      "acquisition": {
+        "status": "source_collection_required",
+        "official_distribution": "上市公司官网招聘页、学校招聘活动、公开职位快照、年报员工结构和受控人工导出",
+        "evidence_urls": [],
+        "notes": "用于回答城市里的企业是否需要某专业可进入的岗位。上市公司只是产业厚度代理，必须结合 role_key 和 city 使用，不能只用公司数量推断专业就业。"
+      },
+      "target_tables": ["fa_fact_company_role_demand_signal"]
+    },
+    "major_city_employment_fit": {
+      "name": "专业城市就业适配评分",
+      "kind": "derived_major_city_employment_mart",
+      "owner": "lifehack-datahub",
+      "raw_glob": "raw/major_city_employment_fit/**/*",
+      "remote_files": [],
+      "derivation": {
+        "source_tables": [
+          "fa_bridge_major_employment_role",
+          "fa_fact_company_role_demand_signal",
+          "fa_fact_city_listed_company_signal",
+          "fa_fact_school_local_employment",
+          "fa_dim_career_occupation"
+        ],
+        "score_profiles": ["major_city_employment_default"],
+        "default_weights": {
+          "direct_role_score": 0.25,
+          "generalist_role_score": 0.20,
+          "listed_company_fit_score": 0.20,
+          "local_demand_score": 0.20,
+          "public_sector_fit_score": 0.10,
+          "flexibility_score": 0.05
+        }
+      },
+      "acquisition": {
+        "status": "derived_from_datahub_signals",
+        "official_distribution": "DataHub 专业就业角色、企业岗位需求、城市上市公司信号和就业去向加工结果",
+        "evidence_urls": [],
+        "notes": "用于解释候选专业在候选城市是否有真实岗位入口。该评分贯穿“避免毕业后路径断裂”的项目判断，但展示时使用就业适配、岗位入口和转向空间等证据化表达。"
+      },
+      "target_tables": ["fa_mart_major_city_employment_fit"]
+    },
     "career_occupation_catalog": {
       "name": "职业分类与岗位标准",
       "kind": "official_catalog",
