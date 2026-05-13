@@ -50,6 +50,7 @@ from .builders.outcome_collection_package import build_outcome_packages_from_col
 from .builders.major_mapping_review import build_major_mapping_review_package
 from .builders.local_package import build_local_package
 from .builders.outcome_collection_plan import build_outcome_collection_plan
+from .builders.outcome_report_intake_merge import merge_outcome_report_intake_results
 from .builders.outcome_report_intake_plan import build_outcome_report_intake_plan
 from .builders.outcome_report_extraction_plan import build_outcome_report_extraction_plan
 from .builders.outcome_report_extraction_runner import run_outcome_report_extraction_plan
@@ -528,6 +529,15 @@ def main() -> int:
     build_outcome_report_intake.add_argument("--report-source-csv", required=True, type=Path)
     build_outcome_report_intake.add_argument("--output-dir", required=True, type=Path)
     build_outcome_report_intake.add_argument("--status", action="append", dest="statuses")
+
+    merge_outcome_report_intake = sub.add_parser(
+        "merge-outcome-report-intake-results",
+        help="Merge verified local report paths back into a report-source plan",
+    )
+    merge_outcome_report_intake.add_argument("--report-source-csv", required=True, type=Path)
+    merge_outcome_report_intake.add_argument("--intake-csv", required=True, type=Path)
+    merge_outcome_report_intake.add_argument("--output", required=True, type=Path)
+    merge_outcome_report_intake.add_argument("--report", type=Path)
 
     build_outcome_report_extraction = sub.add_parser(
         "build-outcome-report-extraction-plan",
@@ -1327,6 +1337,15 @@ def main() -> int:
             statuses=args.statuses,
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+    if args.cmd == "merge-outcome-report-intake-results":
+        report = merge_outcome_report_intake_results(
+            report_source_csv=args.report_source_csv,
+            intake_csv=args.intake_csv,
+            output=args.output,
+            report_path=args.report,
+        )
+        print(json.dumps(report, ensure_ascii=False, indent=2))
         return 0
     if args.cmd == "build-outcome-report-extraction-plan":
         result = build_outcome_report_extraction_plan(

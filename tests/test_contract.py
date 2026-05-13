@@ -52,6 +52,7 @@ from datahub.builders.outcome_collection_package import build_outcome_packages_f
 from datahub.builders.major_mapping_review import build_major_mapping_review_package
 from datahub.builders.local_package import build_local_package
 from datahub.builders.outcome_collection_plan import PLAN_COLUMNS as OUTCOME_PLAN_COLUMNS, build_outcome_collection_plan
+from datahub.builders.outcome_report_intake_merge import merge_outcome_report_intake_results
 from datahub.builders.outcome_report_intake_plan import build_outcome_report_intake_plan
 from datahub.builders.outcome_report_extraction_plan import build_outcome_report_extraction_plan
 from datahub.builders.outcome_report_extraction_runner import run_outcome_report_extraction_plan
@@ -4527,6 +4528,68 @@ def test_build_outcome_report_intake_plan_requires_confirmed_url(tmp_path: Path)
     lnu = next(row for row in intake_rows if row["entity_name"] == "辽宁大学")
     assert lnu["suggested_local_report_path"].startswith("raw/outcome_report/2022/")
     assert lnu["candidate_report_url"] == "https://www.lnu.edu.cn/info/15026/78891.htm"
+
+
+def test_merge_outcome_report_intake_results_requires_existing_file(tmp_path: Path):
+    plan = tmp_path / "outcome_collection_plan.csv"
+    rows = [
+        _outcome_plan_row("school", "10140", "辽宁大学", "employment_rate", status="todo", priority_rank="1"),
+        _outcome_plan_row("school", "10142", "沈阳工业大学", "employment_rate", status="todo", priority_rank="2"),
+    ]
+    rows[0]["metric_year"] = "2022"
+    rows[1]["metric_year"] = "2024"
+    _write_outcome_plan(plan, rows)
+    source_result = build_outcome_report_source_plan(
+        plan_csv=plan,
+        output_dir=tmp_path / "report_sources",
+        domains=["school"],
+    )
+    seeded_plan = tmp_path / "report_sources" / "outcome_report_source_plan_seeded.csv"
+    apply_outcome_report_source_seeds(
+        plan_csv=Path(source_result["csv"]),
+        output=seeded_plan,
+    )
+    intake_result = build_outcome_report_intake_plan(
+        report_source_csv=seeded_plan,
+        output_dir=tmp_path / "report_intake",
+    )
+    with Path(intake_result["csv"]).open(encoding="utf-8", newline="") as f:
+        intake_rows = list(csv.DictReader(f))
+    local_pdf = tmp_path / "raw" / "lnu2022.pdf"
+    local_pdf.parent.mkdir(parents=True)
+    local_pdf.write_bytes(b"%PDF-1.4 fixture")
+    intake_rows[0]["local_report_path"] = str(local_pdf)
+    intake_rows[0]["intake_status"] = "downloaded"
+    intake_rows[1]["local_report_path"] = str(tmp_path / "raw" / "missing.pdf")
+    intake_rows[1]["intake_status"] = "downloaded"
+    edited_intake = tmp_path / "report_intake" / "outcome_report_intake_plan_reviewed.csv"
+    with edited_intake.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=list(intake_rows[0]))
+        writer.writeheader()
+        writer.writerows(intake_rows)
+
+    output = tmp_path / "report_sources" / "outcome_report_source_plan_with_paths.csv"
+    report = merge_outcome_report_intake_results(
+        report_source_csv=seeded_plan,
+        intake_csv=edited_intake,
+        output=output,
+    )
+
+    assert report["approved_intake_rows"] == 2
+    assert report["updated_rows"] == 1
+    assert report["missing_file_rows"] == 1
+    with output.open(encoding="utf-8", newline="") as f:
+        merged_rows = list(csv.DictReader(f))
+    lnu = next(row for row in merged_rows if row["entity_name"] == "辽宁大学")
+    assert lnu["status"] == "ready"
+    assert lnu["local_report_path"] == str(local_pdf)
+    sut = next(
+        row
+        for row in merged_rows
+        if row["entity_name"] == "沈阳工业大学"
+        and row["report_scope"] == "undergraduate_teaching_quality_report"
+    )
+    assert sut["status"] == "candidate_found"
 
 
 def test_build_outcome_report_extraction_plan_requires_local_file(tmp_path: Path):
