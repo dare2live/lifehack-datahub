@@ -8,7 +8,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from datahub.config import load_outcome_collection
+from datahub.config import load_outcome_collection, load_outcome_report_sources
 
 
 PLAN_COLUMNS = [
@@ -49,7 +49,8 @@ def build_outcome_report_source_plan(
         raise KeyError(f"unknown outcome report-source domain: {', '.join(unknown)}")
 
     groups = _group_collection_rows(_read_csv(plan_csv), selected_domains)
-    rows = _build_rows(groups, report_config, selected_domains, limit_per_domain)
+    seeded_scope_keys = _seeded_scope_keys(report_config)
+    rows = _build_rows(groups, report_config, selected_domains, limit_per_domain, seeded_scope_keys)
 
     output_dir.mkdir(parents=True, exist_ok=True)
     csv_path = output_dir / "outcome_report_source_plan.csv"
@@ -123,9 +124,11 @@ def _build_rows(
     report_config: dict[str, Any],
     selected_domains: list[str],
     limit_per_domain: int | None,
+    seeded_scope_keys: set[tuple[str, str, str, str]],
 ) -> list[dict[str, Any]]:
     status = report_config.get("status", "todo")
     limit = limit_per_domain or int(report_config.get("limit_per_domain") or 0)
+    include_seeded_beyond_limit = bool(report_config.get("include_seeded_entities_beyond_limit"))
     rows = []
     domain_counts: dict[str, int] = defaultdict(int)
     for group in groups:
@@ -134,8 +137,9 @@ def _build_rows(
             continue
         scopes = report_config.get("report_scopes", {}).get(domain, [])
         for scope in scopes:
-            if limit and domain_counts[domain] >= limit:
-                break
+            is_seeded_scope = bool(_scope_keys(group, scope) & seeded_scope_keys)
+            if limit and domain_counts[domain] >= limit and not (include_seeded_beyond_limit and is_seeded_scope):
+                continue
             metric_labels = group.get("metric_labels") or {}
             rows.append({
                 "domain": domain,
@@ -160,6 +164,42 @@ def _build_rows(
             })
             domain_counts[domain] += 1
     return rows
+
+
+def _seeded_scope_keys(report_config: dict[str, Any]) -> set[tuple[str, str, str, str]]:
+    if not report_config.get("include_seeded_entities_beyond_limit"):
+        return set()
+    try:
+        seeds = load_outcome_report_sources().get("seeds") or []
+    except FileNotFoundError:
+        return set()
+    keys = set()
+    for seed in seeds:
+        if not isinstance(seed, dict):
+            continue
+        domain = str(seed.get("domain") or "").strip()
+        entity = _normalize(seed.get("entity_code") or seed.get("entity_name"))
+        metric_year = str(seed.get("metric_year") or "").strip()
+        report_scope = str(seed.get("report_scope") or "").strip()
+        if domain and entity and metric_year and report_scope:
+            keys.add((domain, entity, metric_year, report_scope))
+    return keys
+
+
+def _scope_keys(group: dict[str, Any], scope: dict[str, Any]) -> set[tuple[str, str, str, str]]:
+    domain = str(group.get("domain") or "").strip()
+    metric_year = str(group.get("metric_year") or "").strip()
+    report_scope = str(scope.get("report_scope") or "").strip()
+    keys = set()
+    for value in (group.get("entity_code"), group.get("entity_name")):
+        entity = _normalize(value)
+        if domain and entity and metric_year and report_scope:
+            keys.add((domain, entity, metric_year, report_scope))
+    return keys
+
+
+def _normalize(value: Any) -> str:
+    return str(value or "").strip().replace("（", "(").replace("）", ")").lower()
 
 
 def _queries(group: dict[str, Any], scope: dict[str, Any]) -> list[str]:

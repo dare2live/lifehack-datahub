@@ -4967,6 +4967,29 @@ def test_build_outcome_report_source_plan_groups_metric_tasks(tmp_path: Path):
     assert manifest["rows"] == 2
 
 
+def test_build_outcome_report_source_plan_keeps_seeded_scope_beyond_limit(tmp_path: Path):
+    plan = tmp_path / "outcome_collection_plan.csv"
+    first = _outcome_plan_row("school", "90001", "非种子学校", "employment_rate", status="todo", priority_rank="1")
+    first["metric_year"] = "2024"
+    seeded = _outcome_plan_row("school", "90002", "大连工业大学", "employment_rate", status="todo", priority_rank="2")
+    seeded["metric_year"] = "2024"
+    _write_outcome_plan(plan, [first, seeded])
+
+    result = build_outcome_report_source_plan(
+        plan_csv=plan,
+        output_dir=tmp_path / "report_sources",
+        domains=["school"],
+        limit_per_domain=2,
+    )
+
+    assert result["rows"] == 3
+    with Path(result["csv"]).open(encoding="utf-8", newline="") as f:
+        source_rows = list(csv.DictReader(f))
+    seeded_rows = [row for row in source_rows if row["entity_name"] == "大连工业大学"]
+    assert [row["report_scope"] for row in seeded_rows] == ["undergraduate_teaching_quality_report"]
+    assert {row["entity_name"] for row in source_rows} == {"非种子学校", "大连工业大学"}
+
+
 def test_audit_outcome_report_source_plan_requires_confirmed_source(tmp_path: Path):
     plan = tmp_path / "outcome_collection_plan.csv"
     rows = [
