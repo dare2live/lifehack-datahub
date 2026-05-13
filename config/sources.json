@@ -413,6 +413,78 @@
             "User-Agent": "Mozilla/5.0"
           },
           "notes": "转载页面，仅作候选证据；需确认是否包含完整历史/物理表格或原图。"
+        },
+        {
+          "label": "2023 中国教育电视台转载成绩统计表页面",
+          "kind": "mirror_page",
+          "url": "https://www.centv.cn/p/467520.html",
+          "source_date": "2023-06-24",
+          "expected_table": "fa_fact_ln_score_distribution",
+          "headers": {
+            "User-Agent": "Mozilla/5.0"
+          },
+          "notes": "页面列出 2023 辽宁成绩统计表普通类及艺体类附件，普通类附件指向学信网 file.do；仅作可追踪候选，不能冒充辽宁官网原始长期来源。"
+        },
+        {
+          "label": "2023 学信网成绩统计表附件（普通类物理学科类 PDF）",
+          "kind": "candidate_file",
+          "url": "https://gaokao.chsi.com.cn/news/file.do?method=downFile&id=2293096351&attach=true&hist=false",
+          "source_date": "2023-06-24",
+          "expected_table": "fa_fact_ln_score_distribution",
+          "headers": {
+            "User-Agent": "Mozilla/5.0",
+            "Referer": "https://www.centv.cn/p/467520.html"
+          },
+          "notes": "中国教育电视台转载页列出的普通类物理学科类附件；当前直连返回 412，需浏览器会话、稳定镜像或人工下载后才能晋级 remote_files。"
+        },
+        {
+          "label": "2023 学信网成绩统计表附件（普通类历史学科类 PDF）",
+          "kind": "candidate_file",
+          "url": "https://gaokao.chsi.com.cn/news/file.do?method=downFile&id=2293096352&attach=true&hist=false",
+          "source_date": "2023-06-24",
+          "expected_table": "fa_fact_ln_score_distribution",
+          "headers": {
+            "User-Agent": "Mozilla/5.0",
+            "Referer": "https://www.centv.cn/p/467520.html"
+          },
+          "notes": "中国教育电视台转载页列出的普通类历史学科类附件；当前直连返回 412，需浏览器会话、稳定镜像或人工下载后才能晋级 remote_files。"
+        },
+        {
+          "label": "2024 中国教育电视台转载成绩统计表页面",
+          "kind": "mirror_page",
+          "url": "https://www.centv.cn/p/514016.html",
+          "source_date": "2024-06-24",
+          "expected_table": "fa_fact_ln_score_distribution",
+          "headers": {
+            "User-Agent": "Mozilla/5.0"
+          },
+          "notes": "页面列出 2024 辽宁成绩统计表普通类及艺体类 PDF 附件；仅作可追踪候选，不能冒充辽宁官网原始长期来源。"
+        },
+        {
+          "label": "2024 中国教育电视台转载成绩统计表附件（普通类物理学科类 PDF）",
+          "kind": "mirror_file",
+          "url": "https://www.centv.cn/a/10001/202406/fa32ce4a7f0c38dd31301a067c430714.pdf",
+          "source_date": "2024-06-24",
+          "expected_table": "fa_fact_ln_score_distribution",
+          "sha256": "b3292661a27de82d27acd953bdc260ac20a45c37efe94578a4403312c7d5edad",
+          "headers": {
+            "User-Agent": "Mozilla/5.0",
+            "Referer": "https://www.centv.cn/p/514016.html"
+          },
+          "notes": "中国教育电视台转载页普通类物理学科类 PDF，HTTP 200、PDF 类型和 sha256 已核验；仍是镜像候选，不作为辽宁官网原始长期来源。"
+        },
+        {
+          "label": "2024 中国教育电视台转载成绩统计表附件（普通类历史学科类 PDF）",
+          "kind": "mirror_file",
+          "url": "https://www.centv.cn/a/10001/202406/297e7ed1dcd46efe229bb2ba6523d390.pdf",
+          "source_date": "2024-06-24",
+          "expected_table": "fa_fact_ln_score_distribution",
+          "sha256": "3940bb8bfd4ed6b4230b62e5698d7d6103a1ebc5ecb4275d95c4ed2216f469ce",
+          "headers": {
+            "User-Agent": "Mozilla/5.0",
+            "Referer": "https://www.centv.cn/p/514016.html"
+          },
+          "notes": "中国教育电视台转载页普通类历史学科类 PDF，HTTP 200、PDF 类型和 sha256 已核验；仍是镜像候选，不作为辽宁官网原始长期来源。"
         }
       ],
       "parser": {

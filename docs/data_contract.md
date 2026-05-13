@@ -325,6 +325,8 @@ python3 scripts/build_package.py download-page-images \
 
 2022 官方图片源 smoke：8 张官方图经 macOS Vision 生成 1,302 条 OCR observation；物理类解析 400 条候选，其中 337 条完整、71 条待复核；历史类解析 295 条候选，其中 131 条完整、177 条待复核。readiness audit 仍报告严格合并不可通过，必须人工核对 248 条复核任务后才能生成 cleaned CSV。相比此前 2022 中新网镜像 1,225 条待复核任务，官方图显著降低人工复核量。后续 source probe 还登记了学信网页面列出的 2022 历史/物理 DOCX 附件 URL，但直连仍返回 412，只能保留在 `research_candidates`，不能晋级为 `remote_files`。
 
+2023/2024 继续保留来源研究记录。2023 中国教育电视台转载页列出普通类物理/历史学信网附件，但直连 file.do 返回 412，只能作为候选证据；2024 中国教育电视台转载页列出普通类物理/历史 PDF，已核验 HTTP 200、PDF 类型和 SHA-256，但仍是转载镜像，不替代辽宁官网原始长期源。`audit-score-source-coverage` 会把这些 URL 计入 `research_candidate_count` 和 `candidate_urls`，提醒后续采集继续寻找官方可重复文件源或完成官方图片差异审计。
+
 2023/2024 官方图片页已配置普通类图片分组：1-4 张为历史类，5-8 张为物理类，后续体育/艺术图片不参与普通投档位次派生。该配置只定义来源切片，不代表解析结果可发布。grid OCR 候选 CSV 必须先与镜像 PDF、人工复核结果或其他基准 CSV 做差异审计：
 
 ```bash
