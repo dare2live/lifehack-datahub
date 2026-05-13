@@ -3429,12 +3429,82 @@ def test_build_civil_service_signal_plan_from_positions(tmp_path: Path):
     assert by_code["2-02-10-03"]["metric_value"] == "1"
     assert "招考人数2人" in by_code["2-02-10-03"]["metric_scope"]
     assert "信息化建设岗位" in by_code["2-02-10-03"]["evidence_quote"]
+    assert "命中：" in by_code["2-02-10-03"]["evidence_quote"]
     assert by_code["2-06-04-00"]["status"] == "in_progress"
     assert "4-04-02-01" not in by_code
 
     audit = audit_career_source_plan(plan_csv)
     assert audit["errors"] == []
     assert audit["status_counts"] == {"in_progress": 2}
+
+
+def test_civil_service_signal_plan_prioritizes_specific_evidence(tmp_path: Path):
+    positions = tmp_path / "scs_positions.csv"
+    position_rows = [
+        {
+            "source_key": "career_civil_service_posts",
+            "source_title": "中央机关及其直属机构2026年度考试录用公务员招考简章",
+            "source_url": "http://dl.scs.gov.cn/download/resource-main",
+            "source_date": "2025-10-14",
+            "availability_date": "2025-10-14",
+            "sheet_name": "中央国家行政机关",
+            "row_number": "3",
+            "position_code": "100110001001",
+            "position_name": "宽泛信息岗位",
+            "position_description": "从事信息化建设",
+            "recruit_count": "1",
+            "major_requirement": "本科：0809计算机类",
+            "work_location": "北京市",
+            "remarks": "",
+        },
+        {
+            "source_key": "career_civil_service_posts",
+            "source_title": "中央机关及其直属机构2026年度考试录用公务员招考简章",
+            "source_url": "http://dl.scs.gov.cn/download/resource-main",
+            "source_date": "2025-10-14",
+            "availability_date": "2025-10-14",
+            "sheet_name": "中央国家行政机关",
+            "row_number": "4",
+            "position_code": "100110001002",
+            "position_name": "具体软件岗位",
+            "position_description": "从事软件系统建设",
+            "recruit_count": "1",
+            "major_requirement": "本科：080901计算机科学与技术、080902软件工程、计算机软件工程",
+            "work_location": "北京市",
+            "remarks": "",
+        },
+    ]
+    with positions.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=position_rows[0].keys())
+        writer.writeheader()
+        writer.writerows(position_rows)
+
+    occupations = tmp_path / "occupations.csv"
+    occupation_rows = [{
+        "occupation_code": "2-02-10-03",
+        "occupation_name": "计算机软件工程技术人员",
+        "tdx_l2": "T1205",
+        "tdx_l2_name": "软件服务",
+        "major_keywords_json": "[]",
+        "skill_keywords_json": "[]",
+    }]
+    with occupations.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=occupation_rows[0].keys())
+        writer.writeheader()
+        writer.writerows(occupation_rows)
+
+    result = build_civil_service_signal_plan(
+        positions_csv=positions,
+        occupation_input=occupations,
+        output_dir=tmp_path / "civil_service_signal",
+        metric_year=2026,
+    )
+
+    with Path(result["csv"]).open(encoding="utf-8", newline="") as f:
+        rows = list(csv.DictReader(f))
+    assert rows[0]["metric_value"] == "2"
+    assert rows[0]["evidence_quote"].startswith("具体软件岗位")
+    assert "命中：计算机/软件/计算机软件" in rows[0]["evidence_quote"]
 
 
 def test_build_career_source_review_batch_limits_pending_rows(tmp_path: Path):

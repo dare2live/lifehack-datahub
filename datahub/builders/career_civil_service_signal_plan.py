@@ -82,6 +82,7 @@ def _build_rows(
     source = config["source_plan"]["sources"][plan_config["source_key"]]
     metric = config["metrics"][plan_config["metric_key"]]
     max_examples = int(plan_config.get("max_evidence_positions") or 5)
+    match_fields = [str(item) for item in plan_config.get("match_text_fields", [])]
     matched_positions = _match_positions(positions, occupations, plan_config)
     built_rows = []
     for occupation in occupations:
@@ -89,10 +90,11 @@ def _build_rows(
         matches = matched_positions.get(code, [])
         if not matches:
             continue
+        keywords = _keywords_for_occupation(occupation, plan_config)
+        matches = _sort_matches_for_review(matches, keywords, plan_config)
         position_count = len(matches)
         recruit_count = sum(_int_value(row.get("recruit_count")) for row in matches)
         metric_value = recruit_count if plan_config.get("metric_value_field") == "recruit_count" else position_count
-        keywords = _keywords_for_occupation(occupation, plan_config)
         built_rows.append({
             "source_key": plan_config["source_key"],
             "source_name": source.get("name"),
@@ -118,7 +120,7 @@ def _build_rows(
             "search_queries": "[]",
             "source_title": _first_nonempty(matches, "source_title"),
             "source_url": _first_nonempty(matches, "source_url"),
-            "evidence_quote": _evidence_quote(matches, max_examples),
+            "evidence_quote": _evidence_quote(matches, max_examples, keywords, match_fields),
             "source_date": _first_nonempty(matches, "source_date"),
             "availability_date": _first_nonempty(matches, "availability_date"),
             "status": plan_config["candidate_status"],
@@ -127,6 +129,28 @@ def _build_rows(
             "notes": "candidate_from_official_scs_positions; match_keywords=" + "/".join(keywords),
         })
     return built_rows
+
+
+def _sort_matches_for_review(
+    matches: list[dict[str, Any]],
+    keywords: list[str],
+    plan_config: dict[str, Any],
+) -> list[dict[str, Any]]:
+    fields = [str(item) for item in plan_config.get("match_text_fields", [])]
+    return sorted(
+        matches,
+        key=lambda row: (
+            _match_strength(row, keywords, fields),
+            _int_value(row.get("recruit_count")),
+            -_int_value(row.get("row_number")),
+        ),
+        reverse=True,
+    )
+
+
+def _match_strength(row: dict[str, Any], keywords: list[str], fields: list[str]) -> int:
+    text = _compact_text(" ".join(str(row.get(field) or "") for field in fields))
+    return sum(len(keyword) for keyword in keywords if keyword and keyword in text)
 
 
 def _match_positions(
@@ -248,7 +272,7 @@ def _plan_config(config: dict[str, Any]) -> dict[str, Any]:
     return plan
 
 
-def _evidence_quote(rows: list[dict[str, Any]], limit: int) -> str:
+def _evidence_quote(rows: list[dict[str, Any]], limit: int, keywords: list[str], fields: list[str]) -> str:
     examples = []
     for row in rows[:limit]:
         name = str(row.get("position_name") or "").strip()
@@ -256,8 +280,15 @@ def _evidence_quote(rows: list[dict[str, Any]], limit: int) -> str:
         recruit = str(row.get("recruit_count") or "").strip()
         if not name and not major:
             continue
-        examples.append(f"{name}（{major}，招{recruit or '0'}人）")
+        matched_keywords = _matched_keywords(row, keywords, fields)
+        matched_text = f"，命中：{'/'.join(matched_keywords[:5])}" if matched_keywords else ""
+        examples.append(f"{name}（{major}，招{recruit or '0'}人{matched_text}）")
     return "；".join(examples)
+
+
+def _matched_keywords(row: dict[str, Any], keywords: list[str], fields: list[str]) -> list[str]:
+    text = _compact_text(" ".join(str(row.get(field) or "") for field in fields))
+    return [keyword for keyword in keywords if keyword and keyword in text]
 
 
 def _position_identity(row: dict[str, Any]) -> str:
