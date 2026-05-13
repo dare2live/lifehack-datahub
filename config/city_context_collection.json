@@ -18,7 +18,11 @@
     "pending_statuses": ["todo", "in_progress", "needs_review"],
     "complete_statuses": ["collected", "verified", "ready"],
     "blocked_statuses": ["blocked", "not_found", "not_applicable", "needs_source_research"],
-    "required_evidence_columns": ["metric_value", "source_title", "source_url", "evidence_quote", "source_date", "availability_date"]
+    "required_evidence_columns": ["source_title", "source_url", "evidence_quote", "source_date", "availability_date"],
+    "required_value_columns_by_domain": {
+      "default": ["metric_value"],
+      "city_ranking": ["rank_value", "score_value", "tier_label"]
+    }
   },
   "review_batch": {
     "selection_statuses": ["todo", "in_progress", "needs_review"],
@@ -35,6 +39,9 @@
       "built_at",
       "reviewer",
       "reviewed_at",
+      "rank_value",
+      "score_value",
+      "tier_label",
       "notes"
     ]
   },
@@ -76,6 +83,95 @@
         "higher_education_institution_count": {"label": "普通高校数量", "unit": "所", "resource_domain": "education", "min_value": 0},
         "public_library_count": {"label": "公共图书馆数量", "unit": "个", "resource_domain": "culture", "min_value": 0},
         "rail_transit_mileage": {"label": "轨道交通运营里程", "unit": "公里", "resource_domain": "transport", "min_value": 0}
+      }
+    },
+    "city_ranking": {
+      "source_key": "city_ranking_signal",
+      "source_name": "城市排名信号",
+      "target_table": "fa_fact_city_ranking_signal",
+      "preferred_sources": [
+        "cbn_new_tier_city_charm",
+        "zhaopin_talent_attraction",
+        "national_innovative_city_capability",
+        "nature_index_science_city",
+        "gawc_world_city_network"
+      ],
+      "query_templates": [
+        "{city} {metric_year} {metric_label} 排名",
+        "{province} {city} {metric_label} {metric_year}",
+        "{metric_label} {metric_year} {city}"
+      ],
+      "metrics": {
+        "cbn_new_tier_city_charm": {
+          "label": "新一线城市商业魅力指数",
+          "unit": "rank_or_tier",
+          "ranking_source_key": "cbn_new_tier_city_charm",
+          "ranking_name": "第一财经新一线城市魅力排行榜",
+          "dimension_key": "commercial_lifestyle_vitality",
+          "dimension_name": "商业与生活活力",
+          "cadence": "annual",
+          "start_year": 2016,
+          "coverage": "中国内地337个地级及以上城市",
+          "overlap_group": "commercial_big_data",
+          "source_home": "https://www.yicai.com/news/102638963.html",
+          "explainability": "用互联网商业、消费、枢纽和生活方式数据观察城市日常活力，补足统计年鉴滞后性。"
+        },
+        "zhaopin_talent_attraction": {
+          "label": "中国城市人才吸引力指数",
+          "unit": "rank_or_score",
+          "ranking_source_key": "zhaopin_talent_attraction",
+          "ranking_name": "智联招聘与泽平宏观中国城市人才吸引力排名",
+          "dimension_key": "talent_mobility",
+          "dimension_name": "人才流入与留存",
+          "cadence": "annual",
+          "start_year": 2017,
+          "coverage": "全国重点城市100强",
+          "overlap_group": "labor_market_flow",
+          "source_home": "https://finance.sina.com.cn/wm/2026-03-22/doc-inhrurip5607687.shtml",
+          "explainability": "用跨城求职和人才净流入观察毕业后城市就业吸附力，与GDP和学校名气维度交叉较少。"
+        },
+        "national_innovative_city_capability": {
+          "label": "国家创新型城市创新能力评价",
+          "unit": "rank_or_score",
+          "ranking_source_key": "national_innovative_city_capability",
+          "ranking_name": "国家创新型城市创新能力评价报告",
+          "dimension_key": "innovation_capacity",
+          "dimension_name": "科技创新与成果转化",
+          "cadence": "annual",
+          "start_year": 2019,
+          "coverage": "国家创新型城市与中国城市创新能力百强",
+          "overlap_group": "technology_innovation",
+          "source_home": "https://www.las.ac.cn/front/book/detail?id=cb608ec475467e6fb0fc2f668a94104d",
+          "explainability": "用创新治理、原始创新、技术创新、成果转化等维度观察城市产业升级土壤。"
+        },
+        "nature_index_science_city": {
+          "label": "Nature Index Science Cities",
+          "unit": "rank_or_score",
+          "ranking_source_key": "nature_index_science_city",
+          "ranking_name": "Nature Index Science Cities",
+          "dimension_key": "research_output",
+          "dimension_name": "高质量科研产出",
+          "cadence": "annual",
+          "start_year": 2016,
+          "coverage": "全球科研城市",
+          "overlap_group": "research_publication",
+          "source_home": "https://www.nature.com/collections/cccbbeedhi",
+          "explainability": "用高质量期刊论文贡献观察高校和科研机构密度，对升学、科研和硬科技方向有解释力。"
+        },
+        "gawc_world_city_network": {
+          "label": "GaWC 世界城市网络连接度",
+          "unit": "tier_or_rank",
+          "ranking_source_key": "gawc_world_city_network",
+          "ranking_name": "The World According to GaWC",
+          "dimension_key": "global_connectivity",
+          "dimension_name": "全球商务连接",
+          "cadence": "biennial_or_irregular",
+          "start_year": 2000,
+          "coverage": "全球城市网络",
+          "overlap_group": "advanced_producer_services",
+          "source_home": "https://gawc.lboro.ac.uk/",
+          "explainability": "用高级生产性服务业网络观察城市全球商务连接度，适合解释金融、法务、咨询、外贸等方向机会。"
+        }
       }
     }
   }

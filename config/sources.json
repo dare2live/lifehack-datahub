@@ -1061,6 +1061,48 @@
       },
       "target_tables": ["fa_fact_city_listed_company_signal"]
     },
+    "city_ranking_signal": {
+      "name": "城市排名信号",
+      "kind": "curated_city_ranking_signal",
+      "owner": "lifehack-datahub",
+      "raw_glob": "raw/city_ranking_signal/**/*",
+      "remote_files": [],
+      "collection_plan": {
+        "preferred_sources": [
+          "cbn_new_tier_city_charm",
+          "zhaopin_talent_attraction",
+          "national_innovative_city_capability",
+          "nature_index_science_city",
+          "gawc_world_city_network"
+        ],
+        "dimension_keys": [
+          "commercial_lifestyle_vitality",
+          "talent_mobility",
+          "innovation_capacity",
+          "research_output",
+          "global_connectivity"
+        ],
+        "selection_rules": {
+          "cadence_required": true,
+          "prefer_multi_year_series": true,
+          "prefer_methodology_public": true,
+          "avoid_same_overlap_group_in_score_component": true
+        }
+      },
+      "acquisition": {
+        "status": "source_collection_required",
+        "official_distribution": "第一财经新一线、智联招聘/泽平宏观、国家创新型城市创新能力评价、Nature Index 和 GaWC 等连续榜单公开发布页或报告",
+        "evidence_urls": [
+          "https://www.yicai.com/news/102638963.html",
+          "https://finance.sina.com.cn/wm/2026-03-22/doc-inhrurip5607687.shtml",
+          "https://www.las.ac.cn/front/book/detail?id=cb608ec475467e6fb0fc2f668a94104d",
+          "https://www.nature.com/collections/cccbbeedhi",
+          "https://gawc.lboro.ac.uk/"
+        ],
+        "notes": "该源只保存已复核榜单信号和方法论口径，不把榜单直接等同于城市好坏。不同榜单按维度进入后续城市评价，避免GDP、商业活力、人才流动和科研产出重复计分。"
+      },
+      "target_tables": ["fa_fact_city_ranking_signal"]
+    },
     "city_development_score": {
       "name": "城市发展底盘评分",
       "kind": "derived_city_context_mart",
@@ -1072,6 +1114,7 @@
           "fa_fact_city_economic_indicator",
           "fa_fact_city_public_resource",
           "fa_fact_city_listed_company_signal",
+          "fa_fact_city_ranking_signal",
           "fa_dim_region_profile"
         ],
         "score_profiles": ["city_development_default"],

@@ -71,6 +71,10 @@ def _audit_config(config: dict[str, Any]) -> dict[str, Any]:
         "complete_statuses": {str(item) for item in audit["complete_statuses"]},
         "blocked_statuses": {str(item) for item in audit["blocked_statuses"]},
         "required_evidence_columns": [str(item) for item in audit["required_evidence_columns"]],
+        "required_value_columns_by_domain": {
+            str(domain): [str(column) for column in columns]
+            for domain, columns in audit.get("required_value_columns_by_domain", {"default": ["metric_value"]}).items()
+        },
     }
 
 
@@ -116,6 +120,10 @@ def _validate_row(
                 errors.append(f"row {index} metric_value below min for {domain}.{metric_key}: {value} < {min_value}")
             if isinstance(max_value, (int, float)) and value > max_value:
                 errors.append(f"row {index} metric_value above max for {domain}.{metric_key}: {value} > {max_value}")
+    for column in ["rank_value", "score_value"]:
+        numeric_value = str(row.get(column) or "").strip()
+        if numeric_value and _as_number(numeric_value) is None:
+            errors.append(f"row {index} {column} is not numeric: {numeric_value}")
 
     if status in audit_config["complete_statuses"]:
         missing = [
@@ -125,6 +133,9 @@ def _validate_row(
         ]
         if missing:
             errors.append(f"row {index} complete status missing evidence: {', '.join(missing)}")
+        value_columns = _required_value_columns(domain, audit_config)
+        if value_columns and not any(str(row.get(column) or "").strip() for column in value_columns):
+            errors.append(f"row {index} complete status missing value: one of {', '.join(value_columns)}")
 
 
 def _validate_json_list(index: int, column: str, value: Any, errors: list[str]) -> None:
@@ -135,6 +146,11 @@ def _validate_json_list(index: int, column: str, value: Any, errors: list[str]) 
         return
     if not isinstance(parsed, list):
         errors.append(f"row {index} {column} must be a JSON list")
+
+
+def _required_value_columns(domain: str, audit_config: dict[str, Any]) -> list[str]:
+    by_domain = audit_config["required_value_columns_by_domain"]
+    return by_domain.get(domain) or by_domain.get("default", [])
 
 
 def _as_number(value: str) -> float | None:

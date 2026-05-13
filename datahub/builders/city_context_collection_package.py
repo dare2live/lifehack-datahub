@@ -15,6 +15,7 @@ from datahub.config import load_city_context_collection
 DOMAIN_TABLES = {
     "economic": ("city_economic_indicator", "fa_fact_city_economic_indicator"),
     "public_resource": ("city_public_resource", "fa_fact_city_public_resource"),
+    "city_ranking": ("city_ranking_signal", "fa_fact_city_ranking_signal"),
 }
 
 
@@ -101,6 +102,28 @@ def _to_city_context_row(row: dict[str, Any], *, domain: str, built_at: str) -> 
         return base
     if domain == "public_resource":
         return {"resource_domain": row.get("resource_domain"), **base}
+    if domain == "city_ranking":
+        return {
+            "adcode": row.get("adcode"),
+            "province": row.get("province"),
+            "city": row.get("city"),
+            "region_level": row.get("region_level"),
+            "ranking_source_key": row.get("ranking_source_key") or row.get("metric_key"),
+            "ranking_name": row.get("ranking_name") or row.get("metric_label"),
+            "ranking_year": row.get("metric_year"),
+            "dimension_key": row.get("dimension_key") or row.get("metric_key"),
+            "dimension_name": row.get("dimension_name") or row.get("metric_label"),
+            "rank_value": row.get("rank_value") or row.get("metric_value"),
+            "score_value": row.get("score_value"),
+            "tier_label": row.get("tier_label"),
+            "rank_scope": row.get("metric_scope"),
+            "source_title": row.get("source_title"),
+            "source_url": row.get("source_url"),
+            "evidence_quote": row.get("evidence_quote"),
+            "source_date": row.get("source_date"),
+            "availability_date": row.get("availability_date"),
+            "built_at": row.get("built_at") or built_at,
+        }
     raise KeyError(f"unknown city context domain: {domain}")
 
 

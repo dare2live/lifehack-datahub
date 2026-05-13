@@ -117,7 +117,7 @@ python3 scripts/build_package.py build-city-listed-company-signal \
 
 输出 `fa_fact_city_listed_company_signal` 后，再作为城市发展底盘评分的上市公司产业厚度输入。
 
-城市经济和公共资源指标先生成采集计划，再按证据完整度审计。城市清单只需要 `adcode/province/city/region_level` 等列：
+城市经济、公共资源和城市排名信号先生成采集计划，再按证据完整度审计。城市清单只需要 `adcode/province/city/region_level` 等列：
 
 ```bash
 python3 scripts/build_package.py build-city-context-collection-plan \
@@ -144,7 +144,7 @@ python3 scripts/build_package.py build-city-context-from-collection-plan \
   --package-id 2026_city_context_{domain}
 ```
 
-采集计划不是 data package，不能导入 core。只有证据列完整并通过审计的行，才允许由 `build-city-context-from-collection-plan` 转成 `fa_fact_city_economic_indicator` 或 `fa_fact_city_public_resource` 标准包。
+采集计划不是 data package，不能导入 core。只有证据列完整并通过审计的行，才允许由 `build-city-context-from-collection-plan` 转成 `fa_fact_city_economic_indicator`、`fa_fact_city_public_resource` 或 `fa_fact_city_ranking_signal` 标准包。排名信号的源选择和维度维护在 `config/city_context_collection.json`，当前只纳入连续发布、方法论可解释且维度交叉较少的来源：第一财经新一线城市商业魅力、智联招聘/泽平宏观人才吸引力、国家创新型城市创新能力、Nature Index 科研城市和 GaWC 世界城市网络连接度。
 
 城市发展底盘评分不在 core 里直接计算。先由 DataHub 采集并复核 `fa_fact_city_economic_indicator`、`fa_fact_city_public_resource` 和 `fa_fact_city_listed_company_signal`，再统一生成 `fa_mart_city_development_score`：
 

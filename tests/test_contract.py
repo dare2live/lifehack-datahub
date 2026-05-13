@@ -3416,6 +3416,74 @@ def test_build_and_audit_city_context_collection_plan(tmp_path: Path):
     assert any("complete status missing evidence" in error for error in bad_audit["errors"])
 
 
+def test_build_city_ranking_collection_plan_and_package(tmp_path: Path):
+    city_input = tmp_path / "cities.csv"
+    with city_input.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=["adcode", "province", "city", "region_level", "priority_rank"])
+        writer.writeheader()
+        writer.writerow({"adcode": "210100", "province": "辽宁", "city": "沈阳", "region_level": "city", "priority_rank": "1"})
+
+    result = build_city_context_collection_plan(
+        city_input=city_input,
+        output_dir=tmp_path / "city_ranking",
+        domains=["city_ranking"],
+        metric_year=2025,
+    )
+
+    with Path(result["csv"]).open(encoding="utf-8", newline="") as f:
+        rows = list(csv.DictReader(f))
+    assert result["rows"] == 5
+    assert {row["domain"] for row in rows} == {"city_ranking"}
+    assert {row["dimension_key"] for row in rows} >= {"commercial_lifestyle_vitality", "research_output"}
+
+    rows[0]["status"] = "verified"
+    rows[0]["rank_value"] = "12"
+    rows[0]["tier_label"] = "二线城市"
+    rows[0]["source_title"] = "fixture city ranking"
+    rows[0]["source_url"] = "https://example.com/city-ranking"
+    rows[0]["evidence_quote"] = "沈阳位列二线城市"
+    rows[0]["metric_scope"] = "中国内地城市"
+    rows[0]["source_date"] = "2026-05-13"
+    rows[0]["availability_date"] = "2026-05-13"
+    reviewed = tmp_path / "city_ranking_reviewed.csv"
+    with reviewed.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=rows[0].keys())
+        writer.writeheader()
+        writer.writerows(rows)
+
+    audit = audit_city_context_collection_plan(reviewed)
+    assert audit["errors"] == []
+    assert audit["progress"]["complete_rows"] == 1
+
+    package_result = build_city_context_packages_from_collection_plan(
+        plan_csv=reviewed,
+        output_root=tmp_path / "exports",
+        domains=["city_ranking"],
+        package_id="pkg-city-ranking",
+        source_version="fixture-city-ranking",
+    )
+    package_dir = Path(package_result["packages"][0]["package_dir"])
+    assert validate_manifest(package_dir / "manifest.json")["errors"] == []
+    with (package_dir / "fa_fact_city_ranking_signal.csv").open(encoding="utf-8", newline="") as f:
+        package_rows = list(csv.DictReader(f))
+    assert package_rows[0]["city"] == "沈阳"
+    assert package_rows[0]["ranking_source_key"] == rows[0]["ranking_source_key"]
+    assert package_rows[0]["dimension_key"] == rows[0]["dimension_key"]
+    assert package_rows[0]["rank_value"] == "12"
+    assert package_rows[0]["tier_label"] == "二线城市"
+
+    rows[0]["rank_value"] = ""
+    rows[0]["score_value"] = ""
+    rows[0]["tier_label"] = ""
+    missing_value = tmp_path / "city_ranking_missing_value.csv"
+    with missing_value.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=rows[0].keys())
+        writer.writeheader()
+        writer.writerows(rows)
+    missing_value_audit = audit_city_context_collection_plan(missing_value)
+    assert any("complete status missing value" in error for error in missing_value_audit["errors"])
+
+
 def test_build_major_city_employment_fit_package(tmp_path: Path):
     role_input = tmp_path / "major_roles.csv"
     with role_input.open("w", encoding="utf-8", newline="") as f:
