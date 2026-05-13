@@ -720,7 +720,7 @@ def test_parse_score_distribution_grid_images_preserves_score_gaps(tmp_path: Pat
             "observations": [
                 {"text": "663", "x": 0.17},
                 {"text": "2", "x": 0.55},
-                {"text": "14", "x": 0.82},
+                {"text": "1414", "x": 0.82},
             ],
         },
         {
@@ -745,9 +745,52 @@ def test_parse_score_distribution_grid_images_preserves_score_gaps(tmp_path: Pat
     by_score = {row["score"]: row for row in rows}
     assert sorted(by_score, reverse=True) == [665, 663, 662]
     assert by_score[663]["score_count"] == 2
+    assert by_score[663]["cumulative_rank"] == 14
     assert by_score[662]["score_count"] == 3
     assert by_score[662]["cumulative_rank"] == 17
+    assert report["repair_counts"]["cumulative_repaired_by_score_count_jump"] == 1
     assert report["quality_errors"] == []
+
+
+def test_parse_score_distribution_grid_images_uses_smaller_count_from_noisy_cell():
+    payload = grid_parser._parse_one_row(
+        [
+            {"text": "632", "x": 0.17},
+            {"text": "30 ~1563", "x": 0.55},
+        ],
+        {
+            "score_x_max": 0.36,
+            "score_count_x_min": 0.32,
+            "score_count_x_max": 0.68,
+            "cumulative_x_min": 0.68,
+            "max_score_count": 6000,
+            "score_count_multi_number_strategy": "smallest_positive",
+        },
+    )
+    assert payload["score_ocr"] == 632
+    assert payload["score_count"] == 30
+    assert payload["cumulative_rank"] is None
+
+
+def test_parse_score_distribution_grid_images_score_count_strategy_is_configurable():
+    observations = [
+        {"text": "632", "x": 0.17},
+        {"text": "30 ~1563", "x": 0.55},
+    ]
+    base_config = {
+        "score_x_max": 0.36,
+        "score_count_x_min": 0.32,
+        "score_count_x_max": 0.68,
+        "cumulative_x_min": 0.68,
+        "max_score_count": 6000,
+    }
+
+    payload = grid_parser._parse_one_row(
+        observations,
+        {**base_config, "score_count_multi_number_strategy": "last_positive"},
+    )
+
+    assert payload["score_count"] == 1563
 
 
 def test_audit_score_distribution_csvs_blocks_drift_and_missing_rows(tmp_path: Path):

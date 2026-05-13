@@ -619,6 +619,8 @@ python3 scripts/build_package.py audit-score-distribution-csvs \
 
 该审计只读 CSV，不写 core。若 `decision.reconciliation_required=true`，说明存在缺行、候选独有行、基准独有行或 `score_count/cumulative_rank` 差异，不能把候选来源晋级为标准包。
 
+当前 grid OCR 解析器已把人数列多数字取值策略、累计人数突跳修复阈值放入 `config/sources.json`，用于处理官方图片中“本分人数/累计人数”被 OCR 粘连的行。真实复跑后，2024 官方图片候选从 1,020 行提升到 1,051 行，和 1,086 行镜像基准相比仍缺 35 行且 219 行数值不同；2023 官方图片候选从 946 行提升到 951 行，和 1,076 行镜像基准相比仍缺 125 行且 423 行数值不同。两年仍保持 `reconciliation_required=true`，不能晋级为标准包或替换镜像链路。
+
 macOS 环境可使用系统 Vision OCR 生成可复查的 JSONL 中间产物，识别语言和等级由 `config/sources.json` 维护：
 
 ```bash

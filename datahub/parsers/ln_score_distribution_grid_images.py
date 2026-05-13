@@ -133,6 +133,9 @@ def _load_grid_config(source_key: str) -> dict[str, Any]:
         "score_count_x_max": float(column_ranges.get("score_count_max", 0.68)),
         "cumulative_x_min": float(column_ranges.get("cumulative_min", 0.68)),
         "max_score_count": int(config.get("max_score_count", 6000)),
+        "score_count_multi_number_strategy": str(config.get("score_count_multi_number_strategy", "smallest_positive")),
+        "cumulative_jump_score_count_ratio": float(config.get("cumulative_jump_score_count_ratio", 5)),
+        "cumulative_jump_min_delta": int(config.get("cumulative_jump_min_delta", 20)),
     }
 
 
@@ -317,8 +320,8 @@ def _parse_one_row(observations: list[dict[str, Any]], config: dict[str, Any]) -
     return {
         "score_candidates": score_candidates,
         "score_ocr": score_candidates[0] if score_candidates else None,
-        "score_count": _pick_last(score_count_candidates),
-        "score_embedded_count": _pick_last(embedded_counts),
+        "score_count": _pick_score_count(score_count_candidates, config),
+        "score_embedded_count": _pick_score_count(embedded_counts, config),
         "cumulative_rank": _pick_last(cumulative_candidates),
         "raw_text": raw_text,
     }
@@ -377,7 +380,10 @@ def _repair_and_validate_rows(rows: list[dict[str, Any]], config: dict[str, Any]
             counts["cumulative_from_score_count"] += 1
         if score_count is not None and cumulative is not None and previous_cumulative + score_count != cumulative:
             diff = cumulative - previous_cumulative
-            if 0 < diff <= config["max_score_count"]:
+            if _prefer_score_count_for_jump(score_count, diff, config):
+                cumulative = previous_cumulative + score_count
+                counts["cumulative_repaired_by_score_count_jump"] += 1
+            elif 0 < diff <= config["max_score_count"]:
                 score_count = diff
                 counts["score_count_repaired_by_cumulative"] += 1
             else:
@@ -396,6 +402,16 @@ def _repair_and_validate_rows(rows: list[dict[str, Any]], config: dict[str, Any]
         })
         previous_cumulative = int(cumulative)
     return output, counts
+
+
+def _prefer_score_count_for_jump(score_count: int, cumulative_diff: int, config: dict[str, Any]) -> bool:
+    if score_count <= 0 or cumulative_diff <= score_count:
+        return False
+    delta = cumulative_diff - score_count
+    return (
+        delta >= config["cumulative_jump_min_delta"]
+        and cumulative_diff >= score_count * config["cumulative_jump_score_count_ratio"]
+    )
 
 
 def _numbers_from_text(text: str) -> list[int]:
@@ -419,6 +435,18 @@ def _numbers_from_text(text: str) -> list[int]:
 
 def _pick_last(values: list[int]) -> int | None:
     return values[-1] if values else None
+
+
+def _pick_score_count(values: list[int], config: dict[str, Any]) -> int | None:
+    positives = [value for value in values if value > 0]
+    if not positives:
+        return None
+    strategy = config.get("score_count_multi_number_strategy", "smallest_positive")
+    if strategy == "smallest_positive":
+        return min(positives)
+    if strategy == "last_positive":
+        return positives[-1]
+    raise ValueError(f"unknown score_count_multi_number_strategy: {strategy}")
 
 
 def _as_int(value: Any) -> int | None:

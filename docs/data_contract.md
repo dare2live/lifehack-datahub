@@ -345,6 +345,8 @@ python3 scripts/build_package.py audit-score-distribution-csvs \
 
 该命令只读 CSV，不写 core。报告会按 `subject_cat, score_year, score` 主键比较候选和基准的 `score_count/cumulative_rank`，并给出缺行、独有行、数值差异和分数序列摘要；`decision.reconciliation_required=true` 时，候选来源不能晋级为标准包。
 
+grid OCR 解析参数由 `config/sources.json` 统一维护，包括人数列多数字取值策略和累计人数突跳修复阈值。当前真实复跑结果只证明候选质量提升，不代表可发布：2024 官方图片候选 1,051 行，对 1,086 行镜像基准仍缺 35 行、219 行数值不同；2023 官方图片候选 951 行，对 1,076 行镜像基准仍缺 125 行、423 行数值不同。两年仍必须保留为复核/阻断状态。
+
 macOS 环境可使用系统 Vision OCR 生成可复查的 JSONL 中间产物。OCR 参数不写在代码里，由 `config/sources.json` 的 `ln_score_distribution.ocr` 维护：
 
 ```bash

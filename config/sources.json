@@ -646,7 +646,10 @@
           "ocr_languages": ["en-US"],
           "recognition_level": "accurate",
           "uses_language_correction": false,
-          "max_score_count": 6000
+          "max_score_count": 6000,
+          "score_count_multi_number_strategy": "smallest_positive",
+          "cumulative_jump_score_count_ratio": 5,
+          "cumulative_jump_min_delta": 20
         },
         "ocr_review": {
           "complete_parse_statuses": ["parsed", "inferred_score", "inferred_row"],
