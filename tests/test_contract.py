@@ -58,6 +58,7 @@ from datahub.builders.score_distribution_review_workspace import (
 from datahub.builders.score_distribution_readiness import audit_score_distribution_readiness
 from datahub.config import get_table_schema, load_career_data_sources, load_outcome_metrics, load_source_schemas
 from datahub.builders.school_identity import build_school_identity_package
+from datahub.builders.school_identity_review_plan import build_school_identity_review_plan
 from datahub.builders.school_location_from_amap import build_school_location_package_from_amap_geocode
 from datahub.builders.school_location_geocode_plan import build_school_location_geocode_input_plan
 from datahub.connectors.amap_web_api import fetch_amap_web_api
@@ -4263,6 +4264,77 @@ def test_build_school_identity_package_matches_unique_school_names(tmp_path: Pat
     assert by_local_code["0140"]["national_school_code"] == "4121010140"
     assert by_local_code["0183"]["match_method"] == "unique_exact_school_name"
     assert by_local_code["1414"]["national_school_code"] == "4111011414"
+
+
+def test_build_school_identity_review_plan_suggests_base_school(tmp_path: Path):
+    db = tmp_path / "core.duckdb"
+    con = duckdb.connect(str(db))
+    try:
+        con.execute("""
+            CREATE TABLE fa_dim_ln_admission_plan (
+                school_code VARCHAR,
+                school_name VARCHAR
+            )
+        """)
+        con.execute("""
+            INSERT INTO fa_dim_ln_admission_plan VALUES
+                ('9001', '北京大学医学部'),
+                ('9999', '未知学院')
+        """)
+    finally:
+        con.close()
+
+    school_profile = tmp_path / "school_profile.csv"
+    with school_profile.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(
+            f,
+            fieldnames=[
+                "national_school_code",
+                "school_name",
+                "province",
+                "city",
+                "school_tier",
+                "school_type",
+                "ownership",
+                "official_site",
+                "competent_authority",
+                "source_date",
+                "availability_date",
+                "built_at",
+            ],
+        )
+        writer.writeheader()
+        writer.writerow({
+            "national_school_code": "4111010001",
+            "school_name": "北京大学",
+            "province": "北京市",
+            "city": "北京市",
+            "school_tier": "本科",
+            "school_type": "",
+            "ownership": "",
+            "official_site": "",
+            "competent_authority": "教育部",
+            "source_date": "2025-06-20",
+            "availability_date": "2025-06-27",
+            "built_at": "2026-05-13T00:00:00",
+        })
+
+    result = build_school_identity_review_plan(
+        core_db=db,
+        school_profile_csv=school_profile,
+        output_dir=tmp_path / "review",
+        source_date="2026-05-13",
+    )
+
+    assert result["rows"] == 2
+    assert result["suggested_rows"] == 1
+    with Path(result["csv"]).open(encoding="utf-8", newline="") as f:
+        rows = {row["local_school_code"]: row for row in csv.DictReader(f)}
+    assert rows["9001"]["suggested_national_school_code"] == "4111010001"
+    assert rows["9001"]["review_status"] == "todo"
+    assert rows["9999"]["suggested_national_school_code"] == ""
+    manifest = json.loads(Path(result["manifest"]).read_text(encoding="utf-8"))
+    assert manifest["suggested_rows"] == 1
 
 
 def test_build_score_history_snapshot_filters_incomplete_rows(tmp_path: Path):

@@ -1,0 +1,14 @@
+{
+  "version": "1",
+  "default_status": "todo",
+  "suggestion": {
+    "max_candidates": 3,
+    "min_normalized_length": 4,
+    "remove_parenthetical": true,
+    "base_suffixes": ["医学部", "分校", "校区"]
+  },
+  "review": {
+    "statuses": ["todo", "approved", "rejected", "needs_research"],
+    "editable_columns": ["review_status", "reviewed_national_school_code", "reviewer", "reviewed_at", "notes"]
+  }
+}

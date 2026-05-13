@@ -153,6 +153,11 @@ python3 scripts/build_package.py probe-source-candidates \
 ```bash
 export AMAP_WEB_SERVICE_KEY=...
 
+python3 scripts/build_package.py build-school-identity-review-plan \
+  --core-db /Users/dp/Documents/M/lifehack/backend/data/university.db \
+  --school-profile exports/2025_moe_school_profile/fa_dim_school_profile.csv \
+  --output-dir staging/school_identity_review
+
 python3 scripts/build_package.py build-school-location-geocode-input \
   --core-db /Users/dp/Documents/M/lifehack/backend/data/university.db \
   --school-profile exports/2025_moe_school_profile/fa_dim_school_profile.csv \

@@ -49,6 +49,7 @@ from .builders.score_history_reconciliation_delete_plan import build_score_histo
 from .builders.score_history_reconciliation_package import build_score_history_package_from_reconciliation_plan
 from .builders.score_history_reconciliation_plan import build_score_history_reconciliation_plan
 from .builders.score_history_snapshot import build_score_history_snapshot_package
+from .builders.school_identity_review_plan import build_school_identity_review_plan
 from .builders.school_location_from_amap import build_school_location_package_from_amap_geocode
 from .builders.school_location_geocode_plan import build_school_location_geocode_input_plan
 from .builders.school_identity import build_school_identity_package
@@ -199,6 +200,16 @@ def main() -> int:
     build_school_identity.add_argument("--source-version")
     build_school_identity.add_argument("--source-date")
     build_school_identity.add_argument("--availability-date")
+
+    build_school_identity_review = sub.add_parser(
+        "build-school-identity-review-plan",
+        help="Build review plan for unmatched school identity rows",
+    )
+    build_school_identity_review.add_argument("--core-db", required=True, type=Path)
+    build_school_identity_review.add_argument("--school-profile", required=True, type=Path)
+    build_school_identity_review.add_argument("--output-dir", required=True, type=Path)
+    build_school_identity_review.add_argument("--source-date")
+    build_school_identity_review.add_argument("--availability-date")
 
     build_school_location_geocode_input = sub.add_parser(
         "build-school-location-geocode-input",
@@ -751,6 +762,16 @@ def main() -> int:
             output_root=args.output_root,
             package_id=args.package_id,
             source_version=args.source_version,
+            source_date=args.source_date,
+            availability_date=args.availability_date,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+    if args.cmd == "build-school-identity-review-plan":
+        result = build_school_identity_review_plan(
+            core_db=args.core_db,
+            school_profile_csv=args.school_profile,
+            output_dir=args.output_dir,
             source_date=args.source_date,
             availability_date=args.availability_date,
         )
