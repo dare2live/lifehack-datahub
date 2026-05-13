@@ -3568,10 +3568,11 @@ def test_audit_score_source_coverage_tracks_derivation_gaps(tmp_path: Path):
     assert by_year[2024]["derivation_status"] == "derivable_with_mirror_inputs"
     assert by_year[2024]["score_distribution"]["official_page_image_count"] >= 1
     assert by_year[2023]["projection_status"] == "mirror_remote_ready"
-    assert by_year[2022]["projection_status"] == "candidate_only"
-    assert by_year[2022]["derivation_status"] == "blocked_projection_candidate_only"
-    assert any("2022: 投档最低分只有候选来源" in gap for gap in report["gaps"])
+    assert by_year[2022]["projection_status"] == "official_remote_ready"
+    assert by_year[2022]["derivation_status"] == "requires_distribution_ocr_review"
+    assert any("2022: 一分一段为官方图片源" in gap for gap in report["gaps"])
     assert report["summary"]["derivable_years"] == [2023, 2024, 2025]
+    assert report["summary"]["blocked_or_review_years"] == [2022]
 
 
 def test_audit_data_update_policy_has_no_errors():
