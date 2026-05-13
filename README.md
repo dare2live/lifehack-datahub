@@ -158,6 +158,13 @@ python3 scripts/build_package.py build-school-identity-review-plan \
   --school-profile exports/2025_moe_school_profile/fa_dim_school_profile.csv \
   --output-dir staging/school_identity_review
 
+python3 scripts/build_package.py build-school-identity \
+  --core-db /Users/dp/Documents/M/lifehack/backend/data/university.db \
+  --school-profile exports/2025_moe_school_profile/fa_dim_school_profile.csv \
+  --review-plan staging/school_identity_review/school_identity_review_plan.csv \
+  --output-root exports \
+  --package-id 2026_school_identity
+
 python3 scripts/build_package.py build-school-location-geocode-input \
   --core-db /Users/dp/Documents/M/lifehack/backend/data/university.db \
   --school-profile exports/2025_moe_school_profile/fa_dim_school_profile.csv \

@@ -58,6 +58,7 @@ def build_school_identity_review_plan(
     _, unmatched = _match_schools(
         local_schools=local_schools,
         profiles=profiles,
+        reviewed_identity={},
         source_date=source_date,
         availability_date=availability_date,
     )

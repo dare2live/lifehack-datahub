@@ -4336,6 +4336,29 @@ def test_build_school_identity_review_plan_suggests_base_school(tmp_path: Path):
     manifest = json.loads(Path(result["manifest"]).read_text(encoding="utf-8"))
     assert manifest["suggested_rows"] == 1
 
+    reviewed_rows = list(rows.values())
+    rows["9001"]["review_status"] = "approved"
+    rows["9001"]["reviewed_national_school_code"] = rows["9001"]["suggested_national_school_code"]
+    reviewed_plan = tmp_path / "reviewed_school_identity.csv"
+    with reviewed_plan.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=list(reviewed_rows[0]))
+        writer.writeheader()
+        writer.writerows(reviewed_rows)
+    package = build_school_identity_package(
+        core_db=db,
+        school_profile_csv=school_profile,
+        output_root=tmp_path / "exports_reviewed",
+        package_id="pkg-school-identity-reviewed-test",
+        source_version="fixture-school-identity-reviewed",
+        review_plan_csv=reviewed_plan,
+    )
+    assert package["rows"] == 1
+    assert package["unmatched_rows"] == 1
+    with (Path(package["package_dir"]) / "fa_bridge_school_identity.csv").open(encoding="utf-8", newline="") as f:
+        bridge_rows = list(csv.DictReader(f))
+    assert bridge_rows[0]["local_school_code"] == "9001"
+    assert bridge_rows[0]["match_method"] == "reviewed_identity_mapping"
+
 
 def test_build_score_history_snapshot_filters_incomplete_rows(tmp_path: Path):
     db = tmp_path / "core.duckdb"

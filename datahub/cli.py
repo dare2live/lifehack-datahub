@@ -200,6 +200,8 @@ def main() -> int:
     build_school_identity.add_argument("--source-version")
     build_school_identity.add_argument("--source-date")
     build_school_identity.add_argument("--availability-date")
+    build_school_identity.add_argument("--review-plan", type=Path)
+    build_school_identity.add_argument("--approved-status", action="append", dest="approved_statuses")
 
     build_school_identity_review = sub.add_parser(
         "build-school-identity-review-plan",
@@ -764,6 +766,8 @@ def main() -> int:
             source_version=args.source_version,
             source_date=args.source_date,
             availability_date=args.availability_date,
+            review_plan_csv=args.review_plan,
+            approved_statuses=args.approved_statuses,
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0

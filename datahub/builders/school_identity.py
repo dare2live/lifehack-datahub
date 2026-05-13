@@ -26,6 +26,8 @@ def build_school_identity_package(
     source_version: str | None = None,
     source_date: str | None = None,
     availability_date: str | None = None,
+    review_plan_csv: Path | None = None,
+    approved_statuses: list[str] | None = None,
 ) -> dict[str, Any]:
     schema = get_table_schema(TARGET_TABLE)
     package_id = package_id or f"{datetime.utcnow().date().isoformat()}_school_identity_bridge"
@@ -34,11 +36,13 @@ def build_school_identity_package(
 
     local_schools = _read_local_schools(core_db)
     profiles = _read_school_profiles(school_profile_csv)
+    reviewed_identity = _read_reviewed_identity(review_plan_csv, approved_statuses or ["approved"]) if review_plan_csv else {}
     source_date = source_date or _first_non_empty(profiles, "source_date") or datetime.utcnow().date().isoformat()
     availability_date = availability_date or _first_non_empty(profiles, "availability_date") or source_date
     rows, unmatched = _match_schools(
         local_schools=local_schools,
         profiles=profiles,
+        reviewed_identity=reviewed_identity,
         source_date=source_date,
         availability_date=availability_date,
     )
@@ -48,6 +52,7 @@ def build_school_identity_package(
         schema=schema,
         local_school_count=len(local_schools),
         profile_count=len(profiles),
+        reviewed_identity_count=len(reviewed_identity),
     )
     if quality["errors"]:
         raise ValueError("; ".join(quality["errors"]))
@@ -103,23 +108,46 @@ def _read_school_profiles(path: Path) -> list[dict[str, str]]:
         ]
 
 
+def _read_reviewed_identity(path: Path, approved_statuses: list[str]) -> dict[tuple[str, str], str]:
+    approved = {str(status).strip() for status in approved_statuses if str(status).strip()}
+    if not approved:
+        raise ValueError("approved_statuses must not be empty")
+    result: dict[tuple[str, str], str] = {}
+    with path.open("r", encoding="utf-8-sig", newline="") as f:
+        for row in csv.DictReader(f):
+            if str(row.get("review_status") or "").strip() not in approved:
+                continue
+            local_code = str(row.get("local_school_code") or "").strip()
+            local_name = str(row.get("local_school_name") or "").strip()
+            national_code = str(row.get("reviewed_national_school_code") or "").strip()
+            if local_code and local_name and national_code:
+                result[(local_code, _normalize_name(local_name))] = national_code
+    return result
+
+
 def _match_schools(
     *,
     local_schools: list[dict[str, str]],
     profiles: list[dict[str, str]],
+    reviewed_identity: dict[tuple[str, str], str] | None = None,
     source_date: str,
     availability_date: str,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     profile_by_name: dict[str, list[dict[str, str]]] = {}
+    profile_by_code: dict[str, dict[str, str]] = {}
     for profile in profiles:
         key = _normalize_name(profile.get("school_name"))
         if key:
             profile_by_name.setdefault(key, []).append(profile)
+        code = str(profile.get("national_school_code") or "").strip()
+        if code:
+            profile_by_code[code] = profile
 
     rows: list[dict[str, Any]] = []
     unmatched: list[dict[str, Any]] = []
     built_at = datetime.utcnow().isoformat()
     seen_local_codes: set[str] = set()
+    reviewed_identity = reviewed_identity or {}
     for local in local_schools:
         local_code = local["local_school_code"]
         local_name = local["local_school_name"]
@@ -131,6 +159,19 @@ def _match_schools(
             continue
         seen_local_codes.add(local_code)
 
+        reviewed_code = reviewed_identity.get((local_code, _normalize_name(local_name)))
+        if reviewed_code:
+            profile = profile_by_code.get(reviewed_code)
+            if not profile:
+                unmatched.append({
+                    **local,
+                    "reason": "reviewed_national_code_not_in_profile",
+                    "reviewed_national_school_code": reviewed_code,
+                })
+                continue
+            rows.append(_bridge_row(local, profile, "reviewed_identity_mapping", source_date, availability_date, built_at))
+            continue
+
         candidates = profile_by_name.get(_normalize_name(local_name), [])
         if len(candidates) != 1:
             unmatched.append({
@@ -140,21 +181,32 @@ def _match_schools(
             })
             continue
         profile = candidates[0]
-        rows.append({
-            "local_system": LOCAL_SYSTEM,
-            "local_school_code": local_code,
-            "local_school_name": local_name,
-            "national_school_code": profile.get("national_school_code"),
-            "national_school_name": profile.get("school_name"),
-            "province": profile.get("province"),
-            "city": profile.get("city"),
-            "match_method": "unique_exact_school_name",
-            "match_confidence": "high",
-            "source_date": source_date,
-            "availability_date": availability_date,
-            "built_at": built_at,
-        })
+        rows.append(_bridge_row(local, profile, "unique_exact_school_name", source_date, availability_date, built_at))
     return rows, unmatched
+
+
+def _bridge_row(
+    local: dict[str, str],
+    profile: dict[str, str],
+    match_method: str,
+    source_date: str,
+    availability_date: str,
+    built_at: str,
+) -> dict[str, Any]:
+    return {
+        "local_system": LOCAL_SYSTEM,
+        "local_school_code": local["local_school_code"],
+        "local_school_name": local["local_school_name"],
+        "national_school_code": profile.get("national_school_code"),
+        "national_school_name": profile.get("school_name"),
+        "province": profile.get("province"),
+        "city": profile.get("city"),
+        "match_method": match_method,
+        "match_confidence": "high",
+        "source_date": source_date,
+        "availability_date": availability_date,
+        "built_at": built_at,
+    }
 
 
 def _quality_report(
@@ -164,6 +216,7 @@ def _quality_report(
     schema: dict[str, Any],
     local_school_count: int,
     profile_count: int,
+    reviewed_identity_count: int = 0,
 ) -> dict[str, Any]:
     required = schema.get("required", [])
     primary_key = schema.get("primary_key", [])
@@ -187,6 +240,7 @@ def _quality_report(
         "input_counts": {
             "local_school_rows": local_school_count,
             "school_profile_rows": profile_count,
+            "reviewed_identity_rows": reviewed_identity_count,
             "unmatched_rows": len(unmatched),
         },
         "primary_key_checks": {"columns": primary_key, "duplicate_count": duplicate_count},
