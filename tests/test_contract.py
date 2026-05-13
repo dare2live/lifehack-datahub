@@ -5006,11 +5006,13 @@ def test_apply_outcome_report_source_seeds_updates_matching_pending_rows(tmp_pat
     rows = [
         _outcome_plan_row("school", "10140", "辽宁大学", "employment_rate", status="todo", priority_rank="1"),
         _outcome_plan_row("school", "10142", "沈阳工业大学", "employment_rate", status="todo", priority_rank="1"),
+        _outcome_plan_row("school", "11258", "大连大学", "employment_rate", status="todo", priority_rank="1"),
         _outcome_plan_row("major", "法学", "法学", "employment_rate", status="todo", priority_rank="2"),
     ]
     rows[0]["metric_year"] = "2022"
     rows[1]["metric_year"] = "2024"
-    rows[2]["metric_year"] = "2022"
+    rows[2]["metric_year"] = "2024"
+    rows[3]["metric_year"] = "2022"
     _write_outcome_plan(plan, rows)
     source_result = build_outcome_report_source_plan(
         plan_csv=plan,
@@ -5024,9 +5026,10 @@ def test_apply_outcome_report_source_seeds_updates_matching_pending_rows(tmp_pat
         report_path=tmp_path / "report_sources" / "seed_merge.json",
     )
 
-    assert report["updated_rows"] == 2
+    assert report["updated_rows"] == 3
     assert "school|辽宁大学|2022|employment_quality_report" not in report["unmatched_seed_ids"]
     assert "school|沈阳工业大学|2024|undergraduate_teaching_quality_report" not in report["unmatched_seed_ids"]
+    assert "school|大连大学|2024|undergraduate_teaching_quality_report" not in report["unmatched_seed_ids"]
     with output.open(encoding="utf-8", newline="") as f:
         merged_rows = list(csv.DictReader(f))
     lnu = next(row for row in merged_rows if row["entity_name"] == "辽宁大学" and row["report_scope"] == "employment_quality_report")
@@ -5035,6 +5038,8 @@ def test_apply_outcome_report_source_seeds_updates_matching_pending_rows(tmp_pat
     assert lnu["candidate_source_date"] == "2023-01-05"
     sut = next(row for row in merged_rows if row["entity_name"] == "沈阳工业大学" and row["report_scope"] == "undergraduate_teaching_quality_report")
     assert sut["candidate_report_url"] == "https://www.sut.edu.cn/info/1584/67026.htm"
+    dlu = next(row for row in merged_rows if row["entity_name"] == "大连大学" and row["report_scope"] == "undergraduate_teaching_quality_report")
+    assert dlu["candidate_report_url"] == "https://zgc.dlu.edu.cn/info/1051/1754.htm"
     major = next(row for row in merged_rows if row["domain"] == "major")
     assert major["status"] == "todo"
 
@@ -5049,6 +5054,11 @@ def test_audit_outcome_report_source_seeds_validates_config(tmp_path: Path):
     assert any(row["entity_name"] == "吉林大学" and row["metric_year"] == 2024 for row in report["seed_rows"])
     assert any(row["entity_name"] == "沈阳师范大学" and row["metric_year"] == 2024 for row in report["seed_rows"])
     assert any(row["entity_name"] == "大连外国语大学" and row["metric_year"] == 2024 for row in report["seed_rows"])
+    assert any(row["entity_name"] == "辽宁师范大学" and row["metric_year"] == 2024 for row in report["seed_rows"])
+    assert any(row["entity_name"] == "大连大学" and row["metric_year"] == 2024 for row in report["seed_rows"])
+    assert any(row["entity_name"] == "大连工业大学" and row["metric_year"] == 2024 for row in report["seed_rows"])
+    assert any(row["entity_name"] == "大连民族大学" and row["metric_year"] == 2024 for row in report["seed_rows"])
+    assert any(row["entity_name"] == "渤海大学" and row["metric_year"] == 2024 for row in report["seed_rows"])
     assert (tmp_path / "seed_audit.json").exists()
 
 

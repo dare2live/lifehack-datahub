@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "updated_at": "2026-05-13",
+  "updated_at": "2026-05-14",
   "notes": "已确认的学校/专业 outcome 报告来源种子。只用于预填 outcome_report_source_plan，不下载文件、不生成 data package。",
   "applied_status": "candidate_found",
   "reviewer": "datahub_seed",
@@ -112,6 +112,66 @@
       "candidate_source_date": "2024-12-05",
       "availability_date": "2024-12-05",
       "evidence_note": "大连外国语大学信息公开网页发布，页面列出发布时间和 PDF 附件；附件下载页需要验证码时保持 manual intake。"
+    },
+    {
+      "domain": "school",
+      "entity_name": "辽宁师范大学",
+      "metric_year": 2024,
+      "report_scope": "undergraduate_teaching_quality_report",
+      "candidate_report_title": "辽宁师范大学2023-2024学年本科教学质量报告",
+      "candidate_report_url": "https://jkpj.lnnu.edu.cn/info/1022/1411.htm",
+      "candidate_file_name": "辽宁师范大学2023-2024学年本科教学质量报告.pdf",
+      "candidate_source_date": "2024-12-05",
+      "availability_date": "2024-12-05",
+      "evidence_note": "辽宁师范大学教育教学质量监控与评估中心官网质量报告页发布，并列出 2023-2024 学年本科教学质量报告。"
+    },
+    {
+      "domain": "school",
+      "entity_name": "渤海大学",
+      "metric_year": 2024,
+      "report_scope": "undergraduate_teaching_quality_report",
+      "candidate_report_title": "渤海大学2023-2024学年本科教学质量报告",
+      "candidate_report_url": "https://jwc.bhu.edu.cn/engine2/general/4172508/detail?currentBranch=0&engineInstanceId=657248&pageId=85848&typeId=2987587&websiteId=63219",
+      "candidate_file_name": "渤海大学2023-2024学年本科教学质量报告.pdf",
+      "candidate_source_date": "2024-12-19",
+      "availability_date": "2024-12-19",
+      "evidence_note": "渤海大学教务处质量报告栏目发布页面，页面标题和时间确认报告来源；附件链接需后续 intake 或人工登记核验。"
+    },
+    {
+      "domain": "school",
+      "entity_name": "大连大学",
+      "metric_year": 2024,
+      "report_scope": "undergraduate_teaching_quality_report",
+      "candidate_report_title": "大连大学2023-2024学年本科教学质量报告",
+      "candidate_report_url": "https://zgc.dlu.edu.cn/info/1051/1754.htm",
+      "candidate_file_name": "大连大学2023-2024学年本科教学质量报告.pdf",
+      "candidate_source_date": "2024-12-02",
+      "availability_date": "2024-12-02",
+      "evidence_note": "大连大学教学质量管理处信息公开页发布，学校信息公开网质量报告列表同步列出该报告。"
+    },
+    {
+      "domain": "school",
+      "entity_name": "大连工业大学",
+      "metric_year": 2024,
+      "report_scope": "undergraduate_teaching_quality_report",
+      "candidate_report_title": "大连工业大学2023～2024学年本科教学质量报告",
+      "candidate_report_url": "https://xxgk.dlpu.edu.cn/detail/1901_2fea4d9ec8e16e937831dca9edb4f0db.html",
+      "candidate_file_name": "大连工业大学2023～2024学年本科教学质量报告.pdf",
+      "candidate_source_date": "2024-12-06",
+      "availability_date": "2024-12-06",
+      "evidence_note": "大连工业大学信息公开网教学质量信息栏目发布，页面列出本科教学质量报告 PDF。"
+    },
+    {
+      "domain": "school",
+      "entity_name": "大连民族大学",
+      "metric_year": 2024,
+      "report_scope": "undergraduate_teaching_quality_report",
+      "candidate_report_title": "大连民族大学2023-2024学年本科教学质量报告",
+      "candidate_report_url": "https://new.dlnu.edu.cn/shpg/info/1117/1553.htm",
+      "candidate_file_name": "大连民族大学2023-2024学年本科教学质量报告-终.pdf",
+      "candidate_source_date": "2024-12-05",
+      "availability_date": "2024-12-05",
+      "evidence_note": "大连民族大学本科教育教学审核评估专题网站发布，页面列出本科教学质量报告 PDF 附件。"
     }
   ]
 }
