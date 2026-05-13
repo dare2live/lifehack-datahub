@@ -431,6 +431,7 @@ def main() -> int:
     build_outcome_collection.add_argument("--domain", action="append", dest="domains")
     build_outcome_collection.add_argument("--school-limit", type=int)
     build_outcome_collection.add_argument("--major-limit", type=int)
+    build_outcome_collection.add_argument("--metric-year", type=int)
 
     audit_outcome_collection = sub.add_parser(
         "audit-outcome-collection-plan",
@@ -1202,6 +1203,7 @@ def main() -> int:
             domains=args.domains,
             school_limit=args.school_limit,
             major_limit=args.major_limit,
+            metric_year=args.metric_year,
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0

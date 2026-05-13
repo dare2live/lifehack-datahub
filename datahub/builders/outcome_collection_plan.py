@@ -44,6 +44,7 @@ def build_outcome_collection_plan(
     domains: list[str] | None = None,
     school_limit: int | None = None,
     major_limit: int | None = None,
+    metric_year: int | None = None,
 ) -> dict[str, Any]:
     config = load_outcome_collection()
     metrics_config = load_outcome_metrics()
@@ -55,7 +56,7 @@ def build_outcome_collection_plan(
         domain_config = _domain_config(config, domain)
         limit = _domain_limit(config, domain, school_limit, major_limit)
         entities = _read_domain_entities(core_db, domain_config, limit)
-        all_rows.extend(_build_rows(domain, domain_config, entities, metrics_config, config))
+        all_rows.extend(_build_rows(domain, domain_config, entities, metrics_config, config, metric_year))
 
     csv_path = output_dir / "outcome_collection_plan.csv"
     manifest_path = output_dir / "outcome_collection_plan.json"
@@ -65,6 +66,7 @@ def build_outcome_collection_plan(
         "core_db": str(core_db),
         "config_version": config.get("version"),
         "domains": selected_domains,
+        "metric_year": metric_year or config.get("defaults", {}).get("metric_year"),
         "rows": len(all_rows),
         "csv": str(csv_path),
         "notes": "Collection plan only. It is not a data package and must not be imported into core.",
@@ -159,9 +161,10 @@ def _build_rows(
     entities: list[dict[str, Any]],
     metrics_config: dict[str, Any],
     collection_config: dict[str, Any],
+    metric_year_override: int | None,
 ) -> list[dict[str, Any]]:
     metrics = metrics_config.get("domains", {}).get(domain, {})
-    metric_year = collection_config.get("defaults", {}).get("metric_year")
+    metric_year = metric_year_override or collection_config.get("defaults", {}).get("metric_year")
     status = collection_config.get("defaults", {}).get("status")
     rows = []
     for entity in entities:

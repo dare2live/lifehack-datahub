@@ -655,10 +655,11 @@ python3 scripts/build_package.py build-outcome-collection-plan \
   --core-db /Users/dp/Documents/M/lifehack/backend/data/university.db \
   --output-dir staging/outcome_collection \
   --school-limit 80 \
-  --major-limit 80
+  --major-limit 80 \
+  --metric-year 2025
 ```
 
-该命令只读 core DB，默认按配置过滤普通类本科批，输出 CSV/JSON 采集计划，不是 data package，也不能导入 core。先用报告源计划把同一学校/专业的多个指标聚合成“找报告”任务，避免重复搜索同一份就业质量报告或本科教学质量报告：
+该命令只读 core DB，默认按配置过滤普通类本科批，输出 CSV/JSON 采集计划，不是 data package，也不能导入 core。`--metric-year` 可覆盖配置默认年份，用于按 2022、2024 或 2025 等目标报告年份生成任务，并与 `config/outcome_report_sources.json` 中的报告来源种子匹配。先用报告源计划把同一学校/专业的多个指标聚合成“找报告”任务，避免重复搜索同一份就业质量报告或本科教学质量报告：
 
 ```bash
 python3 scripts/build_package.py build-outcome-report-source-plan \

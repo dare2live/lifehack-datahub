@@ -4225,6 +4225,7 @@ def test_build_outcome_collection_plan_from_core_admission_plan(tmp_path: Path):
         domains=["school", "major"],
         school_limit=2,
         major_limit=2,
+        metric_year=2024,
     )
 
     assert result["rows"] == 16
@@ -4235,11 +4236,13 @@ def test_build_outcome_collection_plan_from_core_admission_plan(tmp_path: Path):
     assert "就业质量报告" in rows[0]["search_queries"]
     assert "metric_value" in rows[0]
     assert "source_url" in rows[0]
+    assert {row["metric_year"] for row in rows} == {"2024"}
     assert any(row["domain"] == "major" and row["entity_name"] == "计算机类" for row in rows)
 
     manifest = json.loads(Path(result["manifest"]).read_text(encoding="utf-8"))
     assert manifest["notes"].startswith("Collection plan only")
     assert manifest["rows"] == 16
+    assert manifest["metric_year"] == 2024
 
 
 def test_extract_outcome_report_candidates_from_lines(tmp_path: Path):
