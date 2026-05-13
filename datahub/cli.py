@@ -22,6 +22,7 @@ from .builders.outcome_collection_batch import (
     build_outcome_collection_batch,
     merge_outcome_collection_batch,
 )
+from .builders.outcome_candidate_merge import merge_outcome_report_candidates
 from .builders.outcome_collection_audit import audit_outcome_collection_plan
 from .builders.outcome_collection_package import build_outcome_packages_from_collection_plan
 from .builders.major_mapping_review import build_major_mapping_review_package
@@ -348,6 +349,15 @@ def main() -> int:
     merge_outcome_collection_batch_parser.add_argument("--batch-csv", required=True, type=Path)
     merge_outcome_collection_batch_parser.add_argument("--output", required=True, type=Path)
     merge_outcome_collection_batch_parser.add_argument("--report", type=Path)
+
+    merge_outcome_candidates = sub.add_parser(
+        "merge-outcome-report-candidates",
+        help="Merge approved report-extracted outcome candidates into a collection plan",
+    )
+    merge_outcome_candidates.add_argument("--plan-csv", required=True, type=Path)
+    merge_outcome_candidates.add_argument("--candidate-csv", required=True, type=Path)
+    merge_outcome_candidates.add_argument("--output", required=True, type=Path)
+    merge_outcome_candidates.add_argument("--report", type=Path)
 
     build_outcome_from_collection = sub.add_parser(
         "build-outcome-from-collection-plan",
@@ -792,6 +802,17 @@ def main() -> int:
         report = merge_outcome_collection_batch(
             plan_csv=args.plan_csv,
             batch_csv=args.batch_csv,
+            output=args.output,
+        )
+        if args.report:
+            args.report.parent.mkdir(parents=True, exist_ok=True)
+            args.report.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        print(json.dumps(report, ensure_ascii=False, indent=2))
+        return 0
+    if args.cmd == "merge-outcome-report-candidates":
+        report = merge_outcome_report_candidates(
+            plan_csv=args.plan_csv,
+            candidate_csv=args.candidate_csv,
             output=args.output,
         )
         if args.report:

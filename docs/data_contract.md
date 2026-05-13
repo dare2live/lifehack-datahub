@@ -499,6 +499,18 @@ python3 scripts/build_package.py extract-outcome-report-candidates \
 
 真实 smoke：辽宁大学官方 2022 届毕业生就业质量年度报告 PDF 产出 4 条 `civil_service_rate` 候选；沈阳工业大学官方 2023-2024 本科教学质量报告 PDF 产出 1 条 `employment_rate` 候选。候选 CSV 只用于复核，不是 data package，也不会导入 core。
 
+候选人工核对后，通过 `merge-outcome-report-candidates` 回写完整采集计划。该命令只接受 `config/outcome_collection.json.candidate_merge.approved_statuses` 中配置的状态，默认仅 `approved`；合并后目标状态、可回写列也由同一段配置控制：
+
+```bash
+python3 scripts/build_package.py merge-outcome-report-candidates \
+  --plan-csv staging/outcome_collection/outcome_collection_plan.csv \
+  --candidate-csv staging/outcome_report_candidates/lnu_2022_candidates_reviewed.csv \
+  --output staging/outcome_collection/outcome_collection_plan_with_report_candidates.csv \
+  --report staging/outcome_collection/outcome_report_candidate_merge.json
+```
+
+真实 smoke：4 条辽宁大学候选中只有 1 条被标为 `approved`，合并报告 `approved_candidate_rows=1`、`updated_rows=1`；再跑 `audit-outcome-collection-plan` 得到 `verified=1`、`errors=[]`。未批准候选不会写入采集计划，也不能进入 outcome package。
+
 当采集任务被人工核对并标记为完成状态后，才可从采集表生成标准 outcome 数据包：
 
 ```bash

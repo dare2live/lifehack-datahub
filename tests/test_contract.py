@@ -25,6 +25,7 @@ from datahub.builders.outcome_collection_batch import (
     build_outcome_collection_batch,
     merge_outcome_collection_batch,
 )
+from datahub.builders.outcome_candidate_merge import merge_outcome_report_candidates
 from datahub.builders.outcome_collection_package import build_outcome_packages_from_collection_plan
 from datahub.builders.major_mapping_review import build_major_mapping_review_package
 from datahub.builders.local_package import build_local_package
@@ -3009,6 +3010,79 @@ def test_merge_outcome_collection_batch_updates_only_editable_columns(tmp_path: 
     assert merged_rows[0]["notes"] == "人工核验"
     assert merged_rows[1]["entity_name"] == "计算机类"
     assert merged_rows[1]["status"] == "todo"
+
+
+def test_merge_outcome_report_candidates_requires_approved_status(tmp_path: Path):
+    plan = tmp_path / "outcome_collection_plan.csv"
+    rows = [
+        _outcome_plan_row("school", "10140", "辽宁大学", "civil_service_rate", status="todo", priority_rank="1"),
+        _outcome_plan_row("school", "10142", "沈阳工业大学", "employment_rate", status="todo", priority_rank="2"),
+    ]
+    _write_outcome_plan(plan, rows)
+    candidates = tmp_path / "outcome_candidates.csv"
+    with candidates.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=CANDIDATE_COLUMNS)
+        writer.writeheader()
+        base = {column: "" for column in CANDIDATE_COLUMNS}
+        writer.writerow({
+            **base,
+            "domain": "school",
+            "entity_code": "10140",
+            "entity_name": "被篡改的名称",
+            "metric_key": "civil_service_rate",
+            "metric_label": "体制内去向比例",
+            "metric_unit": "ratio",
+            "metric_year": "2025",
+            "candidate_value": "0.2594",
+            "candidate_text_value": "25.94%",
+            "source_title": "辽宁大学2022届毕业生就业质量年度报告",
+            "source_url": "https://www.lnu.edu.cn/info/15026/78891.htm",
+            "evidence_quote": "国有企业占比为25.94%。",
+            "metric_scope": "本科毕业生签约单位性质",
+            "source_date": "2022-12-31",
+            "availability_date": "2022-12-31",
+            "page_number": "38",
+            "match_alias": "国有企业",
+            "confidence": "low",
+            "review_status": "approved",
+        })
+        writer.writerow({
+            **base,
+            "domain": "school",
+            "entity_code": "10142",
+            "entity_name": "沈阳工业大学",
+            "metric_key": "employment_rate",
+            "metric_label": "毕业去向落实率",
+            "metric_unit": "ratio",
+            "metric_year": "2025",
+            "candidate_value": "1",
+            "source_title": "2023-2024年沈阳工业大学本科教学质量报告",
+            "source_url": "https://www.sut.edu.cn/info/1584/67026.htm",
+            "evidence_quote": "学位点就业率100%。",
+            "source_date": "2024-12-31",
+            "availability_date": "2024-12-31",
+            "review_status": "needs_review",
+        })
+
+    output = tmp_path / "outcome_collection_plan_merged.csv"
+    report = merge_outcome_report_candidates(
+        plan_csv=plan,
+        candidate_csv=candidates,
+        output=output,
+    )
+
+    assert report["updated_rows"] == 1
+    assert report["approved_candidate_rows"] == 1
+    assert report["status_counts"] == {"todo": 1, "verified": 1}
+    with output.open(encoding="utf-8", newline="") as f:
+        merged_rows = list(csv.DictReader(f))
+    assert merged_rows[0]["entity_name"] == "辽宁大学"
+    assert merged_rows[0]["status"] == "verified"
+    assert merged_rows[0]["metric_value"] == "0.2594"
+    assert merged_rows[0]["source_url"] == "https://www.lnu.edu.cn/info/15026/78891.htm"
+    assert "merged_from_report_candidate" in merged_rows[0]["notes"]
+    assert merged_rows[1]["status"] == "todo"
+    assert merged_rows[1]["metric_value"] == ""
 
 
 def test_build_outcome_packages_from_verified_collection_plan(tmp_path: Path):

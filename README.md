@@ -480,6 +480,18 @@ python3 scripts/build_package.py extract-outcome-report-candidates \
 
 真实 smoke：辽宁大学 2022 届毕业生就业质量年度报告 PDF 可提取 4 条体制内去向比例候选；沈阳工业大学 2023-2024 本科教学质量报告 PDF 可提取 1 条毕业去向落实率候选。两次输出均为本地 ignored staging CSV，且 `review_status=needs_review`，不会生成 outcome data package。
 
+候选经过人工核对后，只把 `review_status=approved` 的行合并回完整采集计划。合并状态、目标状态和可回写列维护在 `config/outcome_collection.json` 的 `candidate_merge`，命令按 `domain, entity_code, metric_key, metric_year` 定位任务，不允许候选 CSV 篡改实体名称或优先级：
+
+```bash
+python3 scripts/build_package.py merge-outcome-report-candidates \
+  --plan-csv staging/outcome_collection/outcome_collection_plan.csv \
+  --candidate-csv staging/outcome_report_candidates/lnu_2022_candidates_reviewed.csv \
+  --output staging/outcome_collection/outcome_collection_plan_with_report_candidates.csv \
+  --report staging/outcome_collection/outcome_report_candidate_merge.json
+```
+
+真实 smoke：4 条辽宁大学报告候选中仅 1 条被手动标记为 `approved`，合并后只更新 1 行采集计划，状态变为 `verified`；随后 `audit-outcome-collection-plan` 返回 `errors=[]`、`completion_rate=1.0`。未批准候选保持隔离，不会进入打包链路。
+
 采集任务经过人工核对并标记为 `verified/ready/collected` 后，再从采集表生成标准 outcome 数据包。该入口会先运行采集审计，再复用 `build-local` 的 schema、主键、metric key、单位和值域校验：
 
 ```bash

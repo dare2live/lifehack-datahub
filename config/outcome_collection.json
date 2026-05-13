@@ -31,6 +31,22 @@
       "notes"
     ]
   },
+  "candidate_merge": {
+    "approved_statuses": ["approved"],
+    "target_status": "verified",
+    "editable_columns": [
+      "status",
+      "metric_value",
+      "source_title",
+      "source_url",
+      "evidence_quote",
+      "metric_scope",
+      "source_date",
+      "availability_date",
+      "built_at",
+      "notes"
+    ]
+  },
   "domains": {
     "school": {
       "source_table": "fa_dim_ln_admission_plan",
