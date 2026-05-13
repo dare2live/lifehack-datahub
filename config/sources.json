@@ -426,6 +426,17 @@
           "notes": "页面列出 2023 辽宁成绩统计表普通类及艺体类附件，普通类附件指向学信网 file.do；仅作可追踪候选，不能冒充辽宁官网原始长期来源。"
         },
         {
+          "label": "2023 学信网成绩统计表页面",
+          "kind": "candidate_page",
+          "url": "https://gaokao.chsi.com.cn/gkxx/zc/ss/202306/20230625/2293096350.html",
+          "source_date": "2023-06-24",
+          "expected_table": "fa_fact_ln_score_distribution",
+          "headers": {
+            "User-Agent": "Mozilla/5.0"
+          },
+          "notes": "学信网页面可由搜索结果确认，但无浏览器普通 HTTP 请求返回 JS 挑战/HTTP 412；只作为官方候选入口，需浏览器会话、稳定附件镜像或人工 intake 后才能晋级。"
+        },
+        {
           "label": "2023 学信网成绩统计表附件（普通类物理学科类 PDF）",
           "kind": "candidate_file",
           "url": "https://gaokao.chsi.com.cn/news/file.do?method=downFile&id=2293096351&attach=true&hist=false",
@@ -470,6 +481,17 @@
             "User-Agent": "Mozilla/5.0"
           },
           "notes": "页面列出 2024 辽宁成绩统计表普通类及艺体类 PDF 附件；仅作可追踪候选，不能冒充辽宁官网原始长期来源。"
+        },
+        {
+          "label": "2024 学信网成绩统计表页面",
+          "kind": "candidate_page",
+          "url": "https://gaokao.chsi.com.cn/gkxx/zc/ss/202406/20240625/2293298978.html",
+          "source_date": "2024-06-24",
+          "expected_table": "fa_fact_ln_score_distribution",
+          "headers": {
+            "User-Agent": "Mozilla/5.0"
+          },
+          "notes": "学信网页面可由搜索结果确认，但无浏览器普通 HTTP 请求返回 JS 挑战/HTTP 412；只作为官方候选入口，需浏览器会话、稳定附件镜像或人工 intake 后才能晋级。"
         },
         {
           "label": "2024 中国教育电视台转载成绩统计表附件（普通类物理学科类 PDF）",

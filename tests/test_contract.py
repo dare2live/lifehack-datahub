@@ -4057,6 +4057,10 @@ def test_audit_score_source_coverage_tracks_derivation_gaps(tmp_path: Path):
     assert by_year[2023]["score_distribution"]["research_candidate_count"] >= 3
     assert "https://www.centv.cn/p/467520.html" in by_year[2023]["score_distribution"]["candidate_urls"]
     assert (
+        "https://gaokao.chsi.com.cn/gkxx/zc/ss/202306/20230625/2293096350.html"
+        in by_year[2023]["score_distribution"]["candidate_urls"]
+    )
+    assert (
         "https://gaokao.chsi.com.cn/news/file.do?method=downFile&id=2293096351&attach=true&hist=false"
         in by_year[2023]["score_distribution"]["candidate_urls"]
     )
@@ -4066,6 +4070,10 @@ def test_audit_score_source_coverage_tracks_derivation_gaps(tmp_path: Path):
     )
     assert (
         "https://epaper.lnd.com.cn/lswbepaper/pc/layout/202406/25/node_A02.html"
+        in by_year[2024]["score_distribution"]["candidate_urls"]
+    )
+    assert (
+        "https://gaokao.chsi.com.cn/gkxx/zc/ss/202406/20240625/2293298978.html"
         in by_year[2024]["score_distribution"]["candidate_urls"]
     )
     assert by_year[2022]["projection_status"] == "official_remote_ready"

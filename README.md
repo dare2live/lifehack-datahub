@@ -306,6 +306,8 @@ python3 scripts/build_package.py audit-score-source-coverage \
 
 已探测但不可晋级来源：辽宁日报传媒集团/辽沈晚报电子报 2023-06-25 与 2024-06-25 版面附件可访问，正确 PDF 路径为 `/lswbepaper/pc/att/...`，但 2024 A01-A08 未发现可文本解析的一分一段表；2023 A03/A05 虽有“成绩统计表”标题，PDF 文本不是完整逐分三列表，`parse-ln-score-distribution` 行数为 0。该来源保留在 `research_candidates`，避免后续重复探测或误晋级。
 
+学信网 2023/2024 直接页面已登记为候选入口，但普通 HTTP 下载返回 JS 挑战或 HTTP 412，不能作为 `remote_files` 使用；后续只有在浏览器会话、稳定附件镜像或受控人工 intake 能提供可校验原始文件时，才允许进入解析和打包链路。
+
 真实 smoke：2022 辽宁招生考试之窗官方投档最低分附件 + 2022 官方图片表格一分一段，已生成 `2022_ln_score_history_derived_official_projection_grid` 包，`fa_fact_ln_score_history` 14,203 行，quality report 无错误，manifest 校验通过，core importer `--dry-run` 通过。只读对账显示与当前 core 2022 本科批普通类存在代码体系和旧值差异，`safe_to_import_without_reconciliation=false`：package 14,203 行、core scoped 14,195 行、matched 6,363 行、package-only 7,840 行、core-only 7,832 行、different 3,712 行，另有 3,055 个同分同位次但专业代码不同的候选对。已生成 `staging/score_history_reconciliation_2022_official_projection_grid` 复核计划 16,963 行和初始 100 行小批；未复核前构建可导入包和 delete plan 均会被拒绝。
 
 高德地图数据走 Web API connector。API key 只从环境变量读取，不写入配置或 manifest；原始响应写入 ignored `raw/`，后续再由 parser/normalizer 生成标准包：
