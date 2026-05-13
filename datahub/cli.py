@@ -50,6 +50,7 @@ from .builders.score_history_reconciliation_package import build_score_history_p
 from .builders.score_history_reconciliation_plan import build_score_history_reconciliation_plan
 from .builders.score_history_snapshot import build_score_history_snapshot_package
 from .builders.school_identity_review_plan import build_school_identity_review_plan
+from .builders.school_location_geocode_audit import audit_school_location_geocode_input
 from .builders.school_location_from_amap import build_school_location_package_from_amap_geocode
 from .builders.school_location_geocode_plan import build_school_location_geocode_input_plan
 from .builders.school_identity import build_school_identity_package
@@ -224,6 +225,14 @@ def main() -> int:
     build_school_location_geocode_input.add_argument("--limit", type=int)
     build_school_location_geocode_input.add_argument("--source-date")
     build_school_location_geocode_input.add_argument("--availability-date")
+
+    audit_school_location_geocode = sub.add_parser(
+        "audit-school-location-geocode-input",
+        help="Audit school-location geocode plan and Amap input CSV before fetching",
+    )
+    audit_school_location_geocode.add_argument("--plan-csv", required=True, type=Path)
+    audit_school_location_geocode.add_argument("--input-csv", type=Path)
+    audit_school_location_geocode.add_argument("--output", type=Path)
 
     build_school_location_from_amap = sub.add_parser(
         "build-school-location-from-amap-geocode",
@@ -790,6 +799,14 @@ def main() -> int:
             limit=args.limit,
             source_date=args.source_date,
             availability_date=args.availability_date,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+    if args.cmd == "audit-school-location-geocode-input":
+        result = audit_school_location_geocode_input(
+            plan_csv=args.plan_csv,
+            input_csv=args.input_csv,
+            output=args.output,
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0

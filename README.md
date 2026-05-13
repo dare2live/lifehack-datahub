@@ -171,6 +171,11 @@ python3 scripts/build_package.py build-school-location-geocode-input \
   --school-identity exports/2026_school_identity/fa_bridge_school_identity.csv \
   --output-dir staging/school_location_geocode
 
+python3 scripts/build_package.py audit-school-location-geocode-input \
+  --plan-csv staging/school_location_geocode/school_location_geocode_plan.csv \
+  --input-csv staging/school_location_geocode/amap_geocode_input.csv \
+  --output staging/school_location_geocode/readiness_audit.json
+
 python3 scripts/build_package.py fetch-amap-web-api \
   --source-key school_location_geocode \
   --operation geocode \

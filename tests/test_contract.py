@@ -59,6 +59,7 @@ from datahub.builders.score_distribution_readiness import audit_score_distributi
 from datahub.config import get_table_schema, load_career_data_sources, load_outcome_metrics, load_source_schemas
 from datahub.builders.school_identity import build_school_identity_package
 from datahub.builders.school_identity_review_plan import build_school_identity_review_plan
+from datahub.builders.school_location_geocode_audit import audit_school_location_geocode_input
 from datahub.builders.school_location_from_amap import build_school_location_package_from_amap_geocode
 from datahub.builders.school_location_geocode_plan import build_school_location_geocode_input_plan
 from datahub.connectors.amap_web_api import fetch_amap_web_api
@@ -4587,6 +4588,29 @@ def test_build_school_location_geocode_input_plan(tmp_path: Path):
     manifest = json.loads(Path(result["manifest"]).read_text(encoding="utf-8"))
     assert manifest["source_key"] == "school_location_geocode"
     assert "--address-column geocode_query" in manifest["fetch_command_hint"]
+
+    audit = audit_school_location_geocode_input(
+        plan_csv=Path(result["plan_csv"]),
+        input_csv=Path(result["amap_input_csv"]),
+        output=tmp_path / "staging" / "audit.json",
+    )
+    assert audit["errors"] == []
+    assert audit["row_counts"]["ready_rows"] == 4
+    assert audit["primary_key_checks"]["duplicate_count"] == 0
+    assert audit["warnings"][0]["count"] == 1
+
+    duplicate_input = tmp_path / "duplicate_input.csv"
+    duplicate_input.write_text(
+        Path(result["amap_input_csv"]).read_text(encoding="utf-8")
+        + input_rows[0]["national_school_code"] + ",10145," + input_rows[0]["school_name"] + ","
+        + input_rows[0]["campus_key"] + ",duplicate,admission_unit,辽宁,沈阳市,辽宁沈阳,沈阳市东北大学,2026-05-13,2026-05-13,2026-05-13T00:00:00\n",
+        encoding="utf-8",
+    )
+    duplicate_audit = audit_school_location_geocode_input(
+        plan_csv=Path(result["plan_csv"]),
+        input_csv=duplicate_input,
+    )
+    assert any("duplicate input primary keys" in error for error in duplicate_audit["errors"])
 
 
 def test_fetch_amap_web_api_geocode_writes_raw_manifest(tmp_path: Path, monkeypatch):

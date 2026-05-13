@@ -26,6 +26,12 @@
     "address_column": "geocode_query",
     "city_column": "city"
   },
+  "audit": {
+    "required_input_columns": ["national_school_code", "school_name", "campus_key", "city", "geocode_query"],
+    "primary_key_columns": ["national_school_code", "campus_key"],
+    "dirty_city_prefixes": ["省", "市", "自治区", "壮族自治区", "回族自治区", "维吾尔自治区"],
+    "sample_limit": 20
+  },
   "province_prefixes": [
     "黑龙江",
     "内蒙古",
