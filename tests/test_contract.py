@@ -2699,6 +2699,59 @@ def test_build_career_source_plan_from_config(tmp_path: Path):
     assert manifest["notes"].startswith("Collection plan only")
 
 
+def test_build_career_source_plan_from_core_catalog(tmp_path: Path):
+    core_db = tmp_path / "core.duckdb"
+    con = duckdb.connect(str(core_db))
+    try:
+        con.execute("""
+            CREATE TABLE fa_dim_career_occupation (
+              occupation_code VARCHAR,
+              occupation_name VARCHAR,
+              tdx_l2 VARCHAR,
+              tdx_l2_name VARCHAR
+            )
+        """)
+        con.execute(
+            "INSERT INTO fa_dim_career_occupation VALUES (?, ?, ?, ?), (?, ?, ?, ?)",
+            [
+                "4-04-05-05",
+                "互联网营销师",
+                "T0502",
+                "商贸代理",
+                "2-02-10-03",
+                "软件工程技术人员",
+                "T1205",
+                "软件服务",
+            ],
+        )
+    finally:
+        con.close()
+
+    result = build_career_source_plan(
+        output_dir=tmp_path / "career_plan_core",
+        source_keys=["career_recruitment_snapshot"],
+        metric_year=2026,
+        city="沈阳",
+        core_db=core_db,
+        occupation_limit=1,
+    )
+
+    assert result["rows"] == 4
+    with Path(result["csv"]).open(encoding="utf-8", newline="") as f:
+        rows = list(csv.DictReader(f))
+    assert {row["occupation_name"] for row in rows} == {"互联网营销师"}
+    assert {row["tdx_l2"] for row in rows} == {"T0502"}
+    assert {row["metric_key"] for row in rows} == {
+        "job_posting_count",
+        "salary_median",
+        "salary_p75",
+        "work_intensity_index",
+    }
+    manifest = json.loads(Path(result["manifest"]).read_text(encoding="utf-8"))
+    assert manifest["core_db"] == str(core_db)
+    assert manifest["occupation_limit"] == 1
+
+
 def test_parse_digital_occupation_catalog_html_builds_catalog_package(tmp_path: Path):
     html = """
     <html><body><table>

@@ -560,6 +560,8 @@ def main() -> int:
     build_career_source_plan_parser.add_argument("--metric-year", type=int)
     build_career_source_plan_parser.add_argument("--city")
     build_career_source_plan_parser.add_argument("--occupation-input", type=Path)
+    build_career_source_plan_parser.add_argument("--core-db", type=Path)
+    build_career_source_plan_parser.add_argument("--occupation-limit", type=int)
 
     audit_career_source_coverage_parser = sub.add_parser(
         "audit-career-source-coverage",
@@ -1335,6 +1337,8 @@ def main() -> int:
             metric_year=args.metric_year,
             city=args.city,
             occupation_input=args.occupation_input,
+            core_db=args.core_db,
+            occupation_limit=args.occupation_limit,
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0

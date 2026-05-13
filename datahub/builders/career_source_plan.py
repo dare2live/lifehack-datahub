@@ -7,6 +7,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+import duckdb
+
 from datahub.config import load_career_data_sources
 
 
@@ -49,6 +51,8 @@ def build_career_source_plan(
     metric_year: int | None = None,
     city: str | None = None,
     occupation_input: Path | None = None,
+    core_db: Path | None = None,
+    occupation_limit: int | None = None,
 ) -> dict[str, Any]:
     config = load_career_data_sources()
     defaults = config.get("defaults", {})
@@ -60,7 +64,7 @@ def build_career_source_plan(
 
     year = metric_year or int(defaults.get("metric_year"))
     city_value = city or defaults.get("city", "全国")
-    occupations = _read_occupations(occupation_input) if occupation_input else [{}]
+    occupations = _occupation_rows(occupation_input=occupation_input, core_db=core_db, limit=occupation_limit)
     rows = []
     for source_key in selected:
         rows.extend(_source_rows(source_key, source_config[source_key], config, year, city_value, occupations))
@@ -76,6 +80,8 @@ def build_career_source_plan(
         "metric_year": year,
         "city": city_value,
         "occupation_input": str(occupation_input) if occupation_input else None,
+        "core_db": str(core_db) if core_db else None,
+        "occupation_limit": occupation_limit,
         "rows": len(rows),
         "csv": str(csv_path),
         "notes": "Collection plan only. It is not a data package and must not be imported into core.",
@@ -88,6 +94,21 @@ def build_career_source_plan(
         "rows": len(rows),
         "sources": selected,
     }
+
+
+def _occupation_rows(
+    *,
+    occupation_input: Path | None,
+    core_db: Path | None,
+    limit: int | None,
+) -> list[dict[str, Any]]:
+    if occupation_input and core_db:
+        raise ValueError("use either occupation_input or core_db, not both")
+    if occupation_input:
+        return _read_occupations(occupation_input)
+    if core_db:
+        return _read_occupations_from_core(core_db, limit)
+    return [{}]
 
 
 def _source_rows(
@@ -166,6 +187,41 @@ def _read_occupations(path: Path) -> list[dict[str, Any]]:
     if missing_names:
         raise ValueError(f"occupation input rows missing occupation_name: {missing_names}")
     return rows
+
+
+def _read_occupations_from_core(core_db: Path, limit: int | None) -> list[dict[str, Any]]:
+    limit_sql = "LIMIT ?" if limit else ""
+    params = [limit] if limit else []
+    con = duckdb.connect(str(core_db), read_only=True)
+    try:
+        rows = con.execute(
+            f"""
+            SELECT
+              CAST(occupation_code AS VARCHAR) AS occupation_code,
+              CAST(occupation_name AS VARCHAR) AS occupation_name,
+              CAST(COALESCE(tdx_l2, '') AS VARCHAR) AS tdx_l2,
+              CAST(COALESCE(tdx_l2_name, '') AS VARCHAR) AS tdx_l2_name
+            FROM fa_dim_career_occupation
+            WHERE occupation_name IS NOT NULL
+              AND occupation_name != ''
+            ORDER BY tdx_l2_name ASC, occupation_name ASC
+            {limit_sql}
+            """,
+            params,
+        ).fetchall()
+    finally:
+        con.close()
+    if not rows:
+        raise ValueError(f"core db has no fa_dim_career_occupation rows: {core_db}")
+    return [
+        {
+            "occupation_code": row[0],
+            "occupation_name": row[1],
+            "tdx_l2": row[2],
+            "tdx_l2_name": row[3],
+        }
+        for row in rows
+    ]
 
 
 def _first_value(row: dict[str, Any], names: list[str]) -> str:
