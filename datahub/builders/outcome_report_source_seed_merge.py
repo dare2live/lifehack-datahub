@@ -7,6 +7,7 @@ from collections import Counter
 from datetime import datetime
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 from datahub.builders.outcome_report_source_plan import PLAN_COLUMNS
 from datahub.config import load_outcome_collection, load_outcome_report_sources
@@ -23,6 +24,64 @@ EDITABLE_COLUMNS = [
     "reviewed_at",
     "notes",
 ]
+
+
+def audit_outcome_report_source_seeds(*, report_path: Path | None = None) -> dict[str, Any]:
+    source_config = load_outcome_report_sources()
+    collection_config = load_outcome_collection()
+    report_source_config = collection_config.get("report_source_plan") or {}
+    complete_statuses = set(report_source_config.get("complete_statuses") or [])
+    errors: list[str] = []
+    warnings: list[str] = []
+    seed_rows = []
+    seen_keys: set[str] = set()
+    applied_status = str(source_config.get("applied_status") or "")
+    if applied_status not in complete_statuses:
+        errors.append(f"applied_status not accepted by report_source_plan.complete_statuses: {applied_status}")
+
+    raw_seeds = source_config.get("seeds")
+    if not isinstance(raw_seeds, list):
+        errors.append("outcome_report_sources.seeds must be a list")
+        raw_seeds = []
+    for index, seed in enumerate(raw_seeds, start=1):
+        if not isinstance(seed, dict):
+            errors.append(f"seed {index} must be an object")
+            continue
+        key = _seed_id(seed, index)
+        if key in seen_keys:
+            errors.append(f"duplicate outcome report source seed: {key}")
+        seen_keys.add(key)
+        missing = _missing_required_seed_fields(seed)
+        if missing:
+            errors.append(f"seed {index} missing: {', '.join(missing)}")
+        url = str(seed.get("candidate_report_url") or "")
+        if url and urlparse(url).scheme not in {"http", "https"}:
+            errors.append(f"seed {index} candidate_report_url must be http/https: {url}")
+        if not str(seed.get("evidence_note") or "").strip():
+            warnings.append(f"seed {index} missing evidence_note")
+        seed_rows.append({
+            "seed_id": key,
+            "domain": seed.get("domain", ""),
+            "entity_name": seed.get("entity_name", ""),
+            "metric_year": seed.get("metric_year", ""),
+            "report_scope": seed.get("report_scope", ""),
+            "candidate_report_url": url,
+        })
+
+    report = {
+        "built_at": datetime.utcnow().replace(microsecond=0).isoformat(),
+        "config_version": source_config.get("version"),
+        "seed_count": len(seed_rows),
+        "applied_status": applied_status,
+        "seed_rows": seed_rows,
+        "errors": errors,
+        "warnings": warnings,
+        "notes": "Report-source seed audit only. It does not fetch reports, download files, or build packages.",
+    }
+    if report_path:
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        report_path.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return report
 
 
 def apply_outcome_report_source_seeds(
@@ -94,6 +153,12 @@ def _load_seeds(config: dict[str, Any]) -> dict[str, dict[str, Any]]:
 
 
 def _validate_seed(seed: dict[str, Any], index: int) -> None:
+    missing = _missing_required_seed_fields(seed)
+    if missing:
+        raise ValueError(f"outcome_report_sources.seeds[{index}] missing: {', '.join(missing)}")
+
+
+def _missing_required_seed_fields(seed: dict[str, Any]) -> list[str]:
     required = [
         "domain",
         "entity_name",
@@ -104,9 +169,7 @@ def _validate_seed(seed: dict[str, Any], index: int) -> None:
         "candidate_source_date",
         "availability_date",
     ]
-    missing = [field for field in required if not str(seed.get(field) or "").strip()]
-    if missing:
-        raise ValueError(f"outcome_report_sources.seeds[{index}] missing: {', '.join(missing)}")
+    return [field for field in required if not str(seed.get(field) or "").strip()]
 
 
 def _seed_id(seed: dict[str, Any], index: int) -> str:

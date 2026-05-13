@@ -225,6 +225,31 @@
       "remediation": "补分项贡献和 lineage，不输出黑箱分。"
     }
   },
+  "state_management": {
+    "snapshot_id_pattern": "{source_key}:{partition_hash}:{content_hash}:{source_date}",
+    "content_hash_scope": ["raw_file_bytes", "api_response_body", "normalized_candidate_row", "package_manifest"],
+    "partition_state_fields": ["source_key", "target_table", "partition_key_json", "source_date", "availability_date", "content_hash"],
+    "supersede_policy": "新快照不覆盖旧快照；发布层用 source_date/availability_date 和 promotion_status 选择当前版本。",
+    "stale_policy": {
+      "mark_stale_after_failed_health_checks": 2,
+      "keep_last_good_package": true,
+      "block_downstream_if_no_last_good_package": true
+    },
+    "delete_policy": {
+      "allow_physical_delete": false,
+      "require_reconciliation_plan": true,
+      "require_delete_plan": true,
+      "core_execute_requires_dry_run": true
+    }
+  },
+  "source_health_policy": {
+    "statuses": ["healthy", "degraded", "unavailable", "stale_source", "schema_changed", "hash_changed", "quota_limited", "manual_review_pending"],
+    "health_record_required_for": ["skipped", "failed", "blocked", "stale_source", "quota_limited"],
+    "schema_changed_action": "阻断标准包发布，先更新 parser/schema/quality report，再重新生成候选或数据包。",
+    "hash_changed_action": "生成新 raw snapshot 和差异报告；官方远程文件 hash 变化不能静默覆盖配置。",
+    "quota_limited_action": "暂停该 API 串行组，记录 health，保留上一次可用标准包。",
+    "stale_source_action": "输出层降权或标注来源过期；不能用过期来源覆盖新分区。"
+  },
   "scheduler": {
     "default_max_parallel": 3,
     "serial_groups": [
@@ -247,6 +272,25 @@
       "block_dependents_on_source_failure": true,
       "allow_independent_sources_to_continue": true,
       "require_health_record_for_skipped_source": true
+    },
+    "batching": {
+      "dependency_gate": "phase_complete_without_blocking_failure",
+      "serial_group_policy": "同一串行组按 step_order 单线程执行；core 导入、删除迁移、同目标表发布和高德 API 限流不得重叠。",
+      "parallel_group_policy": "同阶段、无直接依赖、不同锁资源的来源可并发；某来源失败只阻断其下游，不阻断无依赖来源。",
+      "target_table_locking": true,
+      "same_target_table_policy": "同一目标表的 package 发布、core dry-run/execute 和 delete plan 串行；原始下载和候选抽取可在不同 raw 分区并行。",
+      "max_parallel_by_group": {
+        "remote_probe": 4,
+        "manual_intake": 2,
+        "independent_collection_batch": 3,
+        "official_reference_parallel": 3,
+        "city_collection_parallel": 3,
+        "nonstandard_review": 2,
+        "derived_readonly_mart": 3
+      },
+      "api_rate_limit_policy": {
+        "amap_api_limited": "单 lane 串行执行，按 manifest 断点续跑；配额错误时整组暂停并写 health。"
+      }
     }
   },
   "source_policies": {
@@ -300,6 +344,23 @@
       "validity_profile": "collection_plan",
       "promotion_gate": "reconciliation_plan_ready"
     },
+    "moe_major_catalog": {
+      "update_mode": "full_replace",
+      "cadence": "annual_or_catalog_release",
+      "concurrency_group": "official_reference_parallel",
+      "parallelizable": true,
+      "validity_profile": "remote_file",
+      "promotion_gate": "package_quality_ok"
+    },
+    "major_mapping_review": {
+      "update_mode": "manual_review_promote",
+      "cadence": "after_major_mapping_review",
+      "concurrency_group": "derived_readonly_mart",
+      "parallelizable": true,
+      "depends_on": ["moe_major_catalog", "ln_admission_plan"],
+      "validity_profile": "derived_mart",
+      "promotion_gate": "review_queue_approved"
+    },
     "school_profile": {
       "update_mode": "full_replace",
       "cadence": "annual",
@@ -317,6 +378,26 @@
       "validity_profile": "derived_mart",
       "promotion_gate": "identity_review_ok",
       "notes": "只读 core 招生计划和学校画像，未唯一匹配的学校进入人工复核计划。"
+    },
+    "school_outcome": {
+      "update_mode": "manual_review_promote",
+      "cadence": "annual_after_school_report_release",
+      "partition_keys": ["metric_year", "entity_code", "metric_key"],
+      "concurrency_group": "nonstandard_review",
+      "parallelizable": true,
+      "depends_on": ["school_profile"],
+      "validity_profile": "collection_plan",
+      "promotion_gate": "manual_review_approved"
+    },
+    "major_outcome": {
+      "update_mode": "manual_review_promote",
+      "cadence": "annual_or_after_school_report_release",
+      "partition_keys": ["metric_year", "major_code", "metric_key"],
+      "concurrency_group": "nonstandard_review",
+      "parallelizable": true,
+      "depends_on": ["moe_major_catalog", "school_outcome"],
+      "validity_profile": "collection_plan",
+      "promotion_gate": "manual_review_approved"
     },
     "region_profile_geocode": {
       "update_mode": "full_replace",
@@ -352,6 +433,15 @@
       "depends_on": ["school_location_geocode"],
       "validity_profile": "manual_file",
       "promotion_gate": "manual_review_approved"
+    },
+    "campus_living_score": {
+      "update_mode": "derived_rebuild",
+      "cadence": "after_campus_context_update",
+      "concurrency_group": "derived_readonly_mart",
+      "parallelizable": true,
+      "depends_on": ["campus_surrounding_poi", "campus_housing_market", "city_public_resource"],
+      "validity_profile": "derived_mart",
+      "promotion_gate": "package_quality_ok"
     },
     "city_economic_indicator": {
       "update_mode": "partition_replace",
@@ -394,6 +484,61 @@
       "promotion_gate": "package_quality_ok",
       "notes": "只能读取已复核公司城市快照或 smartmoney 只读快照，不能写 smartmoney，也不能 import ChunkyMonkey 模块。"
     },
+    "city_industry_zone": {
+      "update_mode": "manual_review_promote",
+      "cadence": "annual_or_after_government_catalog_update",
+      "partition_keys": ["metric_year", "city"],
+      "concurrency_group": "city_collection_parallel",
+      "parallelizable": true,
+      "depends_on": ["region_profile_geocode"],
+      "validity_profile": "collection_plan",
+      "promotion_gate": "collection_audit_ok"
+    },
+    "school_recruitment_event": {
+      "update_mode": "append_snapshot",
+      "cadence": "monthly_or_before_application_season",
+      "partition_keys": ["event_year", "national_school_code", "city"],
+      "concurrency_group": "nonstandard_review",
+      "parallelizable": true,
+      "depends_on": ["school_identity_bridge", "school_location_geocode"],
+      "validity_profile": "collection_plan",
+      "promotion_gate": "manual_review_approved"
+    },
+    "school_research_industry_link": {
+      "update_mode": "manual_review_promote",
+      "cadence": "annual_or_after_school_profile_update",
+      "partition_keys": ["source_date", "national_school_code"],
+      "concurrency_group": "nonstandard_review",
+      "parallelizable": true,
+      "depends_on": ["school_identity_bridge", "city_industry_zone"],
+      "validity_profile": "collection_plan",
+      "promotion_gate": "manual_review_approved"
+    },
+    "school_local_employment": {
+      "update_mode": "manual_review_promote",
+      "cadence": "annual_after_school_report_release",
+      "partition_keys": ["metric_year", "national_school_code", "metric_key"],
+      "concurrency_group": "nonstandard_review",
+      "parallelizable": true,
+      "depends_on": ["school_outcome", "school_location_geocode"],
+      "validity_profile": "collection_plan",
+      "promotion_gate": "manual_review_approved"
+    },
+    "school_city_industry_fit": {
+      "update_mode": "derived_rebuild",
+      "cadence": "after_school_city_signal_update",
+      "concurrency_group": "derived_readonly_mart",
+      "parallelizable": true,
+      "depends_on": [
+        "school_recruitment_event",
+        "school_research_industry_link",
+        "school_local_employment",
+        "city_industry_zone",
+        "school_location_geocode"
+      ],
+      "validity_profile": "derived_mart",
+      "promotion_gate": "package_quality_ok"
+    },
     "career_occupation_catalog": {
       "update_mode": "full_replace",
       "cadence": "annual_or_catalog_release",
@@ -413,6 +558,35 @@
       "validity_profile": "collection_plan",
       "promotion_gate": "manual_review_approved"
     },
+    "career_score": {
+      "update_mode": "derived_rebuild",
+      "cadence": "after_career_signal_update",
+      "concurrency_group": "derived_readonly_mart",
+      "parallelizable": true,
+      "depends_on": ["career_signal"],
+      "validity_profile": "derived_mart",
+      "promotion_gate": "package_quality_ok"
+    },
+    "major_employment_role_map": {
+      "update_mode": "manual_review_promote",
+      "cadence": "after_major_catalog_or_outcome_update",
+      "partition_keys": ["major_code", "role_key"],
+      "concurrency_group": "nonstandard_review",
+      "parallelizable": true,
+      "depends_on": ["moe_major_catalog", "career_occupation_catalog", "major_outcome"],
+      "validity_profile": "collection_plan",
+      "promotion_gate": "manual_review_approved"
+    },
+    "company_role_demand_signal": {
+      "update_mode": "append_snapshot",
+      "cadence": "monthly_or_quarterly",
+      "partition_keys": ["metric_year", "city", "role_key"],
+      "concurrency_group": "nonstandard_review",
+      "parallelizable": true,
+      "depends_on": ["city_listed_company_signal", "career_occupation_catalog"],
+      "validity_profile": "collection_plan",
+      "promotion_gate": "manual_review_approved"
+    },
     "city_development_score": {
       "update_mode": "derived_rebuild",
       "cadence": "after_city_context_update",
@@ -421,6 +595,40 @@
       "depends_on": ["city_economic_indicator", "city_public_resource", "city_listed_company_signal", "city_ranking_signal"],
       "validity_profile": "derived_mart",
       "promotion_gate": "package_quality_ok"
+    },
+    "major_city_employment_fit": {
+      "update_mode": "derived_rebuild",
+      "cadence": "after_major_city_signal_update",
+      "concurrency_group": "derived_readonly_mart",
+      "parallelizable": true,
+      "depends_on": [
+        "major_employment_role_map",
+        "company_role_demand_signal",
+        "city_listed_company_signal",
+        "school_local_employment",
+        "career_occupation_catalog"
+      ],
+      "validity_profile": "derived_mart",
+      "promotion_gate": "package_quality_ok"
+    },
+    "policy_industry_map": {
+      "update_mode": "manual_review_promote",
+      "cadence": "after_policy_release",
+      "partition_keys": ["plan_cycle", "tdx_l2"],
+      "concurrency_group": "nonstandard_review",
+      "parallelizable": true,
+      "validity_profile": "collection_plan",
+      "promotion_gate": "manual_review_approved"
+    },
+    "policy_plan_history": {
+      "update_mode": "manual_review_promote",
+      "cadence": "after_statistical_backtest_update",
+      "partition_keys": ["plan_cycle", "metric_key"],
+      "concurrency_group": "nonstandard_review",
+      "parallelizable": true,
+      "depends_on": ["policy_industry_map"],
+      "validity_profile": "collection_plan",
+      "promotion_gate": "manual_review_approved"
     }
   }
 }

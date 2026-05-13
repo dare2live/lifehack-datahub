@@ -152,7 +152,17 @@ python3 scripts/build_package.py build-data-update-readiness-plan \
   --output-dir staging/update_plans/city_development_readiness
 ```
 
+`build-data-update-batch-plan` 在执行计划之上生成批次视图：同一 phase 内按 `execution_group` 分组，标明串行/并发、最大并发数、依赖闸门、失败策略和目标表锁。它回答“这批源是一起跑、排队跑，还是必须等上游完成后再跑”：
+
+```bash
+python3 scripts/build_package.py build-data-update-batch-plan \
+  --source-key city_development_score \
+  --output-dir staging/update_plans/city_development_batches
+```
+
 运行原则：`remote_file` 先验证 URL/hash/文件类型/source_date；`web_api` 先验证 endpoint、业务状态、响应 schema、配额和密钥不落盘；`manual_file` 先做受控 intake；`collection_plan` 先补齐证据 URL、摘录、日期、指标注册和值域；`derived_mart` 必须有上游 package lineage、评分档案、原因码和非空输出。任何阻断项未解决时，只能停留在 raw、候选、复核或 staging，不能发布标准包，也不能导入 core。
+
+增量不是“直接改旧表”。DataHub 用 `state_management` 统一管理 snapshot_id、content_hash、partition state、supersede 和 delete policy：远程文件 hash 变化先生成新 raw snapshot 和差异报告；分区数据只替换命中分区；快照类数据只追加；非标网页/OCR/PDF/招聘和租售信息先进入候选与小批复核；删除已有 core 行必须由 reconciliation plan 产出 delete plan，且 core 侧先 dry-run。来源健康状态统一记录为 `healthy/degraded/unavailable/stale_source/schema_changed/hash_changed/quota_limited/manual_review_pending`，失败源只阻断依赖它的下游，保留上一次可用数据包。
 
 城市上市公司信号由已复核的公司城市快照聚合，不直接读取或写入 ChunkyMonkey。字段别名、默认口径和聚合指标维护在 `config/city_listed_company_signal.json`：
 
@@ -680,6 +690,9 @@ python3 scripts/build_package.py merge-outcome-report-source-review-batch \
   --output staging/outcome_report_sources/outcome_report_source_plan.reviewed.csv \
   --report staging/outcome_report_sources/outcome_report_source_merge.json
 
+python3 scripts/build_package.py audit-outcome-report-source-seeds \
+  --report staging/outcome_report_sources/outcome_report_source_seed_audit.json
+
 python3 scripts/build_package.py apply-outcome-report-source-seeds \
   --plan-csv staging/outcome_report_sources/outcome_report_source_plan.csv \
   --output staging/outcome_report_sources/outcome_report_source_plan.seeded.csv \
@@ -694,7 +707,7 @@ python3 scripts/build_package.py run-outcome-report-extraction-plan \
   --report staging/outcome_report_candidates/outcome_report_extraction_report.json
 ```
 
-`config/outcome_report_sources.json` 保存已经确认的学校/专业报告来源种子，例如辽宁大学 2022 届毕业生就业质量报告和沈阳工业大学 2023-2024 本科教学质量报告。`apply-outcome-report-source-seeds` 只把这些种子合并到 report-source plan，状态变成 `candidate_found`；PDF 下载、受控 intake、本地文件路径、候选提取、人工核对和 outcome 数据包生成仍然是后续独立门禁。
+`config/outcome_report_sources.json` 保存已经确认的学校/专业报告来源种子，例如辽宁大学 2022 届毕业生就业质量报告和沈阳工业大学 2023-2024 本科教学质量报告。先用 `audit-outcome-report-source-seeds` 检查种子 ID、必填字段、URL 和状态是否符合配置，再用 `apply-outcome-report-source-seeds` 合并到 report-source plan，状态变成 `candidate_found`；PDF 下载、受控 intake、本地文件路径、候选提取、人工核对和 outcome 数据包生成仍然是后续独立门禁。
 
 采集计划 CSV 预留 `metric_value/source_url/evidence_quote/metric_scope` 等证据列，人工或后续采集器补齐后，可先跑审计报告确认指标、状态和证据完整度：
 

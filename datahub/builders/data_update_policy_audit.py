@@ -48,6 +48,9 @@ def audit_data_update_policy() -> dict[str, Any]:
     _audit_cycles(policies, errors)
     _audit_runbook(update_modes, update_mode_runbook, errors)
     _audit_validity_check_catalog(config.get("validity_checks", {}), validity_check_catalog, errors)
+    _audit_state_management(config.get("state_management"), errors)
+    _audit_source_health_policy(config.get("source_health_policy"), errors)
+    _audit_batching(scheduler.get("batching"), serial_groups, parallel_groups, errors)
 
     return {
         "errors": errors,
@@ -175,6 +178,65 @@ def _audit_validity_check_catalog(
                     errors.append(f"validity_check_catalog.{check_key}.{field} is required")
             if "block_on_fail" not in entry:
                 errors.append(f"validity_check_catalog.{check_key}.block_on_fail is required")
+
+
+def _audit_state_management(state_management: Any, errors: list[str]) -> None:
+    if not isinstance(state_management, dict):
+        errors.append("data_update_policy.state_management must be an object")
+        return
+    for field in ["snapshot_id_pattern", "content_hash_scope", "partition_state_fields", "supersede_policy"]:
+        if field not in state_management:
+            errors.append(f"state_management.{field} is required")
+    if not isinstance(state_management.get("stale_policy"), dict):
+        errors.append("state_management.stale_policy must be an object")
+    delete_policy = state_management.get("delete_policy")
+    if not isinstance(delete_policy, dict):
+        errors.append("state_management.delete_policy must be an object")
+    elif delete_policy.get("require_delete_plan") is not True:
+        errors.append("state_management.delete_policy.require_delete_plan must be true")
+
+
+def _audit_source_health_policy(source_health_policy: Any, errors: list[str]) -> None:
+    if not isinstance(source_health_policy, dict):
+        errors.append("data_update_policy.source_health_policy must be an object")
+        return
+    statuses = source_health_policy.get("statuses")
+    if not isinstance(statuses, list) or "healthy" not in statuses:
+        errors.append("source_health_policy.statuses must include healthy")
+    for field in [
+        "schema_changed_action",
+        "hash_changed_action",
+        "quota_limited_action",
+        "stale_source_action",
+    ]:
+        if not str(source_health_policy.get(field) or "").strip():
+            errors.append(f"source_health_policy.{field} is required")
+
+
+def _audit_batching(
+    batching: Any,
+    serial_groups: set[str],
+    parallel_groups: set[str],
+    errors: list[str],
+) -> None:
+    if not isinstance(batching, dict):
+        errors.append("scheduler.batching must be an object")
+        return
+    for field in ["dependency_gate", "serial_group_policy", "parallel_group_policy", "same_target_table_policy"]:
+        if not str(batching.get(field) or "").strip():
+            errors.append(f"scheduler.batching.{field} is required")
+    max_parallel_by_group = batching.get("max_parallel_by_group")
+    if not isinstance(max_parallel_by_group, dict):
+        errors.append("scheduler.batching.max_parallel_by_group must be an object")
+        return
+    for group in parallel_groups:
+        if group not in max_parallel_by_group:
+            errors.append(f"scheduler.batching.max_parallel_by_group missing for {group}")
+    if "amap_api_limited" not in serial_groups:
+        return
+    amap_policy = (batching.get("api_rate_limit_policy") or {}).get("amap_api_limited")
+    if not str(amap_policy or "").strip():
+        errors.append("scheduler.batching.api_rate_limit_policy.amap_api_limited is required")
 
 
 def _list_value(value: Any) -> list[str]:

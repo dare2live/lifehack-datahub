@@ -36,6 +36,7 @@ from datahub.builders.city_context_target_cities import build_city_context_targe
 from datahub.builders.city_development_score import build_city_development_score_package
 from datahub.builders.city_listed_company_signal import build_city_listed_company_signal_package
 from datahub.builders.data_update_policy_audit import audit_data_update_policy
+from datahub.builders.data_update_batch_plan import build_data_update_batch_plan
 from datahub.builders.data_update_plan import build_data_update_plan
 from datahub.builders.data_update_readiness_plan import build_data_update_readiness_plan
 from datahub.builders.entity_normalization_registry import build_entity_normalization_registry_package
@@ -59,7 +60,10 @@ from datahub.builders.outcome_report_source_batch import (
     merge_outcome_report_source_review_batch,
 )
 from datahub.builders.outcome_report_source_plan import build_outcome_report_source_plan
-from datahub.builders.outcome_report_source_seed_merge import apply_outcome_report_source_seeds
+from datahub.builders.outcome_report_source_seed_merge import (
+    apply_outcome_report_source_seeds,
+    audit_outcome_report_source_seeds,
+)
 from datahub.builders.policy_tables import (
     build_policy_industry_map_package,
     build_policy_plan_history_package,
@@ -3400,6 +3404,9 @@ def test_data_update_policy_config_and_schemas():
     assert config["update_mode_runbook"]["manual_review_promote"]["old_data_handling"]
     assert config["validity_check_catalog"]["required_evidence_present"]["block_on_fail"] is True
     assert config["scheduler"]["failure_policy"]["block_dependents_on_source_failure"] is True
+    assert config["state_management"]["delete_policy"]["require_delete_plan"] is True
+    assert "schema_changed" in config["source_health_policy"]["statuses"]
+    assert config["scheduler"]["batching"]["target_table_locking"] is True
     assert "amap_api_limited" in config["scheduler"]["serial_groups"]
     assert "city_collection_parallel" in config["scheduler"]["parallel_groups"]
     assert config["source_policies"]["ln_admission_plan"]["depends_on"] == ["ln_application_workbook"]
@@ -3410,6 +3417,8 @@ def test_data_update_policy_config_and_schemas():
     assert config["source_policies"]["city_economic_indicator"]["parallelizable"] is True
     assert config["source_policies"]["region_profile_geocode"]["parallelizable"] is False
     assert "city_listed_company_signal" in config["source_policies"]["city_development_score"]["depends_on"]
+    assert "school_city_industry_fit" in config["source_policies"]
+    assert "major_city_employment_fit" in config["source_policies"]
 
     schemas = load_source_schemas()["tables"]
     assert schemas["fa_meta_source_snapshot"]["primary_key"] == ["source_key", "snapshot_id"]
@@ -3519,6 +3528,32 @@ def test_build_data_update_readiness_plan_blocks_missing_dependencies(tmp_path: 
         rows = list(csv.DictReader(f))
     assert {row["current_status"] for row in rows} == {"blocked_by_dependency"}
     assert "dependency_not_in_plan" in rows[0]["notes"]
+
+
+def test_build_data_update_batch_plan_groups_parallel_sources(tmp_path: Path):
+    result = build_data_update_batch_plan(
+        output_dir=tmp_path / "batch_plan",
+        source_keys=["city_development_score"],
+        update_run_id="fixture_city_batches",
+    )
+
+    assert result["blocked_batches"] == 0
+    with Path(result["csv"]).open(encoding="utf-8", newline="") as f:
+        rows = list(csv.DictReader(f))
+    by_group = {row["execution_group"]: row for row in rows}
+    city_batch = by_group["parallel:city_collection_parallel"]
+    assert city_batch["concurrency_mode"] == "parallel"
+    assert city_batch["max_parallel"] == "3"
+    assert set(json.loads(city_batch["source_keys"])) == {
+        "city_economic_indicator",
+        "city_public_resource",
+        "city_listed_company_signal",
+        "city_ranking_signal",
+    }
+
+    derived_batch = by_group["parallel:derived_readonly_mart"]
+    assert json.loads(derived_batch["source_keys"]) == ["city_development_score"]
+    assert "phase_complete_without_blocking_failure" in derived_batch["dependency_gate"]
 
 
 def test_audit_score_source_coverage_tracks_derivation_gaps(tmp_path: Path):
@@ -4443,6 +4478,16 @@ def test_apply_outcome_report_source_seeds_updates_matching_pending_rows(tmp_pat
     assert sut["candidate_report_url"] == "https://www.sut.edu.cn/info/1584/67026.htm"
     major = next(row for row in merged_rows if row["domain"] == "major")
     assert major["status"] == "todo"
+
+
+def test_audit_outcome_report_source_seeds_validates_config(tmp_path: Path):
+    report = audit_outcome_report_source_seeds(report_path=tmp_path / "seed_audit.json")
+
+    assert report["errors"] == []
+    assert report["seed_count"] >= 2
+    assert report["applied_status"] == "candidate_found"
+    assert any(row["entity_name"] == "辽宁大学" for row in report["seed_rows"])
+    assert (tmp_path / "seed_audit.json").exists()
 
 
 def test_build_outcome_report_extraction_plan_requires_local_file(tmp_path: Path):

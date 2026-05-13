@@ -35,6 +35,7 @@ from .builders.city_context_target_cities import build_city_context_target_citie
 from .builders.city_development_score import build_city_development_score_package
 from .builders.city_listed_company_signal import build_city_listed_company_signal_package
 from .builders.data_update_policy_audit import audit_data_update_policy
+from .builders.data_update_batch_plan import build_data_update_batch_plan
 from .builders.data_update_plan import build_data_update_plan
 from .builders.data_update_readiness_plan import build_data_update_readiness_plan
 from .builders.entity_normalization_registry import build_entity_normalization_registry_package
@@ -57,7 +58,10 @@ from .builders.outcome_report_source_batch import (
     merge_outcome_report_source_review_batch,
 )
 from .builders.outcome_report_source_plan import build_outcome_report_source_plan
-from .builders.outcome_report_source_seed_merge import apply_outcome_report_source_seeds
+from .builders.outcome_report_source_seed_merge import (
+    apply_outcome_report_source_seeds,
+    audit_outcome_report_source_seeds,
+)
 from .builders.policy_tables import (
     build_policy_industry_map_package,
     build_policy_plan_history_package,
@@ -501,6 +505,12 @@ def main() -> int:
     merge_outcome_report_source_batch.add_argument("--output", required=True, type=Path)
     merge_outcome_report_source_batch.add_argument("--report", type=Path)
 
+    audit_outcome_report_source_seeds_parser = sub.add_parser(
+        "audit-outcome-report-source-seeds",
+        help="Audit configured outcome report-source seeds",
+    )
+    audit_outcome_report_source_seeds_parser.add_argument("--report", type=Path)
+
     apply_outcome_report_source_seeds_parser = sub.add_parser(
         "apply-outcome-report-source-seeds",
         help="Apply configured report-source seeds to a full report-source plan",
@@ -724,6 +734,15 @@ def main() -> int:
     build_data_update_readiness_plan_parser.add_argument("--source-key", action="append", dest="source_keys")
     build_data_update_readiness_plan_parser.add_argument("--no-include-dependencies", action="store_true")
     build_data_update_readiness_plan_parser.add_argument("--update-run-id")
+
+    build_data_update_batch_plan_parser = sub.add_parser(
+        "build-data-update-batch-plan",
+        help="Build phase and concurrency batches from config/data_update_policy.json",
+    )
+    build_data_update_batch_plan_parser.add_argument("--output-dir", required=True, type=Path)
+    build_data_update_batch_plan_parser.add_argument("--source-key", action="append", dest="source_keys")
+    build_data_update_batch_plan_parser.add_argument("--no-include-dependencies", action="store_true")
+    build_data_update_batch_plan_parser.add_argument("--update-run-id")
 
     sub.add_parser(
         "audit-data-update-policy",
@@ -1279,6 +1298,10 @@ def main() -> int:
         )
         print(json.dumps(report, ensure_ascii=False, indent=2))
         return 0 if not report["errors"] else 1
+    if args.cmd == "audit-outcome-report-source-seeds":
+        report = audit_outcome_report_source_seeds(report_path=args.report)
+        print(json.dumps(report, ensure_ascii=False, indent=2))
+        return 0 if not report["errors"] else 1
     if args.cmd == "apply-outcome-report-source-seeds":
         report = apply_outcome_report_source_seeds(
             plan_csv=args.plan_csv,
@@ -1496,6 +1519,15 @@ def main() -> int:
         return 0
     if args.cmd == "build-data-update-readiness-plan":
         result = build_data_update_readiness_plan(
+            output_dir=args.output_dir,
+            source_keys=args.source_keys,
+            include_dependencies=not args.no_include_dependencies,
+            update_run_id=args.update_run_id,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+    if args.cmd == "build-data-update-batch-plan":
+        result = build_data_update_batch_plan(
             output_dir=args.output_dir,
             source_keys=args.source_keys,
             include_dependencies=not args.no_include_dependencies,
