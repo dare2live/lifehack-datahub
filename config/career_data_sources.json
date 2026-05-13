@@ -7,6 +7,16 @@
     "metric_year": 2026,
     "city": "全国"
   },
+  "occupation_family_by_code_prefix": {
+    "1": "党的机关、国家机关、群众团体和社会组织、企事业单位负责人",
+    "2": "专业技术人员",
+    "3": "办事人员和有关人员",
+    "4": "社会生产服务和生活服务类",
+    "5": "农、林、牧、渔业生产及辅助人员",
+    "6": "生产制造及有关人员",
+    "7": "军人",
+    "8": "不便分类的其他从业人员"
+  },
   "audit": {
     "pending_statuses": ["todo", "in_progress"],
     "complete_statuses": ["verified", "ready", "collected"],
@@ -26,9 +36,9 @@
         "kind": "official_catalog",
         "target_tables": ["fa_dim_career_occupation"],
         "official_distribution": "人社部、国家职业分类大典、国家职业标准公开目录",
-        "collection_methods": ["download_remote_file", "manual_pdf_table_review"],
+        "collection_methods": ["download_remote_file", "parse_digital_occupation_catalog", "manual_pdf_table_review"],
         "evidence_urls": [
-          "https://www.mohrss.gov.cn/"
+          "https://chinajob.mohrss.gov.cn/c/2022-10-28/363399.shtml"
         ],
         "metrics": [],
         "query_templates": [

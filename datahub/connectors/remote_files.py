@@ -2,7 +2,10 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import shutil
+from collections import defaultdict
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 from urllib.request import Request, urlopen
@@ -33,6 +36,7 @@ def download_remote_assets(
             raise ValueError(f"{source_key}.remote_files item must be an object")
         asset = _download_one(source_key, source_config, item, output_root, timeout)
         assets.append(asset)
+    _write_remote_manifests(source_key, source_config, remote_files, assets, output_root)
     return assets
 
 
@@ -84,3 +88,50 @@ def _sha256(path: Path) -> str:
         for chunk in iter(lambda: f.read(1024 * 1024), b""):
             h.update(chunk)
     return h.hexdigest()
+
+
+def _write_remote_manifests(
+    source_key: str,
+    source_config: dict[str, Any],
+    remote_files: list[dict[str, Any]],
+    assets: list[RawAsset],
+    output_root: Path,
+) -> None:
+    if not assets:
+        return
+    items_by_key = {
+        (str(item.get("source_date") or ""), str(item.get("file_name") or "")): item
+        for item in remote_files
+        if isinstance(item, dict)
+    }
+    grouped: dict[str, list[RawAsset]] = defaultdict(list)
+    for asset in assets:
+        grouped[asset.source_date].append(asset)
+
+    acquisition = source_config.get("acquisition") or {}
+    for source_date, source_assets in grouped.items():
+        files = []
+        for asset in source_assets:
+            item = items_by_key.get((source_date, asset.path.name), {})
+            files.append({
+                "file_name": asset.path.name,
+                "path": str(asset.path),
+                "size_bytes": asset.path.stat().st_size,
+                "sha256": _sha256(asset.path),
+                "url": item.get("url"),
+                "notes": item.get("notes"),
+            })
+        manifest = {
+            "source_key": source_key,
+            "source_name": source_config.get("name", source_key),
+            "source_kind": source_config.get("kind"),
+            "source_date": source_date,
+            "intake_at": datetime.utcnow().replace(microsecond=0).isoformat(),
+            "acquired_by": "datahub.download_remote_assets",
+            "official_distribution": acquisition.get("official_distribution"),
+            "evidence_urls": acquisition.get("evidence_urls", []),
+            "target_tables": source_config.get("target_tables", []),
+            "files": files,
+        }
+        manifest_path = output_root / source_key / source_date / "_remote_manifest.json"
+        manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

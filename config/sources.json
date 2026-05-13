@@ -562,14 +562,25 @@
       "kind": "official_catalog",
       "owner": "lifehack-datahub",
       "raw_glob": "raw/career_occupation_catalog/**/*",
-      "remote_files": [],
+      "remote_files": [
+        {
+          "url": "https://chinajob.mohrss.gov.cn/c/2022-10-28/363399.shtml",
+          "file_name": "digital_occupation_catalog_2022.html",
+          "source_date": "2022-10-28",
+          "sha256": "d4700a9da885078d5b92a1411c997eb9e807732b4978c4318dbf2bc51c51c1fd",
+          "headers": {
+            "User-Agent": "Mozilla/5.0"
+          },
+          "notes": "中国就业网发布的《国家职业分类大典首次标识数字职业》页面，含数字职业编码和名称表；作为职业中间层的官方种子来源。"
+        }
+      ],
       "acquisition": {
-        "status": "source_collection_required",
-        "official_distribution": "人社部、国家职业分类大典、国家职业标准公开目录",
+        "status": "remote_configured",
+        "official_distribution": "人社部、国家职业分类大典、国家职业标准公开目录、中国就业网数字职业表",
         "evidence_urls": [
-          "https://www.mohrss.gov.cn/"
+          "https://chinajob.mohrss.gov.cn/c/2022-10-28/363399.shtml"
         ],
-        "notes": "职业中间层数据源。只维护可追溯职业代码、岗位名称、技能关键词和行业映射，不在 core 中硬编码职业枚举。"
+        "notes": "职业中间层数据源。当前已配置数字职业 HTML 表格种子来源；完整国家职业分类大典和国家职业标准目录后续继续扩展。只维护可追溯职业代码、岗位名称、技能关键词和行业映射，不在 core 中硬编码职业枚举。"
       },
       "target_tables": ["fa_dim_career_occupation"]
     },

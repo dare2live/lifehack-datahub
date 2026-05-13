@@ -45,6 +45,25 @@ Phase 5+：已固化数据包契约和模块边界，提供本地已清洗 CSV/T
 职业相关数据不放在 core 里硬编码。DataHub 先生成采集计划，再把受控清洗后的职业信号发布为 `fa_fact_career_signal`，最后加工为 `fa_mart_career_score`：
 
 ```bash
+python3 scripts/build_package.py download \
+  --source-key career_occupation_catalog \
+  --output-root raw
+
+python3 scripts/build_package.py parse-digital-occupation-catalog \
+  --input raw/career_occupation_catalog/2022-10-28/digital_occupation_catalog_2022.html \
+  --output cleaned/digital_occupation_catalog_2022.csv \
+  --source-title 国家职业分类大典首次标识数字职业 \
+  --source-url https://chinajob.mohrss.gov.cn/c/2022-10-28/363399.shtml \
+  --source-date 2022-10-28 \
+  --availability-date 2022-10-28
+
+python3 scripts/build_package.py build-local \
+  --source-key career_occupation_catalog \
+  --table fa_dim_career_occupation \
+  --input cleaned/digital_occupation_catalog_2022.csv \
+  --output-root exports \
+  --package-id 2022_digital_occupation_catalog
+
 python3 scripts/build_package.py build-career-source-plan \
   --output-dir staging/career_source_plan \
   --occupation-input cleaned/career_occupation_seed.csv \
@@ -77,6 +96,10 @@ python3 scripts/build_package.py build-career-score \
   --package-id 2026_career_score_shenyang
 ```
 
+`career_occupation_catalog` 已配置中国就业网数字职业 HTML 表格种子来源，`parse-digital-occupation-catalog` 会解析职业编码和名称，并用 `config/career_data_sources.json.occupation_family_by_code_prefix` 补齐职业大类，随后通过标准 `build-local` 生成 `fa_dim_career_occupation` 包。
+
+真实 smoke：远程下载已校验 SHA-256 并生成 `_remote_manifest.json`；HTML 解析出 73 条数字职业，`build-local --intake-manifest` 生成 `2022_digital_occupation_catalog` 标准包，quality report 无错误，manifest 校验通过，core importer `--dry-run` 通过。
+
 `build-career-source-plan` 可选读取标准职业清单（`occupation_code/occupation_name/tdx_l2/tdx_l2_name`），把来源配置展开成“职业 × 指标 × 城市”的采集任务；`audit-career-source-plan` 检查状态、指标注册、证据 URL、摘录、来源日期和值域。采集执行时先用 `build-career-source-review-batch` 从总计划拆出小批 CSV，只补 `config/career_data_sources.json.review_batch.editable_columns` 允许的证据列，再用 `merge-career-source-review-batch` 回写总计划；职业、指标、城市、来源和目标表字段不会被批次覆盖。`build-career-signal-from-source-plan` 只读取完整状态的职业信号行，并复用标准数据包质量门禁生成 `fa_fact_career_signal`。采集源、指标口径、评分权重维护在 `config/career_data_sources.json`；目标表契约维护在 `config/source_schemas.json`。招聘平台数据只允许通过公开授权 API、官方附件、人工导出或可复核快照进入 raw，不在本项目写反爬绕过逻辑。
 
 真实 smoke：招聘快照来源生成 4 条职业信号采集任务，按 `limit_per_source=2` 拆出 2 条批次，原样合并 `updated_rows=0`，随后审计 `errors=[]`。输出均在 ignored `staging/`，不是 data package，也不会写 core。
@@ -102,6 +125,8 @@ python3 scripts/build_package.py download \
   --source-key ln_admission_plan \
   --output-root raw
 ```
+
+下载器会在每个 `raw/{source_key}/{source_date}/` 目录写入 `_remote_manifest.json`，记录原始文件 URL、SHA-256、大小、来源说明和目标表；后续 `build-local --intake-manifest` 可把这份 lineage 写进数据包 manifest。
 
 如果某个来源还没有达到可晋级为 `remote_files` 的稳定程度，先放入 `research_candidates`，再用探测命令记录可访问性、HTTP 状态、文件大小和 SHA-256。探测报告只用于来源研究，不会写入 raw，也不能导入 core：
 

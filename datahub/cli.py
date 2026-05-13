@@ -78,6 +78,10 @@ from .parsers.ln_score_distribution_ocr import (
 from .parsers.ln_score_distribution import parse_ln_score_distribution_pdf
 from .parsers.moe_major_catalog import parse_moe_major_catalog_pdf
 from .parsers.moe_school_profile import parse_moe_school_profile_xls
+from .parsers.digital_occupation_catalog import (
+    parse_digital_occupation_catalog_file,
+    write_digital_occupation_catalog_csv,
+)
 from .parsers.outcome_report import (
     extract_outcome_metric_candidates_from_pdf,
     write_outcome_metric_candidate_csv,
@@ -550,6 +554,17 @@ def main() -> int:
     parse_school.add_argument("--output", required=True, type=Path)
     parse_school.add_argument("--source-date", required=True)
     parse_school.add_argument("--availability-date", required=True)
+
+    parse_digital_occupation = sub.add_parser(
+        "parse-digital-occupation-catalog",
+        help="Parse ChinaJob digital occupation HTML table to cleaned career occupation CSV",
+    )
+    parse_digital_occupation.add_argument("--input", required=True, type=Path)
+    parse_digital_occupation.add_argument("--output", required=True, type=Path)
+    parse_digital_occupation.add_argument("--source-title", required=True)
+    parse_digital_occupation.add_argument("--source-url", required=True)
+    parse_digital_occupation.add_argument("--source-date", required=True)
+    parse_digital_occupation.add_argument("--availability-date", required=True)
 
     args = parser.parse_args()
     if args.cmd == "validate":
@@ -1099,6 +1114,17 @@ def main() -> int:
             writer = csv.DictWriter(f, fieldnames=schema["columns"], extrasaction="ignore")
             writer.writeheader()
             writer.writerows(rows)
+        print(json.dumps({"output": str(args.output), "rows": len(rows)}, ensure_ascii=False, indent=2))
+        return 0
+    if args.cmd == "parse-digital-occupation-catalog":
+        rows = parse_digital_occupation_catalog_file(
+            args.input,
+            source_title=args.source_title,
+            source_url=args.source_url,
+            source_date=args.source_date,
+            availability_date=args.availability_date,
+        )
+        write_digital_occupation_catalog_csv(args.output, rows)
         print(json.dumps({"output": str(args.output), "rows": len(rows)}, ensure_ascii=False, indent=2))
         return 0
     return 1

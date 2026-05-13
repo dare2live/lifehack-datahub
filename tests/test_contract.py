@@ -79,6 +79,10 @@ from datahub.parsers.ln_score_distribution_ocr import (
 from datahub.parsers.ln_score_distribution import parse_ln_score_distribution_lines
 from datahub.parsers.moe_major_catalog import parse_moe_major_catalog_lines
 from datahub.parsers.moe_school_profile import parse_moe_school_profile_rows
+from datahub.parsers.digital_occupation_catalog import (
+    parse_digital_occupation_catalog_html,
+    write_digital_occupation_catalog_csv,
+)
 from datahub.parsers.outcome_report import (
     CANDIDATE_COLUMNS,
     extract_outcome_metric_candidates_from_lines,
@@ -2534,6 +2538,43 @@ def test_build_career_source_plan_from_config(tmp_path: Path):
     assert manifest["notes"].startswith("Collection plan only")
 
 
+def test_parse_digital_occupation_catalog_html_builds_catalog_package(tmp_path: Path):
+    html = """
+    <html><body><table>
+      <tr><td>序号</td><td>职业编码</td><td>职业名称</td></tr>
+      <tr><td>1</td><td>2-02-01-02</td><td>地球物理地球化学与遥感勘查工程技术人员</td></tr>
+      <tr><td>2</td><td>4-04-05-05</td><td>互联网营销师</td></tr>
+    </table></body></html>
+    """
+    rows = parse_digital_occupation_catalog_html(
+        html,
+        source_title="国家职业分类大典首次标识数字职业",
+        source_url="https://chinajob.mohrss.gov.cn/c/2022-10-28/363399.shtml",
+        source_date="2022-10-28",
+        availability_date="2022-10-28",
+    )
+    assert len(rows) == 2
+    assert rows[0]["occupation_family"] == "专业技术人员"
+    assert rows[1]["occupation_family"] == "社会生产服务和生活服务类"
+    assert rows[0]["occupation_level"] == 4
+    assert rows[0]["major_keywords_json"] == "[]"
+
+    cleaned = tmp_path / "digital_occupation_catalog.csv"
+    write_digital_occupation_catalog_csv(cleaned, rows)
+    result = build_local_package(
+        source_key="career_occupation_catalog",
+        table_name="fa_dim_career_occupation",
+        input_path=cleaned,
+        output_root=tmp_path / "exports",
+        package_id="digital-occupation-catalog-test",
+        source_version="fixture-digital-occupation",
+    )
+    package_dir = Path(result["package_dir"])
+    assert result["rows"] == 2
+    assert result["quality_report"]["errors"] == []
+    assert validate_manifest(package_dir / "manifest.json")["errors"] == []
+
+
 def test_audit_career_source_plan_reports_progress_and_errors(tmp_path: Path):
     plan = tmp_path / "career_source_plan.csv"
     with plan.open("w", encoding="utf-8", newline="") as f:
@@ -4041,6 +4082,12 @@ def test_download_remote_assets_from_config(tmp_path: Path, monkeypatch):
             "sources": {
                 "demo_remote": {
                     "name": "demo",
+                    "kind": "fixture_remote",
+                    "target_tables": ["fa_demo"],
+                    "acquisition": {
+                        "official_distribution": "fixture distribution",
+                        "evidence_urls": ["https://example.edu/source"],
+                    },
                     "remote_files": [
                         {
                             "url": remote.as_uri(),
@@ -4059,6 +4106,12 @@ def test_download_remote_assets_from_config(tmp_path: Path, monkeypatch):
     assert assets[0].path.read_text(encoding="utf-8") == "id,name\n1,alpha\n"
     assert assets[0].path.name == "demo.csv"
     assert assets[0].source_date == "2026-05-13"
+    manifest = json.loads((tmp_path / "raw/demo_remote/2026-05-13/_remote_manifest.json").read_text(encoding="utf-8"))
+    assert manifest["source_key"] == "demo_remote"
+    assert manifest["source_kind"] == "fixture_remote"
+    assert manifest["target_tables"] == ["fa_demo"]
+    assert manifest["evidence_urls"] == ["https://example.edu/source"]
+    assert manifest["files"][0]["sha256"] == digest
 
 
 def test_download_page_images_from_config(tmp_path: Path, monkeypatch):

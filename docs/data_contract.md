@@ -146,6 +146,8 @@ python3 scripts/build_package.py audit-sources
 python3 scripts/build_package.py download --source-key ln_admission_plan --output-root raw
 ```
 
+下载完成后，DataHub 会在每个 `raw/{source_key}/{source_date}/` 目录生成 `_remote_manifest.json`，字段兼容 `build-local --intake-manifest`。这样由远程稳定来源解析出的 cleaned CSV 也能把原始 URL、SHA-256、文件大小、来源说明和目标表写进 package lineage。
+
 ## 候选来源探测入口
 
 尚未稳定到可配置为 `remote_files` 的 URL 必须先放在 `research_candidates`。探测命令只检查候选 URL 的可访问性、HTTP 状态、文件大小和 SHA-256，不写 raw，也不晋级来源：
@@ -449,6 +451,25 @@ python3 scripts/build_package.py build-local \
 职业相关数据先由配置生成采集计划，再由受控批次补证据和指标值，最后发布 `fa_fact_career_signal` 并加工 `fa_mart_career_score`。采集源、指标口径、值域、评分权重和批次可回写列维护在 `config/career_data_sources.json`，表结构维护在 `config/source_schemas.json`：
 
 ```bash
+python3 scripts/build_package.py download \
+  --source-key career_occupation_catalog \
+  --output-root raw
+
+python3 scripts/build_package.py parse-digital-occupation-catalog \
+  --input raw/career_occupation_catalog/2022-10-28/digital_occupation_catalog_2022.html \
+  --output cleaned/digital_occupation_catalog_2022.csv \
+  --source-title 国家职业分类大典首次标识数字职业 \
+  --source-url https://chinajob.mohrss.gov.cn/c/2022-10-28/363399.shtml \
+  --source-date 2022-10-28 \
+  --availability-date 2022-10-28
+
+python3 scripts/build_package.py build-local \
+  --source-key career_occupation_catalog \
+  --table fa_dim_career_occupation \
+  --input cleaned/digital_occupation_catalog_2022.csv \
+  --output-root exports \
+  --package-id 2022_digital_occupation_catalog
+
 python3 scripts/build_package.py build-career-source-plan \
   --output-dir staging/career_source_plan \
   --occupation-input cleaned/career_occupation_seed.csv \
@@ -475,6 +496,10 @@ python3 scripts/build_package.py build-career-signal-from-source-plan \
   --output-root exports \
   --package-id 2026_career_signal_shenyang
 ```
+
+数字职业 HTML 解析器只把官方页面里的职业编码和名称转成职业目录种子表；职业大类映射由 `occupation_family_by_code_prefix` 配置维护，行业映射和关键词后续由单独配置/采集批次补齐。
+
+真实 smoke：`career_occupation_catalog` 远程下载已校验 SHA-256 并生成 `_remote_manifest.json`；HTML 解析出 73 条数字职业，`build-local --intake-manifest` 生成 `2022_digital_occupation_catalog` 标准包，quality report 无错误，DataHub `validate` 与 core importer `--dry-run` 均通过。
 
 批次命令按 `source_key, target_table, occupation_code, occupation_name, metric_key, metric_year, city` 定位任务，只允许回写配置列，防止局部文件改掉职业、指标、来源或目标表。通过审计后，`build-career-signal-from-source-plan` 只读取完整状态的职业信号行，复用标准数据包质量门禁生成 `fa_fact_career_signal`，再用 `build-career-score` 生成职业评分加工包。
 
