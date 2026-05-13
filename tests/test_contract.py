@@ -34,6 +34,7 @@ from datahub.builders.city_context_collection_plan import build_city_context_col
 from datahub.builders.city_context_target_cities import build_city_context_target_cities
 from datahub.builders.city_development_score import build_city_development_score_package
 from datahub.builders.city_listed_company_signal import build_city_listed_company_signal_package
+from datahub.builders.entity_normalization_registry import build_entity_normalization_registry_package
 from datahub.builders.major_city_employment_fit import build_major_city_employment_fit_package
 from datahub.connectors.page_images import download_page_images
 from datahub.builders.outcome_collection_audit import audit_outcome_collection_plan
@@ -3322,6 +3323,187 @@ def test_data_update_policy_config_and_schemas():
     assert schemas["fa_meta_update_run"]["primary_key"] == ["update_run_id"]
     assert schemas["fa_meta_update_run_step"]["primary_key"] == ["update_run_id", "source_key", "step_key"]
     assert schemas["fa_meta_nonstandard_review_queue"]["primary_key"] == ["review_id"]
+
+
+def test_build_entity_normalization_registry_package(tmp_path: Path):
+    region_profile = tmp_path / "region_profile.csv"
+    with region_profile.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(
+            f,
+            fieldnames=[
+                "adcode",
+                "region_name",
+                "region_level",
+                "parent_adcode",
+                "province",
+                "city",
+                "district",
+                "citycode",
+                "center_longitude",
+                "center_latitude",
+                "coordinate_system",
+                "source_provider",
+                "source_date",
+                "availability_date",
+                "built_at",
+            ],
+        )
+        writer.writeheader()
+        writer.writerow({
+            "adcode": "210100",
+            "region_name": "沈阳市",
+            "region_level": "city",
+            "parent_adcode": "210000",
+            "province": "辽宁省",
+            "city": "沈阳市",
+            "district": "",
+            "citycode": "024",
+            "center_longitude": "123.4",
+            "center_latitude": "41.8",
+            "coordinate_system": "GCJ-02",
+            "source_provider": "fixture",
+            "source_date": "2026-05-13",
+            "availability_date": "2026-05-13",
+            "built_at": "now",
+        })
+    school_profile = tmp_path / "school_profile.csv"
+    with school_profile.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(
+            f,
+            fieldnames=[
+                "national_school_code",
+                "school_name",
+                "province",
+                "city",
+                "school_tier",
+                "source_date",
+                "availability_date",
+                "built_at",
+            ],
+        )
+        writer.writeheader()
+        writer.writerow({
+            "national_school_code": "4121010145",
+            "school_name": "东北大学",
+            "province": "辽宁",
+            "city": "沈阳",
+            "school_tier": "985",
+            "source_date": "2025-06-24",
+            "availability_date": "2026-05-13",
+            "built_at": "now",
+        })
+    major_catalog = tmp_path / "major_catalog.csv"
+    with major_catalog.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(
+            f,
+            fieldnames=["major_code", "major_name", "major_category", "major_class", "degree_type", "study_years"],
+        )
+        writer.writeheader()
+        writer.writerow({
+            "major_code": "080901",
+            "major_name": "计算机科学与技术",
+            "major_category": "工学",
+            "major_class": "计算机类",
+            "degree_type": "工学",
+            "study_years": "4",
+        })
+    career_occupation = tmp_path / "career_occupation.csv"
+    with career_occupation.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(
+            f,
+            fieldnames=[
+                "occupation_code",
+                "occupation_name",
+                "occupation_family",
+                "occupation_level",
+                "tdx_l2",
+                "tdx_l2_name",
+                "source_title",
+                "source_url",
+                "source_date",
+                "availability_date",
+                "built_at",
+            ],
+        )
+        writer.writeheader()
+        writer.writerow({
+            "occupation_code": "2-02-10-03",
+            "occupation_name": "软件工程师",
+            "occupation_family": "专业技术人员",
+            "occupation_level": "4",
+            "tdx_l2": "T1205",
+            "tdx_l2_name": "软件服务",
+            "source_title": "国家职业分类大典数字职业",
+            "source_url": "https://example.com/occupation",
+            "source_date": "2022-10-28",
+            "availability_date": "2026-05-13",
+            "built_at": "now",
+        })
+    policy_industry = tmp_path / "policy_industry.csv"
+    with policy_industry.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(
+            f,
+            fieldnames=[
+                "tdx_l2",
+                "tdx_l2_name",
+                "tdx_l1_name",
+                "policy_label",
+                "policy_intensity",
+                "key_themes_json",
+                "rationale",
+                "policy_period",
+                "source_date",
+                "availability_date",
+                "built_at",
+            ],
+        )
+        writer.writeheader()
+        writer.writerow({
+            "tdx_l2": "T1205",
+            "tdx_l2_name": "软件服务",
+            "tdx_l1_name": "信息产业",
+            "policy_label": "重点扶持",
+            "policy_intensity": "3",
+            "key_themes_json": "[]",
+            "rationale": "fixture",
+            "policy_period": "十五五",
+            "source_date": "2026-05-13",
+            "availability_date": "2026-05-13",
+            "built_at": "now",
+        })
+
+    result = build_entity_normalization_registry_package(
+        output_root=tmp_path / "exports",
+        region_profile_input=region_profile,
+        school_profile_input=school_profile,
+        major_catalog_input=major_catalog,
+        career_occupation_input=career_occupation,
+        policy_industry_input=policy_industry,
+        package_id="pkg-entity-normalization-test",
+        source_version="fixture-entity-normalization",
+    )
+
+    package_dir = Path(result["package_dir"])
+    assert validate_manifest(package_dir / "manifest.json")["errors"] == []
+    assert result["quality_report"]["errors"] == []
+    with (package_dir / "fa_dim_entity_registry.csv").open(encoding="utf-8", newline="") as f:
+        entities = list(csv.DictReader(f))
+    by_id = {row["entity_id"]: row for row in entities}
+    assert by_id["geo_city_210100"]["display_name"] == "沈阳"
+    assert by_id["school_4121010145"]["display_name"] == "东北大学"
+    assert by_id["major_080901"]["display_name"] == "计算机科学与技术"
+    assert by_id["occupation_2_02_10_03"]["display_name"] == "软件工程师"
+    assert by_id["tdx_l2_T1205"]["display_name"] == "软件服务"
+
+    with (package_dir / "fa_bridge_entity_alias.csv").open(encoding="utf-8", newline="") as f:
+        aliases = list(csv.DictReader(f))
+    assert any(row["alias_name"] == "沈阳市" and row["canonical_name"] == "沈阳" for row in aliases)
+
+    with (package_dir / "fa_dim_metric_registry.csv").open(encoding="utf-8", newline="") as f:
+        metrics = list(csv.DictReader(f))
+    metric_keys = {(row["metric_domain"], row["metric_key"]) for row in metrics}
+    assert ("city_context.economic", "gdp") in metric_keys
+    assert any(row["metric_key"] == "salary_median" for row in metrics)
 
 
 def test_build_city_listed_company_signal_package(tmp_path: Path):

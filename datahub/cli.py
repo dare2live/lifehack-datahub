@@ -33,6 +33,7 @@ from .builders.city_context_collection_plan import build_city_context_collection
 from .builders.city_context_target_cities import build_city_context_target_cities
 from .builders.city_development_score import build_city_development_score_package
 from .builders.city_listed_company_signal import build_city_listed_company_signal_package
+from .builders.entity_normalization_registry import build_entity_normalization_registry_package
 from .builders.major_city_employment_fit import build_major_city_employment_fit_package
 from .builders.outcome_collection_batch import (
     build_outcome_collection_batch,
@@ -624,6 +625,20 @@ def main() -> int:
     build_city_context_from_plan.add_argument("--domain", action="append", dest="domains")
     build_city_context_from_plan.add_argument("--package-id")
     build_city_context_from_plan.add_argument("--source-version")
+
+    build_entity_normalization_registry = sub.add_parser(
+        "build-entity-normalization-registry",
+        help="Build canonical entity, alias, metric, and metric-alias registry package",
+    )
+    build_entity_normalization_registry.add_argument("--output-root", required=True, type=Path)
+    build_entity_normalization_registry.add_argument("--region-profile-input", type=Path)
+    build_entity_normalization_registry.add_argument("--school-profile-input", type=Path)
+    build_entity_normalization_registry.add_argument("--school-location-input", type=Path)
+    build_entity_normalization_registry.add_argument("--major-catalog-input", type=Path)
+    build_entity_normalization_registry.add_argument("--career-occupation-input", type=Path)
+    build_entity_normalization_registry.add_argument("--policy-industry-input", type=Path)
+    build_entity_normalization_registry.add_argument("--package-id")
+    build_entity_normalization_registry.add_argument("--source-version")
 
     parse_moe = sub.add_parser("parse-moe-major-catalog", help="Parse MOE major catalog PDF to cleaned CSV")
     parse_moe.add_argument("--input", required=True, type=Path)
@@ -1290,6 +1305,20 @@ def main() -> int:
             plan_csv=args.plan_csv,
             output_root=args.output_root,
             domains=args.domains,
+            package_id=args.package_id,
+            source_version=args.source_version,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+    if args.cmd == "build-entity-normalization-registry":
+        result = build_entity_normalization_registry_package(
+            output_root=args.output_root,
+            region_profile_input=args.region_profile_input,
+            school_profile_input=args.school_profile_input,
+            school_location_input=args.school_location_input,
+            major_catalog_input=args.major_catalog_input,
+            career_occupation_input=args.career_occupation_input,
+            policy_industry_input=args.policy_industry_input,
             package_id=args.package_id,
             source_version=args.source_version,
         )

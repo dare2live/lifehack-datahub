@@ -106,6 +106,17 @@ python3 scripts/build_package.py build-career-score \
 
 规范化语义层用于解决城市、学校、校区、专业、职业、行业、企业和指标在不同来源中的重复命名问题。实体与别名进入 `fa_dim_entity_registry/fa_bridge_entity_alias`，指标与别名进入 `fa_dim_metric_registry/fa_bridge_metric_alias`；清洗步骤、匹配置信度、模型入参门禁和输出策略维护在 `config/entity_normalization.json`。后续 builder 不应在业务逻辑里重复写“沈阳/沈阳市/辽宁沈阳”或“软件工程师/后端开发/程序员”这类临时清洗规则。
 
+```bash
+python3 scripts/build_package.py build-entity-normalization-registry \
+  --region-profile-input exports/region_profile/fa_dim_region_profile.csv \
+  --school-profile-input exports/school_profile/fa_dim_school_profile.csv \
+  --major-catalog-input exports/major_catalog/fa_dim_major_catalog.csv \
+  --career-occupation-input exports/career_occupation/fa_dim_career_occupation.csv \
+  --policy-industry-input exports/policy_industry/fa_dim_policy_industry_map.csv \
+  --output-root exports \
+  --package-id 2026_entity_normalization_registry
+```
+
 数据更新治理用于确定数据什么时候重跑、怎么增量、旧数据如何覆盖、失败来源如何阻断依赖。`config/data_update_policy.json` 统一维护 `full_replace/partition_replace/primary_key_upsert/append_snapshot/manual_review_promote/derived_rebuild` 六类更新模式、非标数据晋级规则、来源有效性检测和串并行调度分组；运行元数据进入 `fa_meta_source_snapshot/fa_meta_source_health/fa_meta_update_run/fa_meta_update_run_step/fa_meta_nonstandard_review_queue`。非标数据只允许停留在 raw、候选和复核队列，复核通过后才发布标准包。
 
 城市上市公司信号由已复核的公司城市快照聚合，不直接读取或写入 ChunkyMonkey。字段别名、默认口径和聚合指标维护在 `config/city_listed_company_signal.json`：
