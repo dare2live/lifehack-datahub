@@ -59,6 +59,22 @@
       "candidate_source_date",
       "availability_date"
     ],
+    "review_batch": {
+      "selection_statuses": ["todo", "in_progress", "needs_review"],
+      "limit_per_domain": 20,
+      "editable_columns": [
+        "status",
+        "candidate_report_title",
+        "candidate_report_url",
+        "candidate_file_name",
+        "local_report_path",
+        "candidate_source_date",
+        "availability_date",
+        "reviewer",
+        "reviewed_at",
+        "notes"
+      ]
+    },
     "report_scopes": {
       "school": [
         {

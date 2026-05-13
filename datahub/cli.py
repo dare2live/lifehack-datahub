@@ -50,6 +50,10 @@ from .builders.outcome_collection_plan import build_outcome_collection_plan
 from .builders.outcome_report_extraction_plan import build_outcome_report_extraction_plan
 from .builders.outcome_report_extraction_runner import run_outcome_report_extraction_plan
 from .builders.outcome_report_source_audit import audit_outcome_report_source_plan
+from .builders.outcome_report_source_batch import (
+    build_outcome_report_source_review_batch,
+    merge_outcome_report_source_review_batch,
+)
 from .builders.outcome_report_source_plan import build_outcome_report_source_plan
 from .builders.policy_tables import (
     build_policy_industry_map_package,
@@ -473,6 +477,24 @@ def main() -> int:
     )
     audit_outcome_report_sources.add_argument("--plan-csv", required=True, type=Path)
     audit_outcome_report_sources.add_argument("--report", type=Path)
+
+    build_outcome_report_source_batch = sub.add_parser(
+        "build-outcome-report-source-review-batch",
+        help="Build a local review batch from pending report-source tasks",
+    )
+    build_outcome_report_source_batch.add_argument("--plan-csv", required=True, type=Path)
+    build_outcome_report_source_batch.add_argument("--output-dir", required=True, type=Path)
+    build_outcome_report_source_batch.add_argument("--domain", action="append", dest="domains")
+    build_outcome_report_source_batch.add_argument("--limit-per-domain", type=int)
+
+    merge_outcome_report_source_batch = sub.add_parser(
+        "merge-outcome-report-source-review-batch",
+        help="Merge edited report-source review batch rows back into a full report-source plan",
+    )
+    merge_outcome_report_source_batch.add_argument("--plan-csv", required=True, type=Path)
+    merge_outcome_report_source_batch.add_argument("--batch-csv", required=True, type=Path)
+    merge_outcome_report_source_batch.add_argument("--output", required=True, type=Path)
+    merge_outcome_report_source_batch.add_argument("--report", type=Path)
 
     build_outcome_report_extraction = sub.add_parser(
         "build-outcome-report-extraction-plan",
@@ -1199,6 +1221,24 @@ def main() -> int:
         if args.report:
             args.report.parent.mkdir(parents=True, exist_ok=True)
             args.report.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        print(json.dumps(report, ensure_ascii=False, indent=2))
+        return 0 if not report["errors"] else 1
+    if args.cmd == "build-outcome-report-source-review-batch":
+        result = build_outcome_report_source_review_batch(
+            plan_csv=args.plan_csv,
+            output_dir=args.output_dir,
+            domains=args.domains,
+            limit_per_domain=args.limit_per_domain,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+    if args.cmd == "merge-outcome-report-source-review-batch":
+        report = merge_outcome_report_source_review_batch(
+            plan_csv=args.plan_csv,
+            batch_csv=args.batch_csv,
+            output=args.output,
+            report_path=args.report,
+        )
         print(json.dumps(report, ensure_ascii=False, indent=2))
         return 0 if not report["errors"] else 1
     if args.cmd == "build-outcome-report-extraction-plan":

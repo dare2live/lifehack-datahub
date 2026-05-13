@@ -635,6 +635,16 @@ python3 scripts/build_package.py audit-outcome-report-source-plan \
   --plan-csv staging/outcome_report_sources/outcome_report_source_plan.csv \
   --report staging/outcome_report_sources/outcome_report_source_audit.json
 
+python3 scripts/build_package.py build-outcome-report-source-review-batch \
+  --plan-csv staging/outcome_report_sources/outcome_report_source_plan.csv \
+  --output-dir staging/outcome_report_sources/batch_001
+
+python3 scripts/build_package.py merge-outcome-report-source-review-batch \
+  --plan-csv staging/outcome_report_sources/outcome_report_source_plan.csv \
+  --batch-csv staging/outcome_report_sources/batch_001/outcome_report_source_review_batch.csv \
+  --output staging/outcome_report_sources/outcome_report_source_plan.reviewed.csv \
+  --report staging/outcome_report_sources/outcome_report_source_merge.json
+
 python3 scripts/build_package.py build-outcome-report-extraction-plan \
   --report-source-csv staging/outcome_report_sources/outcome_report_source_plan.reviewed.csv \
   --output-dir staging/outcome_report_candidates

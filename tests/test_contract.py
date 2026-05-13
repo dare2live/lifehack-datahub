@@ -52,6 +52,10 @@ from datahub.builders.outcome_collection_plan import PLAN_COLUMNS as OUTCOME_PLA
 from datahub.builders.outcome_report_extraction_plan import build_outcome_report_extraction_plan
 from datahub.builders.outcome_report_extraction_runner import run_outcome_report_extraction_plan
 from datahub.builders.outcome_report_source_audit import audit_outcome_report_source_plan
+from datahub.builders.outcome_report_source_batch import (
+    build_outcome_report_source_review_batch,
+    merge_outcome_report_source_review_batch,
+)
 from datahub.builders.outcome_report_source_plan import build_outcome_report_source_plan
 from datahub.builders.policy_tables import (
     build_policy_industry_map_package,
@@ -4212,6 +4216,60 @@ def test_audit_outcome_report_source_plan_requires_confirmed_source(tmp_path: Pa
     assert ready_report["errors"] == []
     assert ready_report["complete_rows"] == 1
     assert ready_report["ready_for_report_intake"] is True
+
+
+def test_outcome_report_source_review_batch_merge_is_surgical(tmp_path: Path):
+    plan = tmp_path / "outcome_collection_plan.csv"
+    rows = [
+        _outcome_plan_row("school", "10140", "辽宁大学", "postgrad_rate", status="todo", priority_rank="1"),
+        _outcome_plan_row("major", "法学", "法学", "employment_rate", status="todo", priority_rank="2"),
+    ]
+    _write_outcome_plan(plan, rows)
+    source_result = build_outcome_report_source_plan(
+        plan_csv=plan,
+        output_dir=tmp_path / "report_sources",
+    )
+    batch_result = build_outcome_report_source_review_batch(
+        plan_csv=Path(source_result["csv"]),
+        output_dir=tmp_path / "source_batch",
+        domains=["school"],
+        limit_per_domain=1,
+    )
+    assert batch_result["rows"] == 1
+    with Path(batch_result["csv"]).open(encoding="utf-8", newline="") as f:
+        batch_rows = list(csv.DictReader(f))
+    batch_rows[0].update({
+        "entity_name": "被篡改的学校名",
+        "status": "verified",
+        "candidate_report_title": "辽宁大学2025届毕业生就业质量报告",
+        "candidate_report_url": "https://example.edu/lnu2025.pdf",
+        "candidate_source_date": "2025-12-31",
+        "availability_date": "2026-01-05",
+        "local_report_path": "/tmp/lnu2025.pdf",
+        "reviewer": "fixture",
+    })
+    edited_batch = tmp_path / "source_batch" / "edited.csv"
+    with edited_batch.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=batch_rows[0].keys())
+        writer.writeheader()
+        writer.writerows(batch_rows)
+
+    output = tmp_path / "outcome_report_source_plan_merged.csv"
+    report = merge_outcome_report_source_review_batch(
+        plan_csv=Path(source_result["csv"]),
+        batch_csv=edited_batch,
+        output=output,
+    )
+
+    assert report["updated_rows"] == 1
+    with output.open(encoding="utf-8", newline="") as f:
+        merged_rows = list(csv.DictReader(f))
+    school_row = next(row for row in merged_rows if row["domain"] == "school")
+    assert school_row["entity_name"] == "辽宁大学"
+    assert school_row["status"] == "verified"
+    assert school_row["candidate_report_url"] == "https://example.edu/lnu2025.pdf"
+    assert school_row["local_report_path"] == "/tmp/lnu2025.pdf"
+    assert any(row["domain"] == "major" and row["status"] == "todo" for row in merged_rows)
 
 
 def test_build_outcome_report_extraction_plan_requires_local_file(tmp_path: Path):
