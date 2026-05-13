@@ -33,6 +33,7 @@ from .builders.city_context_collection_plan import build_city_context_collection
 from .builders.city_context_target_cities import build_city_context_target_cities
 from .builders.city_development_score import build_city_development_score_package
 from .builders.city_listed_company_signal import build_city_listed_company_signal_package
+from .builders.data_update_policy_audit import audit_data_update_policy
 from .builders.data_update_plan import build_data_update_plan
 from .builders.entity_normalization_registry import build_entity_normalization_registry_package
 from .builders.major_city_employment_fit import build_major_city_employment_fit_package
@@ -635,6 +636,11 @@ def main() -> int:
     build_data_update_plan_parser.add_argument("--source-key", action="append", dest="source_keys")
     build_data_update_plan_parser.add_argument("--no-include-dependencies", action="store_true")
     build_data_update_plan_parser.add_argument("--update-run-id")
+
+    sub.add_parser(
+        "audit-data-update-policy",
+        help="Audit config/data_update_policy.json dependencies, validity profiles, groups, and targets",
+    )
 
     build_entity_normalization_registry = sub.add_parser(
         "build-entity-normalization-registry",
@@ -1329,6 +1335,10 @@ def main() -> int:
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
+    if args.cmd == "audit-data-update-policy":
+        report = audit_data_update_policy()
+        print(json.dumps(report, ensure_ascii=False, indent=2))
+        return 0 if not report["errors"] else 1
     if args.cmd == "build-entity-normalization-registry":
         result = build_entity_normalization_registry_package(
             output_root=args.output_root,

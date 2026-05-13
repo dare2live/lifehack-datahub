@@ -34,6 +34,7 @@ from datahub.builders.city_context_collection_plan import build_city_context_col
 from datahub.builders.city_context_target_cities import build_city_context_target_cities
 from datahub.builders.city_development_score import build_city_development_score_package
 from datahub.builders.city_listed_company_signal import build_city_listed_company_signal_package
+from datahub.builders.data_update_policy_audit import audit_data_update_policy
 from datahub.builders.data_update_plan import build_data_update_plan
 from datahub.builders.entity_normalization_registry import build_entity_normalization_registry_package
 from datahub.builders.major_city_employment_fit import build_major_city_employment_fit_package
@@ -3397,6 +3398,13 @@ def test_build_data_update_plan_without_dependencies_marks_blocked(tmp_path: Pat
         "city_listed_company_signal",
         "city_ranking_signal",
     }
+
+
+def test_audit_data_update_policy_has_no_errors():
+    report = audit_data_update_policy()
+    assert report["errors"] == []
+    assert report["status"] == "ok"
+    assert report["policy_count"] >= 18
 
 
 def test_build_entity_normalization_registry_package(tmp_path: Path):

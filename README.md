@@ -122,6 +122,8 @@ python3 scripts/build_package.py build-entity-normalization-registry \
 `build-data-update-plan` 会把更新策略拓扑排序成可审计执行计划，用于判断哪些源必须串行、哪些源可以同阶段并行、哪些衍生 mart 要等待上游数据包完成。该输出不是 data package，不抓取数据，也不写 core：
 
 ```bash
+python3 scripts/build_package.py audit-data-update-policy
+
 python3 scripts/build_package.py build-data-update-plan \
   --source-key city_development_score \
   --output-dir staging/update_plans/city_development
