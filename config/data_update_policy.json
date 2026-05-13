@@ -18,6 +18,44 @@
     "manual_review_promote": "只生成候选和复核队列，人工批准后才发布标准包。",
     "derived_rebuild": "由已发布标准表重新计算 mart，输入未变时可跳过。"
   },
+  "update_mode_runbook": {
+    "full_replace": {
+      "change_detection": "比较来源 hash、行数、schema 和 source_date；无变化时跳过发布。",
+      "incremental_strategy": "不做局部增量，先构建完整新包并通过质量报告。",
+      "old_data_handling": "core 导入时以新完整包替换目标表；旧包保留 manifest 和快照元数据用于回滚。",
+      "promotion_gate": "manifest_hash_ok_and_quality_report_ok"
+    },
+    "partition_replace": {
+      "change_detection": "按 partition_keys 比较来源日期、内容 hash、行数和质量报告。",
+      "incremental_strategy": "只替换本次分区，例如年份、批次、首选科目、城市或指标年份。",
+      "old_data_handling": "未命中的旧分区保留；命中分区若存在差异先生成 reconciliation plan，删除必须走 delete plan。",
+      "promotion_gate": "partition_quality_ok_and_reconciliation_ready"
+    },
+    "primary_key_upsert": {
+      "change_detection": "按主键和 content_hash 识别新增、更新与无变化记录。",
+      "incremental_strategy": "只发布已复核主键行，core 按主键插入或更新。",
+      "old_data_handling": "冲突值进入复核；删除或排除已有 core 行必须单独生成 delete plan。",
+      "promotion_gate": "reviewed_keys_and_package_quality_ok"
+    },
+    "append_snapshot": {
+      "change_detection": "每次采集生成 snapshot_id，同一来源同一快照 hash 已存在时跳过。",
+      "incremental_strategy": "只追加新快照，不覆盖历史快照。",
+      "old_data_handling": "旧快照保留用于趋势、回测和来源追溯；过期只在输出层降权，不物理删除。",
+      "promotion_gate": "snapshot_quality_ok"
+    },
+    "manual_review_promote": {
+      "change_detection": "原始文件或网页证据按 raw_content_hash、source_url 和 source_date 去重。",
+      "incremental_strategy": "raw/candidate/review 小步晋级，只发布 approved/verified/ready 行。",
+      "old_data_handling": "候选与旧值冲突时生成 review plan；未复核行不得覆盖 core。",
+      "promotion_gate": "manual_review_approved_and_lineage_complete"
+    },
+    "derived_rebuild": {
+      "change_detection": "比较上游 package lineage、score_profile 和配置 hash。",
+      "incremental_strategy": "从已发布标准表重建 mart；输入未变时跳过。",
+      "old_data_handling": "旧 mart 以 snapshot 元数据保留；新 mart 失败时不替换上一次可用结果。",
+      "promotion_gate": "input_lineage_and_reason_codes_ok"
+    }
+  },
   "nonstandard_policy": {
     "definition": "无稳定官方下载、字段经常变化、需要网页/OCR/人工判断或来自第三方页面的数据。",
     "stages": ["raw_snapshot", "parsed_candidate", "normalized_candidate", "review_batch", "approved_record", "published_package"],
@@ -37,6 +75,155 @@
     "manual_file": ["file_exists", "content_hash", "operator_recorded", "official_distribution_recorded"],
     "collection_plan": ["status_registered", "required_evidence_present", "value_parseable", "metric_registered"],
     "derived_mart": ["input_package_lineage_present", "row_count_nonzero", "score_profile_registered", "reason_codes_present"]
+  },
+  "validity_check_catalog": {
+    "url_accessible": {
+      "check_name": "URL 可访问",
+      "check_scope": "remote_files 或 research_candidates",
+      "expected_evidence": "HTTP 2xx/3xx、最终 URL、响应大小和采集时间",
+      "block_on_fail": true,
+      "remediation": "修正 URL、补 headers，或降级为 research_candidates 等待人工确认。"
+    },
+    "content_hash": {
+      "check_name": "内容哈希",
+      "check_scope": "raw 文件、远程附件或手工 intake 文件",
+      "expected_evidence": "sha256 与配置或 manifest 一致",
+      "block_on_fail": true,
+      "remediation": "重新下载/重新 intake；若来源确实更新，先记录新快照再重跑解析。"
+    },
+    "file_size": {
+      "check_name": "文件大小",
+      "check_scope": "下载文件或手工文件",
+      "expected_evidence": "文件大小大于 0 且与历史范围不异常",
+      "block_on_fail": true,
+      "remediation": "检查是否下载到错误页面、登录页或空文件。"
+    },
+    "mime_type": {
+      "check_name": "文件类型",
+      "check_scope": "下载文件响应头和文件后缀",
+      "expected_evidence": "MIME/扩展名与 parser 预期一致",
+      "block_on_fail": true,
+      "remediation": "调整 parser、解压规则或把来源退回候选研究。"
+    },
+    "source_date_present": {
+      "check_name": "来源日期",
+      "check_scope": "来源配置、采集计划和 manifest",
+      "expected_evidence": "source_date 与 availability_date 可追溯",
+      "block_on_fail": true,
+      "remediation": "补官方发布日期、报告年份或人工 intake 说明。"
+    },
+    "endpoint_accessible": {
+      "check_name": "接口可访问",
+      "check_scope": "Web API endpoint",
+      "expected_evidence": "请求可达并记录响应时间",
+      "block_on_fail": true,
+      "remediation": "检查 endpoint、网络、配额和授权方式。"
+    },
+    "status_code_ok": {
+      "check_name": "接口状态码",
+      "check_scope": "Web API 响应",
+      "expected_evidence": "HTTP 状态码和业务状态均为成功",
+      "block_on_fail": true,
+      "remediation": "按供应商错误码修正参数、频率或密钥。"
+    },
+    "response_schema": {
+      "check_name": "响应结构",
+      "check_scope": "Web API JSON",
+      "expected_evidence": "必需字段存在且类型符合 parser 输入契约",
+      "block_on_fail": true,
+      "remediation": "更新 parser/schema，或在配置中锁定 API 版本。"
+    },
+    "quota_error_absent": {
+      "check_name": "配额错误",
+      "check_scope": "Web API 响应",
+      "expected_evidence": "无限流、欠费、配额不足或权限错误",
+      "block_on_fail": true,
+      "remediation": "降低并发、延长间隔或暂停该来源。"
+    },
+    "key_not_logged": {
+      "check_name": "密钥不落盘",
+      "check_scope": "Web API 请求、manifest 和日志",
+      "expected_evidence": "只记录 key_env，不记录 key 明文",
+      "block_on_fail": true,
+      "remediation": "清理输出并改为环境变量注入。"
+    },
+    "file_exists": {
+      "check_name": "本地文件存在",
+      "check_scope": "manual intake 输入文件",
+      "expected_evidence": "文件路径存在且已复制到 ignored raw 区",
+      "block_on_fail": true,
+      "remediation": "重新执行 intake-manual，补采集人和来源说明。"
+    },
+    "operator_recorded": {
+      "check_name": "采集人记录",
+      "check_scope": "manual intake manifest",
+      "expected_evidence": "operator/acquired_by 字段存在",
+      "block_on_fail": true,
+      "remediation": "补 intake manifest，不允许口头来源进入包。"
+    },
+    "official_distribution_recorded": {
+      "check_name": "分发说明",
+      "check_scope": "sources.json acquisition",
+      "expected_evidence": "官方分发渠道、证据 URL 或来源说明存在",
+      "block_on_fail": true,
+      "remediation": "补官方说明；无法确认时保持 research_required。"
+    },
+    "status_registered": {
+      "check_name": "状态受控",
+      "check_scope": "collection/review plan",
+      "expected_evidence": "状态值属于配置允许集合",
+      "block_on_fail": true,
+      "remediation": "把自由文本状态映射到配置状态。"
+    },
+    "required_evidence_present": {
+      "check_name": "证据完整",
+      "check_scope": "collection/review plan",
+      "expected_evidence": "source_url、evidence_quote、source_date、availability_date 齐全",
+      "block_on_fail": true,
+      "remediation": "补证据摘录和来源日期，不能只填数值。"
+    },
+    "value_parseable": {
+      "check_name": "数值可解析",
+      "check_scope": "collection plan 指标值",
+      "expected_evidence": "metric_value 可解析为指标注册表要求的类型",
+      "block_on_fail": true,
+      "remediation": "修正单位、百分比、区间值或文本值。"
+    },
+    "metric_registered": {
+      "check_name": "指标已注册",
+      "check_scope": "metric_key",
+      "expected_evidence": "metric_key 存在于指标配置或 registry",
+      "block_on_fail": true,
+      "remediation": "先登记指标定义、单位、值域和解释口径。"
+    },
+    "input_package_lineage_present": {
+      "check_name": "上游 lineage",
+      "check_scope": "derived mart 输入包",
+      "expected_evidence": "输入 package_id、manifest hash 和 source_date 可追溯",
+      "block_on_fail": true,
+      "remediation": "先导入或重建上游标准包。"
+    },
+    "row_count_nonzero": {
+      "check_name": "输出非空",
+      "check_scope": "derived mart 输出",
+      "expected_evidence": "目标表行数大于 0 且通过质量报告",
+      "block_on_fail": true,
+      "remediation": "检查上游过滤条件、主键和评分配置。"
+    },
+    "score_profile_registered": {
+      "check_name": "评分档案",
+      "check_scope": "derived mart 配置",
+      "expected_evidence": "score_profile、权重和阈值来自配置文件",
+      "block_on_fail": true,
+      "remediation": "补配置，不在 builder 里硬编码权重。"
+    },
+    "reason_codes_present": {
+      "check_name": "原因码",
+      "check_scope": "derived mart 输出",
+      "expected_evidence": "reason_codes_json 和 signal_contribution_json 可解释",
+      "block_on_fail": true,
+      "remediation": "补分项贡献和 lineage，不输出黑箱分。"
+    }
   },
   "scheduler": {
     "default_max_parallel": 3,

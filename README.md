@@ -129,6 +129,16 @@ python3 scripts/build_package.py build-data-update-plan \
   --output-dir staging/update_plans/city_development
 ```
 
+`build-data-update-readiness-plan` 在执行计划基础上展开每个来源的前置检查项，把增量策略、旧数据处理、promotion gate、有效性证据和失败修复方式写成 CSV。它仍然不抓取、不写库，只用于采集前门禁和人工排期：
+
+```bash
+python3 scripts/build_package.py build-data-update-readiness-plan \
+  --source-key city_development_score \
+  --output-dir staging/update_plans/city_development_readiness
+```
+
+运行原则：`remote_file` 先验证 URL/hash/文件类型/source_date；`web_api` 先验证 endpoint、业务状态、响应 schema、配额和密钥不落盘；`manual_file` 先做受控 intake；`collection_plan` 先补齐证据 URL、摘录、日期、指标注册和值域；`derived_mart` 必须有上游 package lineage、评分档案、原因码和非空输出。任何阻断项未解决时，只能停留在 raw、候选、复核或 staging，不能发布标准包，也不能导入 core。
+
 城市上市公司信号由已复核的公司城市快照聚合，不直接读取或写入 ChunkyMonkey。字段别名、默认口径和聚合指标维护在 `config/city_listed_company_signal.json`：
 
 ```bash

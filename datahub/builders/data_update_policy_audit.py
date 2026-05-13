@@ -12,7 +12,9 @@ def audit_data_update_policy() -> dict[str, Any]:
     schemas = load_source_schemas().get("tables", {})
     policies = config.get("source_policies", {})
     update_modes = set(config.get("update_modes", {}))
+    update_mode_runbook = config.get("update_mode_runbook", {})
     validity_profiles = set(config.get("validity_checks", {}))
+    validity_check_catalog = config.get("validity_check_catalog", {})
     scheduler = config.get("scheduler", {})
     serial_groups = set(scheduler.get("serial_groups", []))
     parallel_groups = set(scheduler.get("parallel_groups", []))
@@ -22,6 +24,12 @@ def audit_data_update_policy() -> dict[str, Any]:
     if not isinstance(policies, dict) or not policies:
         errors.append("data_update_policy.source_policies is required")
         policies = {}
+    if not isinstance(update_mode_runbook, dict):
+        errors.append("data_update_policy.update_mode_runbook must be an object")
+        update_mode_runbook = {}
+    if not isinstance(validity_check_catalog, dict):
+        errors.append("data_update_policy.validity_check_catalog must be an object")
+        validity_check_catalog = {}
 
     for source_key, policy in policies.items():
         _audit_source_policy(
@@ -38,6 +46,8 @@ def audit_data_update_policy() -> dict[str, Any]:
             warnings=warnings,
         )
     _audit_cycles(policies, errors)
+    _audit_runbook(update_modes, update_mode_runbook, errors)
+    _audit_validity_check_catalog(config.get("validity_checks", {}), validity_check_catalog, errors)
 
     return {
         "errors": errors,
@@ -126,6 +136,45 @@ def _audit_cycles(policies: dict[str, Any], errors: list[str]) -> None:
 
     for source_key in policies:
         visit(source_key, [])
+
+
+def _audit_runbook(
+    update_modes: set[str],
+    update_mode_runbook: dict[str, Any],
+    errors: list[str],
+) -> None:
+    for mode in sorted(update_modes):
+        entry = update_mode_runbook.get(mode)
+        if not isinstance(entry, dict):
+            errors.append(f"update_mode_runbook missing for {mode}")
+            continue
+        for field in ["change_detection", "incremental_strategy", "old_data_handling", "promotion_gate"]:
+            if not str(entry.get(field) or "").strip():
+                errors.append(f"update_mode_runbook.{mode}.{field} is required")
+
+
+def _audit_validity_check_catalog(
+    validity_checks: Any,
+    validity_check_catalog: dict[str, Any],
+    errors: list[str],
+) -> None:
+    if not isinstance(validity_checks, dict):
+        errors.append("data_update_policy.validity_checks must be an object")
+        return
+    for profile, checks in validity_checks.items():
+        if not isinstance(checks, list):
+            errors.append(f"validity_checks.{profile} must be a list")
+            continue
+        for check_key in checks:
+            entry = validity_check_catalog.get(str(check_key))
+            if not isinstance(entry, dict):
+                errors.append(f"validity_check_catalog missing for {check_key}")
+                continue
+            for field in ["check_name", "check_scope", "expected_evidence", "remediation"]:
+                if not str(entry.get(field) or "").strip():
+                    errors.append(f"validity_check_catalog.{check_key}.{field} is required")
+            if "block_on_fail" not in entry:
+                errors.append(f"validity_check_catalog.{check_key}.block_on_fail is required")
 
 
 def _list_value(value: Any) -> list[str]:

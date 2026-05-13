@@ -35,6 +35,7 @@ from .builders.city_development_score import build_city_development_score_packag
 from .builders.city_listed_company_signal import build_city_listed_company_signal_package
 from .builders.data_update_policy_audit import audit_data_update_policy
 from .builders.data_update_plan import build_data_update_plan
+from .builders.data_update_readiness_plan import build_data_update_readiness_plan
 from .builders.entity_normalization_registry import build_entity_normalization_registry_package
 from .builders.major_city_employment_fit import build_major_city_employment_fit_package
 from .builders.outcome_collection_batch import (
@@ -693,6 +694,15 @@ def main() -> int:
     build_data_update_plan_parser.add_argument("--source-key", action="append", dest="source_keys")
     build_data_update_plan_parser.add_argument("--no-include-dependencies", action="store_true")
     build_data_update_plan_parser.add_argument("--update-run-id")
+
+    build_data_update_readiness_plan_parser = sub.add_parser(
+        "build-data-update-readiness-plan",
+        help="Build preflight check rows for a configured update run",
+    )
+    build_data_update_readiness_plan_parser.add_argument("--output-dir", required=True, type=Path)
+    build_data_update_readiness_plan_parser.add_argument("--source-key", action="append", dest="source_keys")
+    build_data_update_readiness_plan_parser.add_argument("--no-include-dependencies", action="store_true")
+    build_data_update_readiness_plan_parser.add_argument("--update-run-id")
 
     sub.add_parser(
         "audit-data-update-policy",
@@ -1434,6 +1444,15 @@ def main() -> int:
         return 0
     if args.cmd == "build-data-update-plan":
         result = build_data_update_plan(
+            output_dir=args.output_dir,
+            source_keys=args.source_keys,
+            include_dependencies=not args.no_include_dependencies,
+            update_run_id=args.update_run_id,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+    if args.cmd == "build-data-update-readiness-plan":
+        result = build_data_update_readiness_plan(
             output_dir=args.output_dir,
             source_keys=args.source_keys,
             include_dependencies=not args.no_include_dependencies,

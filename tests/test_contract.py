@@ -36,6 +36,7 @@ from datahub.builders.city_development_score import build_city_development_score
 from datahub.builders.city_listed_company_signal import build_city_listed_company_signal_package
 from datahub.builders.data_update_policy_audit import audit_data_update_policy
 from datahub.builders.data_update_plan import build_data_update_plan
+from datahub.builders.data_update_readiness_plan import build_data_update_readiness_plan
 from datahub.builders.entity_normalization_registry import build_entity_normalization_registry_package
 from datahub.builders.major_city_employment_fit import build_major_city_employment_fit_package
 from datahub.connectors.page_images import download_page_images
@@ -3323,6 +3324,8 @@ def test_data_update_policy_config_and_schemas():
     assert "manual_review_promote" in config["update_modes"]
     assert "append_snapshot" in config["update_modes"]
     assert config["nonstandard_policy"]["old_data_policy"]["never_delete_without_delete_plan"] is True
+    assert config["update_mode_runbook"]["manual_review_promote"]["old_data_handling"]
+    assert config["validity_check_catalog"]["required_evidence_present"]["block_on_fail"] is True
     assert config["scheduler"]["failure_policy"]["block_dependents_on_source_failure"] is True
     assert "amap_api_limited" in config["scheduler"]["serial_groups"]
     assert "city_collection_parallel" in config["scheduler"]["parallel_groups"]
@@ -3406,6 +3409,43 @@ def test_build_data_update_plan_without_dependencies_marks_blocked(tmp_path: Pat
         "city_listed_company_signal",
         "city_ranking_signal",
     }
+
+
+def test_build_data_update_readiness_plan_expands_validity_checks(tmp_path: Path):
+    result = build_data_update_readiness_plan(
+        output_dir=tmp_path / "readiness_plan",
+        source_keys=["city_development_score"],
+        update_run_id="fixture_city_readiness",
+    )
+
+    assert result["blocking_check_rows"] == 0
+    with Path(result["csv"]).open(encoding="utf-8", newline="") as f:
+        rows = list(csv.DictReader(f))
+    assert result["rows"] == len(rows)
+    by_source_check = {(row["source_key"], row["check_key"]): row for row in rows}
+    city_metric = by_source_check[("city_economic_indicator", "required_evidence_present")]
+    assert city_metric["current_status"] == "awaiting_collection_review"
+    assert "source_url" in city_metric["expected_evidence"]
+    assert "只替换本次分区" in city_metric["incremental_strategy"]
+
+    derived = by_source_check[("city_development_score", "input_package_lineage_present")]
+    assert derived["current_status"] == "planned_after_dependencies"
+    assert "从已发布标准表重建 mart" in derived["incremental_strategy"]
+
+
+def test_build_data_update_readiness_plan_blocks_missing_dependencies(tmp_path: Path):
+    result = build_data_update_readiness_plan(
+        output_dir=tmp_path / "partial_readiness_plan",
+        source_keys=["city_development_score"],
+        include_dependencies=False,
+        update_run_id="fixture_partial_readiness",
+    )
+
+    assert result["blocking_check_rows"] > 0
+    with Path(result["csv"]).open(encoding="utf-8", newline="") as f:
+        rows = list(csv.DictReader(f))
+    assert {row["current_status"] for row in rows} == {"blocked_by_dependency"}
+    assert "dependency_not_in_plan" in rows[0]["notes"]
 
 
 def test_audit_data_update_policy_has_no_errors():
