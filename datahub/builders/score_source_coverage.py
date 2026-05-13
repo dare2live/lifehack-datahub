@@ -265,16 +265,22 @@ def _year_gaps(year: int, projection_status: str, distribution_status: str) -> l
 def _summary(coverage_by_year: list[dict[str, Any]]) -> dict[str, Any]:
     status_counts: dict[str, int] = {}
     derivable_years = []
-    blocked_years = []
+    blocked_or_review_years = []
+    publication_ready_years = []
     for row in coverage_by_year:
         status = row["derivation_status"]
         status_counts[status] = status_counts.get(status, 0) + 1
         if status.startswith("blocked") or status.startswith("requires"):
-            blocked_years.append(row["score_year"])
+            blocked_or_review_years.append(row["score_year"])
         else:
             derivable_years.append(row["score_year"])
+            if row.get("gaps"):
+                blocked_or_review_years.append(row["score_year"])
+            else:
+                publication_ready_years.append(row["score_year"])
     return {
         "status_counts": dict(sorted(status_counts.items())),
         "derivable_years": derivable_years,
-        "blocked_or_review_years": blocked_years,
+        "publication_ready_years": publication_ready_years,
+        "blocked_or_review_years": blocked_or_review_years,
     }

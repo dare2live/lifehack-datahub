@@ -4115,7 +4115,8 @@ def test_audit_score_source_coverage_tracks_derivation_gaps(tmp_path: Path):
     assert by_year[2022]["score_distribution"]["official_grid_image_count"] == 2
     assert by_year[2022]["derivation_status"] == "official_image_derivable"
     assert report["summary"]["derivable_years"] == [2022, 2023, 2024, 2025]
-    assert report["summary"]["blocked_or_review_years"] == []
+    assert report["summary"]["publication_ready_years"] == [2022, 2025]
+    assert report["summary"]["blocked_or_review_years"] == [2023, 2024]
 
 
 def test_audit_data_update_policy_has_no_errors():

@@ -302,7 +302,7 @@ python3 scripts/build_package.py audit-score-source-coverage \
   --report staging/source_research/score_source_coverage.json
 ```
 
-当前配置下，2025 为官方远程文件可派生；2024 投档最低分是辽宁官网附件、一分一段仍用镜像 PDF 加官方图片页留痕；2023 投档最低分已升级为辽宁官网附件，一分一段仍用镜像 PDF 加官方图片页留痕；2022 投档最低分已补辽宁招生考试之窗官方附件直链，历史类 `2022ptlbk0720w01.xlsx`、物理类 `2022ptlbk0720l01.xlsx` 已核验 HTTP 200、文件类型和 SHA-256，`parse-ln-projection-score` 可解析 14,203 行。2022 一分一段官方图片源已在 `page_image_sources` 标记 `parse_mode=grid_image_table`，覆盖审计识别为 `official_image_derivable`；导入 core 前仍必须走 raw manifest、quality report 和 importer dry-run。
+当前配置下，2025 为官方远程文件可派生；2024 投档最低分是辽宁官网附件、一分一段仍用镜像 PDF 加官方图片页留痕；2023 投档最低分已升级为辽宁官网附件，一分一段仍用镜像 PDF 加官方图片页留痕；2022 投档最低分已补辽宁招生考试之窗官方附件直链，历史类 `2022ptlbk0720w01.xlsx`、物理类 `2022ptlbk0720l01.xlsx` 已核验 HTTP 200、文件类型和 SHA-256，`parse-ln-projection-score` 可解析 14,203 行。2022 一分一段官方图片源已在 `page_image_sources` 标记 `parse_mode=grid_image_table`，覆盖审计识别为 `official_image_derivable`；导入 core 前仍必须走 raw manifest、quality report 和 importer dry-run。覆盖审计的 summary 会把 2023/2024 归入 `blocked_or_review_years`，即使它们可用镜像派生，也不能被调度层误判为发布就绪。
 
 已探测但不可晋级来源：辽宁日报传媒集团/辽沈晚报电子报 2023-06-25 与 2024-06-25 版面附件可访问，正确 PDF 路径为 `/lswbepaper/pc/att/...`，但 2024 A01-A08 未发现可文本解析的一分一段表；2023 A03/A05 虽有“成绩统计表”标题，PDF 文本不是完整逐分三列表，`parse-ln-score-distribution` 行数为 0。该来源保留在 `research_candidates`，避免后续重复探测或误晋级。
 
