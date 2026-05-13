@@ -1,6 +1,8 @@
 from pathlib import Path
+import base64
 import csv
 import hashlib
+import io
 import json
 from zipfile import ZipFile
 
@@ -5130,6 +5132,7 @@ def test_extract_outcome_report_candidates_from_lines(tmp_path: Path):
             (11, "2024 届毕业生初次就业率显示：42.1%毕业生在辽宁省就业。"),
             (12, "毕业授位 88 人，学位点就业率 100%。学员主要分布在国有企业单位。"),
             (12, "毕业生职业发展情况良好，毕业生近三年内 47.6%岗位得到晋升。"),
+            (13, "师范生/非师范生毕业去向落实率分别为 77.47%、81.70%。"),
         ],
         domain="school",
         entity_code="0142",
@@ -5150,6 +5153,7 @@ def test_extract_outcome_report_candidates_from_lines(tmp_path: Path):
     assert not any(row["metric_key"] == "keep_research_rate" and row["candidate_value"] == "0.3757" for row in rows)
     assert not any(row["metric_key"] == "keep_research_rate" and row["candidate_value"] == "0.2547" for row in rows)
     assert not any(row["metric_key"] == "employment_rate" and row["candidate_value"] in {"0.421", "1"} for row in rows)
+    assert not any(row["metric_key"] == "employment_rate" and row["candidate_value"] == "0.7747" for row in rows)
     assert not any(row["metric_key"] == "civil_service_rate" and row["candidate_value"] == "0.476" for row in rows)
     assert all(row["review_status"] == "needs_review" for row in rows)
 
@@ -5492,6 +5496,96 @@ def test_download_outcome_report_intake_assets_follows_html_attachment(tmp_path:
     assert rows[0]["local_report_path"] == str(target_pdf)
     assert rows[0]["download_url"] == "https://example.edu/system/download.jsp?id=1"
     assert rows[0]["download_sha256"] == hashlib.sha256(b"%PDF-1.4 fixture").hexdigest()
+
+
+def test_download_outcome_report_intake_assets_extracts_cloud_zip_attachment(tmp_path: Path, monkeypatch):
+    intake_csv = tmp_path / "outcome_report_intake_plan.csv"
+    target_pdf = tmp_path / "raw" / "outcome_report" / "2024" / "bohai.pdf"
+    row = {
+        "domain": "school",
+        "entity_code": "0167",
+        "entity_name": "渤海大学",
+        "metric_year": "2024",
+        "report_scope": "undergraduate_teaching_quality_report",
+        "candidate_report_title": "渤海大学2023-2024学年本科教学质量报告",
+        "candidate_report_url": "https://example.edu/engine2/general/4172508/detail",
+        "candidate_file_name": "渤海大学2023-2024学年本科教学质量报告.pdf",
+        "candidate_source_date": "2024-12-19",
+        "availability_date": "2024-12-19",
+        "suggested_local_report_path": str(target_pdf),
+        "local_report_path": "",
+        "intake_status": "ready_for_intake",
+        "block_reason": "",
+        "source_status": "candidate_found",
+        "notes": "",
+    }
+    with intake_csv.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=list(row))
+        writer.writeheader()
+        writer.writerow(row)
+
+    pdf_body = b"%PDF-1.4 bohai fixture"
+    archive_buffer = io.BytesIO()
+    with ZipFile(archive_buffer, "w") as archive:
+        archive.writestr("folder/bohai-report.pdf", pdf_body)
+        archive.writestr("folder/support.xls", b"xls")
+    payload = {
+        "att_clouddisk": {
+            "downPath": "/engine/upload/engine/2024-12/report.zip",
+            "name": "渤海大学2023-2024学年本科教学质量报告.zip",
+            "suffix": "zip",
+        }
+    }
+    encoded = base64.b64encode(json.dumps(payload, ensure_ascii=False).encode("utf-8")).decode("ascii")
+
+    class FakeHeaders:
+        def __init__(self, content_type: str):
+            self._content_type = content_type
+
+        def get(self, name: str, default=None):
+            return self._content_type if name == "Content-Type" else default
+
+    class FakeResponse:
+        def __init__(self, url: str, body: bytes, content_type: str):
+            self._url = url
+            self._body = body
+            self.headers = FakeHeaders(content_type)
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def read(self):
+            return self._body
+
+        def geturl(self):
+            return self._url
+
+    def fake_urlopen(request, timeout=60):
+        url = request.full_url
+        if url.endswith("/engine2/general/4172508/detail"):
+            html = f'<html><iframe src="/engine2/assets/attachment/insertCloud.html" name="{encoded}"></iframe></html>'
+            return FakeResponse(url, html.encode("utf-8"), "text/html; charset=utf-8")
+        if url.endswith("/engine/upload/engine/2024-12/report.zip"):
+            return FakeResponse(url, archive_buffer.getvalue(), "application/zip")
+        raise AssertionError(url)
+
+    monkeypatch.setattr("datahub.connectors.outcome_report_download.urlopen", fake_urlopen)
+
+    output = tmp_path / "outcome_report_intake_plan.downloaded.csv"
+    report = download_outcome_report_intake_assets(
+        intake_csv=intake_csv,
+        output=output,
+    )
+
+    assert report["downloaded_rows"] == 1
+    assert target_pdf.read_bytes() == pdf_body
+    with output.open(encoding="utf-8", newline="") as f:
+        rows = list(csv.DictReader(f))
+    assert rows[0]["download_url"].endswith("/engine/upload/engine/2024-12/report.zip#folder/bohai-report.pdf")
+    assert rows[0]["download_sha256"] == hashlib.sha256(pdf_body).hexdigest()
 
 
 def test_download_outcome_report_intake_assets_summarizes_failure_reasons(tmp_path: Path, monkeypatch):
@@ -5927,22 +6021,24 @@ def test_build_outcome_collection_batch_limits_pending_rows(tmp_path: Path):
 def test_apply_outcome_collection_review_seeds_updates_matching_rows(tmp_path: Path):
     audit = audit_outcome_collection_review_seeds()
     assert audit["errors"] == []
-    assert audit["seed_count"] == 8
-    assert audit["status_counts"] == {"verified": 8}
+    assert audit["seed_count"] == 9
+    assert audit["status_counts"] == {"verified": 9}
 
     plan = tmp_path / "outcome_collection_plan.csv"
     seeded = _outcome_plan_row("school", "0140", "辽宁大学", "employment_rate", status="todo", priority_rank="1")
     seeded["metric_year"] = "2024"
     dlpu = _outcome_plan_row("school", "0152", "大连工业大学", "postgrad_rate", status="todo", priority_rank="2")
     dlpu["metric_year"] = "2024"
+    bohai = _outcome_plan_row("school", "0167", "渤海大学", "employment_rate", status="todo", priority_rank="3")
+    bohai["metric_year"] = "2024"
     pending = _outcome_plan_row("school", "0166", "沈阳师范大学", "employment_rate", status="todo", priority_rank="2")
     pending["metric_year"] = "2024"
-    _write_outcome_plan(plan, [seeded, dlpu, pending])
+    _write_outcome_plan(plan, [seeded, dlpu, bohai, pending])
 
     output = tmp_path / "outcome_collection_plan_seeded.csv"
     report = apply_outcome_collection_review_seeds(plan_csv=plan, output=output)
-    assert report["matched_rows"] == 2
-    assert report["updated_rows"] == 2
+    assert report["matched_rows"] == 3
+    assert report["updated_rows"] == 3
     assert report["unmatched_seeds"] == 6
 
     with output.open(encoding="utf-8", newline="") as f:
@@ -5958,6 +6054,9 @@ def test_apply_outcome_collection_review_seeds_updates_matching_rows(tmp_path: P
     assert dlpu_postgrad["status"] == "verified"
     assert dlpu_postgrad["metric_value"] == "0.2547"
     assert "不是保研率" in dlpu_postgrad["metric_scope"]
+    bohai_employment = by_entity[("0167", "employment_rate")]
+    assert bohai_employment["status"] == "verified"
+    assert bohai_employment["metric_value"] == "0.8754"
     assert by_entity[("0166", "employment_rate")]["status"] == "todo"
 
 

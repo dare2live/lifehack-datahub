@@ -626,7 +626,7 @@ python3 scripts/build_package.py build-outcome-from-collection-plan \
 
 该入口只读取 `verified/ready/collected` 行，会先运行 outcome collection audit，再复用 `build-local` 的 schema、主键、metric key、单位和值域校验。真实 smoke：`/tmp` 中 1 条学校 verified outcome 和 1 条专业 verified outcome 成功生成 `fa_fact_school_outcome`、`fa_fact_major_outcome` 两个标准包，质量报告无错误。
 
-端到端真实 smoke：辽宁大学报告候选合并后的 1 条 `verified` 采集行已生成 `lnu_2022_outcome_candidate_merge_smoke_school` 包，`fa_fact_school_outcome` 1 行，quality report 无错误；manifest `source_lineage` 已记录采集计划路径、来源 URL、报告标题、指标和状态统计；DataHub `validate` 返回 `errors=[]`，core importer `--dry-run` 通过。2024 学校 outcome 复核种子当前覆盖 8 条已核指标：辽宁大学就业率/升学率、大连交通大学就业率/国企签约比例、大连工业大学就业率/考研比例/党政机关事业单位等去向比例、大连民族大学就业率；种子重放、采集计划审计、`ln_outcome_school_2024_seeded_v2_school` manifest 校验、core importer `--dry-run` 和本地 core 实导均通过。
+端到端真实 smoke：辽宁大学报告候选合并后的 1 条 `verified` 采集行已生成 `lnu_2022_outcome_candidate_merge_smoke_school` 包，`fa_fact_school_outcome` 1 行，quality report 无错误；manifest `source_lineage` 已记录采集计划路径、来源 URL、报告标题、指标和状态统计；DataHub `validate` 返回 `errors=[]`，core importer `--dry-run` 通过。2024 学校 outcome 复核种子当前覆盖 9 条已核指标：辽宁大学就业率/升学率、渤海大学就业率、大连交通大学就业率/国企签约比例、大连工业大学就业率/考研比例/党政机关事业单位等去向比例、大连民族大学就业率；种子重放、采集计划审计、`ln_outcome_school_2024_seeded_v3_school` manifest 校验、core importer `--dry-run` 和本地 core 实导均通过。
 
 政策映射和规划兑现回测不再由 core 建表脚本生产。DataHub 用版本化配置生成标准包：
 
