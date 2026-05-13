@@ -627,7 +627,10 @@
         "preferred": "web_service",
         "web_service": {
           "provider": "amap_web_service",
-          "key_env": "AMAP_WEB_SERVICE_KEY"
+          "key_env": "AMAP_WEB_SERVICE_KEY",
+          "endpoints": {
+            "place_around": "https://restapi.amap.com/v3/place/around"
+          }
         },
         "coordinate_system": "GCJ-02",
         "radii_m": [800, 1500, 3000],

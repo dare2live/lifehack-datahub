@@ -148,6 +148,25 @@ python3 scripts/build_package.py probe-source-candidates \
   --output staging/source_research/ln_projection_score_candidates.json
 ```
 
+高德地图数据走 Web API connector。API key 只从环境变量读取，不写入配置或 manifest；原始响应写入 ignored `raw/`，后续再由 parser/normalizer 生成标准包：
+
+```bash
+export AMAP_WEB_SERVICE_KEY=...
+
+python3 scripts/build_package.py fetch-amap-web-api \
+  --source-key school_location_geocode \
+  --operation geocode \
+  --input cleaned/school_campus_address.csv \
+  --address-column address \
+  --city-column city \
+  --output-root raw
+
+python3 scripts/build_package.py fetch-amap-web-api \
+  --source-key region_profile_geocode \
+  --operation district \
+  --output-root raw
+```
+
 再把已清洗文件生成 data package：
 
 ```bash

@@ -58,6 +58,7 @@ from datahub.builders.score_distribution_review_workspace import (
 from datahub.builders.score_distribution_readiness import audit_score_distribution_readiness
 from datahub.config import get_table_schema, load_career_data_sources, load_outcome_metrics, load_source_schemas
 from datahub.builders.school_identity import build_school_identity_package
+from datahub.connectors.amap_web_api import fetch_amap_web_api
 from datahub.connectors.manual_files import intake_manual_assets
 from datahub.connectors.macos_vision_ocr import ocr_page_images
 from datahub.connectors.remote_files import download_remote_assets
@@ -4382,6 +4383,137 @@ def test_download_remote_assets_from_config(tmp_path: Path, monkeypatch):
     assert manifest["target_tables"] == ["fa_demo"]
     assert manifest["evidence_urls"] == ["https://example.edu/source"]
     assert manifest["files"][0]["sha256"] == digest
+
+
+def test_fetch_amap_web_api_geocode_writes_raw_manifest(tmp_path: Path, monkeypatch):
+    source = tmp_path / "schools.csv"
+    source.write_text("school_name,address,city\n东北大学,沈阳市和平区文化路3号巷11号,沈阳\n", encoding="utf-8")
+
+    monkeypatch.setenv("AMAP_WEB_SERVICE_KEY", "fixture-key")
+    monkeypatch.setattr(
+        "datahub.connectors.amap_web_api.load_sources",
+        lambda: {
+            "sources": {
+                "school_location_geocode": {
+                    "name": "高校地理位置增强",
+                    "kind": "verified_address_plus_amap_web_api_geocode",
+                    "target_tables": ["fa_dim_school_location"],
+                    "interfaces": {
+                        "web_service": {
+                            "provider": "amap_web_service",
+                            "key_env": "AMAP_WEB_SERVICE_KEY",
+                            "endpoints": {
+                                "geocode": "https://restapi.amap.com/v3/geocode/geo",
+                            },
+                        },
+                        "request_policy": {"timeout_seconds": 3, "rate_limit_per_second": 0},
+                    },
+                    "acquisition": {
+                        "status": "web_api_configured_requires_connector",
+                        "official_distribution": "fixture amap",
+                        "evidence_urls": ["https://lbs.amap.com/api/webservice/guide/api/georegeo"],
+                    },
+                }
+            }
+        },
+    )
+
+    class FakeResponse:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def read(self):
+            return b'{"status":"1","geocodes":[{"location":"123.1,41.8"}]}'
+
+    requested = []
+
+    def fake_urlopen(request, timeout):
+        requested.append(request.full_url)
+        return FakeResponse()
+
+    monkeypatch.setattr("datahub.connectors.amap_web_api.urlopen", fake_urlopen)
+
+    result = fetch_amap_web_api(
+        source_key="school_location_geocode",
+        operation="geocode",
+        input_path=source,
+        output_root=tmp_path / "raw",
+        source_date="2026-05-13",
+        address_column="address",
+        city_column="city",
+    )
+
+    assert result["request_count"] == 1
+    assert "fixture-key" in requested[0]
+    manifest = json.loads(Path(result["manifest_path"]).read_text(encoding="utf-8"))
+    assert manifest["source_key"] == "school_location_geocode"
+    assert manifest["key_env"] == "AMAP_WEB_SERVICE_KEY"
+    assert "key" not in manifest["request_params_without_key"][0]
+    assert manifest["request_params_without_key"][0]["address"] == "沈阳市和平区文化路3号巷11号"
+    lines = Path(result["jsonl_path"]).read_text(encoding="utf-8").splitlines()
+    record = json.loads(lines[0])
+    assert record["params"]["city"] == "沈阳"
+    assert record["response"]["status"] == "1"
+    assert "key" not in record["params"]
+
+
+def test_fetch_amap_web_api_district_uses_config_scope(tmp_path: Path, monkeypatch):
+    monkeypatch.setenv("AMAP_WEB_SERVICE_KEY", "fixture-key")
+    monkeypatch.setattr(
+        "datahub.connectors.amap_web_api.load_sources",
+        lambda: {
+            "sources": {
+                "region_profile_geocode": {
+                    "name": "城市与行政区基础信息",
+                    "kind": "amap_web_api_district_profile",
+                    "target_tables": ["fa_dim_region_profile"],
+                    "interfaces": {
+                        "web_service": {
+                            "provider": "amap_web_service",
+                            "key_env": "AMAP_WEB_SERVICE_KEY",
+                            "endpoints": {
+                                "district": "https://restapi.amap.com/v3/config/district",
+                            },
+                        },
+                        "request_policy": {"timeout_seconds": 3, "rate_limit_per_second": 0},
+                        "scope": {"province": "辽宁省"},
+                    },
+                    "acquisition": {
+                        "status": "web_api_configured_requires_connector",
+                        "official_distribution": "fixture district",
+                        "evidence_urls": ["https://lbs.amap.com/api/webservice/guide/api/district"],
+                    },
+                }
+            }
+        },
+    )
+
+    class FakeResponse:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def read(self):
+            return '{"status":"1","districts":[{"name":"辽宁省"}]}'.encode("utf-8")
+
+    monkeypatch.setattr("datahub.connectors.amap_web_api.urlopen", lambda request, timeout: FakeResponse())
+
+    result = fetch_amap_web_api(
+        source_key="region_profile_geocode",
+        operation="district",
+        output_root=tmp_path / "raw",
+        source_date="2026-05-13",
+    )
+
+    manifest = json.loads(Path(result["manifest_path"]).read_text(encoding="utf-8"))
+    assert result["request_count"] == 1
+    assert manifest["request_params_without_key"][0]["keywords"] == "辽宁省"
+    assert manifest["request_params_without_key"][0]["subdistrict"] == "3"
 
 
 def test_download_page_images_from_config(tmp_path: Path, monkeypatch):

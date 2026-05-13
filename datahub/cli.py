@@ -56,6 +56,7 @@ from .builders.score_distribution_review_workspace import (
     merge_score_distribution_review_workspace,
 )
 from .config import get_table_schema
+from .connectors.amap_web_api import fetch_amap_web_api
 from .connectors.manual_files import intake_manual_assets
 from .connectors.macos_vision_ocr import ocr_page_images
 from .connectors.page_images import download_page_images
@@ -136,6 +137,27 @@ def main() -> int:
     download_images.add_argument("--source-key", required=True)
     download_images.add_argument("--output-root", required=True, type=Path)
     download_images.add_argument("--timeout", type=int, default=60)
+
+    fetch_amap = sub.add_parser(
+        "fetch-amap-web-api",
+        help="Fetch raw Amap Web API responses for configured geocode, district, or place-around sources",
+    )
+    fetch_amap.add_argument("--source-key", required=True)
+    fetch_amap.add_argument("--operation", required=True, choices=["geocode", "district", "place_around"])
+    fetch_amap.add_argument("--output-root", required=True, type=Path)
+    fetch_amap.add_argument("--input", type=Path)
+    fetch_amap.add_argument("--source-date")
+    fetch_amap.add_argument("--address-column", default="address")
+    fetch_amap.add_argument("--city-column")
+    fetch_amap.add_argument("--location-column", default="location")
+    fetch_amap.add_argument("--longitude-column", default="longitude")
+    fetch_amap.add_argument("--latitude-column", default="latitude")
+    fetch_amap.add_argument("--keywords")
+    fetch_amap.add_argument("--types")
+    fetch_amap.add_argument("--radius", type=int)
+    fetch_amap.add_argument("--timeout", type=int)
+    fetch_amap.add_argument("--limit", type=int)
+    fetch_amap.add_argument("--sleep-seconds", type=float)
 
     ocr_images = sub.add_parser("ocr-page-images", help="Run configured OCR over page-image manifests")
     ocr_images.add_argument("--source-key", required=True)
@@ -642,6 +664,27 @@ def main() -> int:
         return 0
     if args.cmd == "download-page-images":
         result = download_page_images(args.source_key, args.output_root, timeout=args.timeout)
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+    if args.cmd == "fetch-amap-web-api":
+        result = fetch_amap_web_api(
+            source_key=args.source_key,
+            operation=args.operation,
+            output_root=args.output_root,
+            input_path=args.input,
+            source_date=args.source_date,
+            address_column=args.address_column,
+            city_column=args.city_column,
+            location_column=args.location_column,
+            longitude_column=args.longitude_column,
+            latitude_column=args.latitude_column,
+            keywords=args.keywords,
+            types=args.types,
+            radius=args.radius,
+            timeout=args.timeout,
+            limit=args.limit,
+            sleep_seconds=args.sleep_seconds,
+        )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
     if args.cmd == "ocr-page-images":
