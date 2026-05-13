@@ -33,6 +33,10 @@ from datahub.builders.career_source_seed_merge import (
     apply_career_source_review_seeds,
     audit_career_source_review_seeds,
 )
+from datahub.builders.career_shortage_page import (
+    apply_career_shortage_page_to_plan,
+    parse_shortage_ranking,
+)
 from datahub.builders.city_context_collection_audit import audit_city_context_collection_plan
 from datahub.builders.city_context_collection_batch import (
     build_city_context_review_batch,
@@ -3161,6 +3165,76 @@ def test_audit_career_source_coverage_maps_metrics_to_sources(tmp_path: Path):
     assert source_by_key["career_occupation_catalog"]["coverage_status"] == "official_seed_ready"
     assert source_by_key["career_recruitment_snapshot"]["coverage_status"] == "manual_snapshot_required"
     assert report["summary"]["covered_metric_count"] == report["metric_count"]
+
+
+def test_apply_career_shortage_page_updates_plan_candidates(tmp_path: Path):
+    html = """
+    <html><body><p>
+    排行前3个紧缺职业分别为市场营销专业人员、计算机网络工程技术人员、计算机软件工程技术人员。
+    </p></body></html>
+    """
+    ranking = parse_shortage_ranking(html)
+    assert ranking[1] == {"rank": 2, "occupation_name": "计算机网络工程技术人员"}
+
+    html_file = tmp_path / "guangzhou_shortage.html"
+    html_file.write_text(html, encoding="utf-8")
+    plan = tmp_path / "career_source_plan.csv"
+    network = _career_plan_row(
+        "career_recruitment_snapshot",
+        "fa_fact_career_signal",
+        "shortage_rank",
+        status="todo",
+    )
+    network.update({
+        "occupation_code": "2-02-10-04",
+        "occupation_name": "计算机网络工程技术人员",
+        "metric_year": "2025",
+        "city": "广州",
+    })
+    software = _career_plan_row(
+        "career_recruitment_snapshot",
+        "fa_fact_career_signal",
+        "shortage_rank",
+        status="todo",
+    )
+    software.update({
+        "occupation_code": "2-02-10-03",
+        "occupation_name": "计算机软件工程技术人员",
+        "metric_year": "2025",
+        "city": "广州",
+    })
+    salary = _career_plan_row(
+        "career_recruitment_snapshot",
+        "fa_fact_career_signal",
+        "salary_median",
+        status="todo",
+    )
+    _write_career_plan(plan, [network, software, salary])
+
+    output = tmp_path / "career_source_plan_shortage.csv"
+    report = apply_career_shortage_page_to_plan(
+        plan_csv=plan,
+        html_file=html_file,
+        output=output,
+        source_title="广州市2025年第四季度人力资源市场供求状况分析",
+        source_url="https://www.gz.gov.cn/example.html",
+        source_date="2026-04-08",
+        availability_date="2026-04-08",
+    )
+
+    assert report["ranked_item_count"] == 3
+    assert report["matched_rows"] == 2
+    assert report["updated_rows"] == 2
+    assert report["unmatched_ranked_items"] == [{"rank": 1, "occupation_name": "市场营销专业人员"}]
+    with output.open(encoding="utf-8", newline="") as f:
+        rows = list(csv.DictReader(f))
+    by_metric_name = {(row["metric_key"], row["occupation_name"]): row for row in rows}
+    network_row = by_metric_name[("shortage_rank", "计算机网络工程技术人员")]
+    assert network_row["status"] == "in_progress"
+    assert network_row["metric_value"] == "2"
+    assert network_row["source_title"] == "广州市2025年第四季度人力资源市场供求状况分析"
+    assert network_row["evidence_quote"] == "计算机网络工程技术人员排名2。"
+    assert by_metric_name[("salary_median", "软件工程师")]["metric_value"] == ""
 
 
 def test_download_scs_resources_writes_raw_manifest(tmp_path: Path, monkeypatch):

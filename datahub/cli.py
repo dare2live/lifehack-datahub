@@ -29,6 +29,7 @@ from .builders.career_source_seed_merge import (
     apply_career_source_review_seeds,
     audit_career_source_review_seeds,
 )
+from .builders.career_shortage_page import apply_career_shortage_page_to_plan
 from .builders.city_context_collection_audit import audit_city_context_collection_plan
 from .builders.city_context_collection_batch import (
     build_city_context_review_batch,
@@ -692,6 +693,21 @@ def main() -> int:
     apply_career_source_review_seeds_parser.add_argument("--output", required=True, type=Path)
     apply_career_source_review_seeds_parser.add_argument("--report", type=Path)
     apply_career_source_review_seeds_parser.add_argument("--overwrite", action="store_true")
+
+    apply_career_shortage_page_parser = sub.add_parser(
+        "apply-career-shortage-page",
+        help="Apply public labor-market shortage ranking HTML to a career source plan",
+    )
+    apply_career_shortage_page_parser.add_argument("--plan-csv", required=True, type=Path)
+    apply_career_shortage_page_parser.add_argument("--html-file", required=True, type=Path)
+    apply_career_shortage_page_parser.add_argument("--output", required=True, type=Path)
+    apply_career_shortage_page_parser.add_argument("--source-title", required=True)
+    apply_career_shortage_page_parser.add_argument("--source-url", required=True)
+    apply_career_shortage_page_parser.add_argument("--source-date", required=True)
+    apply_career_shortage_page_parser.add_argument("--availability-date", required=True)
+    apply_career_shortage_page_parser.add_argument("--status", default="in_progress")
+    apply_career_shortage_page_parser.add_argument("--metric-key", default="shortage_rank")
+    apply_career_shortage_page_parser.add_argument("--report", type=Path)
 
     build_career_signal_from_plan = sub.add_parser(
         "build-career-signal-from-source-plan",
@@ -1598,6 +1614,21 @@ def main() -> int:
             output=args.output,
             report_path=args.report,
             overwrite=args.overwrite,
+        )
+        print(json.dumps(report, ensure_ascii=False, indent=2))
+        return 0
+    if args.cmd == "apply-career-shortage-page":
+        report = apply_career_shortage_page_to_plan(
+            plan_csv=args.plan_csv,
+            html_file=args.html_file,
+            output=args.output,
+            source_title=args.source_title,
+            source_url=args.source_url,
+            source_date=args.source_date,
+            availability_date=args.availability_date,
+            status=args.status,
+            metric_key=args.metric_key,
+            report_path=args.report,
         )
         print(json.dumps(report, ensure_ascii=False, indent=2))
         return 0

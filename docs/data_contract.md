@@ -548,6 +548,8 @@ python3 scripts/build_package.py build-career-signal-from-source-plan \
 
 职业复核种子分两类：国考职位表种子只保存复核结论，证据仍来自重新生成的职位匹配计划；薪酬调查、招聘快照等受控报告类种子可以携带已核对的 `metric_value/source_url/evidence_quote/metric_scope`，用于重放完整信号。真实 run：以本地 core 73 条职业目录生成宁波 2024 年 `career_salary_survey` 采集计划 219 行，重放 15 条宁波薪酬调查种子，覆盖 5 个职业的 `salary_p25/salary_median/salary_p75`；审计无错误，生成 `2024_ningbo_salary_career_signal_v1` 15 行和 `2024_ningbo_salary_career_score_v1` 5 行，manifest 校验、core importer dry-run 和本地实导均通过。招聘快照首批真实 run：以本地 core 73 条职业目录生成广州 2025 年 `career_recruitment_snapshot` 采集计划 365 行，重放广州市人社局公开供求分析中的 2 条 `shortage_rank` 种子，生成 `2025_guangzhou_shortage_career_signal_v1` 2 行和 `2025_guangzhou_shortage_career_score_v1` 2 行；该评分包保留 `below_minimum_signal_count`，用于提示当前只有单一紧缺排行证据。
 
+`apply-career-shortage-page` 负责把公开供求分析 HTML 转为 `career_source_plan` 候选证据：它只解析已 intake 的 HTML，不直接写 core；只回填 `shortage_rank` 行的指标值、来源、摘录和候选状态；后续仍通过 `apply-career-source-review-seeds` 或人工复核批次晋级。真实广州页面解析出 30 个排行项，与当前 core 职业目录精确匹配 2 项，重放种子后 `audit-career-source-plan` 返回 `verified=2/todo=363/errors=[]`。
+
 批次命令按 `source_key, target_table, occupation_code, occupation_name, metric_key, metric_year, city` 定位任务，只允许回写配置列，防止局部文件改掉职业、指标、来源或目标表。通过审计后，`build-career-signal-from-source-plan` 只读取完整状态的职业信号行，复用标准数据包质量门禁生成 `fa_fact_career_signal`，再用 `build-career-score` 生成职业评分加工包。
 
 Outcome 数据采集不直接从搜索结果进 core。先用 core 招生计划生成高优先级采集队列：

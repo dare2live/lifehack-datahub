@@ -144,6 +144,8 @@ python3 scripts/build_package.py build-career-score \
 
 招聘紧缺第一批真实 run：以本地 core 的 73 条职业目录生成广州 2025 年 `career_recruitment_snapshot` 采集计划 365 行，重放广州市人社局 2025 年第四季度公开供求分析中的 2 条已核种子，覆盖计算机网络、计算机软件 2 个职业的 `shortage_rank`。`audit-career-source-plan` 返回 `errors=[]`，生成 `2025_guangzhou_shortage_career_signal_v1`（`fa_fact_career_signal` 2 行）和 `2025_guangzhou_shortage_career_score_v1`（`fa_mart_career_score` 2 行），manifest 校验、core importer dry-run 和本地实导均通过。该批只有单一紧缺排行信号，职业评分保留 `below_minimum_signal_count`，表示它是增长侧证据，不是完整职业画像。
 
+公开供求分析页不再只能手填种子。`apply-career-shortage-page` 会读取已 intake 到 ignored `raw/` 的 HTML，根据“排行前 N 个紧缺职业分别为...”句式提取职业排行，再回填到完整 `career_source_plan` 的 `shortage_rank` 候选行；默认状态为 `in_progress`，仍需复核种子或人工批次晋级后才能出包。真实广州页面解析出 30 个排行项，其中 2 个与当前 core 职业目录精确匹配；重放种子后审计为 `verified=2/todo=363/errors=[]`。
+
 国考职位表还可派生专业 outcome，而不是只停留在职业信号。`build-major-outcome-from-civil-service` 会读取官方职位明细和 core 招生计划里的标准本科专业代码，按 `config/major_outcome_derivation.json` 的代码、专业类前缀和专业名规则聚合为 `fa_fact_major_outcome.civil_service_fit_score`。该分数是“方向适配信号”，口径明确包含本科专业、专业类和相近研究生专业要求，不等同于本科毕业即可直接报考。真实 run：用 20,714 条 2026 国考职位明细和当前 core 专业清单生成 `2026_major_civil_service_fit` 标准包 797 行，quality report 和 manifest 均无错误，core importer `--dry-run` 和本地实导均通过。
 
 ```bash
