@@ -129,6 +129,10 @@ from datahub.parsers import ln_score_distribution_grid_images as grid_parser
 from datahub.parsers.ln_score_distribution import parse_ln_score_distribution_lines
 from datahub.parsers.moe_major_catalog import parse_moe_major_catalog_lines
 from datahub.parsers.moe_school_profile import parse_moe_school_profile_rows
+from datahub.parsers.scs_position_workbook import (
+    parse_scs_position_workbook,
+    write_scs_position_csv,
+)
 from datahub.parsers.digital_occupation_catalog import (
     parse_digital_occupation_catalog_html,
     write_digital_occupation_catalog_csv,
@@ -3097,6 +3101,120 @@ def test_download_scs_resources_writes_raw_manifest(tmp_path: Path, monkeypatch)
     assert manifest["api_response_sha256"] == hashlib.sha256(api_body).hexdigest()
     assert manifest["files"][0]["resource_id"] == "resource-main"
     assert manifest["files"][0]["sha256"] == hashlib.sha256(zip_body).hexdigest()
+
+
+def test_parse_scs_position_workbook_from_zip(tmp_path: Path, monkeypatch):
+    header = [
+        "部门代码",
+        "部门名称",
+        "用人司局",
+        "机构性质",
+        "招考职位",
+        "职位属性",
+        "职位分布",
+        "职位简介",
+        "职位代码",
+        "机构层级",
+        "考试类别",
+        "招考人数",
+        "专业",
+        "学历",
+        "学位",
+        "政治面貌",
+        "基层工作最低年限",
+        "服务基层项目工作经历",
+        "是否在面试阶段组织专业能力测试",
+        "面试人员比例",
+        "工作地点",
+        "落户地点",
+        "备注",
+        "部门网站",
+        "咨询电话1",
+        "咨询电话2",
+        "咨询电话3",
+    ]
+    data_row = [
+        "002000",
+        "中央办公厅",
+        "警卫局",
+        "中央党群机关",
+        "财务管理岗位",
+        "普通职位",
+        "其他职位",
+        "从事财务管理相关工作",
+        "100110001002",
+        "中央",
+        "综合管理类",
+        1,
+        "本科：120203K会计学、120204财务管理；研究生：1253会计",
+        "本科或硕士研究生",
+        "与最高学历相对应的学位",
+        "中共党员",
+        "二年",
+        "无限制",
+        "否",
+        "5:1",
+        "北京市",
+        "北京市",
+        "",
+        "https://example.gov",
+        "010-1",
+        "",
+        "",
+    ]
+
+    class FakeSheet:
+        name = "中央党群机关"
+        nrows = 3
+        ncols = len(header)
+
+        def cell_value(self, row, col):
+            if row == 0:
+                return "说明" if col == 0 else ""
+            if row == 1:
+                return header[col]
+            if row == 2:
+                return data_row[col]
+            return ""
+
+    class FakeBook:
+        def sheets(self):
+            return [FakeSheet()]
+
+    def fake_open_workbook(*, file_contents):
+        assert file_contents == b"fixture-xls"
+        return FakeBook()
+
+    monkeypatch.setattr("datahub.parsers.scs_position_workbook.xlrd.open_workbook", fake_open_workbook)
+
+    zip_path = tmp_path / "positions.zip"
+    with ZipFile(zip_path, "w") as zf:
+        zf.writestr("positions.xls", b"fixture-xls")
+
+    rows = parse_scs_position_workbook(
+        input_path=zip_path,
+        source_title="中央机关及其直属机构2026年度考试录用公务员招考简章",
+        source_url="http://dl.scs.gov.cn/download/resource-main",
+        source_date="2025-10-14",
+        availability_date="2025-10-14",
+    )
+
+    assert len(rows) == 1
+    row = rows[0]
+    assert row["source_key"] == "career_civil_service_posts"
+    assert row["sheet_name"] == "中央党群机关"
+    assert row["row_number"] == "3"
+    assert row["department_code"] == "002000"
+    assert row["position_code"] == "100110001002"
+    assert row["recruit_count"] == "1"
+    assert "会计学" in row["major_requirement"]
+    assert row["work_location"] == "北京市"
+
+    output = tmp_path / "scs_positions.csv"
+    write_scs_position_csv(output, rows)
+    with output.open(encoding="utf-8", newline="") as f:
+        written = list(csv.DictReader(f))
+    assert written[0]["position_name"] == "财务管理岗位"
 
 
 def test_build_career_source_review_batch_limits_pending_rows(tmp_path: Path):

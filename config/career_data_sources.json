@@ -157,6 +157,39 @@
             "User-Agent": "Mozilla/5.0"
           }
         },
+        "position_parser": {
+          "header_row_index": 1,
+          "required_columns": ["部门代码", "部门名称", "用人司局", "招考职位", "职位代码", "招考人数", "专业", "学历", "学位", "工作地点"],
+          "column_map": {
+            "department_code": "部门代码",
+            "department_name": "部门名称",
+            "bureau_name": "用人司局",
+            "institution_type": "机构性质",
+            "position_name": "招考职位",
+            "position_attribute": "职位属性",
+            "position_distribution": "职位分布",
+            "position_description": "职位简介",
+            "position_code": "职位代码",
+            "institution_level": "机构层级",
+            "exam_category": "考试类别",
+            "recruit_count": "招考人数",
+            "major_requirement": "专业",
+            "education_requirement": "学历",
+            "degree_requirement": "学位",
+            "political_status": "政治面貌",
+            "grassroots_years": "基层工作最低年限",
+            "grassroots_project": "服务基层项目工作经历",
+            "professional_test": "是否在面试阶段组织专业能力测试",
+            "interview_ratio": "面试人员比例",
+            "work_location": "工作地点",
+            "settlement_location": "落户地点",
+            "remarks": "备注",
+            "department_website": "部门网站",
+            "consult_phone_1": "咨询电话1",
+            "consult_phone_2": "咨询电话2",
+            "consult_phone_3": "咨询电话3"
+          }
+        },
         "metrics": ["civil_service_post_count", "public_sector_fit_score"],
         "query_templates": [
           "{entity_name} 国考 职位表 专业要求 {metric_year}",

@@ -123,6 +123,10 @@ from .parsers.ln_score_distribution_grid_images import (
 from .parsers.ln_score_distribution import parse_ln_score_distribution_pdf
 from .parsers.moe_major_catalog import parse_moe_major_catalog_pdf
 from .parsers.moe_school_profile import parse_moe_school_profile_xls
+from .parsers.scs_position_workbook import (
+    parse_scs_position_workbook,
+    write_scs_position_csv,
+)
 from .parsers.digital_occupation_catalog import (
     parse_digital_occupation_catalog_file,
     write_digital_occupation_catalog_csv,
@@ -956,6 +960,18 @@ def main() -> int:
     parse_digital_occupation.add_argument("--source-url", required=True)
     parse_digital_occupation.add_argument("--source-date", required=True)
     parse_digital_occupation.add_argument("--availability-date", required=True)
+
+    parse_scs_positions = sub.add_parser(
+        "parse-scs-position-workbook",
+        help="Parse official State Civil Service position workbook ZIP/XLS into reviewable CSV rows",
+    )
+    parse_scs_positions.add_argument("--input", required=True, type=Path)
+    parse_scs_positions.add_argument("--output", required=True, type=Path)
+    parse_scs_positions.add_argument("--source-title", required=True)
+    parse_scs_positions.add_argument("--source-url", required=True)
+    parse_scs_positions.add_argument("--source-date", required=True)
+    parse_scs_positions.add_argument("--availability-date", required=True)
+    parse_scs_positions.add_argument("--source-key", default="career_civil_service_posts")
 
     args = parser.parse_args()
     if args.cmd == "validate":
@@ -1859,6 +1875,18 @@ def main() -> int:
             availability_date=args.availability_date,
         )
         write_digital_occupation_catalog_csv(args.output, rows)
+        print(json.dumps({"output": str(args.output), "rows": len(rows)}, ensure_ascii=False, indent=2))
+        return 0
+    if args.cmd == "parse-scs-position-workbook":
+        rows = parse_scs_position_workbook(
+            input_path=args.input,
+            source_title=args.source_title,
+            source_url=args.source_url,
+            source_date=args.source_date,
+            availability_date=args.availability_date,
+            source_key=args.source_key,
+        )
+        write_scs_position_csv(args.output, rows)
         print(json.dumps({"output": str(args.output), "rows": len(rows)}, ensure_ascii=False, indent=2))
         return 0
     return 1

@@ -502,6 +502,14 @@ python3 scripts/build_package.py download-scs-resources \
   --source-key career_civil_service_posts \
   --output-root raw
 
+python3 scripts/build_package.py parse-scs-position-workbook \
+  --input raw/career_civil_service_posts/2025-10-14/中央机关及其直属机构2026年度考试录用公务员招考简章.zip \
+  --output cleaned/career_civil_service_posts/2026_scs_positions.csv \
+  --source-title 中央机关及其直属机构2026年度考试录用公务员招考简章 \
+  --source-url http://dl.scs.gov.cn/download/8a81f6d19780e4080199e13f881f0153 \
+  --source-date 2025-10-14 \
+  --availability-date 2025-10-14
+
 python3 scripts/build_package.py build-career-source-review-batch \
   --plan-csv staging/career_source_plan/career_source_plan.csv \
   --output-dir staging/career_source_plan/batch_001 \
@@ -527,7 +535,7 @@ python3 scripts/build_package.py build-career-signal-from-source-plan \
 
 真实 smoke：`career_occupation_catalog` 远程下载已校验 SHA-256 并生成 `_remote_manifest.json`；HTML 解析出 73 条数字职业，`build-local --intake-manifest` 生成 `2022_digital_occupation_catalog` 标准包，quality report 无错误，DataHub `validate` 与 core importer `--dry-run` 均通过。
 
-国家公务员局下载资源 API 登记在 `career_civil_service_posts.resource_api`。`download-scs-resources` 只做官方附件 raw intake：保存 API 响应、筛选后的资源文件和 `_scs_resource_manifest.json`，不把职位表解析为指标。真实 smoke：API 返回 8 个资源，配置筛出并下载 1 个“中央机关及其直属机构2026年度考试录用公务员招考简章.zip”，文件大小 1,860,532 字节，SHA-256 为 `0055e7eb78906e2dcefb8e31963e2fd74baf980aa98893eebb54fd9d7f9176cb`。后续需要单独解析职位表、按专业/职业映射统计岗位数，再进入 `career_source_plan` 复核和 `fa_fact_career_signal` 出包门禁。
+国家公务员局下载资源 API 登记在 `career_civil_service_posts.resource_api`，职位表列映射登记在 `career_civil_service_posts.position_parser`。`download-scs-resources` 只做官方附件 raw intake：保存 API 响应、筛选后的资源文件和 `_scs_resource_manifest.json`；`parse-scs-position-workbook` 只把官方 `.xls` 转成可复核职位明细 CSV，不把职位表直接解析为指标。真实 smoke：API 返回 8 个资源，配置筛出并下载 1 个“中央机关及其直属机构2026年度考试录用公务员招考简章.zip”，文件大小 1,860,532 字节，SHA-256 为 `0055e7eb78906e2dcefb8e31963e2fd74baf980aa98893eebb54fd9d7f9176cb`；职位表解析出 20,714 条职位、招考人数合计 38,119。后续需要按专业/职业映射统计岗位数，再进入 `career_source_plan` 复核和 `fa_fact_career_signal` 出包门禁。
 
 批次命令按 `source_key, target_table, occupation_code, occupation_name, metric_key, metric_year, city` 定位任务，只允许回写配置列，防止局部文件改掉职业、指标、来源或目标表。通过审计后，`build-career-signal-from-source-plan` 只读取完整状态的职业信号行，复用标准数据包质量门禁生成 `fa_fact_career_signal`，再用 `build-career-score` 生成职业评分加工包。
 
