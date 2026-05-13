@@ -215,7 +215,15 @@ def _duplicate_count(rows: list[dict[str, Any]], primary_key: list[str]) -> int:
 
 
 def _normalize_name(value: str | None) -> str:
-    return str(value or "").replace(" ", "").replace("\u3000", "").strip()
+    translation = str.maketrans({
+        "(": "（",
+        ")": "）",
+        "[": "（",
+        "]": "）",
+        "【": "（",
+        "】": "）",
+    })
+    return str(value or "").translate(translation).replace(" ", "").replace("\u3000", "").strip()
 
 
 def _clean_text(value: Any) -> str | None:

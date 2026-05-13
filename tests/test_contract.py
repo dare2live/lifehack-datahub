@@ -4176,6 +4176,7 @@ def test_build_school_identity_package_matches_unique_school_names(tmp_path: Pat
                 ('0140', '辽宁大学', '01', '法学', '本科批', '历史类'),
                 ('0140', '辽宁大学', '02', '汉语言文学', '本科批', '历史类'),
                 ('0183', '吉林大学', '01', '计算机类', '本科批', '物理类'),
+                ('1414', '中国石油大学(北京)', '01', '机械类', '本科批', '物理类'),
                 ('9999', '不存在大学', '01', '测试专业', '本科批', '物理类')
         """)
     finally:
@@ -4229,6 +4230,20 @@ def test_build_school_identity_package_matches_unique_school_names(tmp_path: Pat
             "availability_date": "2025-06-27",
             "built_at": "2026-05-13T00:00:00",
         })
+        writer.writerow({
+            "national_school_code": "4111011414",
+            "school_name": "中国石油大学（北京）",
+            "province": "北京市",
+            "city": "北京市",
+            "school_tier": "本科",
+            "school_type": "",
+            "ownership": "",
+            "official_site": "",
+            "competent_authority": "教育部",
+            "source_date": "2025-06-20",
+            "availability_date": "2025-06-27",
+            "built_at": "2026-05-13T00:00:00",
+        })
 
     result = build_school_identity_package(
         core_db=db,
@@ -4239,7 +4254,7 @@ def test_build_school_identity_package_matches_unique_school_names(tmp_path: Pat
     )
     package_dir = Path(result["package_dir"])
     assert validate_manifest(package_dir / "manifest.json")["errors"] == []
-    assert result["rows"] == 2
+    assert result["rows"] == 3
     assert result["unmatched_rows"] == 1
 
     with (package_dir / "fa_bridge_school_identity.csv").open(encoding="utf-8", newline="") as f:
@@ -4247,6 +4262,7 @@ def test_build_school_identity_package_matches_unique_school_names(tmp_path: Pat
     by_local_code = {row["local_school_code"]: row for row in rows}
     assert by_local_code["0140"]["national_school_code"] == "4121010140"
     assert by_local_code["0183"]["match_method"] == "unique_exact_school_name"
+    assert by_local_code["1414"]["national_school_code"] == "4111011414"
 
 
 def test_build_score_history_snapshot_filters_incomplete_rows(tmp_path: Path):
