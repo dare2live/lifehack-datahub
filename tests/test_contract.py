@@ -3261,6 +3261,22 @@ def test_build_civil_service_signal_plan_from_positions(tmp_path: Path):
             "source_url": "http://dl.scs.gov.cn/download/resource-main",
             "source_date": "2025-10-14",
             "availability_date": "2025-10-14",
+            "sheet_name": "中央国家行政机关",
+            "row_number": "5",
+            "position_code": "100110001004",
+            "position_name": "信息公开岗位",
+            "position_description": "从事政务公开和综合文字工作",
+            "recruit_count": "1",
+            "major_requirement": "本科：030101K法学、050101汉语言文学",
+            "work_location": "北京市",
+            "remarks": "",
+        },
+        {
+            "source_key": "career_civil_service_posts",
+            "source_title": "中央机关及其直属机构2026年度考试录用公务员招考简章",
+            "source_url": "http://dl.scs.gov.cn/download/resource-main",
+            "source_date": "2025-10-14",
+            "availability_date": "2025-10-14",
             "sheet_name": "中央党群机关",
             "row_number": "4",
             "position_code": "100110001003",
@@ -3295,6 +3311,14 @@ def test_build_civil_service_signal_plan_from_positions(tmp_path: Path):
             "major_keywords_json": "[\"会计\", \"财务\"]",
             "skill_keywords_json": "[]",
         },
+        {
+            "occupation_code": "4-04-02-01",
+            "occupation_name": "信息通信网络机务员",
+            "tdx_l2": "T1202",
+            "tdx_l2_name": "通信设备",
+            "major_keywords_json": "[]",
+            "skill_keywords_json": "[]",
+        },
     ]
     with occupations.open("w", encoding="utf-8", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=occupation_rows[0].keys())
@@ -3318,6 +3342,7 @@ def test_build_civil_service_signal_plan_from_positions(tmp_path: Path):
     assert "招考人数2人" in by_code["2-02-10-03"]["metric_scope"]
     assert "信息化建设岗位" in by_code["2-02-10-03"]["evidence_quote"]
     assert by_code["2-06-04-00"]["status"] == "in_progress"
+    assert "4-04-02-01" not in by_code
 
     audit = audit_career_source_plan(plan_csv)
     assert audit["errors"] == []
