@@ -80,6 +80,24 @@ python3 scripts/build_package.py build-admission-plan-reconciliation-plan \
   --output-dir staging/admission_plan_reconciliation_2026
 ```
 
+复核推进时使用 `audit-admission-plan-reconciliation-plan` 看进度，用 `build-admission-plan-reconciliation-review-batch` 拆出小批次，再用 `merge-admission-plan-reconciliation-review-batch` 合并回总计划。合并时只回写 `config/source_schemas.json` 中 `batch_editable_columns` 指定的复核列，不允许批次修改主键、学校、专业或计划数：
+
+```bash
+python3 scripts/build_package.py audit-admission-plan-reconciliation-plan \
+  --plan-csv staging/admission_plan_reconciliation_2026/admission_plan_reconciliation_plan.csv \
+  --report staging/admission_plan_reconciliation_2026/readiness_report.json
+
+python3 scripts/build_package.py build-admission-plan-reconciliation-review-batch \
+  --plan-csv staging/admission_plan_reconciliation_2026/admission_plan_reconciliation_plan.csv \
+  --output-dir staging/admission_plan_reconciliation_2026/review_batch_initial \
+  --limit-per-issue 20
+
+python3 scripts/build_package.py merge-admission-plan-reconciliation-review-batch \
+  --plan-csv staging/admission_plan_reconciliation_2026/admission_plan_reconciliation_plan.csv \
+  --batch-csv staging/admission_plan_reconciliation_2026/review_batch_initial/admission_plan_reconciliation_review_batch.csv \
+  --output staging/admission_plan_reconciliation_2026/admission_plan_reconciliation_plan_merged.csv
+```
+
 ### 招生计划过渡包
 
 `ln_admission_plan` 的完整官方分发目前是志愿填报系统和《辽宁招生考试》杂志，公开站点没有稳定完整附件。为了让 core 里现有清洗数据也进入 DataHub 包链路，可先生成过渡 snapshot：

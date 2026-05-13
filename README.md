@@ -113,6 +113,24 @@ python3 scripts/build_package.py build-admission-plan-reconciliation-plan \
   --output-dir staging/admission_plan_reconciliation_2026
 ```
 
+复核推进也走小批量任务表，批次只允许回写状态、复核结论、复核人、复核时间和备注：
+
+```bash
+python3 scripts/build_package.py audit-admission-plan-reconciliation-plan \
+  --plan-csv staging/admission_plan_reconciliation_2026/admission_plan_reconciliation_plan.csv \
+  --report staging/admission_plan_reconciliation_2026/readiness_report.json
+
+python3 scripts/build_package.py build-admission-plan-reconciliation-review-batch \
+  --plan-csv staging/admission_plan_reconciliation_2026/admission_plan_reconciliation_plan.csv \
+  --output-dir staging/admission_plan_reconciliation_2026/review_batch_initial \
+  --limit-per-issue 20
+
+python3 scripts/build_package.py merge-admission-plan-reconciliation-review-batch \
+  --plan-csv staging/admission_plan_reconciliation_2026/admission_plan_reconciliation_plan.csv \
+  --batch-csv staging/admission_plan_reconciliation_2026/review_batch_initial/admission_plan_reconciliation_review_batch.csv \
+  --output staging/admission_plan_reconciliation_2026/admission_plan_reconciliation_plan_merged.csv
+```
+
 当前 core 已有的清洗招生计划可先生成过渡 snapshot，避免核心库成为唯一数据落点。该包会标注 `legacy_core_snapshot`，不能替代后续官方系统/杂志导出的受控 intake：
 
 ```bash

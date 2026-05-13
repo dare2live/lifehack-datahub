@@ -10,6 +10,11 @@ from openpyxl import Workbook
 from datahub.builders.admission_plan_snapshot import build_admission_plan_snapshot_package
 from datahub.builders.admission_plan_package_audit import audit_admission_plan_package_against_core
 from datahub.builders.admission_plan_reconciliation_plan import build_admission_plan_reconciliation_plan
+from datahub.builders.admission_plan_reconciliation_audit import audit_admission_plan_reconciliation_plan
+from datahub.builders.admission_plan_reconciliation_batch import (
+    build_admission_plan_reconciliation_review_batch,
+    merge_admission_plan_reconciliation_review_batch,
+)
 from datahub.connectors.page_images import download_page_images
 from datahub.builders.outcome_collection_audit import audit_outcome_collection_plan
 from datahub.builders.outcome_collection_batch import (
@@ -2852,6 +2857,118 @@ def test_build_admission_plan_reconciliation_plan_from_audit_inputs(tmp_path: Pa
     assert by_type["value_drift"]["core_plan_count"] == "9"
     assert by_type["package_only_unmatched"]["package_major_code"] == "04"
     assert by_type["core_only_unmatched"]["core_major_code"] == "03"
+
+
+def test_audit_admission_plan_reconciliation_plan_reports_progress(tmp_path: Path):
+    plan = tmp_path / "admission_plan_reconciliation_plan.csv"
+    rows = [
+        _admission_reconciliation_row("t1", "value_drift", status="reviewed", review_decision="use_package_row"),
+        _admission_reconciliation_row("t2", "core_only_unmatched", status="todo"),
+    ]
+    _write_admission_reconciliation_plan(plan, rows)
+
+    report = audit_admission_plan_reconciliation_plan(plan)
+
+    assert report["errors"] == []
+    assert report["rows"] == 2
+    assert report["status_counts"] == {"reviewed": 1, "todo": 1}
+    assert report["decision_counts"] == {"use_package_row": 1}
+    assert report["progress"]["ready_rows"] == 1
+    assert report["progress"]["pending_rows"] == 1
+    assert report["ready"]["review_complete"] is False
+    assert report["ready"]["migration_ready"] is False
+
+
+def test_build_and_merge_admission_plan_reconciliation_review_batch(tmp_path: Path):
+    plan = tmp_path / "admission_plan_reconciliation_plan.csv"
+    rows = [
+        _admission_reconciliation_row("v1", "value_drift", priority="1", status="todo"),
+        _admission_reconciliation_row("v2", "value_drift", priority="1", status="todo", school_code="1002"),
+        _admission_reconciliation_row("p1", "package_only_unmatched", priority="2", status="todo", school_code="1003"),
+        _admission_reconciliation_row("c1", "core_only_unmatched", priority="3", status="reviewed", review_decision="keep_core_row", school_code="1004"),
+    ]
+    _write_admission_reconciliation_plan(plan, rows)
+
+    batch_result = build_admission_plan_reconciliation_review_batch(
+        plan_csv=plan,
+        output_dir=tmp_path / "batch",
+        limit_per_issue=1,
+    )
+
+    assert batch_result["rows"] == 2
+    assert batch_result["issue_counts"] == {"package_only_unmatched": 1, "value_drift": 1}
+    with Path(batch_result["csv"]).open(encoding="utf-8", newline="") as f:
+        batch_rows = list(csv.DictReader(f))
+    batch_rows[0]["school_code"] = "tampered"
+    batch_rows[0]["status"] = "reviewed"
+    batch_rows[0]["review_decision"] = "use_package_row"
+    batch_rows[0]["reviewer"] = "tester"
+    batch_rows[0]["reviewed_at"] = "2026-05-13"
+    batch_rows[0]["notes"] = "approved"
+    _write_admission_reconciliation_plan(Path(batch_result["csv"]), batch_rows)
+
+    output = tmp_path / "admission_plan_reconciliation_plan_merged.csv"
+    merge_report = merge_admission_plan_reconciliation_review_batch(
+        plan_csv=plan,
+        batch_csv=Path(batch_result["csv"]),
+        output=output,
+    )
+
+    assert merge_report["updated_rows"] == 1
+    with output.open(encoding="utf-8", newline="") as f:
+        merged_rows = list(csv.DictReader(f))
+    by_id = {row["task_id"]: row for row in merged_rows}
+    assert by_id["v1"]["school_code"] == "1001"
+    assert by_id["v1"]["status"] == "reviewed"
+    assert by_id["v1"]["review_decision"] == "use_package_row"
+    assert by_id["p1"]["status"] == "todo"
+    assert by_id["c1"]["status"] == "reviewed"
+
+
+def _admission_reconciliation_row(
+    task_id: str,
+    issue_type: str,
+    *,
+    priority: str = "1",
+    status: str = "todo",
+    review_decision: str = "",
+    school_code: str = "1001",
+) -> dict[str, str]:
+    return {
+        "task_id": task_id,
+        "issue_type": issue_type,
+        "priority": priority,
+        "status": status,
+        "suggested_action": "review_admission_field_conflict",
+        "match_confidence": "primary_key_match",
+        "batch": "本科批",
+        "subject_cat": "物理类",
+        "school_code": school_code,
+        "package_major_code": "01",
+        "core_major_code": "01",
+        "package_school_name": "东北大学",
+        "core_school_name": "东北大学",
+        "package_major_full": "计算机类",
+        "core_major_full": "计算机类",
+        "package_plan_count": "8",
+        "core_plan_count": "9",
+        "package_key_json": "{}",
+        "core_key_json": "{}",
+        "differences_json": "[]",
+        "review_decision": review_decision,
+        "reviewer": "tester" if status == "reviewed" else "",
+        "reviewed_at": "2026-05-13" if status == "reviewed" else "",
+        "notes": "",
+    }
+
+
+def _write_admission_reconciliation_plan(path: Path, rows: list[dict[str, str]]) -> None:
+    from datahub.builders.admission_plan_reconciliation_plan import PLAN_COLUMNS as ADMISSION_PLAN_COLUMNS
+
+    with path.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=ADMISSION_PLAN_COLUMNS, extrasaction="ignore")
+        writer.writeheader()
+        writer.writerows(rows)
 
 
 def _outcome_plan_row(

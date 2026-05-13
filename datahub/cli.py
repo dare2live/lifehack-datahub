@@ -9,6 +9,11 @@ from pathlib import Path
 from .builders.admission_plan_snapshot import build_admission_plan_snapshot_package
 from .builders.admission_plan_package_audit import audit_admission_plan_package_against_core
 from .builders.admission_plan_reconciliation_plan import build_admission_plan_reconciliation_plan
+from .builders.admission_plan_reconciliation_audit import audit_admission_plan_reconciliation_plan
+from .builders.admission_plan_reconciliation_batch import (
+    build_admission_plan_reconciliation_review_batch,
+    merge_admission_plan_reconciliation_review_batch,
+)
 from .builders.outcome_collection_batch import (
     build_outcome_collection_batch,
     merge_outcome_collection_batch,
@@ -173,6 +178,31 @@ def main() -> int:
     build_admission_reconciliation.add_argument("--core-db", required=True, type=Path)
     build_admission_reconciliation.add_argument("--package-dir", required=True, action="append", dest="package_dirs", type=Path)
     build_admission_reconciliation.add_argument("--output-dir", required=True, type=Path)
+
+    audit_admission_reconciliation = sub.add_parser(
+        "audit-admission-plan-reconciliation-plan",
+        help="Audit review progress and readiness for admission-plan reconciliation tasks",
+    )
+    audit_admission_reconciliation.add_argument("--plan-csv", required=True, type=Path)
+    audit_admission_reconciliation.add_argument("--report", type=Path)
+
+    build_admission_reconciliation_batch = sub.add_parser(
+        "build-admission-plan-reconciliation-review-batch",
+        help="Build a small CSV batch of pending admission-plan reconciliation tasks",
+    )
+    build_admission_reconciliation_batch.add_argument("--plan-csv", required=True, type=Path)
+    build_admission_reconciliation_batch.add_argument("--output-dir", required=True, type=Path)
+    build_admission_reconciliation_batch.add_argument("--issue-type", action="append", dest="issue_types")
+    build_admission_reconciliation_batch.add_argument("--limit-per-issue", type=int)
+
+    merge_admission_reconciliation_batch = sub.add_parser(
+        "merge-admission-plan-reconciliation-review-batch",
+        help="Merge edited admission-plan review batch rows back into a full reconciliation plan",
+    )
+    merge_admission_reconciliation_batch.add_argument("--plan-csv", required=True, type=Path)
+    merge_admission_reconciliation_batch.add_argument("--batch-csv", required=True, type=Path)
+    merge_admission_reconciliation_batch.add_argument("--output", required=True, type=Path)
+    merge_admission_reconciliation_batch.add_argument("--report", type=Path)
 
     build_score_snapshot = sub.add_parser(
         "build-score-history-snapshot",
@@ -541,6 +571,33 @@ def main() -> int:
             output_dir=args.output_dir,
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+    if args.cmd == "audit-admission-plan-reconciliation-plan":
+        report = audit_admission_plan_reconciliation_plan(args.plan_csv)
+        if args.report:
+            args.report.parent.mkdir(parents=True, exist_ok=True)
+            args.report.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        print(json.dumps(report, ensure_ascii=False, indent=2))
+        return 0 if not report["errors"] else 1
+    if args.cmd == "build-admission-plan-reconciliation-review-batch":
+        result = build_admission_plan_reconciliation_review_batch(
+            plan_csv=args.plan_csv,
+            output_dir=args.output_dir,
+            issue_types=args.issue_types,
+            limit_per_issue=args.limit_per_issue,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+    if args.cmd == "merge-admission-plan-reconciliation-review-batch":
+        report = merge_admission_plan_reconciliation_review_batch(
+            plan_csv=args.plan_csv,
+            batch_csv=args.batch_csv,
+            output=args.output,
+        )
+        if args.report:
+            args.report.parent.mkdir(parents=True, exist_ok=True)
+            args.report.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        print(json.dumps(report, ensure_ascii=False, indent=2))
         return 0
     if args.cmd == "build-score-history-snapshot":
         result = build_score_history_snapshot_package(
