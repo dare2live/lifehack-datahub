@@ -2657,6 +2657,119 @@ def test_build_score_history_reconciliation_review_batch_limits_pending_rows(tmp
     assert [row["issue_type"] for row in batch_rows] == ["major_code_drift_candidate", "value_drift"]
 
 
+def test_build_score_history_reconciliation_review_batch_adds_reference_context(tmp_path: Path):
+    plan = tmp_path / "score_history_reconciliation_plan.csv"
+    candidates = [
+        {
+            "key": {
+                "score_year": 2022,
+                "batch": "本科批",
+                "subject_cat": "物理类",
+                "school_code": "0162",
+                "major_code": "0L",
+            }
+        },
+        {
+            "key": {
+                "score_year": 2022,
+                "batch": "本科批",
+                "subject_cat": "物理类",
+                "school_code": "0162",
+                "major_code": "0P",
+            }
+        },
+    ]
+    row = {
+        "task_id": "major-context",
+        "issue_type": "major_code_drift_candidate",
+        "priority": "1",
+        "status": "todo",
+        "suggested_action": "review_major_code_alignment",
+        "match_confidence": "high",
+        "score_year": "2022",
+        "batch": "本科批",
+        "subject_cat": "物理类",
+        "school_code": "0162",
+        "package_major_code": "H1",
+        "core_major_code": "0L|0P",
+        "package_min_score": "498",
+        "core_min_score": "498",
+        "package_min_rank": "46215",
+        "core_min_rank": "46215",
+        "package_key_json": "{}",
+        "core_key_json": "{}",
+        "core_candidates_json": json.dumps(candidates, ensure_ascii=False),
+        "matching_values_json": "{}",
+        "differences_json": "[]",
+        "review_decision": "",
+        "reviewer": "",
+        "reviewed_at": "",
+        "notes": "",
+    }
+    with plan.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=PLAN_COLUMNS, extrasaction="ignore")
+        writer.writeheader()
+        writer.writerow(row)
+
+    projection = tmp_path / "ln_projection_score_2022_official.csv"
+    with projection.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(
+            f,
+            fieldnames=["school_code", "major_code", "major_full", "batch", "subject_cat", "score_year"],
+        )
+        writer.writeheader()
+        writer.writerow({
+            "school_code": "0162",
+            "major_code": "H1",
+            "major_full": "医学信息工程",
+            "batch": "本科批",
+            "subject_cat": "物理类",
+            "score_year": "2022",
+        })
+
+    core_db = tmp_path / "university.db"
+    con = duckdb.connect(str(core_db))
+    con.execute("""
+        CREATE TABLE fa_dim_ln_admission_plan (
+            school_code VARCHAR,
+            major_code VARCHAR,
+            subject_cat VARCHAR,
+            batch VARCHAR,
+            year INTEGER,
+            major_full VARCHAR,
+            major_short VARCHAR
+        )
+    """)
+    con.executemany(
+        "INSERT INTO fa_dim_ln_admission_plan VALUES (?, ?, ?, ?, ?, ?, ?)",
+        [
+            ("0162", "0L", "物理类", "本科批", 2026, "医学信息工程(非英语语种考生慎报)", ""),
+            ("0162", "0P", "物理类", "本科批", 2026, "运动康复", ""),
+        ],
+    )
+    con.close()
+
+    result = build_score_history_reconciliation_review_batch(
+        plan_csv=plan,
+        output_dir=tmp_path / "batch_with_context",
+        limit_per_issue=1,
+        projection_csv=projection,
+        core_db=core_db,
+        core_plan_year=2026,
+    )
+
+    assert result["reference_context"]["hint_counts"] == {"single_contains": 1}
+    with Path(result["csv"]).open(encoding="utf-8", newline="") as f:
+        batch_rows = list(csv.DictReader(f))
+    batch_row = batch_rows[0]
+    assert batch_row["package_major_full"] == "医学信息工程"
+    assert batch_row["major_name_match_hint"] == "single_contains"
+    assert batch_row["suggested_core_major_code"] == "0L"
+    candidate_names = json.loads(batch_row["core_candidate_names_json"])
+    assert candidate_names[0]["major_full"] == "医学信息工程(非英语语种考生慎报)"
+    assert candidate_names[0]["match_kind"] == "contains"
+
+
 def test_merge_score_history_reconciliation_review_batch_updates_only_editable_columns(tmp_path: Path):
     plan = tmp_path / "score_history_reconciliation_plan.csv"
     rows = [

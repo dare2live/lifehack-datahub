@@ -9,9 +9,25 @@ from pathlib import Path
 from typing import Any
 
 from datahub.builders.score_history_package_audit import TARGET_TABLE
+from datahub.builders.score_history_major_name_reference import (
+    _candidate_rows,
+    _normalize_major_name,
+    _package_key,
+    _read_core_major_names,
+    _read_package_major_names,
+)
 from datahub.builders.score_history_reconciliation_audit import _review_config
 from datahub.builders.score_history_reconciliation_plan import PLAN_COLUMNS
 from datahub.config import get_table_schema
+
+
+REFERENCE_CONTEXT_COLUMNS = [
+    "package_major_full",
+    "core_major_full",
+    "core_candidate_names_json",
+    "major_name_match_hint",
+    "suggested_core_major_code",
+]
 
 
 def build_score_history_reconciliation_review_batch(
@@ -20,6 +36,9 @@ def build_score_history_reconciliation_review_batch(
     output_dir: Path,
     issue_types: list[str] | None = None,
     limit_per_issue: int | None = None,
+    projection_csv: Path | None = None,
+    core_db: Path | None = None,
+    core_plan_year: int | None = None,
 ) -> dict[str, Any]:
     schema = get_table_schema(TARGET_TABLE)
     review_config = _review_config(schema)
@@ -57,10 +76,18 @@ def build_score_history_reconciliation_review_batch(
         )
         batch_rows.extend(issue_rows[:limit])
 
+    reference_context = None
+    fieldnames = PLAN_COLUMNS
+    if projection_csv or core_db:
+        if not projection_csv or not core_db:
+            raise ValueError("projection_csv and core_db must be provided together for reference context")
+        reference_context = _add_reference_context(batch_rows, projection_csv, core_db, core_plan_year)
+        fieldnames = PLAN_COLUMNS + REFERENCE_CONTEXT_COLUMNS
+
     output_dir.mkdir(parents=True, exist_ok=True)
     csv_path = output_dir / "score_history_reconciliation_review_batch.csv"
     manifest_path = output_dir / "score_history_reconciliation_review_batch.json"
-    _write_csv(csv_path, batch_rows)
+    _write_csv(csv_path, batch_rows, fieldnames=fieldnames)
     issue_counts = Counter(str(row.get("issue_type") or "") for row in batch_rows)
     manifest = {
         "built_at": datetime.utcnow().isoformat(),
@@ -68,6 +95,7 @@ def build_score_history_reconciliation_review_batch(
         "csv": str(csv_path),
         "selected_issue_types": sorted(selected_issue_types),
         "limit_per_issue": limit,
+        "reference_context": reference_context,
         "rows": len(batch_rows),
         "issue_counts": dict(sorted(issue_counts.items())),
         "notes": "Local review batch only. Merge reviewed rows back into the reconciliation plan before package construction.",
@@ -79,6 +107,7 @@ def build_score_history_reconciliation_review_batch(
         "manifest": str(manifest_path),
         "rows": len(batch_rows),
         "issue_counts": dict(sorted(issue_counts.items())),
+        "reference_context": reference_context,
     }
 
 
@@ -171,15 +200,116 @@ def _as_int(value: Any) -> int:
         return 9999
 
 
+def _add_reference_context(
+    rows: list[dict[str, Any]],
+    projection_csv: Path,
+    core_db: Path,
+    core_plan_year: int | None,
+) -> dict[str, Any]:
+    package_major_names = _read_package_major_names(projection_csv)
+    core_major_names, resolved_core_plan_year = _read_core_major_names(core_db, core_plan_year)
+    hint_counts: Counter[str] = Counter()
+    for row in rows:
+        package_name = package_major_names.get(_package_key(row), "")
+        row["package_major_full"] = package_name
+        candidates = _context_candidates(row, core_major_names, package_name)
+        row["core_candidate_names_json"] = json.dumps(candidates, ensure_ascii=False, sort_keys=True)
+        row["core_major_full"] = candidates[0]["major_full"] if len(candidates) == 1 else ""
+        hint, suggested_code = _match_hint(candidates)
+        row["major_name_match_hint"] = hint
+        row["suggested_core_major_code"] = suggested_code
+        hint_counts[hint] += 1
+    return {
+        "projection_csv": str(projection_csv),
+        "core_db": str(core_db),
+        "core_plan_year": resolved_core_plan_year,
+        "columns": REFERENCE_CONTEXT_COLUMNS,
+        "hint_counts": dict(sorted(hint_counts.items())),
+        "notes": "Reference context is for review only; merge writes only configured editable plan columns.",
+    }
+
+
+def _context_candidates(
+    row: dict[str, Any],
+    core_major_names: dict[tuple[str, str, str, str], str],
+    package_name: str,
+) -> list[dict[str, str]]:
+    candidates = _candidate_rows(row)
+    if not candidates and str(row.get("core_major_code") or "").strip():
+        candidates = [{"key": _core_key(row, str(row.get("core_major_code") or "").strip())}]
+    package_norm = _normalize_major_name(package_name)
+    items = []
+    for candidate in candidates:
+        key = candidate.get("key") or {}
+        major_code = str(key.get("major_code") or "").strip()
+        major_name = core_major_names.get(
+            (
+                str(key.get("school_code") or row.get("school_code") or "").strip(),
+                major_code,
+                str(key.get("subject_cat") or row.get("subject_cat") or "").strip(),
+                str(key.get("batch") or row.get("batch") or "").strip(),
+            ),
+            "",
+        )
+        major_norm = _normalize_major_name(major_name)
+        if package_norm and major_norm and package_norm == major_norm:
+            match_kind = "exact"
+        elif package_norm and major_norm and (package_norm in major_norm or major_norm in package_norm):
+            match_kind = "contains"
+        elif not major_name:
+            match_kind = "missing_core_major_name"
+        elif not package_name:
+            match_kind = "missing_package_major_name"
+        else:
+            match_kind = "none"
+        items.append({
+            "major_code": major_code,
+            "major_full": major_name,
+            "match_kind": match_kind,
+        })
+    return items
+
+
+def _match_hint(candidates: list[dict[str, str]]) -> tuple[str, str]:
+    exact = [candidate for candidate in candidates if candidate["match_kind"] == "exact"]
+    if len(exact) == 1:
+        return "single_exact", exact[0]["major_code"]
+    if len(exact) > 1:
+        return "ambiguous_exact", ""
+    contains = [candidate for candidate in candidates if candidate["match_kind"] == "contains"]
+    if len(contains) == 1:
+        return "single_contains", contains[0]["major_code"]
+    if len(contains) > 1:
+        return "ambiguous_contains", ""
+    if not candidates:
+        return "no_candidates", ""
+    kinds = {candidate["match_kind"] for candidate in candidates}
+    if kinds == {"missing_package_major_name"}:
+        return "missing_package_major_name", ""
+    if kinds == {"missing_core_major_name"}:
+        return "missing_core_major_name", ""
+    return "no_match", ""
+
+
+def _core_key(row: dict[str, Any], major_code: str) -> dict[str, Any]:
+    return {
+        "score_year": row.get("score_year"),
+        "batch": row.get("batch"),
+        "subject_cat": row.get("subject_cat"),
+        "school_code": row.get("school_code"),
+        "major_code": major_code,
+    }
+
+
 def _read_csv(path: Path) -> tuple[list[dict[str, Any]], set[str]]:
     with path.open(encoding="utf-8", newline="") as f:
         reader = csv.DictReader(f)
         return list(reader), set(reader.fieldnames or [])
 
 
-def _write_csv(path: Path, rows: list[dict[str, Any]]) -> None:
+def _write_csv(path: Path, rows: list[dict[str, Any]], *, fieldnames: list[str] | None = None) -> None:
     with path.open("w", encoding="utf-8", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=PLAN_COLUMNS, extrasaction="ignore")
+        writer = csv.DictWriter(f, fieldnames=fieldnames or PLAN_COLUMNS, extrasaction="ignore")
         writer.writeheader()
         writer.writerows(rows)
 
