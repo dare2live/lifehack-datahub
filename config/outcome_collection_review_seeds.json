@@ -457,7 +457,26 @@
       "availability_date": "2024-12-05",
       "reviewer": "codex",
       "reviewed_at": "2026-05-14",
-      "review_note": "源文件为 OFD，本次只采用原文明确给出的总体毕业去向落实率；机关事业单位和升学人数未换算为比例。"
+      "review_note": "源文件为 OFD，本条只采用原文明确给出的总体毕业去向落实率；机关事业单位未换算为比例，升学人数由独立 postgrad_rate seed 处理。"
+    },
+    {
+      "seed_id": "dufe_2024_undergraduate_postgrad_rate",
+      "domain": "school",
+      "entity_code": "0173",
+      "entity_name": "东北财经大学",
+      "metric_key": "postgrad_rate",
+      "metric_year": 2024,
+      "status": "verified",
+      "metric_value": 0.6565,
+      "source_title": "东北财经大学2023-2024学年本科教学质量报告",
+      "source_url": "https://xxgk.dufe.edu.cn/content_88732.html",
+      "evidence_quote": "2024 年共有本科毕业生 2198 人，实际毕业人数 2198 人，毕业率为 100.00%。2024 届毕业生初次毕业去向落实人数为 1959 人，其中单位就业 507 人，自由职业 1 人，自主创业 8 人，升学 1443 人（包含研究生 591 人，第二学士学位 448 人，境外留学 404 人）。",
+      "metric_scope": "2024届本科毕业生，升学 1443 人除以实际毕业人数 2198 人；包含研究生、第二学士学位和境外留学",
+      "source_date": "2024-12-05",
+      "availability_date": "2024-12-05",
+      "reviewer": "codex",
+      "reviewed_at": "2026-05-14",
+      "review_note": "OFD 正文 6.3 就业情况段给出毕业人数、升学人数和分类；按 outcome 深造率定义采用 1443/2198=65.65%，并在口径中保留第二学士学位计入说明。"
     }
   ]
 }

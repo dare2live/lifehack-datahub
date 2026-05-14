@@ -14,6 +14,46 @@
     "blocked_statuses": ["blocked", "not_found", "not_applicable"],
     "required_evidence_columns": ["metric_value", "source_url", "evidence_quote"]
   },
+  "source_evidence_policy": {
+    "metric_publication_rule": "学校 outcome 指标只能来自直接给出本科毕业生统计口径的来源：明确指标值，或同时给出分子、分母和毕业届别。招聘会、岗位供给、人才市场活动和自媒体线索不能直接发布为 fa_fact_school_outcome。",
+    "tiers": {
+      "school_official_report": {
+        "label": "学校官方报告",
+        "examples": ["就业质量年度报告", "本科教学质量报告", "学校信息公开年报附件"],
+        "can_publish_outcome_metric": true,
+        "allowed_evidence_targets": ["fa_fact_school_outcome", "fa_fact_major_outcome"],
+        "required_review": "核对毕业届别、学历层次、统计时点、分子分母或原文百分比，并写入 metric_scope。"
+      },
+      "school_official_news": {
+        "label": "学校官方新闻",
+        "examples": ["学校就业网新闻", "招生就业处通知", "学院官方就业去向发布"],
+        "can_publish_outcome_metric": true,
+        "allowed_evidence_targets": ["fa_fact_school_outcome", "fa_fact_major_outcome", "fa_mart_school_city_industry_fit"],
+        "required_review": "只有原文直接给出全校/学院/专业毕业去向统计值时才能发布 outcome；普通招聘活动新闻只作为学校城市产业连接证据。"
+      },
+      "government_talent_market": {
+        "label": "政府/人才市场官方渠道",
+        "examples": ["人社局高校毕业生专场招聘会", "公共就业服务中心活动", "地方人才市场应届生专题"],
+        "can_publish_outcome_metric": false,
+        "allowed_evidence_targets": ["fa_fact_career_signal", "fa_mart_school_city_industry_fit", "fa_mart_major_city_employment_fit"],
+        "required_review": "用于岗位需求、城市机会和校地就业连接；不得把活动场次、参会企业数或岗位数当成毕业去向落实率。"
+      },
+      "local_news_recruitment_fair": {
+        "label": "当地媒体招聘会报道",
+        "examples": ["地方新闻招聘会报道", "校园双选会新闻转载"],
+        "can_publish_outcome_metric": false,
+        "allowed_evidence_targets": ["fa_mart_school_city_industry_fit", "fa_mart_major_city_employment_fit"],
+        "required_review": "只作为候选线索或连接证据，必须回查学校、人社局或人才市场官方页面后才能进入 verified。"
+      },
+      "self_media": {
+        "label": "自媒体线索",
+        "examples": ["公众号汇总", "短视频/图文转述", "论坛或家长社群截图"],
+        "can_publish_outcome_metric": false,
+        "allowed_evidence_targets": ["research_candidate"],
+        "required_review": "只用于发现线索和搜索关键词；不得直接进入 outcome、职业信号或推荐 evidence packet。"
+      }
+    }
+  },
   "review_batch": {
     "selection_statuses": ["todo", "in_progress", "needs_review"],
     "limit_per_domain": 20,

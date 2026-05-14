@@ -121,6 +121,7 @@ from datahub.config import (
     load_data_update_policy,
     load_entity_normalization,
     load_json_config,
+    load_outcome_collection,
     load_outcome_collection_review_seeds,
     load_outcome_metrics,
     load_outcome_report_sources,
@@ -9677,6 +9678,25 @@ def test_apply_outcome_collection_review_seeds_updates_matching_rows(tmp_path: P
     assert djtu_postgrad["metric_value"] == "0.2887"
     assert djtu_postgrad["metric_year"] == "2024"
     assert by_entity[("0166", "employment_rate")]["status"] == "todo"
+
+
+def test_outcome_collection_source_evidence_policy_separates_metrics_from_recruitment_news():
+    config = load_outcome_collection()
+    policy = config["source_evidence_policy"]
+    tiers = policy["tiers"]
+
+    assert "直接给出本科毕业生统计口径" in policy["metric_publication_rule"]
+    assert tiers["school_official_report"]["can_publish_outcome_metric"] is True
+    assert "fa_fact_school_outcome" in tiers["school_official_report"]["allowed_evidence_targets"]
+    assert tiers["school_official_news"]["can_publish_outcome_metric"] is True
+    assert "普通招聘活动新闻只作为学校城市产业连接证据" in tiers["school_official_news"]["required_review"]
+    assert tiers["government_talent_market"]["can_publish_outcome_metric"] is False
+    assert "fa_mart_school_city_industry_fit" in tiers["government_talent_market"]["allowed_evidence_targets"]
+    assert "不得把活动场次、参会企业数或岗位数当成毕业去向落实率" in tiers["government_talent_market"]["required_review"]
+    assert tiers["local_news_recruitment_fair"]["can_publish_outcome_metric"] is False
+    assert "必须回查学校、人社局或人才市场官方页面" in tiers["local_news_recruitment_fair"]["required_review"]
+    assert tiers["self_media"]["can_publish_outcome_metric"] is False
+    assert tiers["self_media"]["allowed_evidence_targets"] == ["research_candidate"]
 
 
 def test_audit_outcome_collection_review_seeds_rejects_metric_value_out_of_range(monkeypatch: pytest.MonkeyPatch):
