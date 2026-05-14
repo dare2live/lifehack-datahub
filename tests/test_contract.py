@@ -200,6 +200,16 @@ def test_manifest_rejects_duplicate_json_keys(tmp_path: Path):
     assert any("duplicate JSON key" in err for err in report["errors"])
 
 
+def test_manifest_requires_declared_quality_report_file(tmp_path: Path):
+    path = tmp_path / "manifest.json"
+    path.write_text(
+        '{"package_id":"p","built_at":"now","tables":[],"files":[],"hashes":{},"quality_report":"missing_quality_report.json"}',
+        encoding="utf-8",
+    )
+    report = validate_manifest(path)
+    assert any("declared quality report not found" in err for err in report["errors"])
+
+
 def test_config_json_files_do_not_have_duplicate_keys(tmp_path: Path):
     duplicate_paths = []
     for path in sorted(Path("config").glob("*.json")):

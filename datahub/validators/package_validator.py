@@ -24,6 +24,16 @@ def validate_manifest(path: Path) -> dict:
     if missing:
         errors.append(f"manifest missing fields: {missing}")
 
+    quality_report = data.get("quality_report")
+    if not isinstance(quality_report, str) or not quality_report:
+        errors.append("manifest quality_report must be a non-empty string")
+    else:
+        quality_path = Path(quality_report)
+        if quality_path.is_absolute() or ".." in quality_path.parts or quality_path.suffix.lower() != ".json":
+            errors.append("manifest quality_report must be a package-relative JSON file")
+        elif not (path.parent / quality_path).exists():
+            errors.append(f"declared quality report not found: {quality_report}")
+
     for table in data.get("tables", []):
         name = table.get("name") if isinstance(table, dict) else str(table)
         if not name.startswith("fa_"):
