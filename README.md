@@ -855,7 +855,7 @@ python3 scripts/build_package.py extract-outcome-report-candidates \
   --availability-date 2022-12-31
 ```
 
-真实 smoke：辽宁大学 2022 届毕业生就业质量年度报告 PDF 可提取 4 条体制内去向比例候选；辽宁大学 2023-2024 本科教学质量报告 PDF 可通过相邻行上下文提取毕业去向落实率和升学人数比例候选；渤海大学 2023-2024 本科教学质量报告 PDF 可提取总体就业率；大连交通大学 2023-2024 本科教学质量报告 PDF 可提取总体就业率和国有企业签约比例候选；大连工业大学 2023～2024 本科教学质量报告 PDF 可提取就业率、考取研究生比例和党政机关/事业单位/部队/国家项目去向比例；大连民族大学 2023-2024 本科教学质量报告 PDF 可提取初次毕业去向落实率；东北财经大学 2023-2024 本科教学质量报告 OFD 可提取初次毕业去向落实率。保研率、就业率和体制内去向比例候选需要满足 `required_context_any`/`blocked_context_any`，避免把“推荐免试人数占攻读研究生人数比例”、“其中推免生但百分比属于考研总占比”、“师范生/非师范生分组落实率”、“省内就业比例”或“岗位晋升比例”误当成目标指标。输出均为本地 ignored staging CSV，且 `review_status=needs_review`，不会生成 outcome data package。
+真实 smoke：辽宁大学 2022 届毕业生就业质量年度报告 PDF 可提取 4 条体制内去向比例候选；辽宁大学 2023-2024 本科教学质量报告 PDF 可通过相邻行上下文提取毕业去向落实率和升学人数比例候选；渤海大学 2023-2024 本科教学质量报告 PDF 可提取总体就业率；大连交通大学 2023-2024 本科教学质量报告 PDF 可提取总体就业率和国有企业签约比例候选；大连工业大学 2023～2024 本科教学质量报告 PDF 可提取就业率、考取研究生比例和党政机关/事业单位/部队/国家项目去向比例；大连民族大学 2023-2024 本科教学质量报告 PDF 可提取初次毕业去向落实率；东北财经大学 2023-2024 本科教学质量报告 OFD 可提取初次毕业去向落实率；大连大学 2023-2024 学年本科教学质量报告官方 PDF 可提取 2023 届本科毕业生年终毕业去向落实率。保研率、就业率和体制内去向比例候选需要满足 `required_context_any`/`blocked_context_any`，避免把“推荐免试人数占攻读研究生人数比例”、“其中推免生但百分比属于考研总占比”、“师范生/非师范生分组落实率”、“省内就业比例”或“岗位晋升比例”误当成目标指标。输出均为本地 ignored staging CSV，且 `review_status=needs_review`，不会生成 outcome data package。
 
 候选经过人工核对后，只把 `review_status=approved` 的行合并回完整采集计划。合并状态、目标状态和可回写列维护在 `config/outcome_collection.json` 的 `candidate_merge`，命令按 `domain, entity_code, metric_key, metric_year` 定位任务，不允许候选 CSV 篡改实体名称或优先级：
 
@@ -878,7 +878,7 @@ python3 scripts/build_package.py build-outcome-from-collection-plan \
   --package-id 2026_outcome_collection
 ```
 
-真实 smoke：上述辽宁大学单条 approved 候选合并后的采集计划已生成 `lnu_2022_outcome_candidate_merge_smoke_school` 标准包，`fa_fact_school_outcome` 1 行，quality report 无错误；manifest 已写入 `source_lineage`，包含采集计划路径、来源 URL、报告标题、指标和状态统计；`validate` 通过，core importer `--dry-run` 通过。2024 学校 outcome 复核种子已覆盖辽宁大学就业率/升学率、渤海大学就业率、大连交通大学就业率/国企签约比例、大连工业大学就业率/考研比例/党政机关事业单位等去向比例、大连民族大学就业率、东北财经大学就业率 10 条已核指标；真实重放命中 10 条、更新 10 条、无 unmatched seed，重放后的 800 行采集计划审计 `errors=[]/warnings=[]`；从该计划生成的 `ln_outcome_school_2024_seeded_v4_school` 包含 `fa_fact_school_outcome` 10 行，manifest 校验、core importer `--dry-run` 和本地 core 实导均通过。
+真实 smoke：上述辽宁大学单条 approved 候选合并后的采集计划已生成 `lnu_2022_outcome_candidate_merge_smoke_school` 标准包，`fa_fact_school_outcome` 1 行，quality report 无错误；manifest 已写入 `source_lineage`，包含采集计划路径、来源 URL、报告标题、指标和状态统计；`validate` 通过，core importer `--dry-run` 通过。学校 outcome 复核种子当前共 11 条已核指标：2024 学校 outcome 覆盖辽宁大学就业率/升学率、渤海大学就业率、大连交通大学就业率/国企签约比例、大连工业大学就业率/考研比例/党政机关事业单位等去向比例、大连民族大学就业率、东北财经大学就业率 10 条；大连大学 2023 届就业落实率独立按 `metric_year=2023` 维护，不混入 2024 届口径。2024 种子真实重放命中 10 条、更新 10 条、无 unmatched seed，重放后的 800 行采集计划审计 `errors=[]/warnings=[]`；从该计划生成的 `ln_outcome_school_2024_seeded_v4_school` 包含 `fa_fact_school_outcome` 10 行，manifest 校验、core importer `--dry-run` 和本地 core 实导均通过。大连大学 2023 届种子已生成 `2023_dlu_school_outcome_seeded_v1_school` 包，`fa_fact_school_outcome` 1 行，manifest 校验、core importer `--dry-run` 和本地 core 实导均通过。
 
 ## 政策表数据包
 
