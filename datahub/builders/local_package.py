@@ -7,7 +7,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from datahub.config import get_table_schema
+from datahub.config import get_table_schema, load_json_config
 from datahub.exporters.package_exporter import write_manifest
 from datahub.normalizers.admission import normalize_rows_for_schema
 from datahub.parsers.tabular_parser import parse_tabular
@@ -139,7 +139,7 @@ def _write_csv(path: Path, rows: list[dict[str, Any]], columns: list[str]) -> No
 def _load_intake_lineage(path: Path, source_key: str, table_name: str, schema: dict[str, Any]) -> dict[str, Any]:
     if not path.exists():
         raise ValueError(f"intake manifest not found: {path}")
-    data = json.loads(path.read_text(encoding="utf-8"))
+    data = load_json_config(path)
     intake_source_key = data.get("source_key")
     allowed_source_keys = [source_key] + list(schema.get("accepted_intake_source_keys", []))
     if intake_source_key not in allowed_source_keys:
@@ -147,10 +147,22 @@ def _load_intake_lineage(path: Path, source_key: str, table_name: str, schema: d
             f"intake manifest source_key mismatch: {intake_source_key} not in {allowed_source_keys}"
         )
     target_tables = data.get("target_tables") or []
+    if not isinstance(target_tables, list):
+        raise ValueError("intake manifest target_tables must be a list")
     if target_tables and table_name not in target_tables:
         raise ValueError(f"intake manifest does not target {table_name}: {target_tables}")
+
+    evidence_urls = data.get("evidence_urls") or data.get("configured_evidence_urls") or []
+    if not isinstance(evidence_urls, list):
+        raise ValueError("intake manifest evidence_urls must be a list")
+    raw_files = data.get("files") or []
+    if not isinstance(raw_files, list):
+        raise ValueError("intake manifest files must be a list")
+
     files = []
-    for item in data.get("files", []):
+    for item in raw_files:
+        if not isinstance(item, dict):
+            raise ValueError(f"invalid intake manifest file entry: {item}")
         sha256 = item.get("sha256")
         file_name = item.get("file_name")
         if not sha256 or not file_name:
@@ -170,7 +182,7 @@ def _load_intake_lineage(path: Path, source_key: str, table_name: str, schema: d
         "intake_at": data.get("intake_at"),
         "acquired_by": data.get("acquired_by"),
         "official_distribution": data.get("official_distribution"),
-        "evidence_urls": data.get("evidence_urls") or data.get("configured_evidence_urls") or [],
+        "evidence_urls": evidence_urls,
         "intake_manifest": str(path),
         "files": files,
     }

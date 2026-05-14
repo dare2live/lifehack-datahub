@@ -398,6 +398,59 @@ def test_build_local_package_includes_intake_lineage(tmp_path: Path):
     assert result["source_lineage"]["source_date"] == "2026-06-20"
     assert result["source_lineage"]["target_source_key"] == "ln_admission_plan"
 
+    duplicate_key_manifest = tmp_path / "_duplicate_intake_manifest.json"
+    duplicate_key_manifest.write_text(
+        (
+            '{"source_key":"ln_admission_plan",'
+            '"source_key":"shadow_source",'
+            '"target_tables":["fa_dim_ln_admission_plan"],'
+            '"files":[{"file_name":"raw_plan.xlsx","sha256":"abc123"}]}\n'
+        ),
+        encoding="utf-8",
+    )
+    try:
+        build_local_package(
+            source_key="ln_admission_plan",
+            table_name="fa_dim_ln_admission_plan",
+            input_path=source,
+            output_root=tmp_path / "exports",
+            package_id="pkg-duplicate-intake-lineage-test",
+            source_version="fixture-lineage",
+            intake_manifest=duplicate_key_manifest,
+        )
+        duplicate_manifest_rejected = False
+    except ValueError as exc:
+        duplicate_manifest_rejected = "duplicate JSON key" in str(exc)
+    assert duplicate_manifest_rejected
+
+    malformed_files_manifest = tmp_path / "_malformed_files_intake_manifest.json"
+    malformed_files_manifest.write_text(json.dumps({
+        "source_key": "ln_admission_plan",
+        "source_name": "辽宁招生计划",
+        "source_kind": "controlled_manual_export",
+        "source_date": "2026-06-20",
+        "intake_at": "2026-06-21T00:00:00",
+        "acquired_by": "fixture",
+        "official_distribution": "网报志愿系统",
+        "evidence_urls": ["https://example.edu/evidence"],
+        "target_tables": ["fa_dim_ln_admission_plan"],
+        "files": {"file_name": "raw_plan.xlsx", "sha256": "abc123"},
+    }, ensure_ascii=False), encoding="utf-8")
+    try:
+        build_local_package(
+            source_key="ln_admission_plan",
+            table_name="fa_dim_ln_admission_plan",
+            input_path=source,
+            output_root=tmp_path / "exports",
+            package_id="pkg-malformed-intake-lineage-test",
+            source_version="fixture-lineage",
+            intake_manifest=malformed_files_manifest,
+        )
+        malformed_files_rejected = False
+    except ValueError as exc:
+        malformed_files_rejected = "intake manifest files must be a list" in str(exc)
+    assert malformed_files_rejected
+
 
 def test_build_local_package_accepts_configured_shared_intake_source(tmp_path: Path):
     source = tmp_path / "score_history.csv"
