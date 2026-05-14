@@ -7465,6 +7465,8 @@ def test_apply_outcome_collection_review_seeds_updates_matching_rows(tmp_path: P
     lntu_postgrad["metric_year"] = "2024"
     sut_employment = _outcome_plan_row("school", "0142", "沈阳工业大学", "employment_rate", status="todo", priority_rank="13")
     sut_employment["metric_year"] = "2024"
+    djtu_postgrad = _outcome_plan_row("school", "0150", "大连交通大学", "postgrad_rate", status="todo", priority_rank="14")
+    djtu_postgrad["metric_year"] = "2024"
     pending = _outcome_plan_row("school", "0166", "沈阳师范大学", "employment_rate", status="todo", priority_rank="2")
     pending["metric_year"] = "2024"
     _write_outcome_plan(
@@ -7483,13 +7485,14 @@ def test_apply_outcome_collection_review_seeds_updates_matching_rows(tmp_path: P
             lntu_employment,
             lntu_postgrad,
             sut_employment,
+            djtu_postgrad,
             pending,
         ],
     )
 
     output = tmp_path / "outcome_collection_plan_seeded.csv"
     report = apply_outcome_collection_review_seeds(plan_csv=plan, output=output)
-    expected_matching_seeds = 13
+    expected_matching_seeds = 14
     assert report["matched_rows"] == expected_matching_seeds
     assert report["updated_rows"] == expected_matching_seeds
     assert report["unmatched_seeds"] == seed_count - expected_matching_seeds
@@ -7551,7 +7554,41 @@ def test_apply_outcome_collection_review_seeds_updates_matching_rows(tmp_path: P
     assert sut_employment["status"] == "verified"
     assert sut_employment["metric_value"] == "0.87"
     assert sut_employment["metric_year"] == "2024"
+    djtu_postgrad = by_entity[("0150", "postgrad_rate")]
+    assert djtu_postgrad["status"] == "verified"
+    assert djtu_postgrad["metric_value"] == "0.2887"
+    assert djtu_postgrad["metric_year"] == "2024"
     assert by_entity[("0166", "employment_rate")]["status"] == "todo"
+
+
+def test_audit_outcome_collection_review_seeds_rejects_metric_value_out_of_range(monkeypatch: pytest.MonkeyPatch):
+    seed = {
+        "seed_id": "bad_outcome_metric_value",
+        "domain": "school",
+        "entity_code": "0001",
+        "entity_name": "测试大学",
+        "metric_key": "employment_rate",
+        "metric_year": 2024,
+        "status": "verified",
+        "metric_value": 1.2,
+        "source_title": "测试报告",
+        "source_url": "https://example.edu/report.pdf",
+        "evidence_quote": "毕业去向落实率为 120%。",
+        "metric_scope": "测试口径",
+        "source_date": "2024-12-31",
+        "availability_date": "2024-12-31",
+        "reviewer": "codex",
+        "reviewed_at": "2026-05-14",
+        "review_note": "测试越界值。",
+    }
+    monkeypatch.setattr(
+        "datahub.builders.outcome_collection_seed_merge.load_outcome_collection_review_seeds",
+        lambda: {"seeds": [seed]},
+    )
+
+    audit = audit_outcome_collection_review_seeds()
+
+    assert audit["errors"] == ["seed 1 metric_value is above max_value 1: 1.2"]
 
 
 def test_merge_outcome_collection_batch_updates_only_editable_columns(tmp_path: Path):

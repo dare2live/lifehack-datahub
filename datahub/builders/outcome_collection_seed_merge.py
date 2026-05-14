@@ -155,8 +155,14 @@ def _audit_seed_config() -> dict[str, Any]:
             errors.append(f"seed {index} unknown metric_key for {domain}: {metric_key}")
         if status and status not in complete_statuses:
             errors.append(f"seed {index} status must be complete: {status}")
-        if _to_float(seed.get("metric_value")) is None:
+        metric_value = _to_float(seed.get("metric_value"))
+        if metric_value is None:
             errors.append(f"seed {index} metric_value is not numeric")
+        elif domain and metric_key:
+            metric_config = domain_metrics.get(domain, {}).get(metric_key, {})
+            range_error = _metric_range_error(metric_value, metric_config)
+            if range_error:
+                errors.append(f"seed {index} metric_value {range_error}: {metric_value}")
         key = _task_key(seed)
         if key in seen_keys:
             duplicate_keys += 1
@@ -203,6 +209,16 @@ def _to_float(value: Any) -> float | None:
         return float(str(value).replace(",", "").strip())
     except ValueError:
         return None
+
+
+def _metric_range_error(value: float, metric_config: dict[str, Any]) -> str:
+    min_value = _to_float(metric_config.get("min_value"))
+    max_value = _to_float(metric_config.get("max_value"))
+    if min_value is not None and value < min_value:
+        return f"is below min_value {min_value:g}"
+    if max_value is not None and value > max_value:
+        return f"is above max_value {max_value:g}"
+    return ""
 
 
 def _is_blank(value: Any) -> bool:
