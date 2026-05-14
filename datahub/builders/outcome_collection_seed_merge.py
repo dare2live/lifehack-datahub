@@ -7,6 +7,7 @@ from collections import Counter
 from datetime import datetime
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 from datahub.builders.outcome_collection_batch import TASK_KEY_COLUMNS
 from datahub.builders.outcome_collection_plan import PLAN_COLUMNS
@@ -155,6 +156,9 @@ def _audit_seed_config() -> dict[str, Any]:
             date_error = _date_error(seed.get(date_field))
             if date_error:
                 errors.append(f"seed {index} {date_field} {date_error}")
+        url_error = _source_url_error(seed.get("source_url"))
+        if url_error:
+            errors.append(f"seed {index} source_url {url_error}")
         if domain and domain not in known_domains:
             errors.append(f"seed {index} unknown domain: {domain}")
         if domain and metric_key and metric_key not in domain_metrics.get(domain, {}):
@@ -237,6 +241,15 @@ def _date_error(value: Any) -> str:
         datetime.strptime(text, "%Y-%m-%d")
     except ValueError:
         return "must use YYYY-MM-DD"
+    return ""
+
+
+def _source_url_error(value: Any) -> str:
+    if _is_blank(value):
+        return ""
+    parsed = urlparse(str(value).strip())
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        return "must be an http(s) URL"
     return ""
 
 

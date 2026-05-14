@@ -7625,6 +7625,36 @@ def test_audit_outcome_collection_review_seeds_rejects_bad_year_and_dates(monkey
     ]
 
 
+def test_audit_outcome_collection_review_seeds_rejects_non_http_source_url(monkeypatch: pytest.MonkeyPatch):
+    seed = {
+        "seed_id": "bad_outcome_source_url",
+        "domain": "school",
+        "entity_code": "0001",
+        "entity_name": "测试大学",
+        "metric_key": "employment_rate",
+        "metric_year": 2024,
+        "status": "verified",
+        "metric_value": 0.9,
+        "source_title": "测试报告",
+        "source_url": "raw/outcome/report.pdf",
+        "evidence_quote": "毕业去向落实率为 90%。",
+        "metric_scope": "测试口径",
+        "source_date": "2024-12-31",
+        "availability_date": "2024-12-31",
+        "reviewer": "codex",
+        "reviewed_at": "2026-05-14",
+        "review_note": "测试来源链接格式。",
+    }
+    monkeypatch.setattr(
+        "datahub.builders.outcome_collection_seed_merge.load_outcome_collection_review_seeds",
+        lambda: {"seeds": [seed]},
+    )
+
+    audit = audit_outcome_collection_review_seeds()
+
+    assert audit["errors"] == ["seed 1 source_url must be an http(s) URL"]
+
+
 def test_merge_outcome_collection_batch_updates_only_editable_columns(tmp_path: Path):
     plan = tmp_path / "outcome_collection_plan.csv"
     rows = [
