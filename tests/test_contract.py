@@ -9639,6 +9639,21 @@ def test_audit_admission_plan_package_against_core_reports_scope_drift(tmp_path:
     ]
     assert report["decision"]["reconciliation_required"] is True
 
+    (package_dir / "quality_report.json").write_text('{"errors":["manual review is not complete"]}\n', encoding="utf-8")
+    bad_quality_report = audit_admission_plan_package_against_core(
+        core_db=db,
+        package_dirs=[package_dir],
+        sample_limit=5,
+    )
+    assert any("quality_report error" in error for error in bad_quality_report["errors"])
+    assert bad_quality_report["decision"]["safe_to_import_without_reconciliation"] is False
+    with pytest.raises(ValueError, match="quality_report error"):
+        build_admission_plan_reconciliation_plan(
+            core_db=db,
+            package_dirs=[package_dir],
+            output_dir=tmp_path / "blocked_admission_reconciliation",
+        )
+
 
 def test_build_admission_plan_reconciliation_plan_from_audit_inputs(tmp_path: Path):
     db = tmp_path / "core.duckdb"
