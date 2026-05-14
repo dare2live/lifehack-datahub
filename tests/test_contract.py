@@ -3631,6 +3631,62 @@ def test_build_score_history_reconciliation_review_batch_filters_subject_cat(tmp
     assert manifest["subject_cat"] == "物理类"
 
 
+def test_build_score_history_reconciliation_review_batch_filters_school_code(tmp_path: Path):
+    plan = tmp_path / "score_history_reconciliation_plan.csv"
+    rows = []
+    for task_id, school_code in [
+        ("target", "0183"),
+        ("other", "0140"),
+    ]:
+        rows.append({
+            "task_id": task_id,
+            "issue_type": "value_drift",
+            "priority": "2",
+            "status": "todo",
+            "suggested_action": "review_source_value_conflict",
+            "match_confidence": "primary_key_match",
+            "score_year": "2024",
+            "batch": "本科批",
+            "subject_cat": "物理类",
+            "school_code": school_code,
+            "package_major_code": "04",
+            "core_major_code": "04",
+            "package_min_score": "570",
+            "core_min_score": "520",
+            "package_min_rank": "3000",
+            "core_min_rank": "12000",
+            "package_key_json": "{}",
+            "core_key_json": "{}",
+            "core_candidates_json": "[]",
+            "matching_values_json": "{}",
+            "differences_json": "[]",
+            "review_decision": "",
+            "reviewer": "",
+            "reviewed_at": "",
+            "notes": "",
+        })
+    with plan.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=PLAN_COLUMNS, extrasaction="ignore")
+        writer.writeheader()
+        writer.writerows(rows)
+
+    result = build_score_history_reconciliation_review_batch(
+        plan_csv=plan,
+        output_dir=tmp_path / "batch_school",
+        limit_per_issue=10,
+        school_code="0183",
+    )
+
+    assert result["rows"] == 1
+    assert result["school_code"] == "0183"
+    with Path(result["csv"]).open(encoding="utf-8", newline="") as f:
+        batch_rows = list(csv.DictReader(f))
+    assert [row["task_id"] for row in batch_rows] == ["target"]
+    assert batch_rows[0]["school_code"] == "0183"
+    manifest = json.loads(Path(result["manifest"]).read_text(encoding="utf-8"))
+    assert manifest["school_code"] == "0183"
+
+
 def test_build_score_history_reconciliation_review_batch_filters_value_drift_core_state(tmp_path: Path):
     plan = tmp_path / "score_history_reconciliation_plan.csv"
     rows = []

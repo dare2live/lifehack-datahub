@@ -51,6 +51,7 @@ def build_score_history_reconciliation_review_batch(
     limit_per_issue: int | None = None,
     score_year: int | None = None,
     subject_cat: str | None = None,
+    school_code: str | None = None,
     value_drift_core_state: str | None = None,
     value_drift_score_delta_bucket: str | None = None,
     value_drift_rank_delta_bucket: str | None = None,
@@ -73,6 +74,7 @@ def build_score_history_reconciliation_review_batch(
 
     score_year_filter = str(score_year) if score_year is not None else None
     subject_cat_filter = subject_cat.strip() if subject_cat else None
+    school_code_filter = school_code.strip() if school_code else None
     value_drift_core_state_filter = _normalize_value_drift_core_state_filter(value_drift_core_state)
     score_delta_bucket_filter = _normalize_delta_bucket_filter(
         value_drift_score_delta_bucket,
@@ -91,6 +93,8 @@ def build_score_history_reconciliation_review_batch(
         if score_year_filter and str(row.get("score_year") or "").strip() != score_year_filter:
             continue
         if subject_cat_filter and str(row.get("subject_cat") or "").strip() != subject_cat_filter:
+            continue
+        if school_code_filter and str(row.get("school_code") or "").strip() != school_code_filter:
             continue
         if value_drift_core_state_filter and not _matches_value_drift_core_state(row, value_drift_core_state_filter):
             continue
@@ -149,6 +153,7 @@ def build_score_history_reconciliation_review_batch(
         "limit_per_issue": limit,
         "score_year": score_year,
         "subject_cat": subject_cat_filter,
+        "school_code": school_code_filter,
         "value_drift_core_state": value_drift_core_state_filter,
         "value_drift_score_delta_bucket": score_delta_bucket_filter,
         "value_drift_rank_delta_bucket": rank_delta_bucket_filter,
@@ -167,6 +172,7 @@ def build_score_history_reconciliation_review_batch(
         "issue_counts": dict(sorted(issue_counts.items())),
         "score_year": score_year,
         "subject_cat": subject_cat_filter,
+        "school_code": school_code_filter,
         "value_drift_core_state": value_drift_core_state_filter,
         "value_drift_score_delta_bucket": score_delta_bucket_filter,
         "value_drift_rank_delta_bucket": rank_delta_bucket_filter,
