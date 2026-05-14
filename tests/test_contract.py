@@ -111,6 +111,7 @@ from datahub.config import (
     load_career_data_sources,
     load_data_update_policy,
     load_entity_normalization,
+    load_outcome_collection_review_seeds,
     load_outcome_metrics,
     load_outcome_report_sources,
     load_source_schemas,
@@ -6169,10 +6170,13 @@ def test_build_outcome_collection_batch_limits_pending_rows(tmp_path: Path):
 
 
 def test_apply_outcome_collection_review_seeds_updates_matching_rows(tmp_path: Path):
+    seed_config = load_outcome_collection_review_seeds()
+    seed_count = len(seed_config["seeds"])
+    verified_seed_count = sum(1 for seed in seed_config["seeds"] if seed["status"] == "verified")
     audit = audit_outcome_collection_review_seeds()
     assert audit["errors"] == []
-    assert audit["seed_count"] == 14
-    assert audit["status_counts"] == {"verified": 14}
+    assert audit["seed_count"] == seed_count
+    assert audit["status_counts"] == {"verified": verified_seed_count}
 
     plan = tmp_path / "outcome_collection_plan.csv"
     seeded = _outcome_plan_row("school", "0140", "辽宁大学", "employment_rate", status="todo", priority_rank="1")
@@ -6191,18 +6195,35 @@ def test_apply_outcome_collection_review_seeds_updates_matching_rows(tmp_path: P
     lnnu_employment["metric_year"] = "2024"
     lnnu_postgrad = _outcome_plan_row("school", "0165", "辽宁师范大学", "postgrad_rate", status="todo", priority_rank="8")
     lnnu_postgrad["metric_year"] = "2024"
+    jlu_employment = _outcome_plan_row("school", "0183", "吉林大学", "employment_rate", status="todo", priority_rank="9")
+    jlu_employment["metric_year"] = "2024"
+    jlu_postgrad = _outcome_plan_row("school", "0183", "吉林大学", "postgrad_rate", status="todo", priority_rank="10")
+    jlu_postgrad["metric_year"] = "2024"
     pending = _outcome_plan_row("school", "0166", "沈阳师范大学", "employment_rate", status="todo", priority_rank="2")
     pending["metric_year"] = "2024"
     _write_outcome_plan(
         plan,
-        [seeded, dlpu, bohai, dufe, dlu, lnu_soe, lnnu_employment, lnnu_postgrad, pending],
+        [
+            seeded,
+            dlpu,
+            bohai,
+            dufe,
+            dlu,
+            lnu_soe,
+            lnnu_employment,
+            lnnu_postgrad,
+            jlu_employment,
+            jlu_postgrad,
+            pending,
+        ],
     )
 
     output = tmp_path / "outcome_collection_plan_seeded.csv"
     report = apply_outcome_collection_review_seeds(plan_csv=plan, output=output)
-    assert report["matched_rows"] == 8
-    assert report["updated_rows"] == 8
-    assert report["unmatched_seeds"] == 6
+    expected_matching_seeds = 10
+    assert report["matched_rows"] == expected_matching_seeds
+    assert report["updated_rows"] == expected_matching_seeds
+    assert report["unmatched_seeds"] == seed_count - expected_matching_seeds
 
     with output.open(encoding="utf-8", newline="") as f:
         rows = list(csv.DictReader(f))
@@ -6239,6 +6260,16 @@ def test_apply_outcome_collection_review_seeds_updates_matching_rows(tmp_path: P
     assert lnnu_postgrad["status"] == "verified"
     assert lnnu_postgrad["metric_value"] == "0.2557"
     assert lnnu_postgrad["metric_year"] == "2024"
+    jlu_employment = by_entity[("0183", "employment_rate")]
+    assert jlu_employment["status"] == "verified"
+    assert jlu_employment["metric_value"] == "0.852"
+    assert jlu_employment["metric_year"] == "2024"
+    assert "8月27日" in jlu_employment["metric_scope"]
+    jlu_postgrad = by_entity[("0183", "postgrad_rate")]
+    assert jlu_postgrad["status"] == "verified"
+    assert jlu_postgrad["metric_value"] == "0.4846"
+    assert jlu_postgrad["metric_year"] == "2024"
+    assert "42.96%" in jlu_postgrad["metric_scope"]
     assert by_entity[("0166", "employment_rate")]["status"] == "todo"
 
 
