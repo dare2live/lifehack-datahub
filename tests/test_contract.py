@@ -6171,8 +6171,8 @@ def test_build_outcome_collection_batch_limits_pending_rows(tmp_path: Path):
 def test_apply_outcome_collection_review_seeds_updates_matching_rows(tmp_path: Path):
     audit = audit_outcome_collection_review_seeds()
     assert audit["errors"] == []
-    assert audit["seed_count"] == 12
-    assert audit["status_counts"] == {"verified": 12}
+    assert audit["seed_count"] == 14
+    assert audit["status_counts"] == {"verified": 14}
 
     plan = tmp_path / "outcome_collection_plan.csv"
     seeded = _outcome_plan_row("school", "0140", "辽宁大学", "employment_rate", status="todo", priority_rank="1")
@@ -6187,14 +6187,21 @@ def test_apply_outcome_collection_review_seeds_updates_matching_rows(tmp_path: P
     dlu["metric_year"] = "2023"
     lnu_soe = _outcome_plan_row("school", "0140", "辽宁大学", "civil_service_rate", status="todo", priority_rank="6")
     lnu_soe["metric_year"] = "2022"
+    lnnu_employment = _outcome_plan_row("school", "0165", "辽宁师范大学", "employment_rate", status="todo", priority_rank="7")
+    lnnu_employment["metric_year"] = "2024"
+    lnnu_postgrad = _outcome_plan_row("school", "0165", "辽宁师范大学", "postgrad_rate", status="todo", priority_rank="8")
+    lnnu_postgrad["metric_year"] = "2024"
     pending = _outcome_plan_row("school", "0166", "沈阳师范大学", "employment_rate", status="todo", priority_rank="2")
     pending["metric_year"] = "2024"
-    _write_outcome_plan(plan, [seeded, dlpu, bohai, dufe, dlu, lnu_soe, pending])
+    _write_outcome_plan(
+        plan,
+        [seeded, dlpu, bohai, dufe, dlu, lnu_soe, lnnu_employment, lnnu_postgrad, pending],
+    )
 
     output = tmp_path / "outcome_collection_plan_seeded.csv"
     report = apply_outcome_collection_review_seeds(plan_csv=plan, output=output)
-    assert report["matched_rows"] == 6
-    assert report["updated_rows"] == 6
+    assert report["matched_rows"] == 8
+    assert report["updated_rows"] == 8
     assert report["unmatched_seeds"] == 6
 
     with output.open(encoding="utf-8", newline="") as f:
@@ -6224,6 +6231,14 @@ def test_apply_outcome_collection_review_seeds_updates_matching_rows(tmp_path: P
     assert lnu_soe["status"] == "verified"
     assert lnu_soe["metric_value"] == "0.2892"
     assert lnu_soe["metric_year"] == "2022"
+    lnnu_employment = by_entity[("0165", "employment_rate")]
+    assert lnnu_employment["status"] == "verified"
+    assert lnnu_employment["metric_value"] == "0.9104"
+    assert lnnu_employment["metric_year"] == "2024"
+    lnnu_postgrad = by_entity[("0165", "postgrad_rate")]
+    assert lnnu_postgrad["status"] == "verified"
+    assert lnnu_postgrad["metric_value"] == "0.2557"
+    assert lnnu_postgrad["metric_year"] == "2024"
     assert by_entity[("0166", "employment_rate")]["status"] == "todo"
 
 
