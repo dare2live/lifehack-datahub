@@ -51,6 +51,8 @@ def build_score_history_reconciliation_review_batch(
     limit_per_issue: int | None = None,
     score_year: int | None = None,
     value_drift_core_state: str | None = None,
+    value_drift_score_delta_bucket: str | None = None,
+    value_drift_rank_delta_bucket: str | None = None,
     projection_csv: Path | None = None,
     core_db: Path | None = None,
     core_plan_year: int | None = None,
@@ -70,11 +72,28 @@ def build_score_history_reconciliation_review_batch(
 
     score_year_filter = str(score_year) if score_year is not None else None
     value_drift_core_state_filter = _normalize_value_drift_core_state_filter(value_drift_core_state)
+    score_delta_bucket_filter = _normalize_delta_bucket_filter(
+        value_drift_score_delta_bucket,
+        small=1,
+        medium=5,
+        label="value_drift_score_delta_bucket",
+    )
+    rank_delta_bucket_filter = _normalize_delta_bucket_filter(
+        value_drift_rank_delta_bucket,
+        small=100,
+        medium=1000,
+        label="value_drift_rank_delta_bucket",
+    )
     grouped: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for row in rows:
         if score_year_filter and str(row.get("score_year") or "").strip() != score_year_filter:
             continue
         if value_drift_core_state_filter and not _matches_value_drift_core_state(row, value_drift_core_state_filter):
+            continue
+        if (
+            (score_delta_bucket_filter or rank_delta_bucket_filter)
+            and not _matches_value_drift_delta_buckets(row, score_delta_bucket_filter, rank_delta_bucket_filter)
+        ):
             continue
         issue_type = str(row.get("issue_type") or "").strip()
         status = str(row.get("status") or "").strip()
@@ -126,6 +145,8 @@ def build_score_history_reconciliation_review_batch(
         "limit_per_issue": limit,
         "score_year": score_year,
         "value_drift_core_state": value_drift_core_state_filter,
+        "value_drift_score_delta_bucket": score_delta_bucket_filter,
+        "value_drift_rank_delta_bucket": rank_delta_bucket_filter,
         "value_drift_context": value_drift_context,
         "reference_context": reference_context,
         "rows": len(batch_rows),
@@ -141,6 +162,8 @@ def build_score_history_reconciliation_review_batch(
         "issue_counts": dict(sorted(issue_counts.items())),
         "score_year": score_year,
         "value_drift_core_state": value_drift_core_state_filter,
+        "value_drift_score_delta_bucket": score_delta_bucket_filter,
+        "value_drift_rank_delta_bucket": rank_delta_bucket_filter,
         "value_drift_context": value_drift_context,
         "reference_context": reference_context,
     }
@@ -385,6 +408,25 @@ def _normalize_value_drift_core_state_filter(value: str | None) -> str | None:
     return normalized
 
 
+def _normalize_delta_bucket_filter(value: str | None, *, small: int, medium: int, label: str) -> str | None:
+    if value is None:
+        return None
+    normalized = value.strip().replace(" ", "")
+    mapping = {
+        "0": "0",
+        f"<={small}": f"<= {small}",
+        f"<={medium}": f"<= {medium}",
+        f">{medium}": f"> {medium}",
+        "core_missing": "core_missing",
+        "package_missing": "package_missing",
+        "both_missing": "both_missing",
+    }
+    if normalized in mapping:
+        return mapping[normalized]
+    allowed = ", ".join(sorted(mapping))
+    raise ValueError(f"{label} must be one of: {allowed}")
+
+
 def _matches_value_drift_core_state(row: dict[str, Any], expected_state: str) -> bool:
     if str(row.get("issue_type") or "").strip() != "value_drift":
         return False
@@ -393,6 +435,26 @@ def _matches_value_drift_core_state(row: dict[str, Any], expected_state: str) ->
     if expected_state == "missing_or_zero":
         return score_state in {"missing", "zero"} or rank_state in {"missing", "zero"}
     return score_state == expected_state or rank_state == expected_state
+
+
+def _matches_value_drift_delta_buckets(
+    row: dict[str, Any],
+    score_bucket: str | None,
+    rank_bucket: str | None,
+) -> bool:
+    if str(row.get("issue_type") or "").strip() != "value_drift":
+        return False
+    package_score = _number_or_none(row.get("package_min_score"))
+    core_score = _number_or_none(row.get("core_min_score"))
+    package_rank = _number_or_none(row.get("package_min_rank"))
+    core_rank = _number_or_none(row.get("core_min_rank"))
+    actual_score_bucket = _delta_bucket(package_score, core_score, small=1, medium=5)
+    actual_rank_bucket = _delta_bucket(package_rank, core_rank, small=100, medium=1000)
+    if score_bucket and actual_score_bucket != score_bucket:
+        return False
+    if rank_bucket and actual_rank_bucket != rank_bucket:
+        return False
+    return True
 
 
 def _format_delta(package_value: float | None, core_value: float | None) -> str:
