@@ -280,7 +280,7 @@ python3 scripts/build_package.py apply-score-history-reconciliation-auto-decisio
 
 真实 smoke：对本地报考工作簿历史分数 reconciliation plan 应用 `core_zero_placeholder_to_delete_plan`，10,461 条任务中 10,184 条 `core_only_zero_placeholder` 自动标为 `reviewed/exclude_row`，其余 277 条非占位差异仍为 `todo`；readiness audit 无错误但 `package_ready=false`，因此不会越过后续复核和写库门禁。再传入 2025 官方派生包作为 `--reference-package-dir` 后，276 条 `core_only_unmatched` 被官方参考包确认并标为 `keep_core_row`，1 条 `package_only_unmatched` 标为 `use_package_row`，readiness 变为 `package_ready=true`。
 
-含删除决策的 reviewed plan 必须拆成两个产物。`build-score-history-from-reconciliation-plan --allow-core-exclude-rows` 只生成非删除行的数据包；`build-score-history-delete-plan` 只生成 core-backed `exclude_row` 删除候选。真实 smoke 已生成 277 行补丁包并通过 core importer `--dry-run`，同时生成 10,184 行 delete plan，core `apply_delete_plan.py` dry-run 显示所有 key 均匹配但未执行删除。
+含删除决策的 reviewed plan 必须拆成两个产物。`build-score-history-from-reconciliation-plan --allow-core-exclude-rows` 只生成非删除行的数据包；`build-score-history-delete-plan` 只生成 core-backed `exclude_row` 删除候选。真实 run 已生成 277 行补丁包并通过 core importer `--dry-run` 后实际导入，同时生成 10,184 行 delete plan；core `apply_delete_plan.py` 先 dry-run 确认所有 key 均匹配，再以 migration id `2025-score-history-workbook-reconciled-official-reference-zero-placeholders` 执行，删除 10,184 行旧零占位记录。
 
 为了让人工复核先从小样本启动，可按 issue type 抽取 pending 任务：
 

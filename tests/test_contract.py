@@ -2672,8 +2672,11 @@ def test_build_score_history_from_reconciliation_plan_exports_reviewed_rows(tmp_
     with (package_dir / "fa_fact_ln_score_history.csv").open(encoding="utf-8", newline="") as f:
         output_rows = list(csv.DictReader(f))
     by_key = {(row["school_code"], row["major_code"]): row for row in output_rows}
+    expected_id = hashlib.md5("1006||06||本科批||物理类||2024".encode()).hexdigest()[:16]
     assert by_key[("1002", "02")]["min_rank"] == "2000"
     assert by_key[("1006", "06")]["min_rank"] == "6000"
+    assert by_key[("1006", "06")]["id"] == expected_id
+    assert by_key[("1006", "06")]["score_type"] == "最低分"
     assert by_key[("1003", "03")]["min_rank"] == "3000"
 
 
@@ -2798,6 +2801,8 @@ def test_build_score_history_from_reconciliation_plan_can_skip_core_delete_rows_
     with (Path(result["package_dir"]) / "fa_fact_ln_score_history.csv").open(encoding="utf-8", newline="") as f:
         output_rows = list(csv.DictReader(f))
     assert [(row["school_code"], row["major_code"]) for row in output_rows] == [("1008", "08")]
+    assert output_rows[0]["id"]
+    assert output_rows[0]["score_type"] == "最低分"
 
 
 def test_build_score_history_delete_plan_rejects_unready(tmp_path: Path):

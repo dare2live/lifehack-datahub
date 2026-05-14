@@ -544,7 +544,7 @@ python3 scripts/build_package.py apply-score-history-reconciliation-auto-decisio
 
 真实 smoke：对本地报考工作簿历史分数 reconciliation plan 应用 `core_zero_placeholder_to_delete_plan`，10,461 条任务中 10,184 条 `core_only_zero_placeholder` 被标为 `reviewed/exclude_row`，仍有 277 条非占位差异保持 `todo`，readiness audit 为 `package_ready=false`，说明自动规则只降低复核量，不越过剩余复核和写库门禁。随后用 2025 辽宁官网投档最低分 + 官方一分一段派生包作为 `--reference-package-dir`，277 条剩余差异全部被官方参考包确认：276 条 `core_only_unmatched` 标为 `keep_core_row`，1 条 `package_only_unmatched` 标为 `use_package_row`，readiness 变为 `package_ready=true`。
 
-同一个 reviewed plan 会拆成两个产物：`build-score-history-from-reconciliation-plan --allow-core-exclude-rows` 只导出非删除记录，真实包 `2025_ln_score_history_workbook_reconciled_official_reference` 含 277 行，core importer `--dry-run` 通过；`build-score-history-delete-plan` 只导出 10,184 条 0 占位删除候选，core `apply_delete_plan.py` dry-run 显示 `matched_keys=10184/missing_keys=0`。二者仍未执行实际 core 写入。
+同一个 reviewed plan 会拆成两个产物：`build-score-history-from-reconciliation-plan --allow-core-exclude-rows` 只导出非删除记录，真实包 `2025_ln_score_history_workbook_reconciled_official_reference` 含 277 行，core importer `--dry-run` 通过后已实际导入；`build-score-history-delete-plan` 只导出 10,184 条 0 占位删除候选，core `apply_delete_plan.py` dry-run 显示 `matched_keys=10184/missing_keys=0`，随后以 migration id `2025-score-history-workbook-reconciled-official-reference-zero-placeholders` 执行并删除 10,184 行。删除前本地 core DB 已备份为 ignored 文件，最终主项目 Phase0 使用清洗后行数质量门槛全 PASS。
 
 人工复核启动时可先抽一个小批次；默认每类数量由配置维护，也可用参数覆盖：
 

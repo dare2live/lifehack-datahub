@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import csv
+import hashlib
 import json
 from collections import Counter
 from datetime import date
@@ -147,15 +148,21 @@ def _row_for_decision(row: dict[str, Any], decision: str) -> dict[str, Any]:
 
 
 def _score_row(row: dict[str, Any], *, major_code: Any, min_score: Any, min_rank: Any) -> dict[str, Any]:
+    school_code = _value(row, "school_code")
+    batch = _value(row, "batch")
+    subject_cat = _value(row, "subject_cat")
+    score_year = _coerce_int(_value(row, "score_year"))
     return {
-        "school_code": _value(row, "school_code"),
+        "id": _make_id(school_code, major_code, batch, subject_cat, score_year),
+        "school_code": school_code,
         "major_code": major_code,
-        "batch": _value(row, "batch"),
-        "subject_cat": _value(row, "subject_cat"),
-        "score_year": _coerce_int(_value(row, "score_year")),
+        "batch": batch,
+        "subject_cat": subject_cat,
+        "score_year": score_year,
         "min_score": _coerce_int(min_score),
         "min_rank": _coerce_int(min_rank),
         "plan_count": None,
+        "score_type": "最低分",
     }
 
 
@@ -262,6 +269,11 @@ def _coerce_int(value: Any) -> int | None:
     if value in (None, ""):
         return None
     return int(float(str(value).replace(",", "").strip()))
+
+
+def _make_id(*parts: Any) -> str:
+    raw = "||".join(str(part) for part in parts)
+    return hashlib.md5(raw.encode()).hexdigest()[:16]
 
 
 def _max_score_year(rows: list[dict[str, Any]]) -> str | None:
