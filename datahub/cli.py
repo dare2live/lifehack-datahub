@@ -38,6 +38,7 @@ from .builders.city_context_collection_batch import (
 from .builders.city_context_collection_package import build_city_context_packages_from_collection_plan
 from .builders.city_context_collection_plan import build_city_context_collection_plan
 from .builders.city_context_target_cities import build_city_context_target_cities
+from .builders.campus_living_score import build_campus_living_score_package
 from .builders.city_development_score import build_city_development_score_package
 from .builders.city_listed_company_signal import build_city_listed_company_signal_package
 from .builders.data_update_policy_audit import audit_data_update_policy
@@ -797,6 +798,22 @@ def main() -> int:
     build_major_city_employment_fit.add_argument("--source-version")
     build_major_city_employment_fit.add_argument("--role-sheet")
     build_major_city_employment_fit.add_argument("--demand-sheet")
+
+    build_campus_living_score = sub.add_parser(
+        "build-campus-living-score",
+        help="Build fa_mart_campus_living_score from campus location, POI, housing, and region cost signals",
+    )
+    build_campus_living_score.add_argument("--location-input", required=True, type=Path)
+    build_campus_living_score.add_argument("--poi-input", required=True, type=Path)
+    build_campus_living_score.add_argument("--housing-input", required=True, type=Path)
+    build_campus_living_score.add_argument("--region-cost-input", required=True, type=Path)
+    build_campus_living_score.add_argument("--output-root", required=True, type=Path)
+    build_campus_living_score.add_argument("--package-id")
+    build_campus_living_score.add_argument("--source-version")
+    build_campus_living_score.add_argument("--location-sheet")
+    build_campus_living_score.add_argument("--poi-sheet")
+    build_campus_living_score.add_argument("--housing-sheet")
+    build_campus_living_score.add_argument("--region-cost-sheet")
 
     build_major_outcome_civil_service = sub.add_parser(
         "build-major-outcome-from-civil-service",
@@ -1759,6 +1776,22 @@ def main() -> int:
             source_version=args.source_version,
             role_sheet=args.role_sheet,
             demand_sheet=args.demand_sheet,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+    if args.cmd == "build-campus-living-score":
+        result = build_campus_living_score_package(
+            location_input=args.location_input,
+            poi_input=args.poi_input,
+            housing_input=args.housing_input,
+            region_cost_input=args.region_cost_input,
+            output_root=args.output_root,
+            package_id=args.package_id,
+            source_version=args.source_version,
+            location_sheet=args.location_sheet,
+            poi_sheet=args.poi_sheet,
+            housing_sheet=args.housing_sheet,
+            region_cost_sheet=args.region_cost_sheet,
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0

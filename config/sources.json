@@ -1094,7 +1094,7 @@
         "status": "derived_from_datahub_signals",
         "official_distribution": "DataHub 校区位置、周边设施和住房价格快照加工结果",
         "evidence_urls": [],
-        "notes": "用于辅助比较校外租房、通勤便利和生活成本，不替代录取概率、学校层级或专业前景。评分权重后续应迁入独立配置。"
+        "notes": "用于辅助比较校外租房、通勤便利和生活成本，不替代录取概率、学校层级或专业前景。评分权重、POI 分组和租售指标值域维护在 config/campus_living_score.json。"
       },
       "target_tables": ["fa_mart_campus_living_score"]
     },

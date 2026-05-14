@@ -65,6 +65,11 @@ def load_city_development_score() -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def load_campus_living_score() -> dict[str, Any]:
+    path = CONFIG_DIR / "campus_living_score.json"
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
 def load_city_listed_company_signal() -> dict[str, Any]:
     path = CONFIG_DIR / "city_listed_company_signal.json"
     return json.loads(path.read_text(encoding="utf-8"))

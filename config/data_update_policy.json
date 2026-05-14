@@ -434,12 +434,22 @@
       "validity_profile": "manual_file",
       "promotion_gate": "manual_review_approved"
     },
+    "region_living_cost": {
+      "update_mode": "append_snapshot",
+      "cadence": "quarterly_or_after_public_report",
+      "partition_keys": ["metric_year", "adcode", "metric_key", "snapshot_date"],
+      "concurrency_group": "city_collection_parallel",
+      "parallelizable": true,
+      "depends_on": ["region_profile_geocode"],
+      "validity_profile": "collection_plan",
+      "promotion_gate": "collection_audit_ok"
+    },
     "campus_living_score": {
       "update_mode": "derived_rebuild",
       "cadence": "after_campus_context_update",
       "concurrency_group": "derived_readonly_mart",
       "parallelizable": true,
-      "depends_on": ["campus_surrounding_poi", "campus_housing_market", "city_public_resource"],
+      "depends_on": ["campus_surrounding_poi", "campus_housing_market", "region_living_cost"],
       "validity_profile": "derived_mart",
       "promotion_gate": "package_quality_ok"
     },

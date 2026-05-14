@@ -1,0 +1,124 @@
+{
+  "version": "2026-05-14",
+  "notes": "校区生活便利与成本评分配置。输入为校区定位、周边 POI、租售价格快照和区域生活成本指标，输出 fa_mart_campus_living_score；权重、POI 分组和值域均在本文件维护。",
+  "score_profile": {
+    "profile_id": "student_living_default",
+    "snapshot_date": "2026-05-14",
+    "minimum_signal_count": 3
+  },
+  "component_weights": {
+    "transit_score": 0.3,
+    "commerce_score": 0.2,
+    "housing_cost_score": 0.25,
+    "medical_score": 0.1,
+    "green_space_score": 0.15
+  },
+  "poi_category_groups": {
+    "subway_station": {
+      "component": "transit_score",
+      "radius_m": 2000,
+      "max_count": 3,
+      "weight": 0.65
+    },
+    "bus_stop": {
+      "component": "transit_score",
+      "radius_m": 1200,
+      "max_count": 8,
+      "weight": 0.35
+    },
+    "supermarket": {
+      "component": "commerce_score",
+      "radius_m": 2000,
+      "max_count": 6,
+      "weight": 0.35
+    },
+    "restaurant": {
+      "component": "commerce_score",
+      "radius_m": 2000,
+      "max_count": 12,
+      "weight": 0.35
+    },
+    "shopping_mall": {
+      "component": "commerce_score",
+      "radius_m": 3000,
+      "max_count": 2,
+      "weight": 0.3
+    },
+    "hospital": {
+      "component": "medical_score",
+      "radius_m": 3000,
+      "max_count": 3,
+      "weight": 0.7
+    },
+    "pharmacy": {
+      "component": "medical_score",
+      "radius_m": 1500,
+      "max_count": 5,
+      "weight": 0.3
+    },
+    "park": {
+      "component": "green_space_score",
+      "radius_m": 3000,
+      "max_count": 4,
+      "weight": 1.0
+    }
+  },
+  "housing_metrics": {
+    "median_monthly_rent": {
+      "component": "housing_cost_score",
+      "min": 800,
+      "max": 4500,
+      "polarity": "negative",
+      "weight": 0.55
+    },
+    "median_rent_per_sqm": {
+      "component": "housing_cost_score",
+      "min": 20,
+      "max": 120,
+      "polarity": "negative",
+      "weight": 0.3
+    },
+    "median_sale_price_per_sqm": {
+      "component": "housing_cost_score",
+      "min": 6000,
+      "max": 45000,
+      "polarity": "negative",
+      "weight": 0.15
+    }
+  },
+  "region_living_cost_metrics": {
+    "student_meal_baseline": {
+      "component": "commerce_score",
+      "min": 10,
+      "max": 40,
+      "polarity": "negative",
+      "weight": 0.2
+    },
+    "living_service_density": {
+      "component": "commerce_score",
+      "min": 0,
+      "max": 100,
+      "polarity": "positive",
+      "weight": 0.2
+    },
+    "commute_time_to_city_center": {
+      "component": "transit_score",
+      "min": 10,
+      "max": 90,
+      "polarity": "negative",
+      "weight": 0.2
+    },
+    "transit_fare_baseline": {
+      "component": "transit_score",
+      "min": 1,
+      "max": 8,
+      "polarity": "negative",
+      "weight": 0.1
+    }
+  },
+  "allowed_listing_types": ["rent", "sale"],
+  "reason_thresholds": {
+    "strong_component_score": 70,
+    "weak_component_score": 35
+  }
+}

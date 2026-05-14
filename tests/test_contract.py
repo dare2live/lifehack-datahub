@@ -47,6 +47,7 @@ from datahub.builders.city_context_collection_batch import (
 from datahub.builders.city_context_collection_package import build_city_context_packages_from_collection_plan
 from datahub.builders.city_context_collection_plan import build_city_context_collection_plan
 from datahub.builders.city_context_target_cities import build_city_context_target_cities
+from datahub.builders.campus_living_score import build_campus_living_score_package
 from datahub.builders.city_development_score import build_city_development_score_package
 from datahub.builders.city_listed_company_signal import build_city_listed_company_signal_package
 from datahub.builders.data_update_policy_audit import audit_data_update_policy
@@ -5486,6 +5487,471 @@ def test_build_career_score_package_from_signals(tmp_path: Path):
     assert int(float(rows[0]["signal_count"])) == 4
     lineage = json.loads(rows[0]["pit_lineage_json"])
     assert "fa_fact_career_signal" in lineage["tables"]
+
+
+def test_build_campus_living_score_package(tmp_path: Path):
+    location_input = tmp_path / "school_location.csv"
+    with location_input.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(
+            f,
+            fieldnames=[
+                "national_school_code",
+                "local_school_code",
+                "school_name",
+                "campus_key",
+                "campus_name",
+                "campus_type",
+                "address",
+                "province",
+                "city",
+                "district",
+                "adcode",
+                "longitude",
+                "latitude",
+                "coordinate_system",
+                "geocode_level",
+                "geocode_confidence",
+                "source_address_url",
+                "source_date",
+                "availability_date",
+                "built_at",
+            ],
+        )
+        writer.writeheader()
+        writer.writerow({
+            "national_school_code": "4121010145",
+            "local_school_code": "0145",
+            "school_name": "东北大学",
+            "campus_key": "0145_main",
+            "campus_name": "南湖校区",
+            "campus_type": "main",
+            "address": "辽宁省沈阳市和平区文化路三巷",
+            "province": "辽宁",
+            "city": "沈阳",
+            "district": "和平区",
+            "adcode": "210102",
+            "longitude": "123.425",
+            "latitude": "41.774",
+            "coordinate_system": "GCJ-02",
+            "geocode_level": "门牌号",
+            "geocode_confidence": "0.95",
+            "source_address_url": "https://example.com/school-location",
+            "source_date": "2026-05-13",
+            "availability_date": "2026-05-13",
+            "built_at": "2026-05-13T00:00:00",
+        })
+
+    poi_input = tmp_path / "campus_poi.csv"
+    with poi_input.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(
+            f,
+            fieldnames=[
+                "national_school_code",
+                "local_school_code",
+                "school_name",
+                "campus_key",
+                "campus_name",
+                "poi_id",
+                "poi_name",
+                "poi_category",
+                "category_group",
+                "distance_m",
+                "walking_minutes",
+                "longitude",
+                "latitude",
+                "coordinate_system",
+                "province",
+                "city",
+                "district",
+                "adcode",
+                "address",
+                "source_provider",
+                "source_url",
+                "raw_response_hash",
+                "snapshot_date",
+                "source_date",
+                "availability_date",
+                "built_at",
+            ],
+        )
+        writer.writeheader()
+        base = {
+            "national_school_code": "4121010145",
+            "local_school_code": "0145",
+            "school_name": "东北大学",
+            "campus_key": "0145_main",
+            "campus_name": "南湖校区",
+            "province": "辽宁",
+            "city": "沈阳",
+            "district": "和平区",
+            "adcode": "210102",
+            "coordinate_system": "GCJ-02",
+            "source_provider": "fixture_amap",
+            "source_url": "https://example.com/poi",
+            "raw_response_hash": "hash-poi",
+            "snapshot_date": "2026-05-14",
+            "source_date": "2026-05-13",
+            "availability_date": "2026-05-13",
+            "built_at": "2026-05-13T00:00:00",
+        }
+        for poi_id, poi_name, poi_category, category_group, distance_m in [
+            ("metro-1", "地铁A", "地铁站", "subway_station", 820),
+            ("metro-2", "地铁B", "地铁站", "subway_station", 1600),
+            ("bus-1", "公交A", "公交站", "bus_stop", 300),
+            ("bus-2", "公交B", "公交站", "bus_stop", 650),
+            ("market-1", "超市A", "超市", "supermarket", 500),
+            ("food-1", "快餐A", "餐饮", "restaurant", 420),
+            ("hospital-1", "医院A", "医院", "hospital", 2200),
+            ("park-1", "公园A", "公园", "park", 1300),
+        ]:
+            writer.writerow({
+                **base,
+                "poi_id": poi_id,
+                "poi_name": poi_name,
+                "poi_category": poi_category,
+                "category_group": category_group,
+                "distance_m": distance_m,
+                "walking_minutes": round(distance_m / 80, 1),
+                "longitude": "123.42",
+                "latitude": "41.77",
+                "address": "fixture address",
+            })
+
+    housing_input = tmp_path / "campus_housing.csv"
+    with housing_input.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(
+            f,
+            fieldnames=[
+                "national_school_code",
+                "local_school_code",
+                "school_name",
+                "campus_key",
+                "campus_name",
+                "radius_m",
+                "listing_type",
+                "housing_metric_key",
+                "housing_metric_name",
+                "metric_value",
+                "metric_unit",
+                "sample_count",
+                "source_platform",
+                "source_url",
+                "source_scope",
+                "raw_response_hash",
+                "snapshot_date",
+                "source_date",
+                "availability_date",
+                "built_at",
+            ],
+        )
+        writer.writeheader()
+        base = {
+            "national_school_code": "4121010145",
+            "local_school_code": "0145",
+            "school_name": "东北大学",
+            "campus_key": "0145_main",
+            "campus_name": "南湖校区",
+            "radius_m": "3000",
+            "listing_type": "rent",
+            "source_platform": "fixture_market",
+            "source_url": "https://example.com/housing",
+            "source_scope": "3km rental snapshot",
+            "raw_response_hash": "hash-housing",
+            "snapshot_date": "2026-05-14",
+            "source_date": "2026-05-13",
+            "availability_date": "2026-05-13",
+            "built_at": "2026-05-13T00:00:00",
+        }
+        for metric_key, metric_name, value, unit, sample_count in [
+            ("median_monthly_rent", "月租金中位数", "1800", "元/月", "64"),
+            ("median_rent_per_sqm", "每平米租金中位数", "42", "元/月/平", "64"),
+        ]:
+            writer.writerow({
+                **base,
+                "housing_metric_key": metric_key,
+                "housing_metric_name": metric_name,
+                "metric_value": value,
+                "metric_unit": unit,
+                "sample_count": sample_count,
+            })
+
+    region_cost_input = tmp_path / "region_living_cost.csv"
+    with region_cost_input.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(
+            f,
+            fieldnames=[
+                "adcode",
+                "region_name",
+                "region_level",
+                "province",
+                "city",
+                "district",
+                "metric_key",
+                "metric_name",
+                "metric_value",
+                "metric_unit",
+                "metric_year",
+                "sample_count",
+                "source_provider",
+                "source_title",
+                "source_url",
+                "source_scope",
+                "evidence_quote",
+                "raw_response_hash",
+                "snapshot_date",
+                "source_date",
+                "availability_date",
+                "built_at",
+            ],
+        )
+        writer.writeheader()
+        base = {
+            "adcode": "210102",
+            "region_name": "和平区",
+            "region_level": "district",
+            "province": "辽宁",
+            "city": "沈阳",
+            "district": "和平区",
+            "metric_year": "2026",
+            "sample_count": "20",
+            "source_provider": "fixture_cost",
+            "source_title": "fixture living cost",
+            "source_url": "https://example.com/living-cost",
+            "source_scope": "district fixture",
+            "raw_response_hash": "hash-cost",
+            "snapshot_date": "2026-05-14",
+            "source_date": "2026-05-13",
+            "availability_date": "2026-05-13",
+            "built_at": "2026-05-13T00:00:00",
+        }
+        for metric_key, metric_name, value, unit in [
+            ("student_meal_baseline", "学生餐费基准", "18", "元/餐"),
+            ("living_service_density", "生活服务密度", "72", "score"),
+            ("commute_time_to_city_center", "到核心区通勤时间", "32", "分钟"),
+        ]:
+            writer.writerow({
+                **base,
+                "metric_key": metric_key,
+                "metric_name": metric_name,
+                "metric_value": value,
+                "metric_unit": unit,
+                "evidence_quote": f"{metric_name}{value}",
+            })
+
+    result = build_campus_living_score_package(
+        location_input=location_input,
+        poi_input=poi_input,
+        housing_input=housing_input,
+        region_cost_input=region_cost_input,
+        output_root=tmp_path / "exports",
+        package_id="pkg-campus-living-score-test",
+        source_version="fixture-campus-living",
+    )
+
+    package_dir = Path(result["package_dir"])
+    assert validate_manifest(package_dir / "manifest.json")["errors"] == []
+    assert result["rows"] == 1
+    with (package_dir / "fa_mart_campus_living_score.csv").open(encoding="utf-8", newline="") as f:
+        rows = list(csv.DictReader(f))
+    row = rows[0]
+    assert row["national_school_code"] == "4121010145"
+    assert row["campus_name"] == "南湖校区"
+    assert row["score_profile"] == "student_living_default"
+    assert float(row["overall_score"]) > 0
+    contributions = json.loads(row["signal_contribution_json"])
+    assert "housing_cost_score" in contributions["components"]
+    lineage = json.loads(row["pit_lineage_json"])
+    assert "fa_fact_campus_housing_market" in lineage["tables"]
+    assert result["quality_report"]["input_quality"]["errors"] == []
+
+
+def test_build_campus_living_score_rejects_bad_input_metadata(tmp_path: Path):
+    location_input = tmp_path / "school_location.csv"
+    with location_input.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(
+            f,
+            fieldnames=[
+                "national_school_code",
+                "school_name",
+                "campus_key",
+                "address",
+                "province",
+                "city",
+                "district",
+                "adcode",
+                "longitude",
+                "latitude",
+                "coordinate_system",
+                "geocode_level",
+                "geocode_confidence",
+                "source_address_url",
+                "source_date",
+                "availability_date",
+                "built_at",
+            ],
+        )
+        writer.writeheader()
+        writer.writerow({
+            "national_school_code": "4121010145",
+            "school_name": "东北大学",
+            "campus_key": "0145_main",
+            "address": "辽宁省沈阳市和平区文化路三巷",
+            "province": "辽宁",
+            "city": "沈阳",
+            "district": "和平区",
+            "adcode": "210102",
+            "longitude": "123.425",
+            "latitude": "41.774",
+            "coordinate_system": "GCJ-02",
+            "geocode_level": "门牌号",
+            "geocode_confidence": "1.5",
+            "source_address_url": "ftp://example.com/location",
+            "source_date": "2026-05-14",
+            "availability_date": "2026-05-13",
+            "built_at": "2026-05-13T00:00:00",
+        })
+
+    poi_input = tmp_path / "campus_poi.csv"
+    with poi_input.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(
+            f,
+            fieldnames=[
+                "national_school_code",
+                "school_name",
+                "campus_key",
+                "poi_id",
+                "poi_name",
+                "category_group",
+                "distance_m",
+                "source_provider",
+                "source_url",
+                "snapshot_date",
+                "source_date",
+                "availability_date",
+                "built_at",
+            ],
+        )
+        writer.writeheader()
+        writer.writerow({
+            "national_school_code": "4121010145",
+            "school_name": "东北大学",
+            "campus_key": "0145_main",
+            "poi_id": "bad-poi",
+            "poi_name": "坏设施",
+            "category_group": "unknown_poi",
+            "distance_m": "-1",
+            "source_provider": "fixture",
+            "source_url": "https://example.com/poi",
+            "snapshot_date": "2026-05-14",
+            "source_date": "2026-05-13",
+            "availability_date": "2026-05-13",
+            "built_at": "2026-05-13T00:00:00",
+        })
+
+    housing_input = tmp_path / "campus_housing.csv"
+    with housing_input.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(
+            f,
+            fieldnames=[
+                "national_school_code",
+                "school_name",
+                "campus_key",
+                "radius_m",
+                "listing_type",
+                "housing_metric_key",
+                "metric_value",
+                "metric_unit",
+                "sample_count",
+                "source_platform",
+                "source_url",
+                "snapshot_date",
+                "source_date",
+                "availability_date",
+                "built_at",
+            ],
+        )
+        writer.writeheader()
+        writer.writerow({
+            "national_school_code": "4121010145",
+            "school_name": "东北大学",
+            "campus_key": "0145_main",
+            "radius_m": "3000",
+            "listing_type": "lease",
+            "housing_metric_key": "unknown_metric",
+            "metric_value": "1800",
+            "metric_unit": "元/月",
+            "sample_count": "10.5",
+            "source_platform": "fixture",
+            "source_url": "https://example.com/housing",
+            "snapshot_date": "2026-05-14",
+            "source_date": "2026-05-13",
+            "availability_date": "2026-05-13",
+            "built_at": "2026-05-13T00:00:00",
+        })
+
+    region_cost_input = tmp_path / "region_living_cost.csv"
+    with region_cost_input.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(
+            f,
+            fieldnames=[
+                "adcode",
+                "region_name",
+                "region_level",
+                "city",
+                "metric_key",
+                "metric_name",
+                "metric_value",
+                "metric_unit",
+                "metric_year",
+                "source_provider",
+                "source_url",
+                "snapshot_date",
+                "source_date",
+                "availability_date",
+                "built_at",
+            ],
+        )
+        writer.writeheader()
+        writer.writerow({
+            "adcode": "210102",
+            "region_name": "和平区",
+            "region_level": "district",
+            "city": "沈阳",
+            "metric_key": "unknown_cost",
+            "metric_name": "未知成本",
+            "metric_value": "18",
+            "metric_unit": "元",
+            "metric_year": "2026.5",
+            "source_provider": "fixture",
+            "source_url": "ftp://example.com/cost",
+            "snapshot_date": "2026-05-14",
+            "source_date": "2026-05-14",
+            "availability_date": "2026-05-13",
+            "built_at": "2026-05-13T00:00:00",
+        })
+
+    with pytest.raises(ValueError) as exc:
+        build_campus_living_score_package(
+            location_input=location_input,
+            poi_input=poi_input,
+            housing_input=housing_input,
+            region_cost_input=region_cost_input,
+            output_root=tmp_path / "exports",
+            package_id="pkg-campus-living-score-bad-input",
+            source_version="fixture-campus-living",
+        )
+
+    message = str(exc.value)
+    assert "location row 1 source_address_url must be an http(s) URL" in message
+    assert "location row 1 geocode_confidence outside 0-1: 1.5" in message
+    assert "poi row 1 unregistered category_group: unknown_poi" in message
+    assert "poi row 1 distance_m below 0: -1" in message
+    assert "housing row 1 unregistered listing_type: lease" in message
+    assert "housing row 1 unregistered housing_metric_key: unknown_metric" in message
+    assert "housing row 1 sample_count is not an integer" in message
+    assert "region_living_cost row 1 source_url must be an http(s) URL" in message
+    assert "region_living_cost row 1 metric_year is not an integer" in message
+    assert "region_living_cost row 1 source_date must not be after availability_date" in message
 
 
 def test_build_city_development_score_package(tmp_path: Path):
