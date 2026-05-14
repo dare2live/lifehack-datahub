@@ -280,11 +280,13 @@ python3 scripts/build_package.py apply-score-history-reconciliation-auto-decisio
   --report staging/score_history_reconciliation_2023_2024/auto_decision_report.json
 ```
 
+多候选专业代码漂移可继续用官方投档 CSV 的 `major_full` 和 core 招生计划候选专业名做只读参考。`apply-score-history-major-name-reference-decisions` 只接受唯一精确专业名匹配，并把 `core_candidates_json/core_key_json/core_major_code` 收敛到被命中的候选；无命中、多个命中或仅包含匹配都保持 pending，避免把跨年份名称近似当作自动结论。
+
 真实 smoke：对本地报考工作簿历史分数 reconciliation plan 应用 `core_zero_placeholder_to_delete_plan`，10,461 条任务中 10,184 条 `core_only_zero_placeholder` 自动标为 `reviewed/exclude_row`，其余 277 条非占位差异仍为 `todo`；readiness audit 无错误但 `package_ready=false`，因此不会越过后续复核和写库门禁。再传入 2025 官方派生包作为 `--reference-package-dir` 后，276 条 `core_only_unmatched` 被官方参考包确认并标为 `keep_core_row`，1 条 `package_only_unmatched` 标为 `use_package_row`，readiness 变为 `package_ready=true`。
 
 含删除决策的 reviewed plan 必须拆成两个产物。`build-score-history-from-reconciliation-plan --allow-core-exclude-rows` 只生成非删除行的数据包；`build-score-history-delete-plan` 只生成 core-backed `exclude_row` 删除候选。真实 run 已生成 277 行补丁包并通过 core importer `--dry-run` 后实际导入，同时生成 10,184 行 delete plan；core `apply_delete_plan.py` 先 dry-run 确认所有 key 均匹配，再以 migration id `2025-score-history-workbook-reconciled-official-reference-zero-placeholders` 执行，删除 10,184 行旧零占位记录。
 
-2022 官方派生包 reconciliation 已用同一规则继续降噪：16,963 条任务中 3,638 条零占位、5,346 条 package-only、3,712 条 value drift 和 2,047 条单候选专业代码漂移被自动标为 reviewed，剩余 2,220 条仍为 todo（1,773 条 core-only、447 条多候选专业代码漂移）。已生成 120 行小批复核包，后续人工或证据核验完成前仍不能生成可导入包或 delete plan。
+2022 官方派生包 reconciliation 已用同一规则继续降噪：16,963 条任务中 3,638 条零占位、5,346 条 package-only、3,712 条 value drift 和 2,047 条单候选专业代码漂移被自动标为 reviewed，剩余 2,220 条仍为 todo（1,773 条 core-only、447 条多候选专业代码漂移）。随后用官方投档专业名与 core 2026 招生计划候选专业名做唯一精确匹配，又将 170 条多候选专业代码漂移收敛为 reviewed；当前剩余 2,050 条 todo（1,773 条 core-only、277 条多候选专业代码漂移），并已基于新 plan 生成 120 行小批复核包。后续人工或证据核验完成前仍不能生成可导入包或 delete plan。
 
 为了让人工复核先从小样本启动，可按 issue type 抽取 pending 任务：
 

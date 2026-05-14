@@ -88,6 +88,7 @@ from datahub.builders.policy_tables import (
     build_policy_plan_history_package,
 )
 from datahub.builders.score_history_from_projection import build_score_history_from_projection_package
+from datahub.builders.score_history_major_name_reference import apply_score_history_major_name_reference_decisions
 from datahub.builders.score_history_package_audit import audit_score_history_package_against_core
 from datahub.builders.score_history_reconciliation_audit import audit_score_history_reconciliation_plan
 from datahub.builders.score_history_reconciliation_auto_decision import apply_score_history_reconciliation_auto_decisions
@@ -2185,6 +2186,173 @@ def test_apply_score_history_reconciliation_auto_decisions_marks_zero_placeholde
     assert audit["progress"]["ready_rows"] == 1
     assert audit["progress"]["pending_rows"] == 1
     assert audit["ready"]["package_ready"] is False
+
+
+def test_apply_score_history_major_name_reference_decisions_resolves_exact_candidate(tmp_path: Path):
+    plan = tmp_path / "score_history_reconciliation_plan.csv"
+    candidate_11 = {
+        "key": {
+            "score_year": 2022,
+            "batch": "本科批",
+            "subject_cat": "历史类",
+            "school_code": "0651",
+            "major_code": "11",
+        },
+        "variant_differences": [{"column": "major_code", "package_value": "0B", "core_value": "11"}],
+    }
+    candidate_13 = {
+        "key": {
+            "score_year": 2022,
+            "batch": "本科批",
+            "subject_cat": "历史类",
+            "school_code": "0651",
+            "major_code": "13",
+        },
+        "variant_differences": [{"column": "major_code", "package_value": "0B", "core_value": "13"}],
+    }
+    rows = [
+        {
+            "task_id": "drift-1",
+            "issue_type": "major_code_drift_candidate",
+            "priority": "1",
+            "status": "todo",
+            "suggested_action": "review_major_code_alignment",
+            "match_confidence": "high",
+            "score_year": "2022",
+            "batch": "本科批",
+            "subject_cat": "历史类",
+            "school_code": "0651",
+            "package_major_code": "0B",
+            "core_major_code": "11|13",
+            "package_min_score": "616",
+            "core_min_score": "616",
+            "package_min_rank": "578",
+            "core_min_rank": "578",
+            "package_key_json": "{}",
+            "core_key_json": json.dumps(candidate_11["key"], ensure_ascii=False),
+            "core_candidates_json": json.dumps([candidate_11, candidate_13], ensure_ascii=False),
+            "matching_values_json": "{}",
+            "differences_json": "[]",
+            "review_decision": "",
+            "reviewer": "",
+            "reviewed_at": "",
+            "notes": "",
+        },
+        {
+            "task_id": "drift-no-match",
+            "issue_type": "major_code_drift_candidate",
+            "priority": "1",
+            "status": "todo",
+            "suggested_action": "review_major_code_alignment",
+            "match_confidence": "high",
+            "score_year": "2022",
+            "batch": "本科批",
+            "subject_cat": "历史类",
+            "school_code": "0652",
+            "package_major_code": "01",
+            "core_major_code": "02|03",
+            "package_min_score": "600",
+            "core_min_score": "600",
+            "package_min_rank": "1200",
+            "core_min_rank": "1200",
+            "package_key_json": "{}",
+            "core_key_json": "{}",
+            "core_candidates_json": json.dumps([
+                {"key": {"score_year": 2022, "batch": "本科批", "subject_cat": "历史类", "school_code": "0652", "major_code": "02"}},
+                {"key": {"score_year": 2022, "batch": "本科批", "subject_cat": "历史类", "school_code": "0652", "major_code": "03"}},
+            ], ensure_ascii=False),
+            "matching_values_json": "{}",
+            "differences_json": "[]",
+            "review_decision": "",
+            "reviewer": "",
+            "reviewed_at": "",
+            "notes": "",
+        },
+    ]
+    with plan.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=PLAN_COLUMNS, extrasaction="ignore")
+        writer.writeheader()
+        writer.writerows(rows)
+
+    projection = tmp_path / "ln_projection_score_2022_official.csv"
+    with projection.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(
+            f,
+            fieldnames=["school_code", "school_name", "major_code", "major_full", "batch", "subject_cat", "score_year", "min_score"],
+        )
+        writer.writeheader()
+        writer.writerow({
+            "school_code": "0651",
+            "school_name": "西南财经大学",
+            "major_code": "0B",
+            "major_full": "工商管理类(会计学院)",
+            "batch": "本科批",
+            "subject_cat": "历史类",
+            "score_year": "2022",
+            "min_score": "616",
+        })
+        writer.writerow({
+            "school_code": "0652",
+            "school_name": "测试大学",
+            "major_code": "01",
+            "major_full": "没有匹配的专业",
+            "batch": "本科批",
+            "subject_cat": "历史类",
+            "score_year": "2022",
+            "min_score": "600",
+        })
+
+    core_db = tmp_path / "university.db"
+    con = duckdb.connect(str(core_db))
+    con.execute("""
+        CREATE TABLE fa_dim_ln_admission_plan (
+            school_code VARCHAR,
+            major_code VARCHAR,
+            subject_cat VARCHAR,
+            batch VARCHAR,
+            year INTEGER,
+            major_full VARCHAR,
+            major_short VARCHAR
+        )
+    """)
+    con.executemany(
+        "INSERT INTO fa_dim_ln_admission_plan VALUES (?, ?, ?, ?, ?, ?, ?)",
+        [
+            ("0651", "11", "历史类", "本科批", 2026, "工商管理类(会计学院)", ""),
+            ("0651", "13", "历史类", "本科批", 2026, "会计学(双语实验班)", ""),
+            ("0652", "02", "历史类", "本科批", 2026, "候选一", ""),
+            ("0652", "03", "历史类", "本科批", 2026, "候选二", ""),
+        ],
+    )
+    con.close()
+
+    output = tmp_path / "score_history_reconciliation_plan_name_reference.csv"
+    report = apply_score_history_major_name_reference_decisions(
+        plan_csv=plan,
+        projection_csv=projection,
+        core_db=core_db,
+        output=output,
+        reviewed_at="2026-05-14",
+    )
+
+    assert report["updated_rows"] == 1
+    assert report["match_counts"] == {"no_match": 1, "single_exact": 1}
+    with output.open(encoding="utf-8", newline="") as f:
+        by_id = {row["task_id"]: row for row in csv.DictReader(f)}
+    resolved = by_id["drift-1"]
+    assert resolved["status"] == "reviewed"
+    assert resolved["review_decision"] == "map_package_to_core_major_code"
+    assert resolved["reviewer"] == "datahub_major_name_reference"
+    assert resolved["core_major_code"] == "11"
+    assert json.loads(resolved["core_key_json"])["major_code"] == "11"
+    assert len(json.loads(resolved["core_candidates_json"])) == 1
+    assert "major_name_reference=exact" in resolved["notes"]
+    assert by_id["drift-no-match"]["status"] == "todo"
+
+    audit = audit_score_history_reconciliation_plan(output)
+    assert audit["errors"] == []
+    assert audit["progress"]["ready_rows"] == 1
+    assert audit["progress"]["pending_rows"] == 1
 
 
 def test_apply_score_history_reconciliation_auto_decisions_uses_reference_package(tmp_path: Path):

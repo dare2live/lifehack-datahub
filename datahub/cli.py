@@ -80,6 +80,7 @@ from .builders.policy_tables import (
     build_policy_plan_history_package,
 )
 from .builders.score_history_from_projection import build_score_history_from_projection_package
+from .builders.score_history_major_name_reference import apply_score_history_major_name_reference_decisions
 from .builders.score_history_package_audit import audit_score_history_package_against_core
 from .builders.score_history_reconciliation_audit import audit_score_history_reconciliation_plan
 from .builders.score_history_reconciliation_auto_decision import apply_score_history_reconciliation_auto_decisions
@@ -424,6 +425,19 @@ def main() -> int:
     apply_score_reconciliation_auto.add_argument("--rule-id", action="append", dest="rule_ids")
     apply_score_reconciliation_auto.add_argument("--reference-package-dir", action="append", dest="reference_package_dirs", type=Path)
     apply_score_reconciliation_auto.add_argument("--limit", type=int)
+
+    apply_score_reconciliation_name_reference = sub.add_parser(
+        "apply-score-history-major-name-reference-decisions",
+        help="Resolve score-history major-code drift rows when official and core candidate major names match exactly",
+    )
+    apply_score_reconciliation_name_reference.add_argument("--plan-csv", required=True, type=Path)
+    apply_score_reconciliation_name_reference.add_argument("--projection-csv", required=True, type=Path)
+    apply_score_reconciliation_name_reference.add_argument("--core-db", required=True, type=Path)
+    apply_score_reconciliation_name_reference.add_argument("--output", required=True, type=Path)
+    apply_score_reconciliation_name_reference.add_argument("--report", type=Path)
+    apply_score_reconciliation_name_reference.add_argument("--core-plan-year", type=int)
+    apply_score_reconciliation_name_reference.add_argument("--reviewed-at")
+    apply_score_reconciliation_name_reference.add_argument("--limit", type=int)
 
     build_score_reconciliation_package = sub.add_parser(
         "build-score-history-from-reconciliation-plan",
@@ -1361,6 +1375,19 @@ def main() -> int:
             report_path=args.report,
             rule_ids=args.rule_ids,
             reference_package_dirs=args.reference_package_dirs,
+            limit=args.limit,
+        )
+        print(json.dumps(report, ensure_ascii=False, indent=2))
+        return 0
+    if args.cmd == "apply-score-history-major-name-reference-decisions":
+        report = apply_score_history_major_name_reference_decisions(
+            plan_csv=args.plan_csv,
+            projection_csv=args.projection_csv,
+            core_db=args.core_db,
+            output=args.output,
+            report_path=args.report,
+            core_plan_year=args.core_plan_year,
+            reviewed_at=args.reviewed_at,
             limit=args.limit,
         )
         print(json.dumps(report, ensure_ascii=False, indent=2))
