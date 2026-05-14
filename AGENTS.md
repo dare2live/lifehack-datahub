@@ -12,3 +12,13 @@
 - 正式采集前先跑 `audit-data-update-policy` 和 `build-data-update-readiness-plan`；URL/hash/API/schema/证据摘录/指标注册/lineage/旧数据处理策略必须形成可审计检查行，阻断项未清零时不得发布 data package。
 - core importer `--dry-run` 只验证包能否被当前 core schema 和 load mode 接受，不代表来源证据、人工复核或 reconciliation readiness 已完成；影响推荐结果的数据包必须先通过 DataHub 业务门禁再导入。
 - 面向家庭可见的屏幕、报告和说明文本必须使用客观描述，避免内部岗位称谓、口播提示、操作者视角和命令式执行提示。
+
+## Parallel Agent Rules
+
+- 可以并行调用多个 agent 处理无依赖、无写入冲突的任务，例如：不同来源的只读调研、不同学校/年份的审计、不同配置文件的独立检查、互不重叠的测试验证。
+- 并行前必须明确每个 agent 的目标、输入文件、允许修改范围、禁止修改范围和交付格式；涉及代码修改时优先划分互不重叠的文件所有权。
+- 不把当前关键路径的下一步阻塞任务交给后台 agent 等待；主执行者应继续推进本地可做且不重叠的工作。
+- 不允许多个 agent 同时编辑同一文件、同一配置段、同一 raw/staging/export 产物、同一个 review batch 或同一个目标表发布链路；这类任务必须串行。
+- worker agent 必须知道自己不是唯一操作者，不得回滚他人改动；交付时列出改动文件、验证命令、未验证项和残留风险。
+- explorer agent 用于具体代码库问题或来源结构问题；不要重复派发相同探索任务。
+- 合并并行结果前必须重新检查 `git status -sb`、diff、manifest/quality report、readiness/audit 报告和必要测试；并行完成不等于可以跳过 DataHub 门禁。
