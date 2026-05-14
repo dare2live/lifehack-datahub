@@ -10,7 +10,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from datahub.config import load_sources
+from datahub.config import load_json_config, load_sources
 from datahub.parsers.ln_score_distribution_ocr import REVIEW_TASK_COLUMNS
 
 
@@ -201,7 +201,9 @@ def _write_review_csv(path: Path, rows: list[dict[str, Any]]) -> None:
 def _read_image_paths(manifest: Path | None) -> dict[str, str]:
     if not manifest:
         return {}
-    data = json.loads(manifest.read_text(encoding="utf-8"))
+    data = load_json_config(manifest)
+    if not isinstance(data, dict):
+        raise ValueError("image manifest must be an object")
     paths = {}
     for item in data.get("files", []):
         file_name = item.get("file_name")

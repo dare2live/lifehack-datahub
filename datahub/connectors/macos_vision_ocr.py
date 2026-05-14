@@ -8,7 +8,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from datahub.config import load_sources
+from datahub.config import load_json_config, load_sources
 
 
 SCRIPT_PATH = Path(__file__).with_suffix(".swift")
@@ -92,7 +92,9 @@ def _ocr_one_manifest(
     output_root: Path,
     ocr_config: dict[str, Any],
 ) -> dict[str, Any]:
-    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest = load_json_config(manifest_path)
+    if not isinstance(manifest, dict):
+        raise ValueError("page image manifest must be an object")
     files = manifest.get("files") or []
     image_paths = [Path(item["path"]) for item in files if item.get("path")]
     output_dir = output_root / manifest["source_key"] / manifest["source_date"]

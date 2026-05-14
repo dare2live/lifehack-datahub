@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from datahub.config import load_sources
+from datahub.config import load_json_config, load_sources
 from datahub.parsers.ln_score_distribution_grid_images import (
     parse_score_distribution_grid_images,
     write_score_distribution_grid_csv,
@@ -21,7 +21,9 @@ def parse_score_distribution_image_groups(
     swiftc: str = "swiftc",
     summary_report_path: Path | None = None,
 ) -> dict[str, Any]:
-    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest = load_json_config(manifest_path)
+    if not isinstance(manifest, dict):
+        raise ValueError("manifest must be an object")
     source_key = str(manifest.get("source_key") or "").strip()
     source_date = str(manifest.get("source_date") or "").strip()
     if not source_key or not source_date:

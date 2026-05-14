@@ -1148,6 +1148,30 @@ def test_parse_score_distribution_image_groups_uses_configured_manifest_indexes(
     assert output_csv.exists()
     assert (tmp_path / "summary.json").exists()
 
+    duplicate_manifest = tmp_path / "_page_images_duplicate.json"
+    duplicate_manifest.write_text(
+        (
+            '{"source_key":"ln_score_distribution",'
+            '"source_key":"shadow_source",'
+            '"source_date":"2024-06-25",'
+            '"page_url":"https://jyt.ln.gov.cn/jyt/jyzx/jyyw/2024062510394164694/index.shtml",'
+            '"files":[]}\n'
+        ),
+        encoding="utf-8",
+    )
+    try:
+        image_group_parser.parse_score_distribution_image_groups(
+            manifest_path=duplicate_manifest,
+            output_dir=tmp_path / "dup_out",
+            work_dir=tmp_path / "dup_rows",
+            group_keys=["ordinary_physics"],
+            swiftc="swiftc-test",
+        )
+        duplicate_manifest_rejected = False
+    except ValueError as exc:
+        duplicate_manifest_rejected = "duplicate JSON key" in str(exc)
+    assert duplicate_manifest_rejected
+
 
 def test_parse_ln_score_distribution_ocr_jsonl_candidates(tmp_path: Path):
     ocr_jsonl = tmp_path / "ocr.jsonl"
@@ -1643,6 +1667,25 @@ def test_build_and_merge_score_distribution_review_workspace(tmp_path: Path):
     assert merged_rows["r1"]["corrected_cumulative_rank"] == "15"
     assert merged_rows["r1"]["issue_type"] == "cumulative_mismatch"
     assert merged_rows["r2"]["review_status"] == "todo"
+
+    duplicate_manifest = tmp_path / "_page_images_duplicate.json"
+    duplicate_manifest.write_text(
+        (
+            '{"files":[],'
+            f'"files":[{{"file_name":"page1.jpg","path":"{image_path}"}}]}}\n'
+        ),
+        encoding="utf-8",
+    )
+    try:
+        build_score_distribution_review_workspace(
+            review_csv=review,
+            output_dir=tmp_path / "duplicate_workspace",
+            image_manifest=duplicate_manifest,
+        )
+        duplicate_manifest_rejected = False
+    except ValueError as exc:
+        duplicate_manifest_rejected = "duplicate JSON key" in str(exc)
+    assert duplicate_manifest_rejected
 
 
 def test_apply_score_distribution_review_writes_cleaned_rows(tmp_path: Path):
@@ -11025,6 +11068,30 @@ def test_ocr_page_images_writes_configured_manifest(tmp_path: Path, monkeypatch)
     assert ocr_manifest["files"][0]["sha256"] == "image-sha256-fixture"
     jsonl = Path(result["pages"][0]["ocr_jsonl"]).read_text(encoding="utf-8")
     assert "676及以上12" in jsonl
+
+    duplicate_manifest = tmp_path / "raw" / "ln_score_distribution" / "2024-06-25" / "_page_images_duplicate.json"
+    duplicate_manifest.write_text(
+        (
+            '{"source_key":"ln_score_distribution",'
+            '"source_key":"shadow_source",'
+            '"source_date":"2024-06-25",'
+            '"files":[{"file_name":"table.png","path":"'
+            f'{image}'
+            '"}]}\n'
+        ),
+        encoding="utf-8",
+    )
+    try:
+        ocr_page_images(
+            "ln_score_distribution",
+            tmp_path / "raw",
+            tmp_path / "ocr",
+            manifest_paths=[duplicate_manifest],
+        )
+        duplicate_manifest_rejected = False
+    except ValueError as exc:
+        duplicate_manifest_rejected = "duplicate JSON key" in str(exc)
+    assert duplicate_manifest_rejected
 
 
 def test_parse_moe_major_catalog_lines():
