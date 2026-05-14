@@ -120,6 +120,7 @@ from datahub.config import (
     load_career_data_sources,
     load_data_update_policy,
     load_entity_normalization,
+    load_json_config,
     load_outcome_collection_review_seeds,
     load_outcome_metrics,
     load_outcome_report_sources,
@@ -189,7 +190,7 @@ def test_manifest_requires_fa_prefix(tmp_path: Path):
     assert any("fa_" in err for err in report["errors"])
 
 
-def test_config_json_files_do_not_have_duplicate_keys():
+def test_config_json_files_do_not_have_duplicate_keys(tmp_path: Path):
     duplicate_paths = []
     for path in sorted(Path("config").glob("*.json")):
         duplicates = []
@@ -209,6 +210,11 @@ def test_config_json_files_do_not_have_duplicate_keys():
             duplicate_paths.append(f"{path}: {sorted(set(duplicates))}")
 
     assert duplicate_paths == []
+
+    duplicate_json = tmp_path / "duplicate.json"
+    duplicate_json.write_text('{"version":"1","version":"2"}\n', encoding="utf-8")
+    with pytest.raises(ValueError, match="duplicate JSON key"):
+        load_json_config(duplicate_json)
 
 
 def test_build_local_package_from_cleaned_csv(tmp_path: Path):
