@@ -614,6 +614,8 @@ python3 scripts/build_package.py audit-outcome-collection-plan \
 
 真实 smoke：用 core DB 生成学校 5 个、专业 5 个的小样本采集队列，共 40 条任务；审计结果为 `todo=40`、`complete_rows=0`、`errors=[]`，说明当前仍是采集计划，不能作为 outcome 数据包导入 core。
 
+报告来源种子只用于预填 report-source plan，不能跳过下载、文件签名、候选提取和人工复核。`audit-outcome-report-source-seeds` 会检查 `domain/report_scope` 是否已在 `config/outcome_collection.json` 注册、`metric_year` 是否为整数、`candidate_source_date/availability_date` 是否使用 `YYYY-MM-DD`、来源日期是否不晚于可用日期，以及报告 URL 是否为 HTTP(S)。真实配置 14 条报告来源种子审计无错误。
+
 报告 PDF/OFD 只能先转成待复核候选，不直接改采集计划。进入 extraction plan 前，DataHub 会检查本地路径、扩展名和文件签名；`.pdf` 必须以 `%PDF` 开头，HTML 伪装文件会以 `local_report_path_is_html` 阻断。`extract-outcome-report-candidates` 使用 `config/outcome_metrics.json` 中的 `aliases` 从报告文本抽取指标候选，输出列包含 `candidate_value/evidence_quote/page_number/match_alias/confidence/review_status`。`review_status` 固定为 `needs_review`，人工核对报告上下文后，才能把值、摘录和口径复制到 outcome collection batch：
 
 ```bash

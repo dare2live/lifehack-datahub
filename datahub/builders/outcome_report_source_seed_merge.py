@@ -31,6 +31,8 @@ def audit_outcome_report_source_seeds(*, report_path: Path | None = None) -> dic
     collection_config = load_outcome_collection()
     report_source_config = collection_config.get("report_source_plan") or {}
     complete_statuses = set(report_source_config.get("complete_statuses") or [])
+    known_domains = set(collection_config.get("domains") or {})
+    report_scopes_by_domain = _report_scopes_by_domain(report_source_config)
     errors: list[str] = []
     warnings: list[str] = []
     seed_rows = []
@@ -54,9 +56,24 @@ def audit_outcome_report_source_seeds(*, report_path: Path | None = None) -> dic
         missing = _missing_required_seed_fields(seed)
         if missing:
             errors.append(f"seed {index} missing: {', '.join(missing)}")
-        url = str(seed.get("candidate_report_url") or "")
-        if url and urlparse(url).scheme not in {"http", "https"}:
-            errors.append(f"seed {index} candidate_report_url must be http/https: {url}")
+        domain = str(seed.get("domain") or "").strip()
+        report_scope = str(seed.get("report_scope") or "").strip()
+        if domain and domain not in known_domains:
+            errors.append(f"seed {index} unknown domain: {domain}")
+        if domain and report_scope and report_scope not in report_scopes_by_domain.get(domain, set()):
+            errors.append(f"seed {index} report_scope is not configured for domain {domain}: {report_scope}")
+        if _to_int(seed.get("metric_year")) is None:
+            errors.append(f"seed {index} metric_year is not an integer")
+        for date_field in ("candidate_source_date", "availability_date"):
+            date_error = _date_error(seed.get(date_field))
+            if date_error:
+                errors.append(f"seed {index} {date_field} {date_error}")
+        for date_order_error in _date_order_errors(seed):
+            errors.append(f"seed {index} {date_order_error}")
+        url = str(seed.get("candidate_report_url") or "").strip()
+        url_error = _source_url_error(url)
+        if url_error:
+            errors.append(f"seed {index} candidate_report_url {url_error}: {url}")
         if not str(seed.get("evidence_note") or "").strip():
             warnings.append(f"seed {index} missing evidence_note")
         seed_rows.append({
@@ -91,6 +108,10 @@ def apply_outcome_report_source_seeds(
     report_path: Path | None = None,
     overwrite: bool = False,
 ) -> dict[str, Any]:
+    audit = audit_outcome_report_source_seeds()
+    if audit["errors"]:
+        raise ValueError("; ".join(audit["errors"]))
+
     source_config = load_outcome_report_sources()
     collection_config = load_outcome_collection()
     report_source_config = collection_config.get("report_source_plan") or {}
@@ -179,6 +200,75 @@ def _seed_id(seed: dict[str, Any], index: int) -> str:
         str(seed.get("metric_year") or ""),
         str(seed.get("report_scope") or ""),
     ])
+
+
+def _report_scopes_by_domain(report_source_config: dict[str, Any]) -> dict[str, set[str]]:
+    scopes = report_source_config.get("report_scopes") or {}
+    if not isinstance(scopes, dict):
+        return {}
+    result: dict[str, set[str]] = {}
+    for domain, items in scopes.items():
+        if not isinstance(items, list):
+            result[str(domain)] = set()
+            continue
+        result[str(domain)] = {
+            str(item.get("report_scope") or "").strip()
+            for item in items
+            if isinstance(item, dict) and str(item.get("report_scope") or "").strip()
+        }
+    return result
+
+
+def _to_int(value: Any) -> int | None:
+    if _is_blank(value):
+        return None
+    try:
+        text = str(value).strip()
+        if "." in text:
+            return None
+        return int(text)
+    except ValueError:
+        return None
+
+
+def _date_error(value: Any) -> str:
+    if _is_blank(value):
+        return ""
+    try:
+        datetime.strptime(str(value).strip(), "%Y-%m-%d")
+    except ValueError:
+        return "must use YYYY-MM-DD"
+    return ""
+
+
+def _parse_date(value: Any) -> datetime | None:
+    if _is_blank(value):
+        return None
+    try:
+        return datetime.strptime(str(value).strip(), "%Y-%m-%d")
+    except ValueError:
+        return None
+
+
+def _date_order_errors(seed: dict[str, Any]) -> list[str]:
+    source_date = _parse_date(seed.get("candidate_source_date"))
+    availability_date = _parse_date(seed.get("availability_date"))
+    if source_date and availability_date and source_date > availability_date:
+        return ["candidate_source_date must not be after availability_date"]
+    return []
+
+
+def _source_url_error(value: Any) -> str:
+    if _is_blank(value):
+        return ""
+    parsed = urlparse(str(value).strip())
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        return "must be an http(s) URL"
+    return ""
+
+
+def _is_blank(value: Any) -> bool:
+    return value is None or str(value).strip() == ""
 
 
 def _find_seed(row: dict[str, Any], seeds: dict[str, dict[str, Any]]) -> dict[str, Any] | None:

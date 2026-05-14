@@ -6843,6 +6843,36 @@ def test_audit_outcome_report_source_seeds_validates_config(tmp_path: Path):
     assert (tmp_path / "seed_audit.json").exists()
 
 
+def test_audit_outcome_report_source_seeds_rejects_bad_metadata(monkeypatch: pytest.MonkeyPatch):
+    seed = {
+        "domain": "school",
+        "entity_name": "辽宁大学",
+        "metric_year": "2024.5",
+        "report_scope": "bad_report_scope",
+        "candidate_report_title": "辽宁大学本科教学质量报告",
+        "candidate_report_url": "ftp://example.com/lnu.pdf",
+        "candidate_source_date": "2025-01-01",
+        "availability_date": "2024-12-31",
+        "evidence_note": "测试报告来源元数据校验。",
+    }
+    monkeypatch.setattr(
+        "datahub.builders.outcome_report_source_seed_merge.load_outcome_report_sources",
+        lambda: {
+            "version": "test",
+            "applied_status": "candidate_found",
+            "reviewer": "datahub_seed",
+            "seeds": [seed],
+        },
+    )
+
+    report = audit_outcome_report_source_seeds()
+
+    assert "seed 1 report_scope is not configured for domain school: bad_report_scope" in report["errors"]
+    assert "seed 1 metric_year is not an integer" in report["errors"]
+    assert "seed 1 candidate_source_date must not be after availability_date" in report["errors"]
+    assert "seed 1 candidate_report_url must be an http(s) URL: ftp://example.com/lnu.pdf" in report["errors"]
+
+
 def test_build_outcome_report_intake_plan_requires_confirmed_url(tmp_path: Path):
     plan = tmp_path / "outcome_collection_plan.csv"
     rows = [
