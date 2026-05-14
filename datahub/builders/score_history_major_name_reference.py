@@ -108,6 +108,89 @@ def apply_score_history_major_name_reference_decisions(
     return report
 
 
+def apply_score_history_pair_name_reference_decisions(
+    *,
+    plan_csv: Path,
+    projection_csv: Path,
+    core_db: Path,
+    output: Path,
+    report_path: Path | None = None,
+    core_plan_year: int | None = None,
+    reviewed_at: str | None = None,
+    limit: int | None = None,
+) -> dict[str, Any]:
+    """Pair exact-name core-only rows with package-only rows without creating deletes."""
+    schema = get_table_schema(TARGET_TABLE)
+    review_config = _review_config(schema)
+    rows, fieldnames = _read_csv(plan_csv)
+    _ensure_columns(fieldnames)
+    package_candidates = _read_package_candidates(projection_csv)
+    core_major_names, resolved_core_plan_year = _read_core_major_names(core_db, core_plan_year)
+    package_rows = _package_only_rows(rows)
+
+    remaining = int(limit) if limit is not None else None
+    reviewed_date = reviewed_at or date.today().isoformat()
+    updated_pairs = 0
+    match_counts: Counter[str] = Counter()
+    for core_row in rows:
+        if remaining is not None and remaining <= 0:
+            break
+        if str(core_row.get("status") or "").strip() not in review_config["pending_statuses"]:
+            continue
+        if str(core_row.get("issue_type") or "").strip() != "core_only_unmatched":
+            continue
+        core_name = core_major_names.get(_core_major_name_key(core_row), "")
+        if not core_name:
+            match_counts["missing_core_major_name"] += 1
+            continue
+        matches = _exact_package_matches(core_row, core_name, package_candidates)
+        if len(matches) != 1:
+            match_counts["ambiguous_match" if matches else "no_match"] += 1
+            continue
+        package_match = matches[0]
+        package_row = package_rows.get(_package_task_key(core_row, package_match["major_code"]))
+        if not package_row:
+            match_counts["missing_package_task"] += 1
+            continue
+        package_decision = str(package_row.get("review_decision") or "").strip()
+        if package_decision and package_decision not in {"use_package_row", "map_package_to_core_major_code"}:
+            match_counts["blocked_package_decision"] += 1
+            continue
+        _mark_package_pair_row(package_row, core_row, package_match, core_name, reviewed_date)
+        _mark_core_covered_row(core_row, package_row, package_match, core_name, reviewed_date)
+        updated_pairs += 1
+        match_counts["single_exact_pair"] += 1
+        if remaining is not None:
+            remaining -= 1
+
+    output.parent.mkdir(parents=True, exist_ok=True)
+    _write_csv(output, rows)
+    status_counts = Counter(str(row.get("status") or "") for row in rows)
+    decision_counts = Counter(str(row.get("review_decision") or "") for row in rows if row.get("review_decision"))
+    report = {
+        "plan_csv": str(plan_csv),
+        "projection_csv": str(projection_csv),
+        "core_db": str(core_db),
+        "core_plan_year": resolved_core_plan_year,
+        "output": str(output),
+        "input_rows": len(rows),
+        "updated_pairs": updated_pairs,
+        "updated_rows": updated_pairs * 2,
+        "limit": limit,
+        "match_counts": dict(sorted(match_counts.items())),
+        "status_counts": dict(sorted(status_counts.items())),
+        "decision_counts": dict(sorted(decision_counts.items())),
+        "notes": (
+            "Applied exact major-name pair decisions only. Package rows map official score/rank to core major_code; "
+            "paired core-only rows are marked covered_by_mapped_package_row and must not become delete-plan rows."
+        ),
+    }
+    if report_path:
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        report_path.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return report
+
+
 def _read_package_major_names(path: Path) -> dict[tuple[str, str, str, str, str], str]:
     rows, fieldnames = _read_csv(path)
     required = {"score_year", "batch", "subject_cat", "school_code", "major_code"}
@@ -129,6 +212,30 @@ def _read_package_major_names(path: Path) -> dict[tuple[str, str, str, str, str]
             )
         ] = _value(row, name_column)
     return index
+
+
+def _read_package_candidates(path: Path) -> dict[tuple[str, str, str, str], list[dict[str, str]]]:
+    rows, fieldnames = _read_csv(path)
+    required = {"score_year", "batch", "subject_cat", "school_code", "major_code"}
+    missing = sorted(required - fieldnames)
+    if missing:
+        raise ValueError(f"projection csv missing columns: {', '.join(missing)}")
+    name_column = _first_existing(fieldnames, ["major_full", "major_name", "major_short"])
+    if not name_column:
+        raise ValueError("projection csv missing major name column: major_full, major_name, major_short")
+    by_scope: dict[tuple[str, str, str, str], list[dict[str, str]]] = {}
+    for row in rows:
+        scope = (
+            _value(row, "score_year"),
+            _value(row, "batch"),
+            _value(row, "subject_cat"),
+            _value(row, "school_code"),
+        )
+        by_scope.setdefault(scope, []).append({
+            "major_code": _value(row, "major_code"),
+            "major_full": _value(row, name_column),
+        })
+    return by_scope
 
 
 def _read_core_major_names(
@@ -187,6 +294,132 @@ def _exact_candidate_matches(
         if core_major_name and package_norm == _normalize_major_name(core_major_name):
             matches.append({"candidate": candidate, "core_major_name": core_major_name})
     return matches
+
+
+def _exact_package_matches(
+    row: dict[str, Any],
+    core_name: str,
+    package_candidates: dict[tuple[str, str, str, str], list[dict[str, str]]],
+) -> list[dict[str, str]]:
+    core_norm = _normalize_major_name(core_name)
+    if not core_norm:
+        return []
+    scope = (
+        _value(row, "score_year"),
+        _value(row, "batch"),
+        _value(row, "subject_cat"),
+        _value(row, "school_code"),
+    )
+    return [
+        candidate
+        for candidate in package_candidates.get(scope, [])
+        if _normalize_major_name(candidate.get("major_full")) == core_norm
+    ]
+
+
+def _package_only_rows(rows: list[dict[str, Any]]) -> dict[tuple[str, str, str, str, str], dict[str, Any]]:
+    by_key = {}
+    for row in rows:
+        if str(row.get("issue_type") or "").strip() != "package_only_unmatched":
+            continue
+        by_key[_package_task_key(row, _value(row, "package_major_code"))] = row
+    return by_key
+
+
+def _package_task_key(row: dict[str, Any], package_major_code: str) -> tuple[str, str, str, str, str]:
+    return (
+        _value(row, "score_year"),
+        _value(row, "batch"),
+        _value(row, "subject_cat"),
+        _value(row, "school_code"),
+        str(package_major_code or "").strip(),
+    )
+
+
+def _core_major_name_key(row: dict[str, Any]) -> tuple[str, str, str, str]:
+    return (
+        _value(row, "school_code"),
+        _value(row, "core_major_code"),
+        _value(row, "subject_cat"),
+        _value(row, "batch"),
+    )
+
+
+def _mark_package_pair_row(
+    package_row: dict[str, Any],
+    core_row: dict[str, Any],
+    package_match: dict[str, str],
+    core_name: str,
+    reviewed_at: str,
+) -> None:
+    core_key = _core_key_from_row(core_row)
+    candidate = {
+        "key": core_key,
+        "variant_differences": [
+            {
+                "column": "major_code",
+                "package_value": package_match["major_code"],
+                "core_value": core_key["major_code"],
+            }
+        ],
+    }
+    package_row["status"] = "reviewed"
+    package_row["review_decision"] = "map_package_to_core_major_code"
+    package_row["reviewer"] = "datahub_pair_name_reference"
+    package_row["reviewed_at"] = reviewed_at
+    package_row["core_major_code"] = str(core_key["major_code"])
+    package_row["core_min_score"] = _value(core_row, "core_min_score")
+    package_row["core_min_rank"] = _value(core_row, "core_min_rank")
+    package_row["core_key_json"] = _json(core_key)
+    package_row["core_candidates_json"] = _json([candidate])
+    package_row["notes"] = _append_note(
+        package_row.get("notes", ""),
+        (
+            "pair_name_reference=exact; "
+            f"paired_core_task_id={core_row.get('task_id')}; "
+            f"package_major_full={package_match['major_full']}; "
+            f"core_major_full={core_name}"
+        ),
+    )
+
+
+def _mark_core_covered_row(
+    core_row: dict[str, Any],
+    package_row: dict[str, Any],
+    package_match: dict[str, str],
+    core_name: str,
+    reviewed_at: str,
+) -> None:
+    core_row["status"] = "reviewed"
+    core_row["review_decision"] = "covered_by_mapped_package_row"
+    core_row["reviewer"] = "datahub_pair_name_reference"
+    core_row["reviewed_at"] = reviewed_at
+    core_row["notes"] = _append_note(
+        core_row.get("notes", ""),
+        (
+            "pair_name_reference=exact; "
+            f"paired_package_task_id={package_row.get('task_id')}; "
+            f"package_major_code={package_match['major_code']}; "
+            f"package_major_full={package_match['major_full']}; "
+            f"core_major_full={core_name}"
+        ),
+    )
+
+
+def _core_key_from_row(row: dict[str, Any]) -> dict[str, Any]:
+    try:
+        core_key = json.loads(str(row.get("core_key_json") or "{}"))
+    except json.JSONDecodeError:
+        core_key = {}
+    if not isinstance(core_key, dict):
+        core_key = {}
+    return {
+        "score_year": core_key.get("score_year") or _value(row, "score_year"),
+        "batch": core_key.get("batch") or _value(row, "batch"),
+        "subject_cat": core_key.get("subject_cat") or _value(row, "subject_cat"),
+        "school_code": core_key.get("school_code") or _value(row, "school_code"),
+        "major_code": core_key.get("major_code") or _value(row, "core_major_code"),
+    }
 
 
 def _candidate_rows(row: dict[str, Any]) -> list[dict[str, Any]]:

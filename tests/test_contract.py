@@ -88,7 +88,10 @@ from datahub.builders.policy_tables import (
     build_policy_plan_history_package,
 )
 from datahub.builders.score_history_from_projection import build_score_history_from_projection_package
-from datahub.builders.score_history_major_name_reference import apply_score_history_major_name_reference_decisions
+from datahub.builders.score_history_major_name_reference import (
+    apply_score_history_major_name_reference_decisions,
+    apply_score_history_pair_name_reference_decisions,
+)
 from datahub.builders.score_history_package_audit import audit_score_history_package_against_core
 from datahub.builders.score_history_reconciliation_audit import audit_score_history_reconciliation_plan
 from datahub.builders.score_history_reconciliation_auto_decision import apply_score_history_reconciliation_auto_decisions
@@ -2353,6 +2356,163 @@ def test_apply_score_history_major_name_reference_decisions_resolves_exact_candi
     assert audit["errors"] == []
     assert audit["progress"]["ready_rows"] == 1
     assert audit["progress"]["pending_rows"] == 1
+
+
+def test_apply_score_history_pair_name_reference_decisions_maps_package_to_core_code(tmp_path: Path):
+    plan = tmp_path / "score_history_reconciliation_plan.csv"
+    package_key = {
+        "score_year": 2022,
+        "batch": "本科批",
+        "subject_cat": "物理类",
+        "school_code": "0162",
+        "major_code": "H1",
+    }
+    core_key = {
+        "score_year": 2022,
+        "batch": "本科批",
+        "subject_cat": "物理类",
+        "school_code": "0162",
+        "major_code": "0L",
+    }
+    rows = [
+        {
+            "task_id": "package-name-pair",
+            "issue_type": "package_only_unmatched",
+            "priority": "3",
+            "status": "reviewed",
+            "suggested_action": "review_package_only_row",
+            "match_confidence": "none",
+            "score_year": "2022",
+            "batch": "本科批",
+            "subject_cat": "物理类",
+            "school_code": "0162",
+            "package_major_code": "H1",
+            "core_major_code": "",
+            "package_min_score": "498",
+            "core_min_score": "",
+            "package_min_rank": "46215",
+            "core_min_rank": "",
+            "package_key_json": json.dumps(package_key, ensure_ascii=False),
+            "core_key_json": "{}",
+            "core_candidates_json": "[]",
+            "matching_values_json": "{}",
+            "differences_json": "[]",
+            "review_decision": "use_package_row",
+            "reviewer": "datahub_reference_rule",
+            "reviewed_at": "2026-05-14",
+            "notes": "official package row",
+        },
+        {
+            "task_id": "core-name-pair",
+            "issue_type": "core_only_unmatched",
+            "priority": "4",
+            "status": "todo",
+            "suggested_action": "review_core_only_row",
+            "match_confidence": "none",
+            "score_year": "2022",
+            "batch": "本科批",
+            "subject_cat": "物理类",
+            "school_code": "0162",
+            "package_major_code": "",
+            "core_major_code": "0L",
+            "package_min_score": "",
+            "core_min_score": "490",
+            "package_min_rank": "",
+            "core_min_rank": "50000",
+            "package_key_json": "{}",
+            "core_key_json": json.dumps(core_key, ensure_ascii=False),
+            "core_candidates_json": "[]",
+            "matching_values_json": "{}",
+            "differences_json": "[]",
+            "review_decision": "",
+            "reviewer": "",
+            "reviewed_at": "",
+            "notes": "",
+        },
+    ]
+    with plan.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=PLAN_COLUMNS, extrasaction="ignore")
+        writer.writeheader()
+        writer.writerows(rows)
+
+    projection = tmp_path / "ln_projection_score_2022_official.csv"
+    with projection.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(
+            f,
+            fieldnames=["school_code", "major_code", "major_full", "batch", "subject_cat", "score_year"],
+        )
+        writer.writeheader()
+        writer.writerow({
+            "school_code": "0162",
+            "major_code": "H1",
+            "major_full": "医学信息工程",
+            "batch": "本科批",
+            "subject_cat": "物理类",
+            "score_year": "2022",
+        })
+
+    core_db = tmp_path / "university.db"
+    con = duckdb.connect(str(core_db))
+    con.execute("""
+        CREATE TABLE fa_dim_ln_admission_plan (
+            school_code VARCHAR,
+            major_code VARCHAR,
+            subject_cat VARCHAR,
+            batch VARCHAR,
+            year INTEGER,
+            major_full VARCHAR,
+            major_short VARCHAR
+        )
+    """)
+    con.execute(
+        "INSERT INTO fa_dim_ln_admission_plan VALUES (?, ?, ?, ?, ?, ?, ?)",
+        ("0162", "0L", "物理类", "本科批", 2026, "医学信息工程", ""),
+    )
+    con.close()
+
+    output = tmp_path / "score_history_reconciliation_plan_pair_name_reference.csv"
+    report = apply_score_history_pair_name_reference_decisions(
+        plan_csv=plan,
+        projection_csv=projection,
+        core_db=core_db,
+        output=output,
+        reviewed_at="2026-05-14",
+    )
+
+    assert report["updated_pairs"] == 1
+    assert report["match_counts"] == {"single_exact_pair": 1}
+    with output.open(encoding="utf-8", newline="") as f:
+        by_id = {row["task_id"]: row for row in csv.DictReader(f)}
+    package_row = by_id["package-name-pair"]
+    core_row = by_id["core-name-pair"]
+    assert package_row["review_decision"] == "map_package_to_core_major_code"
+    assert package_row["core_major_code"] == "0L"
+    assert json.loads(package_row["core_key_json"])["major_code"] == "0L"
+    assert len(json.loads(package_row["core_candidates_json"])) == 1
+    assert core_row["review_decision"] == "covered_by_mapped_package_row"
+
+    audit = audit_score_history_reconciliation_plan(output)
+    assert audit["errors"] == []
+    assert audit["ready"]["package_ready"] is True
+
+    package = build_score_history_package_from_reconciliation_plan(
+        plan_csv=output,
+        output_root=tmp_path / "exports",
+        package_id="pkg-paired-score-history",
+    )
+    assert package["rows"] == 1
+    assert package["skipped_rows"] == 1
+    with (Path(package["package_dir"]) / "fa_fact_ln_score_history.csv").open(encoding="utf-8", newline="") as f:
+        output_rows = list(csv.DictReader(f))
+    assert output_rows[0]["major_code"] == "0L"
+    assert output_rows[0]["min_score"] == "498"
+    assert output_rows[0]["min_rank"] == "46215"
+
+    delete_plan = build_score_history_delete_plan_from_reconciliation_plan(
+        plan_csv=output,
+        output_dir=tmp_path / "delete_plan",
+    )
+    assert delete_plan["rows"] == 0
 
 
 def test_apply_score_history_reconciliation_auto_decisions_uses_reference_package(tmp_path: Path):

@@ -102,6 +102,9 @@ def _build_rows(
         if status not in review_config["ready_statuses"]:
             continue
         decision = str(row.get("review_decision") or "").strip()
+        if decision == "covered_by_mapped_package_row":
+            skipped += 1
+            continue
         if decision == "exclude_row":
             if _has_core_side(row):
                 if allow_core_exclude_rows:
