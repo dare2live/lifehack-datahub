@@ -6199,6 +6199,12 @@ def test_apply_outcome_collection_review_seeds_updates_matching_rows(tmp_path: P
     jlu_employment["metric_year"] = "2024"
     jlu_postgrad = _outcome_plan_row("school", "0183", "吉林大学", "postgrad_rate", status="todo", priority_rank="10")
     jlu_postgrad["metric_year"] = "2024"
+    lntu_employment = _outcome_plan_row("school", "0147", "辽宁工程技术大学", "employment_rate", status="todo", priority_rank="11")
+    lntu_employment["metric_year"] = "2024"
+    lntu_postgrad = _outcome_plan_row("school", "0147", "辽宁工程技术大学", "postgrad_rate", status="todo", priority_rank="12")
+    lntu_postgrad["metric_year"] = "2024"
+    sut_employment = _outcome_plan_row("school", "0142", "沈阳工业大学", "employment_rate", status="todo", priority_rank="13")
+    sut_employment["metric_year"] = "2024"
     pending = _outcome_plan_row("school", "0166", "沈阳师范大学", "employment_rate", status="todo", priority_rank="2")
     pending["metric_year"] = "2024"
     _write_outcome_plan(
@@ -6214,13 +6220,16 @@ def test_apply_outcome_collection_review_seeds_updates_matching_rows(tmp_path: P
             lnnu_postgrad,
             jlu_employment,
             jlu_postgrad,
+            lntu_employment,
+            lntu_postgrad,
+            sut_employment,
             pending,
         ],
     )
 
     output = tmp_path / "outcome_collection_plan_seeded.csv"
     report = apply_outcome_collection_review_seeds(plan_csv=plan, output=output)
-    expected_matching_seeds = 10
+    expected_matching_seeds = 13
     assert report["matched_rows"] == expected_matching_seeds
     assert report["updated_rows"] == expected_matching_seeds
     assert report["unmatched_seeds"] == seed_count - expected_matching_seeds
@@ -6270,6 +6279,18 @@ def test_apply_outcome_collection_review_seeds_updates_matching_rows(tmp_path: P
     assert jlu_postgrad["metric_value"] == "0.4846"
     assert jlu_postgrad["metric_year"] == "2024"
     assert "42.96%" in jlu_postgrad["metric_scope"]
+    lntu_employment = by_entity[("0147", "employment_rate")]
+    assert lntu_employment["status"] == "verified"
+    assert lntu_employment["metric_value"] == "0.8155"
+    assert lntu_employment["metric_year"] == "2024"
+    lntu_postgrad = by_entity[("0147", "postgrad_rate")]
+    assert lntu_postgrad["status"] == "verified"
+    assert lntu_postgrad["metric_value"] == "0.2419"
+    assert lntu_postgrad["metric_year"] == "2024"
+    sut_employment = by_entity[("0142", "employment_rate")]
+    assert sut_employment["status"] == "verified"
+    assert sut_employment["metric_value"] == "0.87"
+    assert sut_employment["metric_year"] == "2024"
     assert by_entity[("0166", "employment_rate")]["status"] == "todo"
 
 
