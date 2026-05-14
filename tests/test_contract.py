@@ -2450,6 +2450,22 @@ def test_audit_score_history_reconciliation_plan_reports_progress(tmp_path: Path
     ]
     assert value_drift["score_delta_buckets"] == {"0": 1, "core_missing": 1}
     assert value_drift["rank_delta_buckets"] == {"<= 100": 1, "> 1000": 1}
+    assert value_drift["delta_bucket_counts"] == [
+        {
+            "score_year": "2024",
+            "subject_cat": "物理类",
+            "score_delta_bucket": "0",
+            "rank_delta_bucket": "<= 100",
+            "rows": 1,
+        },
+        {
+            "score_year": "2023",
+            "subject_cat": "历史类",
+            "score_delta_bucket": "core_missing",
+            "rank_delta_bucket": "> 1000",
+            "rows": 1,
+        },
+    ]
     assert value_drift["core_blank_or_zero_counts"] == {
         "core_min_rank_blank_or_zero": 1,
         "core_min_score_blank_or_zero": 1,

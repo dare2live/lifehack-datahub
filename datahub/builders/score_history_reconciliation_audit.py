@@ -261,6 +261,7 @@ def _value_drift_diagnostics(rows: list[dict[str, Any]], *, sample_limit: int) -
     subject_counts: Counter[tuple[str, str]] = Counter()
     score_delta_buckets: Counter[str] = Counter()
     rank_delta_buckets: Counter[str] = Counter()
+    delta_bucket_counts: Counter[tuple[str, str, str, str]] = Counter()
     core_blank_counts: Counter[str] = Counter()
     top_school_counts: Counter[str] = Counter()
 
@@ -277,8 +278,11 @@ def _value_drift_diagnostics(rows: list[dict[str, Any]], *, sample_limit: int) -
         package_rank = _number_or_none(row.get("package_min_rank"))
         core_rank = _number_or_none(row.get("core_min_rank"))
 
-        score_delta_buckets[_delta_bucket(package_score, core_score, small=1, medium=5)] += 1
-        rank_delta_buckets[_delta_bucket(package_rank, core_rank, small=100, medium=1000)] += 1
+        score_delta_bucket = _delta_bucket(package_score, core_score, small=1, medium=5)
+        rank_delta_bucket = _delta_bucket(package_rank, core_rank, small=100, medium=1000)
+        score_delta_buckets[score_delta_bucket] += 1
+        rank_delta_buckets[rank_delta_bucket] += 1
+        delta_bucket_counts[(year, subject, score_delta_bucket, rank_delta_bucket)] += 1
         if _is_blank_or_zero(row.get("core_min_score")):
             core_blank_counts["core_min_score_blank_or_zero"] += 1
         if _is_blank_or_zero(row.get("core_min_rank")):
@@ -293,6 +297,10 @@ def _value_drift_diagnostics(rows: list[dict[str, Any]], *, sample_limit: int) -
         "subject_counts": _tuple_counter_rows(subject_counts, ("score_year", "subject_cat")),
         "score_delta_buckets": dict(sorted(score_delta_buckets.items())),
         "rank_delta_buckets": dict(sorted(rank_delta_buckets.items())),
+        "delta_bucket_counts": _tuple_counter_rows(
+            delta_bucket_counts,
+            ("score_year", "subject_cat", "score_delta_bucket", "rank_delta_bucket"),
+        ),
         "core_blank_or_zero_counts": dict(sorted(core_blank_counts.items())),
         "top_school_counts": [
             {"school_code": school_code, "rows": count}
