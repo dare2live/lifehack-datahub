@@ -67,6 +67,18 @@
     },
     {
       "domain": "school",
+      "entity_name": "沈阳农业大学",
+      "metric_year": 2024,
+      "report_scope": "undergraduate_teaching_quality_report",
+      "candidate_report_title": "沈阳农业大学2023-2024学年本科教学质量报告",
+      "candidate_report_url": "https://jwc.syau.edu.cn/info/1212/9869.htm",
+      "candidate_file_name": "2023-2024学年沈阳农业大学本科教学质量报告.pdf",
+      "candidate_source_date": "2024-12-06",
+      "availability_date": "2024-12-06",
+      "evidence_note": "沈阳农业大学教务处页面发布，页面标题、发布时间和正文确认本科教学质量报告详见附件；附件下载需验证码，后续保持 manual intake。"
+    },
+    {
+      "domain": "school",
       "entity_name": "沈阳师范大学",
       "metric_year": 2024,
       "report_scope": "undergraduate_teaching_quality_report",
