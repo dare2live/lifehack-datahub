@@ -5060,6 +5060,67 @@ def test_audit_career_source_review_seeds_allows_plan_replayed_seed_without_copy
     assert audit["errors"] == []
 
 
+def test_audit_career_source_review_seeds_validates_seed_metadata(monkeypatch: pytest.MonkeyPatch):
+    seed = {
+        "seed_id": "bad_seed_metadata",
+        "source_key": "career_civil_service_posts",
+        "target_table": "fa_fact_career_signal",
+        "occupation_code": "2-02-10-03",
+        "occupation_name": "计算机软件工程技术人员",
+        "metric_key": "civil_service_post_count",
+        "metric_year": "2026.5",
+        "city": "全国",
+        "status": "verified",
+        "reviewer": "codex",
+        "reviewed_at": "2026/05/14",
+        "review_note": "测试基础元数据校验。",
+    }
+    monkeypatch.setattr(
+        "datahub.builders.career_source_seed_merge.load_career_source_review_seeds",
+        lambda: {"seeds": [seed]},
+    )
+
+    audit = audit_career_source_review_seeds()
+
+    assert "seed 1 metric_year is not an integer" in audit["errors"]
+    assert "seed 1 reviewed_at must use YYYY-MM-DD" in audit["errors"]
+
+
+def test_audit_career_source_review_seeds_validates_direct_metric_evidence(monkeypatch: pytest.MonkeyPatch):
+    seed = {
+        "seed_id": "bad_direct_metric_evidence",
+        "source_key": "career_recruitment_snapshot",
+        "target_table": "fa_fact_career_signal",
+        "occupation_code": "2-02-10-04",
+        "occupation_name": "计算机网络工程技术人员",
+        "metric_key": "shortage_rank",
+        "metric_year": 2025,
+        "city": "广州",
+        "status": "verified",
+        "reviewer": "codex",
+        "reviewed_at": "2024-12-31",
+        "review_note": "测试直接指标证据校验。",
+        "metric_value": 0,
+        "metric_scope": "公开供求报告排行",
+        "source_title": "广州市2025年第四季度人力资源市场供求状况分析",
+        "source_url": "ftp://example.com/report",
+        "evidence_quote": "网络工程技术人员排行第0。",
+        "source_date": "2025-02-01",
+        "availability_date": "2025-01-01",
+    }
+    monkeypatch.setattr(
+        "datahub.builders.career_source_seed_merge.load_career_source_review_seeds",
+        lambda: {"seeds": [seed]},
+    )
+
+    audit = audit_career_source_review_seeds()
+
+    assert "seed 1 source_date must not be after availability_date" in audit["errors"]
+    assert "seed 1 reviewed_at must not be before availability_date" in audit["errors"]
+    assert "seed 1 source_url must be an http(s) URL" in audit["errors"]
+    assert "seed 1 metric_value is below min_value 1: 0.0" in audit["errors"]
+
+
 def test_merge_career_source_review_batch_updates_only_editable_columns(tmp_path: Path):
     plan = tmp_path / "career_source_plan.csv"
     rows = [

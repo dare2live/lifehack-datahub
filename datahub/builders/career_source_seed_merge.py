@@ -7,6 +7,7 @@ from collections import Counter
 from datetime import datetime
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 from datahub.builders.career_source_batch import TASK_KEY_COLUMNS
 from datahub.builders.career_source_plan import PLAN_COLUMNS
@@ -143,6 +144,8 @@ def _audit_seed_config() -> dict[str, Any]:
             errors.append(f"seed {index} unknown source_key: {source_key}")
         if metric_key and metric_key not in known_metrics:
             errors.append(f"seed {index} unknown metric_key: {metric_key}")
+        if _to_int(seed.get("metric_year")) is None:
+            errors.append(f"seed {index} metric_year is not an integer")
         if status and status not in allowed_statuses:
             errors.append(f"seed {index} status must be complete: {status}")
         source_required_fields = required_seed_copy_fields_by_source.get(source_key, [])
@@ -151,6 +154,27 @@ def _audit_seed_config() -> dict[str, Any]:
             errors.append(
                 f"seed {index} missing source-required fields for {source_key}: {', '.join(missing_source_fields)}"
             )
+        for date_field in ("source_date", "availability_date", "reviewed_at"):
+            if date_field not in seed and date_field not in source_required_fields:
+                continue
+            date_error = _date_error(seed.get(date_field))
+            if date_error:
+                errors.append(f"seed {index} {date_field} {date_error}")
+        for date_order_error in _date_order_errors(seed):
+            errors.append(f"seed {index} {date_order_error}")
+        if "source_url" in seed or "source_url" in source_required_fields:
+            url_error = _source_url_error(seed.get("source_url"))
+            if url_error:
+                errors.append(f"seed {index} source_url {url_error}")
+        if ("metric_value" in seed or "metric_value" in source_required_fields) and not _is_blank(seed.get("metric_value")):
+            metric_value = _to_float(seed.get("metric_value"))
+            if metric_value is None:
+                errors.append(f"seed {index} metric_value is not numeric")
+            elif metric_key:
+                metric_config = config.get("metrics", {}).get(metric_key, {})
+                range_error = _metric_range_error(metric_value, metric_config)
+                if range_error:
+                    errors.append(f"seed {index} metric_value {range_error}: {metric_value}")
         key = _task_key(seed)
         if key in seen_keys:
             duplicate_keys += 1
@@ -226,6 +250,82 @@ def _append_note(current: str, review_note: str) -> str:
     note = f"seed_review={review_note.strip()}"
     current = str(current or "").strip()
     return f"{current}; {note}" if current else note
+
+
+def _to_float(value: Any) -> float | None:
+    if _is_blank(value):
+        return None
+    try:
+        return float(str(value).replace(",", "").strip())
+    except ValueError:
+        return None
+
+
+def _to_int(value: Any) -> int | None:
+    if _is_blank(value):
+        return None
+    try:
+        text = str(value).strip()
+        if "." in text:
+            return None
+        return int(text)
+    except ValueError:
+        return None
+
+
+def _date_error(value: Any) -> str:
+    if _is_blank(value):
+        return ""
+    text = str(value).strip()
+    try:
+        datetime.strptime(text, "%Y-%m-%d")
+    except ValueError:
+        return "must use YYYY-MM-DD"
+    return ""
+
+
+def _parse_date(value: Any) -> datetime | None:
+    if _is_blank(value):
+        return None
+    try:
+        return datetime.strptime(str(value).strip(), "%Y-%m-%d")
+    except ValueError:
+        return None
+
+
+def _date_order_errors(seed: dict[str, Any]) -> list[str]:
+    source_date = _parse_date(seed.get("source_date"))
+    availability_date = _parse_date(seed.get("availability_date"))
+    reviewed_at = _parse_date(seed.get("reviewed_at"))
+    errors = []
+    if source_date and availability_date and source_date > availability_date:
+        errors.append("source_date must not be after availability_date")
+    if availability_date and reviewed_at and availability_date > reviewed_at:
+        errors.append("reviewed_at must not be before availability_date")
+    return errors
+
+
+def _source_url_error(value: Any) -> str:
+    if _is_blank(value):
+        return ""
+    parsed = urlparse(str(value).strip())
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        return "must be an http(s) URL"
+    return ""
+
+
+def _metric_range_error(value: float, metric_config: dict[str, Any]) -> str:
+    min_value = _to_float(metric_config.get("min_value"))
+    max_value = _to_float(metric_config.get("max_value"))
+    if min_value is not None and value < min_value:
+        return f"is below min_value {min_value:g}"
+    if max_value is not None and value > max_value:
+        return f"is above max_value {max_value:g}"
+    return ""
+
+
+def _is_blank(value: Any) -> bool:
+    return value is None or str(value).strip() == ""
 
 
 def _read_csv(path: Path) -> list[dict[str, Any]]:
