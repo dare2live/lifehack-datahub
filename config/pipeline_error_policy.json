@@ -1,0 +1,246 @@
+{
+  "version": "1",
+  "updated_at": "2026-05-14",
+  "source_key": "pipeline_error_policy",
+  "notes": "DataHub 数据流水线统一错误和升级策略。采集工具可以模块化，但调度、状态、证据门禁和大模型升级边界必须统一管理。",
+  "architecture": {
+    "tool_adapter_contract": {
+      "purpose": "每个采集或加工工具只负责一个受控输入到一个受控输出，不直接写 core。",
+      "required_fields": ["adapter_id", "source_key", "input_artifact", "output_artifacts", "manifest_path", "status", "error_code"],
+      "output_artifacts": ["raw_snapshot", "candidate_csv", "audit_report", "data_package"],
+      "forbidden_outputs": ["core_db_write", "verified_metric_without_review", "api_key_plaintext"]
+    },
+    "unified_scheduler_contract": {
+      "purpose": "调度层统一读取 source policy、update policy、schema registry 和 error policy，决定顺序、并发、重试、阻断和升级。",
+      "config_inputs": ["config/sources.json", "config/data_update_policy.json", "config/source_schemas.json", "config/pipeline_error_policy.json"],
+      "runtime_outputs": ["fa_meta_update_run", "fa_meta_update_run_step", "fa_meta_source_health", "fa_meta_source_snapshot"],
+      "gates": ["readiness_ok", "quality_report_ok", "manifest_ok", "core_dry_run_ok"]
+    }
+  },
+  "adapter_layers": {
+    "source_discovery": {
+      "examples": ["probe-source-candidates", "build-outcome-report-source-plan", "audit-source-coverage"],
+      "default_action": "produce_research_candidates",
+      "can_publish_package": false
+    },
+    "raw_intake": {
+      "examples": ["download", "intake-manual", "download-page-images", "fetch-amap-web-api", "download-scs-resources", "future-web-intake"],
+      "default_action": "write_raw_snapshot_and_manifest",
+      "can_publish_package": false
+    },
+    "parse_extract": {
+      "examples": ["parse-ln-projection-score", "parse-scs-position-workbook", "extract-outcome-report-candidates", "apply-career-shortage-page", "future-trafilatura-extract"],
+      "default_action": "produce_candidates_or_cleaned_csv",
+      "can_publish_package": false
+    },
+    "review_promote": {
+      "examples": ["build-review-batch", "merge-review-batch", "apply-review-seeds", "audit-review-seeds"],
+      "default_action": "promote_only_approved_rows",
+      "can_publish_package": false
+    },
+    "package_build": {
+      "examples": ["build-local", "build-outcome-from-collection-plan", "build-career-signal-from-source-plan", "build-career-score"],
+      "default_action": "build_standard_package_after_audit",
+      "can_publish_package": true
+    },
+    "core_import": {
+      "examples": ["core import_data_package dry-run", "core import_data_package execute"],
+      "default_action": "dry_run_then_execute_only_when_gates_pass",
+      "can_publish_package": false
+    }
+  },
+  "severity_levels": {
+    "info": "记录状态，不阻断。",
+    "warning": "可继续运行独立来源，但必须写入 health 或 audit report。",
+    "blocking": "阻断当前来源发布和其下游依赖。",
+    "critical": "阻断整组运行，通常涉及写库风险、密钥泄露或删除风险。"
+  },
+  "error_classes": {
+    "source_unreachable": {
+      "stage": "raw_intake",
+      "severity": "warning",
+      "retryable": true,
+      "automatic_action": "retry_with_configured_backoff_then_mark_source_health_degraded",
+      "manual_action": "核验 URL、来源是否迁移、是否需要 headers 或人工 intake。",
+      "llm_escalation": "allowed_for_source_research_only"
+    },
+    "captcha_or_login_required": {
+      "stage": "raw_intake",
+      "severity": "blocking",
+      "retryable": false,
+      "automatic_action": "mark_manual_intake_required",
+      "manual_action": "使用 Chrome/Playwright 人工登录或输入验证码后登记受控文件。",
+      "llm_escalation": "forbidden"
+    },
+    "api_quota_or_key_error": {
+      "stage": "raw_intake",
+      "severity": "blocking",
+      "retryable": false,
+      "automatic_action": "pause_api_serial_group_and_record_source_health",
+      "manual_action": "检查环境变量、配额、授权和并发限制。",
+      "llm_escalation": "forbidden"
+    },
+    "hash_changed": {
+      "stage": "raw_intake",
+      "severity": "blocking",
+      "retryable": false,
+      "automatic_action": "create_new_snapshot_and_diff_report_without_overwriting_existing_config",
+      "manual_action": "确认官方文件是否更新；更新 sha256 前必须保留旧 manifest。",
+      "llm_escalation": "allowed_for_diff_summary_only"
+    },
+    "schema_drift": {
+      "stage": "parse_extract",
+      "severity": "blocking",
+      "retryable": false,
+      "automatic_action": "stop_parser_and_emit_missing_or_extra_columns",
+      "manual_action": "更新 source_schemas、字段映射或 parser 测试。",
+      "llm_escalation": "allowed_for_parser_patch_draft"
+    },
+    "empty_or_low_quality_parse": {
+      "stage": "parse_extract",
+      "severity": "blocking",
+      "retryable": false,
+      "automatic_action": "keep_raw_snapshot_and_block_candidate_promotion",
+      "manual_action": "检查是否下载到 HTML 挑战页、图片页、空表或错误 sheet。",
+      "llm_escalation": "allowed_for_extraction_rule_suggestion"
+    },
+    "evidence_missing": {
+      "stage": "review_promote",
+      "severity": "blocking",
+      "retryable": false,
+      "automatic_action": "keep_row_pending_and_report_missing_evidence_columns",
+      "manual_action": "补 source_url、source_title、evidence_quote、source_date、availability_date 和 metric_scope。",
+      "llm_escalation": "allowed_for_evidence_quote_suggestion_only_from_raw"
+    },
+    "metric_value_invalid": {
+      "stage": "review_promote",
+      "severity": "blocking",
+      "retryable": false,
+      "automatic_action": "reject_value_outside_registered_unit_or_range",
+      "manual_action": "核对单位、百分比、分母、指标年份和统计口径。",
+      "llm_escalation": "forbidden_for_value_decision"
+    },
+    "reconciliation_pending": {
+      "stage": "review_promote",
+      "severity": "blocking",
+      "retryable": false,
+      "automatic_action": "block_package_ready_until_pending_blocking_unknown_counts_zero",
+      "manual_action": "按 readiness 诊断生成小批复核或应用受控自动规则。",
+      "llm_escalation": "allowed_for_batch_prioritization_only"
+    },
+    "quality_report_failed": {
+      "stage": "package_build",
+      "severity": "blocking",
+      "retryable": false,
+      "automatic_action": "do_not_publish_package",
+      "manual_action": "修复 schema、主键、必填列、lineage、reason codes 或值域错误。",
+      "llm_escalation": "allowed_for_code_or_config_patch_draft"
+    },
+    "core_dry_run_failed": {
+      "stage": "core_import",
+      "severity": "critical",
+      "retryable": false,
+      "automatic_action": "do_not_execute_import",
+      "manual_action": "修复 package、schema registry、load mode 或 delete plan；重新 dry-run。",
+      "llm_escalation": "allowed_for_patch_draft_only"
+    },
+    "secret_leak_risk": {
+      "stage": "any",
+      "severity": "critical",
+      "retryable": false,
+      "automatic_action": "stop_run_and_require_output_cleanup",
+      "manual_action": "删除含密钥输出、轮换密钥、改为 key_env 记录。",
+      "llm_escalation": "forbidden"
+    }
+  },
+  "llm_escalation_policy": {
+    "default": "deterministic_first",
+    "allowed_tasks": [
+      "source_research_query_generation",
+      "raw_html_or_pdf_context_summarization",
+      "parser_patch_draft",
+      "schema_mapping_candidate_suggestion",
+      "review_batch_prioritization",
+      "documentation_update"
+    ],
+    "forbidden_tasks": [
+      "bypass_captcha_or_login",
+      "invent_metric_value",
+      "mark_review_status_verified_without_evidence",
+      "execute_core_import",
+      "write_api_key_to_config_or_manifest",
+      "delete_core_data_without_delete_plan"
+    ],
+    "handoff_requirements": [
+      "include_artifact_paths",
+      "include_error_code",
+      "include_source_url_or_manifest",
+      "include_expected_schema_or_metric_key",
+      "include_current_audit_report"
+    ]
+  },
+  "llm_command_center": {
+    "concept_name": "metadata_driven_data_control_plane",
+    "notes": "这不是普通数据埋点。埋点只记录事件；本策略把来源、工具、schema、错误、血缘、runbook 和审计报告组合成控制平面，让大模型在阻断时有足够上下文指挥修复。",
+    "normal_mode": "deterministic_pipeline_runs_without_llm",
+    "incident_mode": "llm_reads_artifacts_and_proposes_repair_plan",
+    "required_context": [
+      "source_config",
+      "schema_config",
+      "update_policy",
+      "error_policy",
+      "raw_manifest",
+      "audit_report",
+      "readiness_report",
+      "quality_report",
+      "git_diff_or_changed_files"
+    ],
+    "allowed_commands": [
+      "diagnose_failure",
+      "rank_repair_options",
+      "draft_config_patch",
+      "draft_parser_patch",
+      "generate_review_batch_plan",
+      "write_operator_runbook",
+      "summarize_lineage_and_residual_risk"
+    ],
+    "blocked_commands": [
+      "publish_unreviewed_package",
+      "mark_metric_verified",
+      "execute_core_import",
+      "execute_delete_plan",
+      "bypass_captcha_or_login",
+      "store_secret"
+    ],
+    "knowledge_cells": {
+      "source_card": ["source_key", "owner", "official_distribution", "known_failure_modes", "manual_intake_steps"],
+      "adapter_card": ["adapter_id", "input_artifact", "output_artifacts", "retry_policy", "side_effects"],
+      "schema_card": ["table_name", "primary_key", "required_columns", "load_mode", "validation_rules"],
+      "metric_card": ["metric_key", "unit", "value_range", "scope_template", "blocked_context"],
+      "pitfall_card": ["pitfall_id", "symptom", "root_cause", "detection_rule", "remediation"],
+      "runbook_card": ["error_code", "severity", "first_response", "verification_command", "handoff_requirements"]
+    },
+    "decision_gates": [
+      "all_patches_must_pass_tests",
+      "package_publish_requires_quality_report_ok",
+      "core_write_requires_dry_run_ok",
+      "delete_requires_reconciliation_and_delete_plan",
+      "verified_status_requires_human_or_seeded_evidence"
+    ]
+  },
+  "automation_targets": [
+    "single_cli_entrypoint_for_update_run",
+    "adapter_registry_for_raw_intake_tools",
+    "standard_run_step_status_csv",
+    "source_health_writer",
+    "readiness_report_aggregator",
+    "last_good_package_fallback",
+    "llm_handoff_bundle_generator"
+  ],
+  "external_tool_patterns": {
+    "great_expectations": "借鉴 checkpoint、validation result、data docs 和 action 概念；当前保留轻量自研质量报告，暂不引入重依赖。",
+    "pandera": "借鉴 dataframe schema 和聚合错误报告；适合后续给 cleaned CSV/parser 输出加更强类型校验。",
+    "dagster": "借鉴 asset graph、lineage、observability 和 testability；后续若 CLI 调度复杂化，可把 source_key 映射为 asset。",
+    "prefect": "借鉴 Pythonic flow、retry、result persistence 和 cache key；短期用配置化 run plan 与 content_hash 实现轻量重试/跳过。"
+  }
+}

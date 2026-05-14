@@ -6,6 +6,8 @@
 
 网页 intake 工具评估见 `docs/web_intake_tool_research.md`。当前建议是优先用本项目既有连接器和 Trafilatura 类本地正文抽取，Firecrawl 作为可选托管补充，Scrapy/Crawlee/Crawl4AI 只在来源稳定、规模变大或动态页面确实需要时引入；所有网页输出仍必须进入 DataHub 复核门禁。
 
+采集、清洗、加工、复核、打包和入库的阶段复盘见 `docs/data_pipeline_operational_review.md`。当前方向是“元数据驱动的数据控制平面 + 大模型应急指挥中心”：工具模块化，调度、状态、错误、血缘和门禁统一；大模型只在阻断时读取配置、manifest 和审计报告提出修复方案，不能绕过复核、质量报告或 core dry-run。
+
 ## 边界
 
 - DataHub 可以接触原始 Excel、PDF、HTML、CSV。

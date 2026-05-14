@@ -125,6 +125,7 @@ from datahub.config import (
     load_outcome_collection_review_seeds,
     load_outcome_metrics,
     load_outcome_report_sources,
+    load_pipeline_error_policy,
     load_source_schemas,
 )
 from datahub.builders.school_identity import build_school_identity_package
@@ -7541,6 +7542,63 @@ def test_data_update_policy_config_and_schemas():
     assert schemas["fa_meta_nonstandard_review_queue"]["primary_key"] == ["review_id"]
     assert schemas["fa_fact_civil_service_position"]["source_key"] == "career_civil_service_posts"
     assert schemas["fa_fact_civil_service_position"]["primary_key"] == ["source_date", "sheet_name", "row_number"]
+
+
+def test_pipeline_error_policy_governs_modular_tools_and_llm_escalation():
+    config = load_pipeline_error_policy()
+    assert config["source_key"] == "pipeline_error_policy"
+
+    adapter_contract = config["architecture"]["tool_adapter_contract"]
+    assert "core_db_write" in adapter_contract["forbidden_outputs"]
+    assert "api_key_plaintext" in adapter_contract["forbidden_outputs"]
+    assert "raw_snapshot" in adapter_contract["output_artifacts"]
+    assert "candidate_csv" in adapter_contract["output_artifacts"]
+
+    scheduler_contract = config["architecture"]["unified_scheduler_contract"]
+    assert "config/data_update_policy.json" in scheduler_contract["config_inputs"]
+    assert "fa_meta_update_run_step" in scheduler_contract["runtime_outputs"]
+    assert "core_dry_run_ok" in scheduler_contract["gates"]
+
+    layers = config["adapter_layers"]
+    assert layers["raw_intake"]["can_publish_package"] is False
+    assert layers["parse_extract"]["can_publish_package"] is False
+    assert layers["review_promote"]["can_publish_package"] is False
+    assert layers["package_build"]["can_publish_package"] is True
+
+    errors = config["error_classes"]
+    assert errors["captcha_or_login_required"]["severity"] == "blocking"
+    assert errors["captcha_or_login_required"]["automatic_action"] == "mark_manual_intake_required"
+    assert errors["core_dry_run_failed"]["severity"] == "critical"
+    assert errors["core_dry_run_failed"]["automatic_action"] == "do_not_execute_import"
+    assert errors["metric_value_invalid"]["llm_escalation"] == "forbidden_for_value_decision"
+    assert errors["secret_leak_risk"]["llm_escalation"] == "forbidden"
+
+    llm_policy = config["llm_escalation_policy"]
+    assert llm_policy["default"] == "deterministic_first"
+    assert "parser_patch_draft" in llm_policy["allowed_tasks"]
+    assert "invent_metric_value" in llm_policy["forbidden_tasks"]
+    assert "bypass_captcha_or_login" in llm_policy["forbidden_tasks"]
+    assert "include_current_audit_report" in llm_policy["handoff_requirements"]
+
+    command_center = config["llm_command_center"]
+    assert command_center["concept_name"] == "metadata_driven_data_control_plane"
+    assert command_center["normal_mode"] == "deterministic_pipeline_runs_without_llm"
+    assert command_center["incident_mode"] == "llm_reads_artifacts_and_proposes_repair_plan"
+    assert "audit_report" in command_center["required_context"]
+    assert "readiness_report" in command_center["required_context"]
+    assert "draft_parser_patch" in command_center["allowed_commands"]
+    assert "generate_review_batch_plan" in command_center["allowed_commands"]
+    assert "execute_core_import" in command_center["blocked_commands"]
+    assert "publish_unreviewed_package" in command_center["blocked_commands"]
+    assert "source_card" in command_center["knowledge_cells"]
+    assert "pitfall_card" in command_center["knowledge_cells"]
+    assert "core_write_requires_dry_run_ok" in command_center["decision_gates"]
+
+    external_patterns = config["external_tool_patterns"]
+    assert "great_expectations" in external_patterns
+    assert "pandera" in external_patterns
+    assert "dagster" in external_patterns
+    assert "prefect" in external_patterns
 
 
 def test_build_data_update_plan_with_dependencies(tmp_path: Path):

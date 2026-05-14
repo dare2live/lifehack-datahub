@@ -115,6 +115,11 @@ def load_data_update_policy() -> dict[str, Any]:
     return load_json_config(path)
 
 
+def load_pipeline_error_policy() -> dict[str, Any]:
+    path = CONFIG_DIR / "pipeline_error_policy.json"
+    return load_json_config(path)
+
+
 def load_school_location_geocode_plan() -> dict[str, Any]:
     path = CONFIG_DIR / "school_location_geocode_plan.json"
     return load_json_config(path)
