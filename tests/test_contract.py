@@ -6482,6 +6482,11 @@ def test_extract_outcome_report_candidates_from_lines(tmp_path: Path):
             (10, "本科毕业生 4315 人中，攻读研究生 1549 人。其中，推荐免试攻读研究生"),
             (10, "582 人，占比 37.57%；考取本校研究生 150 人，占比 9.68%。"),
             (10, "2024 届本科毕业生考取研究生 876 人(其中推免生 143 人),占本科毕业生总数的 25.47%,"),
+            (10, "截至 2024 年 8 月 31 日，学校应届本科毕业生总体就业率达 87.54%。毕业"),
+            (10, "生最主要的毕业去向是企业，占 54.95%。升学 1160 人，占 21.70%，其中出国"),
+            (10, "升学1443人（包含研究生591人，第二学士学位448人，境外留学404人）。2024届本科毕业生初次毕业去向落实率为88.64%。"),
+            (10, "2024届本科毕业生（不含升学、出国、自由职业）在辽就业占比42.1%。"),
+            (10, "其中出国境升学 371 人，占比 23.95%。"),
             (11, "2024 届毕业生初次就业率显示：42.1%毕业生在辽宁省就业。"),
             (12, "毕业授位 88 人，学位点就业率 100%。学员主要分布在国有企业单位。"),
             (12, "毕业生职业发展情况良好，毕业生近三年内 47.6%岗位得到晋升。"),
@@ -6502,9 +6507,12 @@ def test_extract_outcome_report_candidates_from_lines(tmp_path: Path):
     assert any(row["candidate_value"] == "0.8582" for row in rows)
     assert any(row["match_alias"] == "升学人数" and row["candidate_value"] == "0.3634" for row in rows)
     assert any(row["match_alias"] == "考取研究生" and row["candidate_value"] == "0.2547" for row in rows)
+    assert any(row["match_alias"] == "升学" and row["candidate_value"] == "0.217" for row in rows)
     assert any(row["match_alias"] == "推荐免试" for row in rows)
     assert not any(row["metric_key"] == "keep_research_rate" and row["candidate_value"] == "0.3757" for row in rows)
     assert not any(row["metric_key"] == "keep_research_rate" and row["candidate_value"] == "0.2547" for row in rows)
+    assert not any(row["metric_key"] == "postgrad_rate" and row["candidate_value"] == "0.8864" for row in rows)
+    assert not any(row["metric_key"] == "postgrad_rate" and row["candidate_value"] in {"0.421", "0.2395"} for row in rows)
     assert not any(row["metric_key"] == "employment_rate" and row["candidate_value"] in {"0.421", "1"} for row in rows)
     assert not any(row["metric_key"] == "employment_rate" and row["candidate_value"] == "0.7747" for row in rows)
     assert not any(row["metric_key"] == "civil_service_rate" and row["candidate_value"] == "0.476" for row in rows)

@@ -39,6 +39,7 @@ CANDIDATE_COLUMNS = [
 PERCENT_RE = re.compile(r"(?<!\d)(\d{1,3}(?:\.\d+)?)\s*%")
 NUMBER_RE = re.compile(r"(?<!\d)(\d{1,3}(?:\.\d+)?)(?!\d)")
 SPACE_RE = re.compile(r"\s+")
+CLAUSE_SPLIT_RE = re.compile(r"[。；;]")
 OFD_PAGE_RE = re.compile(r"(?:^|/)Pages/Page_(\d+)/Content\.xml$")
 OFD_BOUNDARY_RE = re.compile(r"[-+]?\d+(?:\.\d+)?")
 
@@ -333,7 +334,13 @@ def _candidate_values(line: str, metric: dict[str, Any], alias: str) -> list[tup
     unit = str(metric.get("unit") or "")
     search_start = line.find(alias) + len(alias) if alias and alias in line else 0
     if unit == "ratio":
-        matches = list(PERCENT_RE.finditer(line))
+        if alias == "升学" and not _broad_postgrad_alias_allowed(line, search_start):
+            return []
+        clause = _candidate_clause(line, search_start)
+        occupied = _occupied_ratio_match(clause[search_start:])
+        if occupied:
+            return [(occupied.group(0), round(float(occupied.group(1)) / 100, 6))]
+        matches = list(PERCENT_RE.finditer(clause))
         match = _nearest_match(matches, search_start, max_before_distance=8)
         return [(match.group(0), round(float(match.group(1)) / 100, 6))] if match else []
     if unit == "score":
@@ -343,6 +350,28 @@ def _candidate_values(line: str, metric: dict[str, Any], alias: str) -> list[tup
     matches = list(NUMBER_RE.finditer(line))
     match = _nearest_match(matches, search_start, max_before_distance=8)
     return [(match.group(1), float(match.group(1)))] if match else []
+
+
+def _candidate_clause(line: str, search_start: int) -> str:
+    suffix = str(line or "")[search_start:]
+    split = CLAUSE_SPLIT_RE.search(suffix)
+    if split:
+        return str(line or "")[: search_start + split.start()]
+    return str(line or "")
+
+
+def _occupied_ratio_match(clause: str) -> re.Match[str] | None:
+    match = re.search(r"占(?:比|本科毕业生总数|毕业生总数|应届本科毕业生总数)?\s*[^%]{0,12}?" + PERCENT_RE.pattern, clause)
+    return match
+
+
+def _broad_postgrad_alias_allowed(line: str, search_start: int) -> bool:
+    alias_start = max(0, search_start - len("升学"))
+    before = str(line or "")[max(0, alias_start - 4):alias_start]
+    if any(item in before for item in ("不含", "除", "国内", "境外", "出国")):
+        return False
+    after = str(line or "")[search_start:]
+    return re.match(r"\s*\d+\s*人", after) is not None
 
 
 def _nearest_match(

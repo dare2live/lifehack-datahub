@@ -175,6 +175,25 @@
       "review_note": "原文明确截至 2024 年 8 月 31 日应届本科毕业生总体就业率 82.77%。"
     },
     {
+      "seed_id": "djtu_2024_undergraduate_postgrad_rate",
+      "domain": "school",
+      "entity_code": "0150",
+      "entity_name": "大连交通大学",
+      "metric_key": "postgrad_rate",
+      "metric_year": 2024,
+      "status": "verified",
+      "metric_value": 0.2887,
+      "source_title": "大连交通大学2023-2024学年本科教学质量报告",
+      "source_url": "http://www.djtu.edu.cn/Notices/16044.html",
+      "evidence_quote": "要的毕业去向是企业，占 61.59%。升学 1146 人，占 28.87%，其中出国（境）留学 111 人，占 3.38%。",
+      "metric_scope": "2024届本科毕业生升学比例，含出国（境）留学",
+      "source_date": "2024-12-12",
+      "availability_date": "2024-12-12",
+      "reviewer": "codex",
+      "reviewed_at": "2026-05-14",
+      "review_note": "原文明确给出升学人数和比例，并单列出国（境）留学人数及比例；按 outcome 指标定义采用整体升学比例 28.87%。"
+    },
+    {
       "seed_id": "djtu_2024_undergraduate_soe_signing_rate",
       "domain": "school",
       "entity_code": "0150",
