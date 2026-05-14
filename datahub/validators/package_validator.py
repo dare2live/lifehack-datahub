@@ -35,7 +35,11 @@ def validate_manifest(path: Path) -> dict:
         elif not (path.parent / quality_path).exists():
             errors.append(f"declared quality report not found: {quality_report}")
 
-    for table in data.get("tables", []):
+    tables = data.get("tables", [])
+    if "tables" in data and not isinstance(tables, list):
+        errors.append("manifest tables must be a list")
+        tables = []
+    for table in tables:
         name = table.get("name") if isinstance(table, dict) else str(table)
         if not name.startswith("fa_"):
             errors.append(f"table must use fa_ prefix: {name}")
@@ -46,7 +50,18 @@ def validate_manifest(path: Path) -> dict:
         hashes = {}
 
     package_dir = path.parent
-    for file_name in data.get("files", []):
+    files = data.get("files", [])
+    if "files" in data and not isinstance(files, list):
+        errors.append("manifest files must be a list")
+        files = []
+    for file_name in files:
+        if not isinstance(file_name, str) or not file_name:
+            errors.append(f"invalid manifest file entry: {file_name}")
+            continue
+        file_ref = Path(file_name)
+        if file_ref.is_absolute() or ".." in file_ref.parts:
+            errors.append(f"manifest file must be package-relative: {file_name}")
+            continue
         file_path = package_dir / file_name
         if not file_path.exists():
             errors.append(f"declared file not found: {file_name}")
