@@ -61,7 +61,9 @@ def apply_career_source_review_seeds(
     seeds = _seed_rows()
     seed_by_key = {_task_key(seed): seed for seed in seeds}
     rows = _read_csv(plan_csv)
-    complete_statuses = set(load_career_data_sources()["audit"]["complete_statuses"])
+    config = load_career_data_sources()
+    complete_statuses = set(config["audit"]["complete_statuses"])
+    seed_copy_fields = _seed_copy_fields(config)
 
     matched = 0
     updated = 0
@@ -77,7 +79,7 @@ def apply_career_source_review_seeds(
         row["status"] = seed["status"]
         row["reviewer"] = seed["reviewer"]
         row["reviewed_at"] = seed["reviewed_at"]
-        for field in OPTIONAL_SEED_COPY_FIELDS:
+        for field in seed_copy_fields:
             value = str(seed.get(field) or "").strip()
             if value:
                 row[field] = value
@@ -120,6 +122,8 @@ def _audit_seed_config() -> dict[str, Any]:
     known_sources = set(config.get("source_plan", {}).get("sources", {}))
     known_metrics = set(config.get("metrics", {}))
     allowed_statuses = set(config.get("audit", {}).get("complete_statuses", []))
+    seed_copy_fields = _seed_copy_fields(config)
+    required_seed_copy_fields_by_source = _required_seed_copy_fields_by_source(config, known_sources, seed_copy_fields, errors)
     seen_keys: set[tuple[str, ...]] = set()
     duplicate_keys = 0
     status_counts: Counter[str] = Counter()
@@ -141,6 +145,12 @@ def _audit_seed_config() -> dict[str, Any]:
             errors.append(f"seed {index} unknown metric_key: {metric_key}")
         if status and status not in allowed_statuses:
             errors.append(f"seed {index} status must be complete: {status}")
+        source_required_fields = required_seed_copy_fields_by_source.get(source_key, [])
+        missing_source_fields = [field for field in source_required_fields if not str(seed.get(field) or "").strip()]
+        if missing_source_fields:
+            errors.append(
+                f"seed {index} missing source-required fields for {source_key}: {', '.join(missing_source_fields)}"
+            )
         key = _task_key(seed)
         if key in seen_keys:
             duplicate_keys += 1
@@ -163,6 +173,44 @@ def _audit_seed_config() -> dict[str, Any]:
         "errors": errors,
         "warnings": warnings,
     }
+
+
+def _seed_copy_fields(config: dict[str, Any]) -> list[str]:
+    fields = config.get("audit", {}).get("seed_copy_fields")
+    if not isinstance(fields, list):
+        return OPTIONAL_SEED_COPY_FIELDS
+    normalized = [str(field).strip() for field in fields if str(field).strip()]
+    return normalized or OPTIONAL_SEED_COPY_FIELDS
+
+
+def _required_seed_copy_fields_by_source(
+    config: dict[str, Any],
+    known_sources: set[str],
+    seed_copy_fields: list[str],
+    errors: list[str],
+) -> dict[str, list[str]]:
+    policies = config.get("audit", {}).get("required_seed_copy_fields_by_source", {})
+    if not isinstance(policies, dict):
+        errors.append("career_data_sources.audit.required_seed_copy_fields_by_source must be an object")
+        return {}
+
+    copy_field_set = set(seed_copy_fields)
+    normalized: dict[str, list[str]] = {}
+    for source_key, fields in policies.items():
+        source_key = str(source_key).strip()
+        if source_key not in known_sources:
+            errors.append(f"career_data_sources.audit.required_seed_copy_fields_by_source unknown source_key: {source_key}")
+        if not isinstance(fields, list):
+            errors.append(f"career_data_sources.audit.required_seed_copy_fields_by_source.{source_key} must be a list")
+            continue
+        normalized_fields = [str(field).strip() for field in fields if str(field).strip()]
+        unknown_fields = [field for field in normalized_fields if field not in copy_field_set]
+        if unknown_fields:
+            errors.append(
+                f"career_data_sources.audit.required_seed_copy_fields_by_source.{source_key} unknown seed_copy_fields: {', '.join(unknown_fields)}"
+            )
+        normalized[source_key] = normalized_fields
+    return normalized
 
 
 def _seed_rows() -> list[dict[str, Any]]:

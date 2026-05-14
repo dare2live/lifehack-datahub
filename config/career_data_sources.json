@@ -96,7 +96,12 @@
     "complete_statuses": ["verified", "ready", "collected"],
     "blocked_statuses": ["blocked", "needs_source_research"],
     "required_signal_columns": ["occupation_code", "occupation_name", "metric_value", "source_title", "source_url", "evidence_quote", "source_date", "availability_date"],
-    "required_catalog_columns": ["occupation_code", "occupation_name", "source_title", "source_url", "evidence_quote", "source_date", "availability_date"]
+    "required_catalog_columns": ["occupation_code", "occupation_name", "source_title", "source_url", "evidence_quote", "source_date", "availability_date"],
+    "seed_copy_fields": ["metric_value", "metric_scope", "source_title", "source_url", "evidence_quote", "source_date", "availability_date"],
+    "required_seed_copy_fields_by_source": {
+      "career_recruitment_snapshot": ["metric_value", "metric_scope", "source_title", "source_url", "evidence_quote", "source_date", "availability_date"],
+      "career_salary_survey": ["metric_value", "metric_scope", "source_title", "source_url", "evidence_quote", "source_date", "availability_date"]
+    }
   },
   "review_batch": {
     "selection_statuses": ["todo", "in_progress"],

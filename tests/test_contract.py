@@ -3820,6 +3820,59 @@ def test_apply_career_source_review_seeds_updates_matching_rows(tmp_path: Path):
     assert by_key[("career_civil_service_posts", "4-04-05-02", "全国", "civil_service_post_count")]["status"] == "in_progress"
 
 
+def test_audit_career_source_review_seeds_requires_direct_metric_seed_evidence(monkeypatch: pytest.MonkeyPatch):
+    seed = {
+        "seed_id": "missing_salary_evidence",
+        "source_key": "career_salary_survey",
+        "target_table": "fa_fact_career_signal",
+        "occupation_code": "2-02-10-03",
+        "occupation_name": "计算机软件工程技术人员",
+        "metric_key": "salary_median",
+        "metric_year": 2024,
+        "city": "宁波",
+        "status": "verified",
+        "reviewer": "codex",
+        "reviewed_at": "2026-05-14",
+        "review_note": "测试缺失直接指标证据。",
+    }
+    monkeypatch.setattr(
+        "datahub.builders.career_source_seed_merge.load_career_source_review_seeds",
+        lambda: {"seeds": [seed]},
+    )
+
+    audit = audit_career_source_review_seeds()
+
+    assert audit["errors"] == [
+        "seed 1 missing source-required fields for career_salary_survey: "
+        "metric_value, metric_scope, source_title, source_url, evidence_quote, source_date, availability_date"
+    ]
+
+
+def test_audit_career_source_review_seeds_allows_plan_replayed_seed_without_copy_fields(monkeypatch: pytest.MonkeyPatch):
+    seed = {
+        "seed_id": "scs_seed_without_copy_fields",
+        "source_key": "career_civil_service_posts",
+        "target_table": "fa_fact_career_signal",
+        "occupation_code": "2-02-10-03",
+        "occupation_name": "计算机软件工程技术人员",
+        "metric_key": "civil_service_post_count",
+        "metric_year": 2026,
+        "city": "全国",
+        "status": "verified",
+        "reviewer": "codex",
+        "reviewed_at": "2026-05-14",
+        "review_note": "官方职位表证据由计划重新生成。",
+    }
+    monkeypatch.setattr(
+        "datahub.builders.career_source_seed_merge.load_career_source_review_seeds",
+        lambda: {"seeds": [seed]},
+    )
+
+    audit = audit_career_source_review_seeds()
+
+    assert audit["errors"] == []
+
+
 def test_merge_career_source_review_batch_updates_only_editable_columns(tmp_path: Path):
     plan = tmp_path / "career_source_plan.csv"
     rows = [
