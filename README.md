@@ -583,7 +583,7 @@ python3 scripts/build_package.py build-score-history-reconciliation-review-batch
   --limit-per-issue 20
 ```
 
-对专业代码漂移和 core-only 批次，可以追加 `--projection-csv --core-db --core-plan-year` 输出只读参考列：官方专业名、官方候选专业名、core 候选专业名、匹配提示和建议候选代码。manifest 也会输出按 issue type 细分的 `issue_hint_counts`、`issue_package_hint_counts` 和 `hint_combo_counts`，用于安排复核顺序和判断是否还有可配置化降噪空间。附加列和统计只服务复核判断，合并回完整 plan 时仍只写配置允许的复核列。
+对专业代码漂移和 core-only 批次，可以追加 `--projection-csv --core-db --core-plan-year` 输出只读参考列：官方专业名、官方候选专业名、core 候选专业名、匹配提示和建议候选代码。除 exact/contains 外，复核上下文还会按 `config/source_schemas.json` 的 `reference_context.token_overlap` 参数生成 `token_overlap` 提示，用共享专业名 token、最低相似分和最少共享 token 辅助识别“经济学类(含双学士…)”与“经济学类(经济学、…)”这类同专业族表达。manifest 也会输出按 issue type 细分的 `issue_hint_counts`、`issue_package_hint_counts`、`hint_combo_counts` 和 token-overlap 参数摘要，用于安排复核顺序和判断是否还有可配置化降噪空间。附加列和统计只服务复核判断，合并回完整 plan 时仍只写配置允许的复核列，不会自动修改 reconciliation 决策。
 
 复核者编辑 batch CSV 后，用 task_id 合并回完整 plan。合并只回写配置允许的复核列，不会修改主键、分数、位次等证据字段：
 

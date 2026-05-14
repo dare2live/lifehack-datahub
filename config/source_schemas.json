@@ -261,6 +261,28 @@
               }
             ]
           },
+          "reference_context": {
+            "token_overlap": {
+              "enabled": true,
+              "min_score": 0.6,
+              "min_shared_tokens": 2,
+              "stop_tokens": [
+                "类",
+                "专业",
+                "方向",
+                "实验班",
+                "试验班",
+                "卓越",
+                "拔尖",
+                "基地",
+                "项目",
+                "含",
+                "等",
+                "包含",
+                "本专业类内专业任选"
+              ]
+            }
+          },
           "issue_types": {
             "major_code_drift_candidate": {
               "priority": 1,
