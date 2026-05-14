@@ -444,6 +444,7 @@ python3 scripts/build_package.py merge-admission-plan-reconciliation-review-batc
   --batch-csv staging/admission_plan_reconciliation_2026/review_batch_initial/admission_plan_reconciliation_review_batch.csv \
   --output staging/admission_plan_reconciliation_2026/admission_plan_reconciliation_plan_merged.csv
 ```
+readiness 审计会校验复核结论和数据侧是否一致：`use_package_row` 必须有 package 侧数据，`keep_core_row` 必须有 core 侧数据，`exclude_row` 至少要能定位 package 或 core 侧主键，避免错误结论通过门禁。
 
 已复核确认应删除 core 侧旧招生计划行的任务，单独生成删除迁移计划。该命令只输出待删除主键，不执行 SQL，也不是 data package：
 

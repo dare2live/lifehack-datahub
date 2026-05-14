@@ -149,6 +149,7 @@ def _validate_row(
         ]
         if missing_ready:
             errors.append(f"row {index} ready status missing: {', '.join(missing_ready)}")
+        _validate_decision_side(index, row, decision, errors)
     if status in config["pending_statuses"] and decision:
         warnings.append(f"row {index} pending status has review_decision: {decision}")
 
@@ -165,6 +166,52 @@ def _validate_json(index: int, value: Any, column: str, errors: list[str]) -> No
         json.loads(str(value or "{}"))
     except json.JSONDecodeError:
         errors.append(f"row {index} {column} is not valid JSON")
+
+
+def _validate_decision_side(
+    index: int,
+    row: dict[str, Any],
+    decision: str,
+    errors: list[str],
+) -> None:
+    if decision == "use_package_row" and not _has_package_side(row):
+        errors.append(f"row {index} use_package_row without package side")
+    if decision == "keep_core_row" and not _has_core_side(row):
+        errors.append(f"row {index} keep_core_row without core side")
+    if decision == "exclude_row" and not (_has_package_side(row) or _has_core_side(row)):
+        errors.append(f"row {index} exclude_row without package or core side")
+
+
+def _has_package_side(row: dict[str, Any]) -> bool:
+    return _has_key_values(row.get("package_key_json")) or any(
+        str(row.get(column) or "").strip()
+        for column in (
+            "package_major_code",
+            "package_school_name",
+            "package_major_full",
+            "package_plan_count",
+        )
+    )
+
+
+def _has_core_side(row: dict[str, Any]) -> bool:
+    return _has_key_values(row.get("core_key_json")) or any(
+        str(row.get(column) or "").strip()
+        for column in (
+            "core_major_code",
+            "core_school_name",
+            "core_major_full",
+            "core_plan_count",
+        )
+    )
+
+
+def _has_key_values(value: Any) -> bool:
+    try:
+        data = json.loads(str(value or "{}"))
+    except json.JSONDecodeError:
+        return False
+    return isinstance(data, dict) and any(str(item or "").strip() for item in data.values())
 
 
 def _read_csv(path: Path) -> tuple[list[dict[str, Any]], set[str]]:

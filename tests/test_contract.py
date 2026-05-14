@@ -7971,6 +7971,43 @@ def test_audit_admission_plan_reconciliation_plan_reports_progress(tmp_path: Pat
     assert report["ready"]["migration_ready"] is False
 
 
+def test_audit_admission_plan_reconciliation_plan_rejects_side_mismatch(tmp_path: Path):
+    plan = tmp_path / "admission_plan_reconciliation_plan.csv"
+    package_decision_without_package = _admission_reconciliation_row(
+        "bad-package",
+        "core_only_unmatched",
+        status="reviewed",
+        review_decision="use_package_row",
+    )
+    package_decision_without_package.update({
+        "package_major_code": "",
+        "package_school_name": "",
+        "package_major_full": "",
+        "package_plan_count": "",
+        "package_key_json": "{}",
+    })
+    core_decision_without_core = _admission_reconciliation_row(
+        "bad-core",
+        "package_only_unmatched",
+        status="reviewed",
+        review_decision="keep_core_row",
+    )
+    core_decision_without_core.update({
+        "core_major_code": "",
+        "core_school_name": "",
+        "core_major_full": "",
+        "core_plan_count": "",
+        "core_key_json": "{}",
+    })
+    _write_admission_reconciliation_plan(plan, [package_decision_without_package, core_decision_without_core])
+
+    report = audit_admission_plan_reconciliation_plan(plan)
+
+    assert "row 2 use_package_row without package side" in report["errors"]
+    assert "row 3 keep_core_row without core side" in report["errors"]
+    assert report["ready"]["migration_ready"] is False
+
+
 def test_build_and_merge_admission_plan_reconciliation_review_batch(tmp_path: Path):
     plan = tmp_path / "admission_plan_reconciliation_plan.csv"
     rows = [
@@ -8129,8 +8166,20 @@ def _admission_reconciliation_row(
         "core_major_full": "计算机类",
         "package_plan_count": "8",
         "core_plan_count": "9",
-        "package_key_json": "{}",
-        "core_key_json": "{}",
+        "package_key_json": json.dumps({
+            "school_code": school_code,
+            "major_code": "01",
+            "batch": "本科批",
+            "subject_cat": "物理类",
+            "year": "2026",
+        }, ensure_ascii=False),
+        "core_key_json": json.dumps({
+            "school_code": school_code,
+            "major_code": "01",
+            "batch": "本科批",
+            "subject_cat": "物理类",
+            "year": "2026",
+        }, ensure_ascii=False),
         "differences_json": "[]",
         "review_decision": review_decision,
         "reviewer": "tester" if status == "reviewed" else "",
