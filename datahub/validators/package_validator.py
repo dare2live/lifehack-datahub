@@ -34,6 +34,8 @@ def validate_manifest(path: Path) -> dict:
             errors.append("manifest quality_report must be a package-relative JSON file")
         elif not (path.parent / quality_path).exists():
             errors.append(f"declared quality report not found: {quality_report}")
+        else:
+            errors.extend(_quality_report_errors(path.parent / quality_path))
 
     tables = data.get("tables", [])
     if "tables" in data and not isinstance(tables, list):
@@ -79,3 +81,19 @@ def _sha256(path: Path) -> str:
         for chunk in iter(lambda: f.read(1024 * 1024), b""):
             h.update(chunk)
     return h.hexdigest()
+
+
+def _quality_report_errors(path: Path) -> list[str]:
+    try:
+        data = load_json_config(path)
+    except ValueError as exc:
+        return [f"quality_report error: {exc}"]
+    if not isinstance(data, dict):
+        return ["quality_report error: quality_report must be an object"]
+    errors = data.get("errors", [])
+    if not isinstance(errors, list):
+        return ["quality_report error: quality_report.errors must be a list"]
+    if errors:
+        sample = "; ".join(str(error) for error in errors[:3])
+        return [f"quality_report error: quality_report has errors: {sample}"]
+    return []
