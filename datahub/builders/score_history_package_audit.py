@@ -2,14 +2,14 @@
 from __future__ import annotations
 
 import csv
-import json
 from collections import Counter
 from pathlib import Path
 from typing import Any
 
 import duckdb
 
-from datahub.config import get_table_schema
+from datahub.config import get_table_schema, load_json_config
+from datahub.validators.package_validator import validate_manifest
 
 
 TARGET_TABLE = "fa_fact_ln_score_history"
@@ -184,8 +184,17 @@ def _read_package_rows(
             errors.append(f"missing manifest: {manifest_path}")
             reports.append({"package_dir": str(package_dir), "errors": [f"missing manifest: {manifest_path}"]})
             continue
-        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        manifest_validation = validate_manifest(manifest_path)
+        if manifest_validation["errors"]:
+            package_errors = [f"manifest error: {error}" for error in manifest_validation["errors"]]
+            errors.extend(package_errors)
+            reports.append({"package_dir": str(package_dir), "errors": package_errors})
+            continue
+        manifest = load_json_config(manifest_path)
         package_id = str(manifest.get("package_id") or package_dir.name)
+        quality_errors = _quality_report_errors(package_dir, manifest)
+        if quality_errors:
+            errors.extend(f"{package_id} quality_report error: {error}" for error in quality_errors)
         table_file = _table_file_from_manifest(manifest)
         if not table_file:
             error = f"{package_id} manifest does not include {TARGET_TABLE}"
@@ -203,6 +212,8 @@ def _read_package_rows(
         if missing_columns:
             errors.append(f"{package_id} missing columns: {', '.join(missing_columns)}")
         rows.extend(table_rows)
+        report_errors = [f"missing columns: {', '.join(missing_columns)}"] if missing_columns else []
+        report_errors.extend(f"quality_report error: {error}" for error in quality_errors)
         reports.append({
             "package_id": package_id,
             "package_dir": str(package_dir),
@@ -210,9 +221,23 @@ def _read_package_rows(
             "rows": len(table_rows),
             "source_version": manifest.get("source_version"),
             "quality_report": manifest.get("quality_report"),
-            "errors": [f"missing columns: {', '.join(missing_columns)}"] if missing_columns else [],
+            "errors": report_errors,
         })
     return reports, rows, errors
+
+
+def _quality_report_errors(package_dir: Path, manifest: dict[str, Any]) -> list[str]:
+    quality_report = manifest.get("quality_report")
+    if not isinstance(quality_report, str):
+        return ["quality_report must be a string"]
+    try:
+        data = load_json_config(package_dir / quality_report)
+    except ValueError as exc:
+        return [str(exc)]
+    errors = data.get("errors", [])
+    if not isinstance(errors, list):
+        return ["quality_report.errors must be a list"]
+    return [str(error) for error in errors]
 
 
 def _read_core_rows(
