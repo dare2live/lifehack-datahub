@@ -2,12 +2,14 @@
 from __future__ import annotations
 
 import hashlib
+import re
 from pathlib import Path
 
 from datahub.config import load_json_config
 
 
 REQUIRED_MANIFEST_FIELDS = {"package_id", "built_at", "tables", "files", "hashes", "quality_report"}
+TABLE_RE = re.compile(r"^fa_[A-Za-z0-9_]+$")
 
 
 def validate_manifest(path: Path) -> dict:
@@ -37,15 +39,6 @@ def validate_manifest(path: Path) -> dict:
         else:
             errors.extend(_quality_report_errors(path.parent / quality_path))
 
-    tables = data.get("tables", [])
-    if "tables" in data and not isinstance(tables, list):
-        errors.append("manifest tables must be a list")
-        tables = []
-    for table in tables:
-        name = table.get("name") if isinstance(table, dict) else str(table)
-        if not name.startswith("fa_"):
-            errors.append(f"table must use fa_ prefix: {name}")
-
     hashes = data.get("hashes", {})
     if "hashes" in data and not isinstance(hashes, dict):
         errors.append("manifest hashes must be an object")
@@ -53,6 +46,7 @@ def validate_manifest(path: Path) -> dict:
 
     package_dir = path.parent
     files = data.get("files", [])
+    normalized_files: list[str] = []
     if "files" in data and not isinstance(files, list):
         errors.append("manifest files must be a list")
         files = []
@@ -64,6 +58,7 @@ def validate_manifest(path: Path) -> dict:
         if file_ref.is_absolute() or ".." in file_ref.parts:
             errors.append(f"manifest file must be package-relative: {file_name}")
             continue
+        normalized_files.append(file_name)
         file_path = package_dir / file_name
         if not file_path.exists():
             errors.append(f"declared file not found: {file_name}")
@@ -71,6 +66,28 @@ def validate_manifest(path: Path) -> dict:
         expected_hash = hashes.get(file_name)
         if expected_hash and _sha256(file_path) != expected_hash:
             errors.append(f"hash mismatch: {file_name}")
+
+    file_set = set(normalized_files)
+    tables = data.get("tables", [])
+    if "tables" in data and not isinstance(tables, list):
+        errors.append("manifest tables must be a list")
+        tables = []
+    for table in tables:
+        if not isinstance(table, dict):
+            errors.append(f"invalid manifest table entry: {table}")
+            continue
+        name = table.get("name")
+        if not isinstance(name, str) or not TABLE_RE.match(name):
+            errors.append(f"invalid table name (must match fa_*): {name}")
+        file_name = table.get("file")
+        if not isinstance(file_name, str) or not file_name:
+            errors.append(f"table {name} file must be a non-empty string")
+            continue
+        table_file = Path(file_name)
+        if table_file.is_absolute() or ".." in table_file.parts:
+            errors.append(f"table {name} file must be package-relative: {file_name}")
+        elif file_name not in file_set:
+            errors.append(f"table {name} file is not listed in manifest.files: {file_name}")
 
     return {"errors": errors, "warnings": warnings}
 

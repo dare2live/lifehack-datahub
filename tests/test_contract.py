@@ -265,6 +265,25 @@ def test_manifest_rejects_malformed_collection_fields(tmp_path: Path):
     assert any("manifest hashes must be an object" in err for err in report["errors"])
 
 
+def test_manifest_rejects_invalid_table_entries(tmp_path: Path):
+    path = tmp_path / "manifest.json"
+    (tmp_path / "quality_report.json").write_text('{"errors":[]}\n', encoding="utf-8")
+    (tmp_path / "fa_test.csv").write_text("id\n1\n", encoding="utf-8")
+    path.write_text(
+        (
+            '{"package_id":"p","built_at":"now",'
+            '"tables":["fa_not_an_object",{"name":"fa_test","file":"missing.csv"},{"name":"bad-table","file":"fa_test.csv"}],'
+            '"files":["fa_test.csv"],"hashes":{},'
+            '"quality_report":"quality_report.json"}'
+        ),
+        encoding="utf-8",
+    )
+    report = validate_manifest(path)
+    assert any("invalid manifest table entry" in err for err in report["errors"])
+    assert any("file is not listed in manifest.files" in err for err in report["errors"])
+    assert any("invalid table name" in err for err in report["errors"])
+
+
 def test_config_json_files_do_not_have_duplicate_keys(tmp_path: Path):
     duplicate_paths = []
     for path in sorted(Path("config").glob("*.json")):
