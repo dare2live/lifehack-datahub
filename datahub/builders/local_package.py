@@ -119,8 +119,14 @@ def build_quality_report(rows: list[dict[str, Any]], schema: dict[str, Any], tab
     }
 
 def _year_coverage(rows: list[dict[str, Any]]) -> list[int]:
-    years = sorted({int(row["score_year"]) for row in rows if str(row.get("score_year") or "").isdigit()})
-    return years
+    year_columns = ["score_year", "year", "metric_year", "ranking_year"]
+    years: set[int] = set()
+    for row in rows:
+        for column in year_columns:
+            value = str(row.get(column) or "").strip()
+            if value.isdigit():
+                years.add(int(value))
+    return sorted(years)
 
 
 def _write_csv(path: Path, rows: list[dict[str, Any]], columns: list[str]) -> None:

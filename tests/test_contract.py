@@ -216,6 +216,7 @@ def test_build_local_package_from_cleaned_csv(tmp_path: Path):
 
     quality = json.loads((package_dir / "quality_report.json").read_text(encoding="utf-8"))
     assert quality["errors"] == []
+    assert quality["year_coverage"] == [2026]
     assert result["rows"] == 1
 
 
