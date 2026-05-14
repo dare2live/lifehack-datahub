@@ -79,6 +79,18 @@
     },
     {
       "domain": "school",
+      "entity_name": "沈阳大学",
+      "metric_year": 2024,
+      "report_scope": "undergraduate_teaching_quality_report",
+      "candidate_report_title": "沈阳大学2023-2024学年本科教学质量报告",
+      "candidate_report_url": "https://jwc.syu.edu.cn/__local/9/2E/E7/2437F67DEAE46A530EBC0ED0540_6805FDAC_102B11.pdf",
+      "candidate_file_name": "沈阳大学2023-2024学年本科教学质量报告.pdf",
+      "candidate_source_date": "2025-01-15",
+      "availability_date": "2025-01-15",
+      "evidence_note": "沈阳大学教务处 PDF 可通过站点 securitycam challenge 后下载，报告封面日期为 2025 年 1 月 15 日。"
+    },
+    {
+      "domain": "school",
       "entity_name": "沈阳师范大学",
       "metric_year": 2024,
       "report_scope": "undergraduate_teaching_quality_report",
