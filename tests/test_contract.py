@@ -2765,9 +2765,20 @@ def test_build_score_history_reconciliation_review_batch_adds_reference_context(
     assert batch_row["package_major_full"] == "医学信息工程"
     assert batch_row["major_name_match_hint"] == "single_contains"
     assert batch_row["suggested_core_major_code"] == "0L"
+    assert batch_row["package_name_match_hint"] == "single_contains"
+    assert batch_row["suggested_package_major_code"] == "H1"
     candidate_names = json.loads(batch_row["core_candidate_names_json"])
     assert candidate_names[0]["major_full"] == "医学信息工程(非英语语种考生慎报)"
     assert candidate_names[0]["match_kind"] == "contains"
+    package_candidates = json.loads(batch_row["package_candidate_names_json"])
+    assert package_candidates == [
+        {
+            "major_code": "H1",
+            "major_full": "医学信息工程",
+            "match_kind": "contains",
+            "matched_core_major_code": "0L",
+        }
+    ]
 
 
 def test_merge_score_history_reconciliation_review_batch_updates_only_editable_columns(tmp_path: Path):

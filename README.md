@@ -569,7 +569,7 @@ python3 scripts/build_package.py build-score-history-reconciliation-review-batch
   --limit-per-issue 20
 ```
 
-对专业代码漂移批次，可以追加 `--projection-csv --core-db --core-plan-year` 输出只读参考列：官方专业名、core 候选专业名、匹配提示和建议候选代码。附加列只服务复核判断，合并回完整 plan 时仍只写配置允许的复核列。
+对专业代码漂移和 core-only 批次，可以追加 `--projection-csv --core-db --core-plan-year` 输出只读参考列：官方专业名、官方候选专业名、core 候选专业名、匹配提示和建议候选代码。附加列只服务复核判断，合并回完整 plan 时仍只写配置允许的复核列。
 
 复核者编辑 batch CSV 后，用 task_id 合并回完整 plan。合并只回写配置允许的复核列，不会修改主键、分数、位次等证据字段：
 

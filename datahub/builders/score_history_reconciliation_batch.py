@@ -23,6 +23,9 @@ from datahub.config import get_table_schema
 
 REFERENCE_CONTEXT_COLUMNS = [
     "package_major_full",
+    "package_candidate_names_json",
+    "package_name_match_hint",
+    "suggested_package_major_code",
     "core_major_full",
     "core_candidate_names_json",
     "major_name_match_hint",
@@ -207,8 +210,10 @@ def _add_reference_context(
     core_plan_year: int | None,
 ) -> dict[str, Any]:
     package_major_names = _read_package_major_names(projection_csv)
+    package_candidates = _read_package_candidates(projection_csv)
     core_major_names, resolved_core_plan_year = _read_core_major_names(core_db, core_plan_year)
     hint_counts: Counter[str] = Counter()
+    package_hint_counts: Counter[str] = Counter()
     for row in rows:
         package_name = package_major_names.get(_package_key(row), "")
         row["package_major_full"] = package_name
@@ -218,13 +223,20 @@ def _add_reference_context(
         hint, suggested_code = _match_hint(candidates)
         row["major_name_match_hint"] = hint
         row["suggested_core_major_code"] = suggested_code
+        package_matches = _package_candidate_matches(row, candidates, package_candidates)
+        row["package_candidate_names_json"] = json.dumps(package_matches, ensure_ascii=False, sort_keys=True)
+        package_hint, suggested_package_code = _package_match_hint(package_matches)
+        row["package_name_match_hint"] = package_hint
+        row["suggested_package_major_code"] = suggested_package_code
         hint_counts[hint] += 1
+        package_hint_counts[package_hint] += 1
     return {
         "projection_csv": str(projection_csv),
         "core_db": str(core_db),
         "core_plan_year": resolved_core_plan_year,
         "columns": REFERENCE_CONTEXT_COLUMNS,
         "hint_counts": dict(sorted(hint_counts.items())),
+        "package_hint_counts": dict(sorted(package_hint_counts.items())),
         "notes": "Reference context is for review only; merge writes only configured editable plan columns.",
     }
 
@@ -288,6 +300,92 @@ def _match_hint(candidates: list[dict[str, str]]) -> tuple[str, str]:
         return "missing_package_major_name", ""
     if kinds == {"missing_core_major_name"}:
         return "missing_core_major_name", ""
+    return "no_match", ""
+
+
+def _read_package_candidates(path: Path) -> dict[tuple[str, str, str, str], list[dict[str, str]]]:
+    rows, fieldnames = _read_csv(path)
+    required = {"score_year", "batch", "subject_cat", "school_code", "major_code"}
+    missing = sorted(required - fieldnames)
+    if missing:
+        raise ValueError(f"projection csv missing columns: {', '.join(missing)}")
+    name_column = "major_full" if "major_full" in fieldnames else "major_name" if "major_name" in fieldnames else "major_short"
+    if name_column not in fieldnames:
+        raise ValueError("projection csv missing major name column: major_full, major_name, major_short")
+    by_scope: dict[tuple[str, str, str, str], list[dict[str, str]]] = defaultdict(list)
+    for row in rows:
+        scope = (
+            str(row.get("score_year") or "").strip(),
+            str(row.get("batch") or "").strip(),
+            str(row.get("subject_cat") or "").strip(),
+            str(row.get("school_code") or "").strip(),
+        )
+        by_scope[scope].append({
+            "major_code": str(row.get("major_code") or "").strip(),
+            "major_full": str(row.get(name_column) or "").strip(),
+        })
+    return by_scope
+
+
+def _package_candidate_matches(
+    row: dict[str, Any],
+    core_candidates: list[dict[str, str]],
+    package_candidates: dict[tuple[str, str, str, str], list[dict[str, str]]],
+) -> list[dict[str, str]]:
+    core_named = [candidate for candidate in core_candidates if candidate.get("major_full")]
+    if not core_named:
+        return []
+    scope = (
+        str(row.get("score_year") or "").strip(),
+        str(row.get("batch") or "").strip(),
+        str(row.get("subject_cat") or "").strip(),
+        str(row.get("school_code") or "").strip(),
+    )
+    matches = []
+    for package_candidate in package_candidates.get(scope, []):
+        package_norm = _normalize_major_name(package_candidate["major_full"])
+        if not package_norm:
+            continue
+        best_match = _best_package_match(package_norm, core_named)
+        if not best_match:
+            continue
+        matches.append({
+            "major_code": package_candidate["major_code"],
+            "major_full": package_candidate["major_full"],
+            "match_kind": best_match["match_kind"],
+            "matched_core_major_code": best_match["major_code"],
+        })
+    return matches
+
+
+def _best_package_match(package_norm: str, core_candidates: list[dict[str, str]]) -> dict[str, str] | None:
+    contains_match = None
+    for core_candidate in core_candidates:
+        core_norm = _normalize_major_name(core_candidate["major_full"])
+        if not core_norm:
+            continue
+        candidate = {
+            "major_code": core_candidate["major_code"],
+            "match_kind": "exact" if package_norm == core_norm else "contains",
+        }
+        if package_norm == core_norm:
+            return candidate
+        if package_norm in core_norm or core_norm in package_norm:
+            contains_match = contains_match or candidate
+    return contains_match
+
+
+def _package_match_hint(matches: list[dict[str, str]]) -> tuple[str, str]:
+    exact = [match for match in matches if match["match_kind"] == "exact"]
+    if len(exact) == 1:
+        return "single_exact", exact[0]["major_code"]
+    if len(exact) > 1:
+        return "ambiguous_exact", ""
+    contains = [match for match in matches if match["match_kind"] == "contains"]
+    if len(contains) == 1:
+        return "single_contains", contains[0]["major_code"]
+    if len(contains) > 1:
+        return "ambiguous_contains", ""
     return "no_match", ""
 
 
