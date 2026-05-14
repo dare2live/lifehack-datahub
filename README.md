@@ -533,6 +533,8 @@ python3 scripts/build_package.py audit-score-history-reconciliation-plan \
   --report staging/score_history_reconciliation_2023_2024/readiness_report.json
 ```
 
+readiness report 同时输出 `pending_diagnostics`，按 issue type 汇总未完成任务的首选科目、core 候选数量和高频学校代码。这个字段用于决定下一批复核顺序，例如先处理单校集中缺口或多候选专业代码漂移，不需要另写一次性分析脚本。
+
 对严格配置可判定的低风险任务，可以先应用 `config/source_schemas.json.audit.reconciliation.review.auto_decision_rules`，把匹配规则的任务标为 reviewed，但后续仍必须跑 readiness audit、package/delete plan 和 core dry-run。当前规则覆盖零占位删除候选、被官方参考包精确佐证的单侧行和值差异，以及官方 package 行精确匹配且只有一个 core 候选的专业代码漂移；多候选专业代码漂移仍必须人工复核：
 
 ```bash

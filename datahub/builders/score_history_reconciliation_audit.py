@@ -26,6 +26,9 @@ def audit_score_history_reconciliation_plan(plan_csv: Path) -> dict[str, Any]:
     issue_counts: Counter[str] = Counter()
     decision_counts: Counter[str] = Counter()
     issue_status_counts: Counter[tuple[str, str]] = Counter()
+    pending_subject_counts: Counter[tuple[str, str]] = Counter()
+    pending_candidate_counts: Counter[tuple[str, int]] = Counter()
+    pending_school_counts: Counter[tuple[str, str]] = Counter()
     task_ids: set[str] = set()
     duplicate_task_ids = 0
 
@@ -37,6 +40,10 @@ def audit_score_history_reconciliation_plan(plan_csv: Path) -> dict[str, Any]:
         status_counts[status] += 1
         issue_counts[issue_type] += 1
         issue_status_counts[(issue_type, status)] += 1
+        if status in config["pending_statuses"]:
+            pending_subject_counts[(issue_type, str(row.get("subject_cat") or ""))] += 1
+            pending_candidate_counts[(issue_type, _candidate_count(row.get("core_candidates_json")))] += 1
+            pending_school_counts[(issue_type, str(row.get("school_code") or ""))] += 1
         if decision:
             decision_counts[decision] += 1
         if not task_id:
@@ -81,6 +88,18 @@ def audit_score_history_reconciliation_plan(plan_csv: Path) -> dict[str, Any]:
             "unknown_status_rows": unknown_status_rows,
             "completion_rate": round(ready_rows / len(rows), 4) if rows else 0,
         },
+        "pending_diagnostics": {
+            "subject_counts": _tuple_counter_rows(pending_subject_counts, ("issue_type", "subject_cat")),
+            "candidate_count_counts": _tuple_counter_rows(
+                pending_candidate_counts,
+                ("issue_type", "core_candidate_count"),
+            ),
+            "top_school_counts": _tuple_counter_rows(
+                pending_school_counts,
+                ("issue_type", "school_code"),
+                limit=config["sample_limit"],
+            ),
+        },
         "ready": {
             "review_complete": review_complete,
             "package_ready": package_ready,
@@ -122,6 +141,7 @@ def _review_config(schema: dict[str, Any]) -> dict[str, Any]:
         "batch_editable_columns": [str(item) for item in review["batch_editable_columns"]],
         "batch_limit_per_issue": int(review.get("batch_limit_per_issue") or 50),
         "auto_decision_rules": review.get("auto_decision_rules", []),
+        "sample_limit": int(reconciliation.get("sample_limit") or 20),
     }
 
 
@@ -168,6 +188,28 @@ def _validate_json(index: int, value: Any, column: str, errors: list[str]) -> No
         json.loads(str(value or "{}"))
     except json.JSONDecodeError:
         errors.append(f"row {index} {column} is not valid JSON")
+
+
+def _candidate_count(value: Any) -> int:
+    try:
+        candidates = json.loads(str(value or "[]"))
+    except json.JSONDecodeError:
+        return -1
+    return len(candidates) if isinstance(candidates, list) else -1
+
+
+def _tuple_counter_rows(
+    counter: Counter[tuple[Any, ...]],
+    labels: tuple[str, ...],
+    *,
+    limit: int | None = None,
+) -> list[dict[str, Any]]:
+    rows = []
+    for key, count in counter.most_common(limit):
+        item = {label: value for label, value in zip(labels, key)}
+        item["rows"] = count
+        rows.append(item)
+    return rows
 
 
 def _read_csv(path: Path) -> tuple[list[dict[str, Any]], set[str]]:

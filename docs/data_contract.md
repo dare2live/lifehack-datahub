@@ -269,6 +269,8 @@ python3 scripts/build_package.py audit-score-history-reconciliation-plan \
 
 审计会校验任务列、任务 ID、issue type、状态、review decision、JSON 字段和 ready 状态必填列。只有 `ready.package_ready=true` 时，后续才可以进入可导入 package 构建；当前真实 2023/2024 队列仍是 `todo=24,478`，`package_ready=false`。
 
+审计报告包含 `pending_diagnostics`，按 issue type 聚合待复核任务的首选科目、core 候选数量和高频学校代码。该诊断只用于排期和复核切分，不改变任何任务状态，也不生成 data package。
+
 配置明确的低风险任务可以先应用自动复核规则。规则维护在 `config/source_schemas.json.audit.reconciliation.review.auto_decision_rules`，当前覆盖 core 侧 `min_score/min_rank` 均为 0 的 `core_only_zero_placeholder`、能被官方参考包精确佐证的 package/core 单侧行和值差异，以及“官方 package 行精确匹配且只有一个 core 候选”的专业代码漂移。输出仍是 review plan，不会写库：
 
 ```bash

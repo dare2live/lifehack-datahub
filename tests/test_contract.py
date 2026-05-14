@@ -2049,6 +2049,15 @@ def test_audit_score_history_reconciliation_plan_reports_progress(tmp_path: Path
     assert report["decision_counts"] == {"map_package_to_core_major_code": 1}
     assert report["progress"]["ready_rows"] == 1
     assert report["progress"]["pending_rows"] == 1
+    assert report["pending_diagnostics"]["subject_counts"] == [
+        {"issue_type": "value_drift", "subject_cat": "物理类", "rows": 1}
+    ]
+    assert report["pending_diagnostics"]["candidate_count_counts"] == [
+        {"issue_type": "value_drift", "core_candidate_count": 0, "rows": 1}
+    ]
+    assert report["pending_diagnostics"]["top_school_counts"] == [
+        {"issue_type": "value_drift", "school_code": "1002", "rows": 1}
+    ]
     assert report["ready"]["review_complete"] is False
     assert report["ready"]["package_ready"] is False
 
