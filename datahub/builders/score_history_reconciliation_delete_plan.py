@@ -56,7 +56,8 @@ def build_score_history_delete_plan_from_reconciliation_plan(
     for row in plan_rows:
         if str(row.get("status") or "").strip() != "reviewed":
             continue
-        if str(row.get("review_decision") or "").strip() != "exclude_row":
+        decision = str(row.get("review_decision") or "").strip()
+        if decision not in {"exclude_row", "map_package_to_core_major_code_delete_original_core"}:
             continue
         if not _has_core_side(row):
             continue

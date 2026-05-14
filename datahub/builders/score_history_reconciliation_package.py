@@ -137,7 +137,7 @@ def _row_for_decision(row: dict[str, Any], decision: str) -> dict[str, Any]:
             min_score=_value(row, "core_min_score"),
             min_rank=_value(row, "core_min_rank"),
         )
-    if decision == "map_package_to_core_major_code":
+    if decision in {"map_package_to_core_major_code", "map_package_to_core_major_code_delete_original_core"}:
         core_candidates = _json_value(row.get("core_candidates_json"), [])
         if isinstance(core_candidates, list) and len(core_candidates) > 1:
             raise ValueError(f"task {row.get('task_id')} has multiple core candidates; split or resolve before package build")
@@ -170,6 +170,13 @@ def _score_row(row: dict[str, Any], *, major_code: Any, min_score: Any, min_rank
 
 
 def _core_major_code(row: dict[str, Any]) -> str:
+    core_candidates = _json_value(row.get("core_candidates_json"), [])
+    if isinstance(core_candidates, list) and len(core_candidates) == 1:
+        candidate = core_candidates[0]
+        if isinstance(candidate, dict):
+            key = candidate.get("key")
+            if isinstance(key, dict) and key.get("major_code"):
+                return str(key["major_code"])
     core_key = _json_value(row.get("core_key_json"), {})
     if isinstance(core_key, dict) and core_key.get("major_code"):
         return str(core_key["major_code"])

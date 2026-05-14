@@ -2515,8 +2515,22 @@ def test_apply_score_history_pair_name_reference_decisions_maps_package_to_core_
     assert delete_plan["rows"] == 0
 
 
-def test_apply_score_history_pair_name_reference_reports_non_package_task(tmp_path: Path):
+def test_apply_score_history_pair_name_reference_remaps_value_drift_and_deletes_original_core(tmp_path: Path):
     plan = tmp_path / "score_history_reconciliation_plan.csv"
+    old_core_key = {
+        "score_year": 2022,
+        "batch": "本科批",
+        "subject_cat": "物理类",
+        "school_code": "1607",
+        "major_code": "0X",
+    }
+    target_core_key = {
+        "score_year": 2022,
+        "batch": "本科批",
+        "subject_cat": "物理类",
+        "school_code": "1607",
+        "major_code": "0G",
+    }
     rows = [
         {
             "task_id": "value-existing-package-key",
@@ -2535,8 +2549,8 @@ def test_apply_score_history_pair_name_reference_reports_non_package_task(tmp_pa
             "core_min_score": "499",
             "package_min_rank": "30000",
             "core_min_rank": "30100",
-            "package_key_json": "{}",
-            "core_key_json": "{}",
+            "package_key_json": json.dumps(old_core_key, ensure_ascii=False),
+            "core_key_json": json.dumps(old_core_key, ensure_ascii=False),
             "core_candidates_json": "[]",
             "matching_values_json": "{}",
             "differences_json": "[]",
@@ -2563,7 +2577,7 @@ def test_apply_score_history_pair_name_reference_reports_non_package_task(tmp_pa
             "package_min_rank": "",
             "core_min_rank": "30000",
             "package_key_json": "{}",
-            "core_key_json": "{}",
+            "core_key_json": json.dumps(target_core_key, ensure_ascii=False),
             "core_candidates_json": "[]",
             "matching_values_json": "{}",
             "differences_json": "[]",
@@ -2613,18 +2627,52 @@ def test_apply_score_history_pair_name_reference_reports_non_package_task(tmp_pa
     )
     con.close()
 
+    output = tmp_path / "pair_value_drift.csv"
     report = apply_score_history_pair_name_reference_decisions(
         plan_csv=plan,
         projection_csv=projection,
         core_db=core_db,
-        output=tmp_path / "pair_report_only.csv",
+        output=output,
         reviewed_at="2026-05-14",
     )
 
-    assert report["updated_pairs"] == 0
-    assert report["match_counts"] == {
-        "has_non_package_task:value_drift:reviewed:use_package_row": 1
-    }
+    assert report["updated_pairs"] == 1
+    assert report["match_counts"] == {"single_exact_value_drift_pair": 1}
+    with output.open(encoding="utf-8", newline="") as f:
+        by_id = {row["task_id"]: row for row in csv.DictReader(f)}
+    value_row = by_id["value-existing-package-key"]
+    core_row = by_id["core-only-same-name"]
+    assert value_row["review_decision"] == "map_package_to_core_major_code_delete_original_core"
+    assert json.loads(value_row["core_key_json"])["major_code"] == "0X"
+    assert json.loads(value_row["core_candidates_json"])[0]["key"]["major_code"] == "0G"
+    assert value_row["core_major_code"] == "0G"
+    assert core_row["review_decision"] == "covered_by_mapped_package_row"
+
+    audit = audit_score_history_reconciliation_plan(output)
+    assert audit["errors"] == []
+    assert audit["ready"]["package_ready"] is True
+
+    package = build_score_history_package_from_reconciliation_plan(
+        plan_csv=output,
+        output_root=tmp_path / "exports",
+        package_id="pkg-value-drift-paired-score-history",
+    )
+    assert package["rows"] == 1
+    assert package["skipped_rows"] == 1
+    with (Path(package["package_dir"]) / "fa_fact_ln_score_history.csv").open(encoding="utf-8", newline="") as f:
+        output_rows = list(csv.DictReader(f))
+    assert output_rows[0]["major_code"] == "0G"
+    assert output_rows[0]["min_score"] == "500"
+    assert output_rows[0]["min_rank"] == "30000"
+
+    delete_plan = build_score_history_delete_plan_from_reconciliation_plan(
+        plan_csv=output,
+        output_dir=tmp_path / "delete_plan",
+    )
+    assert delete_plan["rows"] == 1
+    with Path(delete_plan["csv"]).open(encoding="utf-8", newline="") as f:
+        delete_rows = list(csv.DictReader(f))
+    assert delete_rows[0]["major_code"] == "0X"
 
 
 def test_apply_score_history_reconciliation_auto_decisions_uses_reference_package(tmp_path: Path):

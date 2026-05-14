@@ -173,6 +173,7 @@
               "use_package_row",
               "keep_core_row",
               "map_package_to_core_major_code",
+              "map_package_to_core_major_code_delete_original_core",
               "covered_by_mapped_package_row",
               "exclude_row",
               "needs_source_research"

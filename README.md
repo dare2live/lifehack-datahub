@@ -329,7 +329,7 @@ python3 scripts/build_package.py audit-score-source-coverage \
 
 `probe-source-candidates` 支持按 `sources.json` 的 `probe.blocked_content_markers` 识别反爬挑战页；命中后状态为 `blocked_by_antibot`，不会被计入可访问来源。
 
-真实 smoke：2022 辽宁招生考试之窗官方投档最低分附件 + 2022 官方图片表格一分一段，已生成 `2022_ln_score_history_derived_official_projection_grid` 包，`fa_fact_ln_score_history` 14,203 行，quality report 无错误，manifest 校验通过，core importer `--dry-run` 通过。只读对账显示与当前 core 2022 本科批普通类存在代码体系和旧值差异，`safe_to_import_without_reconciliation=false`：package 14,203 行、core scoped 14,195 行、matched 6,363 行、package-only 7,840 行、core-only 7,832 行、different 3,712 行，另有 3,055 个同分同位次但专业代码不同的候选对。已生成 `staging/score_history_reconciliation_2022_official_projection_grid` 复核计划 16,963 行；自动规则和官方参考包已把 14,743 行推进到 reviewed，剩余 2,220 行仍需复核，并已生成 120 行小批；未完整复核前构建可导入包和 delete plan 均会被拒绝。
+真实 smoke：2022 辽宁招生考试之窗官方投档最低分附件 + 2022 官方图片表格一分一段，已生成 `2022_ln_score_history_derived_official_projection_grid` 包，`fa_fact_ln_score_history` 14,203 行，quality report 无错误，manifest 校验通过，core importer `--dry-run` 通过。只读对账显示与当前 core 2022 本科批普通类存在代码体系和旧值差异，`safe_to_import_without_reconciliation=false`：package 14,203 行、core scoped 14,195 行、matched 6,363 行、package-only 7,840 行、core-only 7,832 行、different 3,712 行，另有 3,055 个同分同位次但专业代码不同的候选对。已生成 `staging/score_history_reconciliation_2022_official_projection_grid` 复核计划 16,963 行；自动规则、官方参考包和专业名参考已把 15,821 行推进到 reviewed，剩余 1,142 行仍需复核，并已生成 120 行小批；未完整复核前构建可导入包和 delete plan 均会被拒绝。
 
 高德地图数据走 Web API connector。API key 只从环境变量读取，不写入配置或 manifest；原始响应写入 ignored `raw/`，后续再由 parser/normalizer 生成标准包：
 
@@ -556,7 +556,7 @@ python3 scripts/build_package.py apply-score-history-major-name-reference-decisi
   --report staging/score_history_reconciliation_2022/name_reference_decision_report.json
 ```
 
-core-only 行如果与某个 package-only 行存在唯一精确专业名配对，应走成对决策，而不是把 core-only 简单放进 delete plan。`apply-score-history-pair-name-reference-decisions` 会把 package 行改为 `map_package_to_core_major_code`，把对应 core-only 行标为 `covered_by_mapped_package_row`；后者只表示会被映射 package 行 upsert 覆盖，不会进入删除迁移：
+core-only 行如果与某个 package-only 行存在唯一精确专业名配对，应走成对决策，而不是把 core-only 简单放进 delete plan。`apply-score-history-pair-name-reference-decisions` 会把 package 行改为 `map_package_to_core_major_code`，把对应 core-only 行标为 `covered_by_mapped_package_row`；后者只表示会被映射 package 行 upsert 覆盖，不会进入删除迁移。若同名 package 侧已经是已复核 value drift，命令会使用 `map_package_to_core_major_code_delete_original_core`，让数据包写入目标 core 专业代码，同时由 delete plan 记录原 core 主键：
 
 ```bash
 python3 scripts/build_package.py apply-score-history-pair-name-reference-decisions \

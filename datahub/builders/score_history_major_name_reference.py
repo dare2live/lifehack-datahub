@@ -153,10 +153,18 @@ def apply_score_history_pair_name_reference_decisions(
         package_row = package_rows.get(package_key)
         if not package_row:
             package_side_row = package_side_rows.get(package_key)
-            if package_side_row:
-                match_counts[_non_package_task_reason(package_side_row)] += 1
-            else:
+            if not package_side_row:
                 match_counts["no_plan_task_for_package_key"] += 1
+                continue
+            if not _can_remap_value_drift_pair(package_side_row):
+                match_counts[_non_package_task_reason(package_side_row)] += 1
+                continue
+            _mark_value_drift_pair_row(package_side_row, core_row, package_match, core_name, reviewed_date)
+            _mark_core_covered_row(core_row, package_side_row, package_match, core_name, reviewed_date)
+            updated_pairs += 1
+            match_counts["single_exact_value_drift_pair"] += 1
+            if remaining is not None:
+                remaining -= 1
             continue
         package_decision = str(package_row.get("review_decision") or "").strip()
         if package_decision and package_decision not in {"use_package_row", "map_package_to_core_major_code"}:
@@ -405,6 +413,50 @@ def _mark_package_pair_row(
             f"package_major_full={package_match['major_full']}; "
             f"core_major_full={core_name}"
         ),
+    )
+
+
+def _mark_value_drift_pair_row(
+    package_row: dict[str, Any],
+    core_row: dict[str, Any],
+    package_match: dict[str, str],
+    core_name: str,
+    reviewed_at: str,
+) -> None:
+    target_core_key = _core_key_from_row(core_row)
+    candidate = {
+        "key": target_core_key,
+        "variant_differences": [
+            {
+                "column": "major_code",
+                "package_value": package_match["major_code"],
+                "core_value": target_core_key["major_code"],
+            }
+        ],
+    }
+    package_row["status"] = "reviewed"
+    package_row["review_decision"] = "map_package_to_core_major_code_delete_original_core"
+    package_row["reviewer"] = "datahub_pair_name_reference"
+    package_row["reviewed_at"] = reviewed_at
+    package_row["core_major_code"] = str(target_core_key["major_code"])
+    package_row["core_candidates_json"] = _json([candidate])
+    package_row["notes"] = _append_note(
+        package_row.get("notes", ""),
+        (
+            "pair_name_reference=exact_value_drift; "
+            f"paired_core_task_id={core_row.get('task_id')}; "
+            f"delete_original_core_key_json={package_row.get('core_key_json') or '{}'}; "
+            f"package_major_full={package_match['major_full']}; "
+            f"core_major_full={core_name}"
+        ),
+    )
+
+
+def _can_remap_value_drift_pair(row: dict[str, Any]) -> bool:
+    return (
+        _value(row, "issue_type") == "value_drift"
+        and _value(row, "status") == "reviewed"
+        and _value(row, "review_decision") == "use_package_row"
     )
 
 
