@@ -2395,24 +2395,65 @@ def test_audit_score_history_reconciliation_plan_reports_progress(tmp_path: Path
             "reviewed_at": "",
             "notes": "",
         })
+        writer.writerow({
+            "task_id": "t3",
+            "issue_type": "value_drift",
+            "priority": "2",
+            "status": "todo",
+            "suggested_action": "review_source_value_conflict",
+            "match_confidence": "primary_key_match",
+            "score_year": "2023",
+            "batch": "本科批",
+            "subject_cat": "历史类",
+            "school_code": "1001",
+            "package_major_code": "03",
+            "core_major_code": "03",
+            "package_min_score": "520",
+            "core_min_score": "",
+            "package_min_rank": "12000",
+            "core_min_rank": "0",
+            "package_key_json": "{}",
+            "core_key_json": "{}",
+            "core_candidates_json": "[]",
+            "matching_values_json": "{}",
+            "differences_json": "[]",
+            "review_decision": "",
+            "reviewer": "",
+            "reviewed_at": "",
+            "notes": "",
+        })
 
     report = audit_score_history_reconciliation_plan(plan)
 
     assert report["errors"] == []
-    assert report["rows"] == 2
-    assert report["status_counts"] == {"reviewed": 1, "todo": 1}
+    assert report["rows"] == 3
+    assert report["status_counts"] == {"reviewed": 1, "todo": 2}
     assert report["decision_counts"] == {"map_package_to_core_major_code": 1}
     assert report["progress"]["ready_rows"] == 1
-    assert report["progress"]["pending_rows"] == 1
+    assert report["progress"]["pending_rows"] == 2
     assert report["pending_diagnostics"]["subject_counts"] == [
-        {"issue_type": "value_drift", "subject_cat": "物理类", "rows": 1}
+        {"issue_type": "value_drift", "subject_cat": "物理类", "rows": 1},
+        {"issue_type": "value_drift", "subject_cat": "历史类", "rows": 1},
     ]
     assert report["pending_diagnostics"]["candidate_count_counts"] == [
-        {"issue_type": "value_drift", "core_candidate_count": 0, "rows": 1}
+        {"issue_type": "value_drift", "core_candidate_count": 0, "rows": 2}
     ]
     assert report["pending_diagnostics"]["top_school_counts"] == [
-        {"issue_type": "value_drift", "school_code": "1002", "rows": 1}
+        {"issue_type": "value_drift", "school_code": "1002", "rows": 1},
+        {"issue_type": "value_drift", "school_code": "1001", "rows": 1},
     ]
+    value_drift = report["pending_diagnostics"]["value_drift"]
+    assert value_drift["rows"] == 2
+    assert value_drift["year_counts"] == [
+        {"score_year": "2023", "rows": 1},
+        {"score_year": "2024", "rows": 1},
+    ]
+    assert value_drift["score_delta_buckets"] == {"0": 1, "core_missing": 1}
+    assert value_drift["rank_delta_buckets"] == {"<= 100": 1, "> 1000": 1}
+    assert value_drift["core_blank_or_zero_counts"] == {
+        "core_min_rank_blank_or_zero": 1,
+        "core_min_score_blank_or_zero": 1,
+    }
     assert report["ready"]["review_complete"] is False
     assert report["ready"]["package_ready"] is False
 

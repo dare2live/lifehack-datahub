@@ -29,6 +29,7 @@ def audit_score_history_reconciliation_plan(plan_csv: Path) -> dict[str, Any]:
     pending_subject_counts: Counter[tuple[str, str]] = Counter()
     pending_candidate_counts: Counter[tuple[str, int]] = Counter()
     pending_school_counts: Counter[tuple[str, str]] = Counter()
+    pending_value_drift_rows: list[dict[str, Any]] = []
     task_ids: set[str] = set()
     duplicate_task_ids = 0
 
@@ -44,6 +45,8 @@ def audit_score_history_reconciliation_plan(plan_csv: Path) -> dict[str, Any]:
             pending_subject_counts[(issue_type, str(row.get("subject_cat") or ""))] += 1
             pending_candidate_counts[(issue_type, _candidate_count(row.get("core_candidates_json")))] += 1
             pending_school_counts[(issue_type, str(row.get("school_code") or ""))] += 1
+            if issue_type == "value_drift":
+                pending_value_drift_rows.append(row)
         if decision:
             decision_counts[decision] += 1
         if not task_id:
@@ -99,6 +102,7 @@ def audit_score_history_reconciliation_plan(plan_csv: Path) -> dict[str, Any]:
                 ("issue_type", "school_code"),
                 limit=config["sample_limit"],
             ),
+            "value_drift": _value_drift_diagnostics(pending_value_drift_rows, sample_limit=config["sample_limit"]),
         },
         "ready": {
             "review_complete": review_complete,
@@ -250,6 +254,85 @@ def _candidate_count(value: Any) -> int:
     except json.JSONDecodeError:
         return -1
     return len(candidates) if isinstance(candidates, list) else -1
+
+
+def _value_drift_diagnostics(rows: list[dict[str, Any]], *, sample_limit: int) -> dict[str, Any]:
+    year_counts: Counter[str] = Counter()
+    subject_counts: Counter[tuple[str, str]] = Counter()
+    score_delta_buckets: Counter[str] = Counter()
+    rank_delta_buckets: Counter[str] = Counter()
+    core_blank_counts: Counter[str] = Counter()
+    top_school_counts: Counter[str] = Counter()
+
+    for row in rows:
+        year = str(row.get("score_year") or "")
+        subject = str(row.get("subject_cat") or "")
+        school_code = str(row.get("school_code") or "")
+        year_counts[year] += 1
+        subject_counts[(year, subject)] += 1
+        top_school_counts[school_code] += 1
+
+        package_score = _number_or_none(row.get("package_min_score"))
+        core_score = _number_or_none(row.get("core_min_score"))
+        package_rank = _number_or_none(row.get("package_min_rank"))
+        core_rank = _number_or_none(row.get("core_min_rank"))
+
+        score_delta_buckets[_delta_bucket(package_score, core_score, small=1, medium=5)] += 1
+        rank_delta_buckets[_delta_bucket(package_rank, core_rank, small=100, medium=1000)] += 1
+        if _is_blank_or_zero(row.get("core_min_score")):
+            core_blank_counts["core_min_score_blank_or_zero"] += 1
+        if _is_blank_or_zero(row.get("core_min_rank")):
+            core_blank_counts["core_min_rank_blank_or_zero"] += 1
+
+    return {
+        "rows": len(rows),
+        "year_counts": [
+            {"score_year": year, "rows": count}
+            for year, count in sorted(year_counts.items())
+        ],
+        "subject_counts": _tuple_counter_rows(subject_counts, ("score_year", "subject_cat")),
+        "score_delta_buckets": dict(sorted(score_delta_buckets.items())),
+        "rank_delta_buckets": dict(sorted(rank_delta_buckets.items())),
+        "core_blank_or_zero_counts": dict(sorted(core_blank_counts.items())),
+        "top_school_counts": [
+            {"school_code": school_code, "rows": count}
+            for school_code, count in top_school_counts.most_common(sample_limit)
+        ],
+    }
+
+
+def _number_or_none(value: Any) -> float | None:
+    text = str(value or "").strip()
+    if not text:
+        return None
+    try:
+        return float(text)
+    except ValueError:
+        return None
+
+
+def _delta_bucket(package_value: float | None, core_value: float | None, *, small: int, medium: int) -> str:
+    if package_value is None and core_value is None:
+        return "both_missing"
+    if package_value is None:
+        return "package_missing"
+    if core_value is None:
+        return "core_missing"
+    delta = abs(package_value - core_value)
+    if delta == 0:
+        return "0"
+    if delta <= small:
+        return f"<= {small}"
+    if delta <= medium:
+        return f"<= {medium}"
+    return f"> {medium}"
+
+
+def _is_blank_or_zero(value: Any) -> bool:
+    number = _number_or_none(value)
+    if number is None:
+        return True
+    return number == 0
 
 
 def _tuple_counter_rows(
