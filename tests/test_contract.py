@@ -3495,6 +3495,16 @@ def test_build_score_history_reconciliation_review_batch_limits_pending_rows(tmp
         batch_rows = list(csv.DictReader(f))
     assert {row["status"] for row in batch_rows} == {"todo"}
     assert [row["issue_type"] for row in batch_rows] == ["major_code_drift_candidate", "value_drift"]
+    value_row = [row for row in batch_rows if row["issue_type"] == "value_drift"][0]
+    assert value_row["score_delta"] == "0"
+    assert value_row["rank_delta"] == "-10"
+    assert value_row["score_delta_bucket"] == "0"
+    assert value_row["rank_delta_bucket"] == "<= 100"
+    assert value_row["core_score_state"] == "present"
+    assert value_row["core_rank_state"] == "present"
+    manifest = json.loads(Path(result["manifest"]).read_text(encoding="utf-8"))
+    assert manifest["value_drift_context"]["rows"] == 1
+    assert manifest["value_drift_context"]["score_delta_buckets"] == {"0": 1}
 
 
 def test_build_score_history_reconciliation_review_batch_filters_score_year(tmp_path: Path):

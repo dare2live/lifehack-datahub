@@ -33,6 +33,15 @@ REFERENCE_CONTEXT_COLUMNS = [
     "suggested_core_major_code",
 ]
 
+VALUE_DRIFT_CONTEXT_COLUMNS = [
+    "score_delta",
+    "rank_delta",
+    "score_delta_bucket",
+    "rank_delta_bucket",
+    "core_score_state",
+    "core_rank_state",
+]
+
 
 def build_score_history_reconciliation_review_batch(
     *,
@@ -85,8 +94,9 @@ def build_score_history_reconciliation_review_batch(
         )
         batch_rows.extend(issue_rows[:limit])
 
+    value_drift_context = _add_value_drift_context(batch_rows)
     reference_context = None
-    fieldnames = PLAN_COLUMNS
+    fieldnames = PLAN_COLUMNS + VALUE_DRIFT_CONTEXT_COLUMNS
     if projection_csv or core_db:
         if not projection_csv or not core_db:
             raise ValueError("projection_csv and core_db must be provided together for reference context")
@@ -97,7 +107,7 @@ def build_score_history_reconciliation_review_batch(
             core_plan_year,
             reference_context_config,
         )
-        fieldnames = PLAN_COLUMNS + REFERENCE_CONTEXT_COLUMNS
+        fieldnames = PLAN_COLUMNS + VALUE_DRIFT_CONTEXT_COLUMNS + REFERENCE_CONTEXT_COLUMNS
 
     output_dir.mkdir(parents=True, exist_ok=True)
     csv_path = output_dir / "score_history_reconciliation_review_batch.csv"
@@ -111,6 +121,7 @@ def build_score_history_reconciliation_review_batch(
         "selected_issue_types": sorted(selected_issue_types),
         "limit_per_issue": limit,
         "score_year": score_year,
+        "value_drift_context": value_drift_context,
         "reference_context": reference_context,
         "rows": len(batch_rows),
         "issue_counts": dict(sorted(issue_counts.items())),
@@ -124,6 +135,7 @@ def build_score_history_reconciliation_review_batch(
         "rows": len(batch_rows),
         "issue_counts": dict(sorted(issue_counts.items())),
         "score_year": score_year,
+        "value_drift_context": value_drift_context,
         "reference_context": reference_context,
     }
 
@@ -280,6 +292,90 @@ def _counter_records(counter: Counter[tuple[str, ...]], fieldnames: list[str]) -
         row["rows"] = count
         rows.append(row)
     return rows
+
+
+def _add_value_drift_context(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    score_buckets: Counter[str] = Counter()
+    rank_buckets: Counter[str] = Counter()
+    core_score_states: Counter[str] = Counter()
+    core_rank_states: Counter[str] = Counter()
+    value_drift_rows = 0
+    for row in rows:
+        if str(row.get("issue_type") or "").strip() != "value_drift":
+            for column in VALUE_DRIFT_CONTEXT_COLUMNS:
+                row[column] = ""
+            continue
+        value_drift_rows += 1
+        package_score = _number_or_none(row.get("package_min_score"))
+        core_score = _number_or_none(row.get("core_min_score"))
+        package_rank = _number_or_none(row.get("package_min_rank"))
+        core_rank = _number_or_none(row.get("core_min_rank"))
+        score_bucket = _delta_bucket(package_score, core_score, small=1, medium=5)
+        rank_bucket = _delta_bucket(package_rank, core_rank, small=100, medium=1000)
+        score_state = _value_state(core_score)
+        rank_state = _value_state(core_rank)
+        row["score_delta"] = _format_delta(package_score, core_score)
+        row["rank_delta"] = _format_delta(package_rank, core_rank)
+        row["score_delta_bucket"] = score_bucket
+        row["rank_delta_bucket"] = rank_bucket
+        row["core_score_state"] = score_state
+        row["core_rank_state"] = rank_state
+        score_buckets[score_bucket] += 1
+        rank_buckets[rank_bucket] += 1
+        core_score_states[score_state] += 1
+        core_rank_states[rank_state] += 1
+    return {
+        "rows": value_drift_rows,
+        "columns": VALUE_DRIFT_CONTEXT_COLUMNS,
+        "score_delta_buckets": dict(sorted(score_buckets.items())),
+        "rank_delta_buckets": dict(sorted(rank_buckets.items())),
+        "core_score_states": dict(sorted(core_score_states.items())),
+        "core_rank_states": dict(sorted(core_rank_states.items())),
+    }
+
+
+def _number_or_none(value: Any) -> float | None:
+    text = str(value or "").strip()
+    if not text:
+        return None
+    try:
+        return float(text)
+    except ValueError:
+        return None
+
+
+def _delta_bucket(package_value: float | None, core_value: float | None, *, small: int, medium: int) -> str:
+    if package_value is None and core_value is None:
+        return "both_missing"
+    if package_value is None:
+        return "package_missing"
+    if core_value is None:
+        return "core_missing"
+    delta = abs(package_value - core_value)
+    if delta == 0:
+        return "0"
+    if delta <= small:
+        return f"<= {small}"
+    if delta <= medium:
+        return f"<= {medium}"
+    return f"> {medium}"
+
+
+def _value_state(value: float | None) -> str:
+    if value is None:
+        return "missing"
+    if value == 0:
+        return "zero"
+    return "present"
+
+
+def _format_delta(package_value: float | None, core_value: float | None) -> str:
+    if package_value is None or core_value is None:
+        return ""
+    delta = package_value - core_value
+    if delta.is_integer():
+        return str(int(delta))
+    return f"{delta:.4f}"
 
 
 def _context_candidates(
