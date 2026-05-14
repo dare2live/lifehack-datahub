@@ -3559,6 +3559,61 @@ def test_build_score_history_reconciliation_review_batch_filters_score_year(tmp_
     assert manifest["score_year"] == 2024
 
 
+def test_build_score_history_reconciliation_review_batch_filters_value_drift_core_state(tmp_path: Path):
+    plan = tmp_path / "score_history_reconciliation_plan.csv"
+    rows = []
+    for task_id, core_score, core_rank in [
+        ("missing", "", "0"),
+        ("present", "520", "12000"),
+    ]:
+        rows.append({
+            "task_id": task_id,
+            "issue_type": "value_drift",
+            "priority": "2",
+            "status": "todo",
+            "suggested_action": "review_source_value_conflict",
+            "match_confidence": "primary_key_match",
+            "score_year": "2024",
+            "batch": "本科批",
+            "subject_cat": "物理类",
+            "school_code": "1001",
+            "package_major_code": "04",
+            "core_major_code": "04",
+            "package_min_score": "570",
+            "core_min_score": core_score,
+            "package_min_rank": "3000",
+            "core_min_rank": core_rank,
+            "package_key_json": "{}",
+            "core_key_json": "{}",
+            "core_candidates_json": "[]",
+            "matching_values_json": "{}",
+            "differences_json": "[]",
+            "review_decision": "",
+            "reviewer": "",
+            "reviewed_at": "",
+            "notes": "",
+        })
+    with plan.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=PLAN_COLUMNS, extrasaction="ignore")
+        writer.writeheader()
+        writer.writerows(rows)
+
+    result = build_score_history_reconciliation_review_batch(
+        plan_csv=plan,
+        output_dir=tmp_path / "batch_core_missing",
+        limit_per_issue=10,
+        value_drift_core_state="missing_or_zero",
+    )
+
+    assert result["rows"] == 1
+    assert result["value_drift_core_state"] == "missing_or_zero"
+    with Path(result["csv"]).open(encoding="utf-8", newline="") as f:
+        batch_rows = list(csv.DictReader(f))
+    assert [row["task_id"] for row in batch_rows] == ["missing"]
+    assert batch_rows[0]["core_score_state"] == "missing"
+    assert batch_rows[0]["core_rank_state"] == "zero"
+
+
 def test_build_score_history_reconciliation_review_batch_adds_reference_context(tmp_path: Path):
     plan = tmp_path / "score_history_reconciliation_plan.csv"
     candidates = [

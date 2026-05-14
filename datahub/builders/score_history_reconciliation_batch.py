@@ -50,6 +50,7 @@ def build_score_history_reconciliation_review_batch(
     issue_types: list[str] | None = None,
     limit_per_issue: int | None = None,
     score_year: int | None = None,
+    value_drift_core_state: str | None = None,
     projection_csv: Path | None = None,
     core_db: Path | None = None,
     core_plan_year: int | None = None,
@@ -68,9 +69,12 @@ def build_score_history_reconciliation_review_batch(
         raise ValueError(f"unknown issue_type: {', '.join(unknown_issue_types)}")
 
     score_year_filter = str(score_year) if score_year is not None else None
+    value_drift_core_state_filter = _normalize_value_drift_core_state_filter(value_drift_core_state)
     grouped: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for row in rows:
         if score_year_filter and str(row.get("score_year") or "").strip() != score_year_filter:
+            continue
+        if value_drift_core_state_filter and not _matches_value_drift_core_state(row, value_drift_core_state_filter):
             continue
         issue_type = str(row.get("issue_type") or "").strip()
         status = str(row.get("status") or "").strip()
@@ -121,6 +125,7 @@ def build_score_history_reconciliation_review_batch(
         "selected_issue_types": sorted(selected_issue_types),
         "limit_per_issue": limit,
         "score_year": score_year,
+        "value_drift_core_state": value_drift_core_state_filter,
         "value_drift_context": value_drift_context,
         "reference_context": reference_context,
         "rows": len(batch_rows),
@@ -135,6 +140,7 @@ def build_score_history_reconciliation_review_batch(
         "rows": len(batch_rows),
         "issue_counts": dict(sorted(issue_counts.items())),
         "score_year": score_year,
+        "value_drift_core_state": value_drift_core_state_filter,
         "value_drift_context": value_drift_context,
         "reference_context": reference_context,
     }
@@ -367,6 +373,26 @@ def _value_state(value: float | None) -> str:
     if value == 0:
         return "zero"
     return "present"
+
+
+def _normalize_value_drift_core_state_filter(value: str | None) -> str | None:
+    if value is None:
+        return None
+    normalized = value.strip()
+    allowed = {"missing", "zero", "missing_or_zero", "present"}
+    if normalized not in allowed:
+        raise ValueError(f"value_drift_core_state must be one of: {', '.join(sorted(allowed))}")
+    return normalized
+
+
+def _matches_value_drift_core_state(row: dict[str, Any], expected_state: str) -> bool:
+    if str(row.get("issue_type") or "").strip() != "value_drift":
+        return False
+    score_state = _value_state(_number_or_none(row.get("core_min_score")))
+    rank_state = _value_state(_number_or_none(row.get("core_min_rank")))
+    if expected_state == "missing_or_zero":
+        return score_state in {"missing", "zero"} or rank_state in {"missing", "zero"}
+    return score_state == expected_state or rank_state == expected_state
 
 
 def _format_delta(package_value: float | None, core_value: float | None) -> str:
