@@ -2148,6 +2148,91 @@ def test_audit_score_history_reconciliation_plan_blocks_source_research_decision
     assert report["ready"]["package_ready"] is False
 
 
+def test_audit_score_history_reconciliation_plan_rejects_decision_side_mismatch(tmp_path: Path):
+    plan = tmp_path / "score_history_reconciliation_plan.csv"
+    rows = [
+        {
+            "task_id": "core-only-as-package",
+            "issue_type": "core_only_unmatched",
+            "priority": "4",
+            "status": "reviewed",
+            "suggested_action": "review_core_only_row",
+            "match_confidence": "none",
+            "score_year": "2024",
+            "batch": "本科批",
+            "subject_cat": "物理类",
+            "school_code": "1001",
+            "core_major_code": "01",
+            "core_min_score": "500",
+            "core_min_rank": "12000",
+            "package_key_json": "{}",
+            "core_key_json": '{"school_code":"1001","major_code":"01"}',
+            "core_candidates_json": "[]",
+            "matching_values_json": "{}",
+            "differences_json": "[]",
+            "review_decision": "use_package_row",
+            "reviewer": "tester",
+            "reviewed_at": "2026-05-14",
+        },
+        {
+            "task_id": "package-only-as-core",
+            "issue_type": "package_only_unmatched",
+            "priority": "3",
+            "status": "reviewed",
+            "suggested_action": "review_package_only_row",
+            "match_confidence": "none",
+            "score_year": "2024",
+            "batch": "本科批",
+            "subject_cat": "历史类",
+            "school_code": "1002",
+            "package_major_code": "02",
+            "package_min_score": "510",
+            "package_min_rank": "9000",
+            "package_key_json": '{"school_code":"1002","major_code":"02"}',
+            "core_key_json": "{}",
+            "core_candidates_json": "[]",
+            "matching_values_json": "{}",
+            "differences_json": "[]",
+            "review_decision": "keep_core_row",
+            "reviewer": "tester",
+            "reviewed_at": "2026-05-14",
+        },
+        {
+            "task_id": "package-only-as-map",
+            "issue_type": "major_code_drift_candidate",
+            "priority": "1",
+            "status": "reviewed",
+            "suggested_action": "review_major_code_alignment",
+            "match_confidence": "high",
+            "score_year": "2024",
+            "batch": "本科批",
+            "subject_cat": "物理类",
+            "school_code": "1003",
+            "package_major_code": "03",
+            "package_min_score": "520",
+            "package_min_rank": "8000",
+            "package_key_json": '{"school_code":"1003","major_code":"03"}',
+            "core_key_json": "{}",
+            "core_candidates_json": "[]",
+            "matching_values_json": "{}",
+            "differences_json": "[]",
+            "review_decision": "map_package_to_core_major_code",
+            "reviewer": "tester",
+            "reviewed_at": "2026-05-14",
+        },
+    ]
+    with plan.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=PLAN_COLUMNS, extrasaction="ignore")
+        writer.writeheader()
+        writer.writerows(rows)
+
+    report = audit_score_history_reconciliation_plan(plan)
+
+    assert "row 2 use_package_row without package side" in report["errors"]
+    assert "row 3 keep_core_row without core side" in report["errors"]
+    assert "row 4 map_package_to_core_major_code without core side" in report["errors"]
+
+
 def test_apply_score_history_reconciliation_auto_decisions_marks_zero_placeholders(tmp_path: Path):
     plan = tmp_path / "score_history_reconciliation_plan.csv"
     rows = [

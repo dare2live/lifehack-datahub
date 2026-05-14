@@ -527,7 +527,7 @@ python3 scripts/build_package.py build-score-history-reconciliation-plan \
   --output-dir staging/score_history_reconciliation_2023_2024
 ```
 
-复核推进过程中先跑 readiness audit，确认还有多少任务未处理、哪些 review decision 不合规、是否可以进入后续可导入包构建：
+复核推进过程中先跑 readiness audit，确认还有多少任务未处理、哪些 review decision 不合规、复核结论是否和 package/core 数据侧一致、是否可以进入后续可导入包构建：
 
 ```bash
 python3 scripts/build_package.py audit-score-history-reconciliation-plan \
@@ -535,7 +535,7 @@ python3 scripts/build_package.py audit-score-history-reconciliation-plan \
   --report staging/score_history_reconciliation_2023_2024/readiness_report.json
 ```
 
-readiness report 同时输出 `pending_diagnostics`，按 issue type 汇总未完成任务的首选科目、core 候选数量和高频学校代码。这个字段用于决定下一批复核顺序，例如先处理单校集中缺口或多候选专业代码漂移，不需要另写一次性分析脚本。
+readiness audit 会阻断用错侧的复核结论：`use_package_row` 必须有 package 侧数据，`keep_core_row` 和 `covered_by_mapped_package_row` 必须有 core 侧数据，`map_package_to_core_major_code*` 必须同时具备 package/core 两侧数据，`exclude_row` 至少要能定位一侧主键。readiness report 同时输出 `pending_diagnostics`，按 issue type 汇总未完成任务的首选科目、core 候选数量和高频学校代码。这个字段用于决定下一批复核顺序，例如先处理单校集中缺口或多候选专业代码漂移，不需要另写一次性分析脚本。
 
 对严格配置可判定的低风险任务，可以先应用 `config/source_schemas.json.audit.reconciliation.review.auto_decision_rules`，把匹配规则的任务标为 reviewed，但后续仍必须跑 readiness audit、package/delete plan 和 core dry-run。当前规则覆盖零占位删除候选、被官方参考包精确佐证的单侧行和值差异，以及官方 package 行精确匹配且只有一个 core 候选的专业代码漂移；多候选专业代码漂移仍必须人工复核：
 

@@ -170,6 +170,7 @@ def _validate_row(
         ]
         if missing_ready:
             errors.append(f"row {index} ready status missing: {', '.join(missing_ready)}")
+        _validate_decision_side(index, row, decision, errors)
     if status in config["pending_statuses"] and decision:
         warnings.append(f"row {index} pending status has review_decision: {decision}")
 
@@ -188,6 +189,59 @@ def _validate_json(index: int, value: Any, column: str, errors: list[str]) -> No
         json.loads(str(value or "{}"))
     except json.JSONDecodeError:
         errors.append(f"row {index} {column} is not valid JSON")
+
+
+def _validate_decision_side(
+    index: int,
+    row: dict[str, Any],
+    decision: str,
+    errors: list[str],
+) -> None:
+    has_package = _has_package_side(row)
+    has_core = _has_core_side(row)
+    if decision == "use_package_row" and not has_package:
+        errors.append(f"row {index} use_package_row without package side")
+    if decision == "keep_core_row" and not has_core:
+        errors.append(f"row {index} keep_core_row without core side")
+    if decision in {"map_package_to_core_major_code", "map_package_to_core_major_code_delete_original_core"}:
+        if not has_package:
+            errors.append(f"row {index} {decision} without package side")
+        if not has_core:
+            errors.append(f"row {index} {decision} without core side")
+    if decision == "covered_by_mapped_package_row" and not has_core:
+        errors.append(f"row {index} covered_by_mapped_package_row without core side")
+    if decision == "exclude_row" and not (has_package or has_core):
+        errors.append(f"row {index} exclude_row without package or core side")
+
+
+def _has_package_side(row: dict[str, Any]) -> bool:
+    return _has_key_values(row.get("package_key_json")) or any(
+        str(row.get(column) or "").strip()
+        for column in (
+            "package_major_code",
+            "package_min_score",
+            "package_min_rank",
+        )
+    )
+
+
+def _has_core_side(row: dict[str, Any]) -> bool:
+    return _has_key_values(row.get("core_key_json")) or any(
+        str(row.get(column) or "").strip()
+        for column in (
+            "core_major_code",
+            "core_min_score",
+            "core_min_rank",
+        )
+    )
+
+
+def _has_key_values(value: Any) -> bool:
+    try:
+        data = json.loads(str(value or "{}"))
+    except json.JSONDecodeError:
+        return False
+    return isinstance(data, dict) and any(str(item or "").strip() for item in data.values())
 
 
 def _candidate_count(value: Any) -> int:

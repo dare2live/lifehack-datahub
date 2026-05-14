@@ -267,7 +267,7 @@ python3 scripts/build_package.py audit-score-history-reconciliation-plan \
   --report staging/score_history_reconciliation_2023_2024/readiness_report.json
 ```
 
-审计会校验任务列、任务 ID、issue type、状态、review decision、JSON 字段和 ready 状态必填列。只有 `ready.package_ready=true` 时，后续才可以进入可导入 package 构建；当前真实 2023/2024 队列仍是 `todo=24,478`，`package_ready=false`。
+审计会校验任务列、任务 ID、issue type、状态、review decision、JSON 字段、ready 状态必填列，以及复核结论和数据侧是否一致：`use_package_row` 必须有 package 侧数据，`keep_core_row` 和 `covered_by_mapped_package_row` 必须有 core 侧数据，`map_package_to_core_major_code*` 必须同时具备 package/core 两侧数据，`exclude_row` 至少要能定位一侧主键。只有 `ready.package_ready=true` 时，后续才可以进入可导入 package 构建；当前真实 2023/2024 队列仍是 `todo=24,478`，`package_ready=false`。
 
 审计报告包含 `pending_diagnostics`，按 issue type 聚合待复核任务的首选科目、core 候选数量和高频学校代码。该诊断只用于排期和复核切分，不改变任何任务状态，也不生成 data package。
 
