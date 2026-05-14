@@ -12,7 +12,7 @@ from typing import Any
 
 from openpyxl import load_workbook
 
-from datahub.config import CONFIG_DIR, get_table_schema
+from datahub.config import CONFIG_DIR, get_table_schema, load_json_config
 
 
 PLAN_TABLE = "fa_dim_ln_admission_plan"
@@ -254,7 +254,7 @@ def _score_rows(
 
 def _load_profile(config_path: Path | None, profile: str) -> dict[str, Any]:
     path = config_path or CONFIG_DIR / "ln_application_workbook.json"
-    data = json.loads(path.read_text(encoding="utf-8"))
+    data = load_json_config(path)
     profiles = data.get("profiles", {})
     if profile not in profiles:
         raise KeyError(f"unknown ln application workbook profile: {profile}")

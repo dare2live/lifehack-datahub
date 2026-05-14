@@ -3974,6 +3974,18 @@ def test_build_policy_industry_map_package_from_config(tmp_path: Path):
     assert json.loads(rows[0]["key_themes_json"]) == ["人工智能", "国产软件替代"]
 
 
+def test_build_policy_package_rejects_duplicate_json_keys(tmp_path: Path):
+    config = tmp_path / "policy_industry_map.json"
+    config.write_text('{"version":"1","version":"2","rows":[]}\n', encoding="utf-8")
+
+    with pytest.raises(ValueError, match="duplicate JSON key"):
+        build_policy_industry_map_package(
+            output_root=tmp_path / "exports",
+            config_path=config,
+            package_id="pkg-policy-map-duplicate-json-key",
+        )
+
+
 def test_build_policy_plan_history_package_rejects_duplicate_keys(tmp_path: Path):
     config = tmp_path / "policy_plan_history.json"
     config.write_text(json.dumps({
@@ -10962,6 +10974,14 @@ def test_parse_ln_application_workbook_outputs_plan_and_score_history(tmp_path: 
     assert score_rows[0]["min_rank"] == "100"
     assert score_rows[0]["score_type"] == "最低分"
     assert score_rows[0]["built_at"]
+
+
+def test_parse_ln_application_workbook_rejects_duplicate_json_keys(tmp_path: Path):
+    config = tmp_path / "ln_application_workbook.json"
+    config.write_text('{"profiles":{},"profiles":{}}\n', encoding="utf-8")
+
+    with pytest.raises(ValueError, match="duplicate JSON key"):
+        parse_ln_application_workbooks([], config_path=config)
 
 
 def test_parse_ln_projection_score_xlsx(tmp_path: Path):

@@ -8,7 +8,7 @@ from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
-from datahub.config import CONFIG_DIR, get_table_schema
+from datahub.config import CONFIG_DIR, get_table_schema, load_json_config
 from datahub.exporters.package_exporter import write_manifest
 
 
@@ -119,7 +119,7 @@ def _build_policy_package(
 def _load_config(path: Path) -> dict[str, Any]:
     if not path.exists():
         raise ValueError(f"policy config not found: {path}")
-    data = json.loads(path.read_text(encoding="utf-8"))
+    data = load_json_config(path)
     if not isinstance(data.get("rows"), list):
         raise ValueError(f"policy config requires rows list: {path}")
     return data
