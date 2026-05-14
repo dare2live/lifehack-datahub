@@ -6171,8 +6171,8 @@ def test_build_outcome_collection_batch_limits_pending_rows(tmp_path: Path):
 def test_apply_outcome_collection_review_seeds_updates_matching_rows(tmp_path: Path):
     audit = audit_outcome_collection_review_seeds()
     assert audit["errors"] == []
-    assert audit["seed_count"] == 11
-    assert audit["status_counts"] == {"verified": 11}
+    assert audit["seed_count"] == 12
+    assert audit["status_counts"] == {"verified": 12}
 
     plan = tmp_path / "outcome_collection_plan.csv"
     seeded = _outcome_plan_row("school", "0140", "辽宁大学", "employment_rate", status="todo", priority_rank="1")
@@ -6185,14 +6185,16 @@ def test_apply_outcome_collection_review_seeds_updates_matching_rows(tmp_path: P
     dufe["metric_year"] = "2024"
     dlu = _outcome_plan_row("school", "1258", "大连大学", "employment_rate", status="todo", priority_rank="5")
     dlu["metric_year"] = "2023"
+    lnu_soe = _outcome_plan_row("school", "0140", "辽宁大学", "civil_service_rate", status="todo", priority_rank="6")
+    lnu_soe["metric_year"] = "2022"
     pending = _outcome_plan_row("school", "0166", "沈阳师范大学", "employment_rate", status="todo", priority_rank="2")
     pending["metric_year"] = "2024"
-    _write_outcome_plan(plan, [seeded, dlpu, bohai, dufe, dlu, pending])
+    _write_outcome_plan(plan, [seeded, dlpu, bohai, dufe, dlu, lnu_soe, pending])
 
     output = tmp_path / "outcome_collection_plan_seeded.csv"
     report = apply_outcome_collection_review_seeds(plan_csv=plan, output=output)
-    assert report["matched_rows"] == 5
-    assert report["updated_rows"] == 5
+    assert report["matched_rows"] == 6
+    assert report["updated_rows"] == 6
     assert report["unmatched_seeds"] == 6
 
     with output.open(encoding="utf-8", newline="") as f:
@@ -6218,6 +6220,10 @@ def test_apply_outcome_collection_review_seeds_updates_matching_rows(tmp_path: P
     assert dlu_employment["status"] == "verified"
     assert dlu_employment["metric_value"] == "0.9031"
     assert dlu_employment["metric_year"] == "2023"
+    lnu_soe = by_entity[("0140", "civil_service_rate")]
+    assert lnu_soe["status"] == "verified"
+    assert lnu_soe["metric_value"] == "0.2892"
+    assert lnu_soe["metric_year"] == "2022"
     assert by_entity[("0166", "employment_rate")]["status"] == "todo"
 
 
