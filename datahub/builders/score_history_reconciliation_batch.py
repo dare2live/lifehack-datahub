@@ -214,7 +214,11 @@ def _add_reference_context(
     core_major_names, resolved_core_plan_year = _read_core_major_names(core_db, core_plan_year)
     hint_counts: Counter[str] = Counter()
     package_hint_counts: Counter[str] = Counter()
+    issue_hint_counts: Counter[tuple[str, str]] = Counter()
+    issue_package_hint_counts: Counter[tuple[str, str]] = Counter()
+    hint_combo_counts: Counter[tuple[str, str, str]] = Counter()
     for row in rows:
+        issue_type = str(row.get("issue_type") or "").strip()
         package_name = package_major_names.get(_package_key(row), "")
         row["package_major_full"] = package_name
         candidates = _context_candidates(row, core_major_names, package_name)
@@ -230,6 +234,9 @@ def _add_reference_context(
         row["suggested_package_major_code"] = suggested_package_code
         hint_counts[hint] += 1
         package_hint_counts[package_hint] += 1
+        issue_hint_counts[(issue_type, hint)] += 1
+        issue_package_hint_counts[(issue_type, package_hint)] += 1
+        hint_combo_counts[(issue_type, hint, package_hint)] += 1
     return {
         "projection_csv": str(projection_csv),
         "core_db": str(core_db),
@@ -237,8 +244,26 @@ def _add_reference_context(
         "columns": REFERENCE_CONTEXT_COLUMNS,
         "hint_counts": dict(sorted(hint_counts.items())),
         "package_hint_counts": dict(sorted(package_hint_counts.items())),
+        "issue_hint_counts": _counter_records(issue_hint_counts, ["issue_type", "major_name_match_hint"]),
+        "issue_package_hint_counts": _counter_records(
+            issue_package_hint_counts,
+            ["issue_type", "package_name_match_hint"],
+        ),
+        "hint_combo_counts": _counter_records(
+            hint_combo_counts,
+            ["issue_type", "major_name_match_hint", "package_name_match_hint"],
+        ),
         "notes": "Reference context is for review only; merge writes only configured editable plan columns.",
     }
+
+
+def _counter_records(counter: Counter[tuple[str, ...]], fieldnames: list[str]) -> list[dict[str, Any]]:
+    rows = []
+    for key, count in sorted(counter.items(), key=lambda item: (*item[0], item[1])):
+        row = {field: value for field, value in zip(fieldnames, key)}
+        row["rows"] = count
+        rows.append(row)
+    return rows
 
 
 def _context_candidates(

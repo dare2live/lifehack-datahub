@@ -301,6 +301,8 @@ python3 scripts/build_package.py build-score-history-reconciliation-review-batch
 
 真实 smoke 已生成初始 80 行 review batch，四类 issue type 各 20 行。该 batch 是本地工作文件，复核结果必须合并回完整 reconciliation plan 后再跑 readiness audit。
 
+带 `--projection-csv/--core-db` 的 review batch 会追加专业名参考上下文，并在 manifest 中按 issue type 输出 `issue_hint_counts`、`issue_package_hint_counts` 和 `hint_combo_counts`。这些统计只用于复核排队和判断是否还有可配置化降噪空间，不会改变 CSV 可编辑列，也不会自动生成复核结论。
+
 批次可选附加 reference context：传入官方投档 cleaned CSV、core DB 和 core 计划年份后，CSV 会追加 `package_major_full/package_candidate_names_json/package_name_match_hint/suggested_package_major_code/core_candidate_names_json/major_name_match_hint/suggested_core_major_code` 等只读辅助列。合并器仍只接受 `batch_editable_columns` 中的复核字段，辅助列不会回写到完整 plan。
 
 合并复核结果：

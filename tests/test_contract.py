@@ -3079,6 +3079,20 @@ def test_build_score_history_reconciliation_review_batch_adds_reference_context(
     )
 
     assert result["reference_context"]["hint_counts"] == {"single_contains": 1}
+    assert result["reference_context"]["issue_hint_counts"] == [
+        {"issue_type": "major_code_drift_candidate", "major_name_match_hint": "single_contains", "rows": 1}
+    ]
+    assert result["reference_context"]["issue_package_hint_counts"] == [
+        {"issue_type": "major_code_drift_candidate", "package_name_match_hint": "single_contains", "rows": 1}
+    ]
+    assert result["reference_context"]["hint_combo_counts"] == [
+        {
+            "issue_type": "major_code_drift_candidate",
+            "major_name_match_hint": "single_contains",
+            "package_name_match_hint": "single_contains",
+            "rows": 1,
+        }
+    ]
     with Path(result["csv"]).open(encoding="utf-8", newline="") as f:
         batch_rows = list(csv.DictReader(f))
     batch_row = batch_rows[0]
