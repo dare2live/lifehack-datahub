@@ -127,6 +127,7 @@ def apply_score_history_pair_name_reference_decisions(
     package_candidates = _read_package_candidates(projection_csv)
     core_major_names, resolved_core_plan_year = _read_core_major_names(core_db, core_plan_year)
     package_rows = _package_only_rows(rows)
+    package_side_rows = _package_side_rows(rows)
 
     remaining = int(limit) if limit is not None else None
     reviewed_date = reviewed_at or date.today().isoformat()
@@ -148,9 +149,14 @@ def apply_score_history_pair_name_reference_decisions(
             match_counts["ambiguous_match" if matches else "no_match"] += 1
             continue
         package_match = matches[0]
-        package_row = package_rows.get(_package_task_key(core_row, package_match["major_code"]))
+        package_key = _package_task_key(core_row, package_match["major_code"])
+        package_row = package_rows.get(package_key)
         if not package_row:
-            match_counts["missing_package_task"] += 1
+            package_side_row = package_side_rows.get(package_key)
+            if package_side_row:
+                match_counts[_non_package_task_reason(package_side_row)] += 1
+            else:
+                match_counts["no_plan_task_for_package_key"] += 1
             continue
         package_decision = str(package_row.get("review_decision") or "").strip()
         if package_decision and package_decision not in {"use_package_row", "map_package_to_core_major_code"}:
@@ -324,6 +330,25 @@ def _package_only_rows(rows: list[dict[str, Any]]) -> dict[tuple[str, str, str, 
             continue
         by_key[_package_task_key(row, _value(row, "package_major_code"))] = row
     return by_key
+
+
+def _package_side_rows(rows: list[dict[str, Any]]) -> dict[tuple[str, str, str, str, str], dict[str, Any]]:
+    by_key = {}
+    for row in rows:
+        package_major_code = _value(row, "package_major_code")
+        if not package_major_code:
+            continue
+        by_key[_package_task_key(row, package_major_code)] = row
+    return by_key
+
+
+def _non_package_task_reason(row: dict[str, Any]) -> str:
+    return (
+        "has_non_package_task:"
+        f"{_value(row, 'issue_type')}:"
+        f"{_value(row, 'status')}:"
+        f"{_value(row, 'review_decision')}"
+    )
 
 
 def _package_task_key(row: dict[str, Any], package_major_code: str) -> tuple[str, str, str, str, str]:

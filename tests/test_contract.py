@@ -2515,6 +2515,118 @@ def test_apply_score_history_pair_name_reference_decisions_maps_package_to_core_
     assert delete_plan["rows"] == 0
 
 
+def test_apply_score_history_pair_name_reference_reports_non_package_task(tmp_path: Path):
+    plan = tmp_path / "score_history_reconciliation_plan.csv"
+    rows = [
+        {
+            "task_id": "value-existing-package-key",
+            "issue_type": "value_drift",
+            "priority": "2",
+            "status": "reviewed",
+            "suggested_action": "review_source_value_conflict",
+            "match_confidence": "primary_key_match",
+            "score_year": "2022",
+            "batch": "本科批",
+            "subject_cat": "物理类",
+            "school_code": "1607",
+            "package_major_code": "0X",
+            "core_major_code": "0X",
+            "package_min_score": "500",
+            "core_min_score": "499",
+            "package_min_rank": "30000",
+            "core_min_rank": "30100",
+            "package_key_json": "{}",
+            "core_key_json": "{}",
+            "core_candidates_json": "[]",
+            "matching_values_json": "{}",
+            "differences_json": "[]",
+            "review_decision": "use_package_row",
+            "reviewer": "tester",
+            "reviewed_at": "2026-05-14",
+            "notes": "",
+        },
+        {
+            "task_id": "core-only-same-name",
+            "issue_type": "core_only_unmatched",
+            "priority": "4",
+            "status": "todo",
+            "suggested_action": "review_core_only_row",
+            "match_confidence": "none",
+            "score_year": "2022",
+            "batch": "本科批",
+            "subject_cat": "物理类",
+            "school_code": "1607",
+            "package_major_code": "",
+            "core_major_code": "0G",
+            "package_min_score": "",
+            "core_min_score": "500",
+            "package_min_rank": "",
+            "core_min_rank": "30000",
+            "package_key_json": "{}",
+            "core_key_json": "{}",
+            "core_candidates_json": "[]",
+            "matching_values_json": "{}",
+            "differences_json": "[]",
+            "review_decision": "",
+            "reviewer": "",
+            "reviewed_at": "",
+            "notes": "",
+        },
+    ]
+    with plan.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=PLAN_COLUMNS, extrasaction="ignore")
+        writer.writeheader()
+        writer.writerows(rows)
+
+    projection = tmp_path / "ln_projection_score_2022_official.csv"
+    with projection.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(
+            f,
+            fieldnames=["school_code", "major_code", "major_full", "batch", "subject_cat", "score_year"],
+        )
+        writer.writeheader()
+        writer.writerow({
+            "school_code": "1607",
+            "major_code": "0X",
+            "major_full": "自动化",
+            "batch": "本科批",
+            "subject_cat": "物理类",
+            "score_year": "2022",
+        })
+
+    core_db = tmp_path / "university.db"
+    con = duckdb.connect(str(core_db))
+    con.execute("""
+        CREATE TABLE fa_dim_ln_admission_plan (
+            school_code VARCHAR,
+            major_code VARCHAR,
+            subject_cat VARCHAR,
+            batch VARCHAR,
+            year INTEGER,
+            major_full VARCHAR,
+            major_short VARCHAR
+        )
+    """)
+    con.execute(
+        "INSERT INTO fa_dim_ln_admission_plan VALUES (?, ?, ?, ?, ?, ?, ?)",
+        ("1607", "0G", "物理类", "本科批", 2026, "自动化", ""),
+    )
+    con.close()
+
+    report = apply_score_history_pair_name_reference_decisions(
+        plan_csv=plan,
+        projection_csv=projection,
+        core_db=core_db,
+        output=tmp_path / "pair_report_only.csv",
+        reviewed_at="2026-05-14",
+    )
+
+    assert report["updated_pairs"] == 0
+    assert report["match_counts"] == {
+        "has_non_package_task:value_drift:reviewed:use_package_row": 1
+    }
+
+
 def test_apply_score_history_reconciliation_auto_decisions_uses_reference_package(tmp_path: Path):
     plan = tmp_path / "score_history_reconciliation_plan.csv"
     rows = [

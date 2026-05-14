@@ -288,7 +288,7 @@ core-only 与 package-only 存在唯一精确专业名配对时，使用 `apply-
 
 含删除决策的 reviewed plan 必须拆成两个产物。`build-score-history-from-reconciliation-plan --allow-core-exclude-rows` 只生成非删除行的数据包；`build-score-history-delete-plan` 只生成 core-backed `exclude_row` 删除候选。真实 run 已生成 277 行补丁包并通过 core importer `--dry-run` 后实际导入，同时生成 10,184 行 delete plan；core `apply_delete_plan.py` 先 dry-run 确认所有 key 均匹配，再以 migration id `2025-score-history-workbook-reconciled-official-reference-zero-placeholders` 执行，删除 10,184 行旧零占位记录。
 
-2022 官方派生包 reconciliation 已用同一规则继续降噪：16,963 条任务中 3,638 条零占位、5,346 条 package-only、3,712 条 value drift 和 2,047 条单候选专业代码漂移被自动标为 reviewed，剩余 2,220 条仍为 todo（1,773 条 core-only、447 条多候选专业代码漂移）。随后用官方投档专业名与 core 2026 招生计划候选专业名做唯一精确匹配，又将 170 条多候选专业代码漂移收敛为 reviewed；再用 core-only/package-only 唯一精确专业名配对处理 483 对成对漂移。当前 reviewed 为 15,396/16,963，剩余 1,567 条 todo（1,290 条 core-only、277 条多候选专业代码漂移），并已基于新 plan 生成 120 行小批复核包。后续人工或证据核验完成前仍不能生成可导入包或 delete plan。
+2022 官方派生包 reconciliation 已用同一规则继续降噪：16,963 条任务中 3,638 条零占位、5,346 条 package-only、3,712 条 value drift 和 2,047 条单候选专业代码漂移被自动标为 reviewed，剩余 2,220 条仍为 todo（1,773 条 core-only、447 条多候选专业代码漂移）。随后用官方投档专业名与 core 2026 招生计划候选专业名做唯一精确匹配，又将 170 条多候选专业代码漂移收敛为 reviewed；再用 core-only/package-only 唯一精确专业名配对处理 483 对成对漂移。当前 reviewed 为 15,396/16,963，剩余 1,567 条 todo（1,290 条 core-only、277 条多候选专业代码漂移），并已基于新 plan 生成 120 行小批复核包。pair report 另显示 425 条同名候选对应的 package 行已经是 `value_drift/reviewed/use_package_row`，这类需要后续单独设计“重映射并处理旧主键”的路径，不能复用 package-only pair 规则。后续人工或证据核验完成前仍不能生成可导入包或 delete plan。
 
 为了让人工复核先从小样本启动，可按 issue type 抽取 pending 任务：
 
