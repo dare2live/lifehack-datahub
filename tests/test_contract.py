@@ -189,6 +189,28 @@ def test_manifest_requires_fa_prefix(tmp_path: Path):
     assert any("fa_" in err for err in report["errors"])
 
 
+def test_config_json_files_do_not_have_duplicate_keys():
+    duplicate_paths = []
+    for path in sorted(Path("config").glob("*.json")):
+        duplicates = []
+
+        def reject_duplicate_keys(pairs):
+            seen = set()
+            result = {}
+            for key, value in pairs:
+                if key in seen:
+                    duplicates.append(key)
+                seen.add(key)
+                result[key] = value
+            return result
+
+        json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=reject_duplicate_keys)
+        if duplicates:
+            duplicate_paths.append(f"{path}: {sorted(set(duplicates))}")
+
+    assert duplicate_paths == []
+
+
 def test_build_local_package_from_cleaned_csv(tmp_path: Path):
     source = tmp_path / "cleaned.csv"
     with source.open("w", encoding="utf-8", newline="") as f:
