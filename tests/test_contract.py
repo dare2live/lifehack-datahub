@@ -171,6 +171,7 @@ from datahub.parsers.outcome_report import (
     CANDIDATE_COLUMNS,
     extract_outcome_metric_candidates_from_lines,
     extract_outcome_metric_candidates_from_ofd,
+    extract_outcome_metric_candidates_from_report,
     write_outcome_metric_candidate_csv,
 )
 from datahub.source_audit import audit_sources
@@ -8729,6 +8730,64 @@ def test_extract_outcome_report_candidates_from_ofd(tmp_path: Path):
     assert rows[0]["candidate_value"] == "0.8864"
     assert rows[0]["page_number"] == 29
     assert "88.64%" in rows[0]["evidence_quote"]
+
+
+def test_extract_outcome_report_candidates_rejects_html_disguised_as_pdf(tmp_path: Path):
+    path = tmp_path / "report.pdf"
+    path.write_text("<!DOCTYPE html><html><body>captcha</body></html>", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="HTML, not PDF"):
+        extract_outcome_metric_candidates_from_report(
+            path,
+            domain="school",
+            entity_code="0169",
+            entity_name="大连外国语大学",
+            metric_year=2024,
+            source_title="大连外国语大学2023-2024学年本科教学质量报告",
+            source_url="https://xxgk.dlufl.edu.cn/info/1004/2001.htm",
+            source_date="2024-12-31",
+            availability_date="2024-12-31",
+        )
+
+
+def test_cli_extract_outcome_report_candidates_reports_bad_pdf(tmp_path: Path, monkeypatch, capsys):
+    from datahub import cli
+
+    bad_pdf = tmp_path / "report.pdf"
+    bad_pdf.write_text("<!DOCTYPE html><html><body>captcha</body></html>", encoding="utf-8")
+    output = tmp_path / "candidates.csv"
+
+    monkeypatch.setattr("sys.argv", [
+        "lifehack-datahub",
+        "extract-outcome-report-candidates",
+        "--input",
+        str(bad_pdf),
+        "--output",
+        str(output),
+        "--domain",
+        "school",
+        "--entity-code",
+        "0169",
+        "--entity-name",
+        "大连外国语大学",
+        "--metric-year",
+        "2024",
+        "--source-title",
+        "大连外国语大学2023-2024学年本科教学质量报告",
+        "--source-url",
+        "https://xxgk.dlufl.edu.cn/info/1004/2001.htm",
+        "--source-date",
+        "2024-12-31",
+        "--availability-date",
+        "2024-12-31",
+    ])
+
+    assert cli.main() == 1
+    captured = capsys.readouterr()
+    report = json.loads(captured.out)
+    assert report["rows"] == 0
+    assert any("HTML, not PDF" in error for error in report["errors"])
+    assert not output.exists()
 
 
 def test_build_outcome_report_source_plan_groups_metric_tasks(tmp_path: Path):

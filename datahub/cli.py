@@ -1673,18 +1673,25 @@ def main() -> int:
         return 0
     if args.cmd == "extract-outcome-report-candidates":
         rows = []
+        errors = []
         for input_path in args.input:
-            rows.extend(extract_outcome_metric_candidates_from_report(
-                input_path,
-                domain=args.domain,
-                entity_code=args.entity_code,
-                entity_name=args.entity_name,
-                metric_year=args.metric_year,
-                source_title=args.source_title,
-                source_url=args.source_url,
-                source_date=args.source_date,
-                availability_date=args.availability_date,
-            ))
+            try:
+                rows.extend(extract_outcome_metric_candidates_from_report(
+                    input_path,
+                    domain=args.domain,
+                    entity_code=args.entity_code,
+                    entity_name=args.entity_name,
+                    metric_year=args.metric_year,
+                    source_title=args.source_title,
+                    source_url=args.source_url,
+                    source_date=args.source_date,
+                    availability_date=args.availability_date,
+                ))
+            except Exception as exc:
+                errors.append(f"{input_path}: {exc}")
+        if errors:
+            print(json.dumps({"output": str(args.output), "rows": 0, "errors": errors}, ensure_ascii=False, indent=2))
+            return 1
         write_outcome_metric_candidate_csv(args.output, rows)
         print(json.dumps({"output": str(args.output), "rows": len(rows)}, ensure_ascii=False, indent=2))
         return 0

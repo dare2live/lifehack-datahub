@@ -56,6 +56,7 @@ def extract_outcome_metric_candidates_from_pdf(
     source_date: str,
     availability_date: str,
 ) -> list[dict[str, Any]]:
+    _require_pdf_file(path)
     reader = PdfReader(str(path))
     page_lines: list[tuple[int, str]] = []
     for page_index, page in enumerate(reader.pages, start=1):
@@ -116,6 +117,7 @@ def extract_outcome_metric_candidates_from_ofd(
     source_date: str,
     availability_date: str,
 ) -> list[dict[str, Any]]:
+    _require_ofd_file(path)
     page_lines = _extract_ofd_page_lines(path)
     return extract_outcome_metric_candidates_from_lines(
         page_lines,
@@ -198,6 +200,31 @@ def write_outcome_metric_candidate_csv(path: Path, rows: list[dict[str, Any]]) -
         writer = csv.DictWriter(f, fieldnames=CANDIDATE_COLUMNS, extrasaction="ignore")
         writer.writeheader()
         writer.writerows(rows)
+
+
+def _require_pdf_file(path: Path) -> None:
+    header = _read_header(path)
+    lowered = header.lstrip().lower()
+    if lowered.startswith(b"<!doctype html") or lowered.startswith(b"<html"):
+        raise ValueError(f"outcome report is HTML, not PDF: {path}")
+    if not header.startswith(b"%PDF"):
+        raise ValueError(f"outcome report has invalid PDF header: {path}")
+
+
+def _require_ofd_file(path: Path) -> None:
+    header = _read_header(path)
+    lowered = header.lstrip().lower()
+    if lowered.startswith(b"<!doctype html") or lowered.startswith(b"<html"):
+        raise ValueError(f"outcome report is HTML, not OFD: {path}")
+    if not zipfile.is_zipfile(path):
+        raise ValueError(f"outcome report has invalid OFD container: {path}")
+
+
+def _read_header(path: Path) -> bytes:
+    try:
+        return path.read_bytes()[:256]
+    except OSError as exc:
+        raise ValueError(f"cannot read outcome report: {path}: {exc}") from exc
 
 
 def _extract_ofd_page_lines(path: Path) -> list[tuple[int, str]]:
