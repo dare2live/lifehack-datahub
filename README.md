@@ -866,7 +866,7 @@ python3 scripts/build_package.py audit-outcome-collection-plan \
   --report staging/outcome_collection/outcome_collection_audit.json
 ```
 
-已经人工核对的 outcome 结论可以沉淀到 `config/outcome_collection_review_seeds.json`，再重放到重新生成的采集计划。种子只保存指标值、来源 URL、摘录、口径和复核说明，不提交 PDF 原文或 ignored staging 文件；`audit-outcome-collection-review-seeds` 会按 `config/outcome_metrics.json` 的 metric 注册检查指标合法性、完成状态、重复主键、metric_year 整数、HTTP(S) 来源 URL、日期格式、数值类型和值域上下限，避免 120%、负数、`2024.0` 年份、本地路径来源或非 `YYYY-MM-DD` 日期这类错误进入后续计划：
+已经人工核对的 outcome 结论可以沉淀到 `config/outcome_collection_review_seeds.json`，再重放到重新生成的采集计划。种子只保存指标值、来源 URL、摘录、口径和复核说明，不提交 PDF 原文或 ignored staging 文件；`audit-outcome-collection-review-seeds` 会按 `config/outcome_metrics.json` 的 metric 注册检查指标合法性、完成状态、重复主键、metric_year 整数、HTTP(S) 来源 URL、日期格式、时间顺序、数值类型和值域上下限，避免 120%、负数、`2024.0` 年份、本地路径来源、非 `YYYY-MM-DD` 日期或复核早于来源可用日期这类错误进入后续计划：
 
 ```bash
 python3 scripts/build_package.py audit-outcome-collection-review-seeds \
@@ -921,7 +921,7 @@ python3 scripts/build_package.py build-outcome-from-collection-plan \
   --package-id 2026_outcome_collection
 ```
 
-真实 smoke：上述辽宁大学单条 approved 候选合并后的采集计划已生成 `lnu_2022_outcome_candidate_merge_smoke_school` 标准包，`fa_fact_school_outcome` 1 行，quality report 无错误；manifest 已写入 `source_lineage`，包含采集计划路径、来源 URL、报告标题、指标和状态统计；`validate` 通过，core importer `--dry-run` 通过。学校 outcome 复核种子当前共 21 条已核指标：2024 学校 outcome 覆盖辽宁大学就业率/升学率、沈阳工业大学就业率、辽宁工程技术大学就业率/升学率、吉林大学就业率/深造率、辽宁师范大学就业率/深造率、渤海大学就业率/升学率、大连交通大学就业率/升学率/国企签约比例、大连工业大学就业率/考研比例/党政机关事业单位等去向比例、大连民族大学就业率、东北财经大学就业率 19 条；大连大学 2023 届就业落实率独立按 `metric_year=2023` 维护，不混入 2024 届口径；辽宁大学 2022 届国有企业就业比例独立按 `metric_year=2022` 维护。种子审计已前置校验来源 URL、年份、日期和 metric 值域，当前 21 条 verified 种子 `errors=[]/warnings=[]`；2024 种子真实重放命中 19 条、更新 19 条、未命中为非 2024 年种子，重放后的 1200 行采集计划审计 `errors=[]/warnings=[]`；从该计划生成的 `ln_outcome_school_2024_seeded_v9_school` 包含 `fa_fact_school_outcome` 19 行，manifest 校验、core importer `--dry-run` 和本地 core 实导均通过，本地 core `fa_fact_school_outcome` 当前为 21 行。大连大学 2023 届种子已生成 `2023_dlu_school_outcome_seeded_v1_school` 包；辽宁大学 2022 届国企就业种子已生成 `2022_lnu_school_outcome_soe_seeded_v1_school` 包；两个包均为 `fa_fact_school_outcome` 1 行，manifest 校验、core importer `--dry-run` 和本地 core 实导均通过。
+真实 smoke：上述辽宁大学单条 approved 候选合并后的采集计划已生成 `lnu_2022_outcome_candidate_merge_smoke_school` 标准包，`fa_fact_school_outcome` 1 行，quality report 无错误；manifest 已写入 `source_lineage`，包含采集计划路径、来源 URL、报告标题、指标和状态统计；`validate` 通过，core importer `--dry-run` 通过。学校 outcome 复核种子当前共 21 条已核指标：2024 学校 outcome 覆盖辽宁大学就业率/升学率、沈阳工业大学就业率、辽宁工程技术大学就业率/升学率、吉林大学就业率/深造率、辽宁师范大学就业率/深造率、渤海大学就业率/升学率、大连交通大学就业率/升学率/国企签约比例、大连工业大学就业率/考研比例/党政机关事业单位等去向比例、大连民族大学就业率、东北财经大学就业率 19 条；大连大学 2023 届就业落实率独立按 `metric_year=2023` 维护，不混入 2024 届口径；辽宁大学 2022 届国有企业就业比例独立按 `metric_year=2022` 维护。种子审计已前置校验来源 URL、年份、日期顺序和 metric 值域，当前 21 条 verified 种子 `errors=[]/warnings=[]`；2024 种子真实重放命中 19 条、更新 19 条、未命中为非 2024 年种子，重放后的 1200 行采集计划审计 `errors=[]/warnings=[]`；从该计划生成的 `ln_outcome_school_2024_seeded_v9_school` 包含 `fa_fact_school_outcome` 19 行，manifest 校验、core importer `--dry-run` 和本地 core 实导均通过，本地 core `fa_fact_school_outcome` 当前为 21 行。大连大学 2023 届种子已生成 `2023_dlu_school_outcome_seeded_v1_school` 包；辽宁大学 2022 届国企就业种子已生成 `2022_lnu_school_outcome_soe_seeded_v1_school` 包；两个包均为 `fa_fact_school_outcome` 1 行，manifest 校验、core importer `--dry-run` 和本地 core 实导均通过。
 
 开源参考只作为设计和校验素材，不直接成为核心依赖：职业知识图谱可借鉴 `datawhalechina/team-learning-nlp` 的实体关系抽取流程，但本项目优先发布 DuckDB/Parquet 关系表；志愿预测可参考 `stonelf/China-college-application` 与 `Zeqing-Wang/Reco-PMW` 的历史波动和回测思路，但外部数据集必须先通过 license/source audit；招聘薪酬项目只吸收薪酬区间解析、岗位去重、分位数截尾和异常样本剔除等清洗规则，采集结果仍按 DataHub 候选、复核、标准包发布。
 

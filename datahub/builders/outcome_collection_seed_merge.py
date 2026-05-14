@@ -156,6 +156,8 @@ def _audit_seed_config() -> dict[str, Any]:
             date_error = _date_error(seed.get(date_field))
             if date_error:
                 errors.append(f"seed {index} {date_field} {date_error}")
+        for date_order_error in _date_order_errors(seed):
+            errors.append(f"seed {index} {date_order_error}")
         url_error = _source_url_error(seed.get("source_url"))
         if url_error:
             errors.append(f"seed {index} source_url {url_error}")
@@ -242,6 +244,27 @@ def _date_error(value: Any) -> str:
     except ValueError:
         return "must use YYYY-MM-DD"
     return ""
+
+
+def _parse_date(value: Any) -> datetime | None:
+    if _is_blank(value):
+        return None
+    try:
+        return datetime.strptime(str(value).strip(), "%Y-%m-%d")
+    except ValueError:
+        return None
+
+
+def _date_order_errors(seed: dict[str, Any]) -> list[str]:
+    source_date = _parse_date(seed.get("source_date"))
+    availability_date = _parse_date(seed.get("availability_date"))
+    reviewed_at = _parse_date(seed.get("reviewed_at"))
+    errors = []
+    if source_date and availability_date and source_date > availability_date:
+        errors.append("source_date must not be after availability_date")
+    if availability_date and reviewed_at and availability_date > reviewed_at:
+        errors.append("reviewed_at must not be before availability_date")
+    return errors
 
 
 def _source_url_error(value: Any) -> str:
