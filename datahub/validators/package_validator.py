@@ -1,6 +1,7 @@
 """Data package validation."""
 from __future__ import annotations
 
+import hashlib
 from pathlib import Path
 
 from datahub.config import load_json_config
@@ -39,9 +40,27 @@ def validate_manifest(path: Path) -> dict:
         if not name.startswith("fa_"):
             errors.append(f"table must use fa_ prefix: {name}")
 
+    hashes = data.get("hashes", {})
+    if "hashes" in data and not isinstance(hashes, dict):
+        errors.append("manifest hashes must be an object")
+        hashes = {}
+
     package_dir = path.parent
     for file_name in data.get("files", []):
-        if not (package_dir / file_name).exists():
+        file_path = package_dir / file_name
+        if not file_path.exists():
             errors.append(f"declared file not found: {file_name}")
+            continue
+        expected_hash = hashes.get(file_name)
+        if expected_hash and _sha256(file_path) != expected_hash:
+            errors.append(f"hash mismatch: {file_name}")
 
     return {"errors": errors, "warnings": warnings}
+
+
+def _sha256(path: Path) -> str:
+    h = hashlib.sha256()
+    with path.open("rb") as f:
+        for chunk in iter(lambda: f.read(1024 * 1024), b""):
+            h.update(chunk)
+    return h.hexdigest()

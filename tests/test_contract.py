@@ -210,6 +210,22 @@ def test_manifest_requires_declared_quality_report_file(tmp_path: Path):
     assert any("declared quality report not found" in err for err in report["errors"])
 
 
+def test_manifest_rejects_declared_hash_mismatch(tmp_path: Path):
+    path = tmp_path / "manifest.json"
+    (tmp_path / "quality_report.json").write_text('{"errors":[]}\n', encoding="utf-8")
+    (tmp_path / "fa_test.csv").write_text("id\n1\n", encoding="utf-8")
+    path.write_text(
+        (
+            '{"package_id":"p","built_at":"now","tables":[{"name":"fa_test","file":"fa_test.csv"}],'
+            '"files":["fa_test.csv"],"hashes":{"fa_test.csv":"bad-hash"},'
+            '"quality_report":"quality_report.json"}'
+        ),
+        encoding="utf-8",
+    )
+    report = validate_manifest(path)
+    assert any("hash mismatch" in err for err in report["errors"])
+
+
 def test_config_json_files_do_not_have_duplicate_keys(tmp_path: Path):
     duplicate_paths = []
     for path in sorted(Path("config").glob("*.json")):
