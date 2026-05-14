@@ -3456,6 +3456,58 @@ def test_build_score_history_reconciliation_review_batch_limits_pending_rows(tmp
     assert [row["issue_type"] for row in batch_rows] == ["major_code_drift_candidate", "value_drift"]
 
 
+def test_build_score_history_reconciliation_review_batch_filters_score_year(tmp_path: Path):
+    plan = tmp_path / "score_history_reconciliation_plan.csv"
+    rows = []
+    for year in ("2023", "2024"):
+        rows.append({
+            "task_id": f"major-{year}",
+            "issue_type": "major_code_drift_candidate",
+            "priority": "1",
+            "status": "todo",
+            "suggested_action": "review_major_code_alignment",
+            "match_confidence": "high",
+            "score_year": year,
+            "batch": "本科批",
+            "subject_cat": "物理类",
+            "school_code": "1001",
+            "package_major_code": "04",
+            "core_major_code": "03",
+            "package_min_score": "570",
+            "core_min_score": "570",
+            "package_min_rank": "3000",
+            "core_min_rank": "3000",
+            "package_key_json": "{}",
+            "core_key_json": "{}",
+            "core_candidates_json": "[]",
+            "matching_values_json": "{}",
+            "differences_json": "[]",
+            "review_decision": "",
+            "reviewer": "",
+            "reviewed_at": "",
+            "notes": "",
+        })
+    with plan.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=PLAN_COLUMNS, extrasaction="ignore")
+        writer.writeheader()
+        writer.writerows(rows)
+
+    result = build_score_history_reconciliation_review_batch(
+        plan_csv=plan,
+        output_dir=tmp_path / "batch_2024",
+        limit_per_issue=10,
+        score_year=2024,
+    )
+
+    assert result["rows"] == 1
+    assert result["score_year"] == 2024
+    with Path(result["csv"]).open(encoding="utf-8", newline="") as f:
+        batch_rows = list(csv.DictReader(f))
+    assert [row["score_year"] for row in batch_rows] == ["2024"]
+    manifest = json.loads(Path(result["manifest"]).read_text(encoding="utf-8"))
+    assert manifest["score_year"] == 2024
+
+
 def test_build_score_history_reconciliation_review_batch_adds_reference_context(tmp_path: Path):
     plan = tmp_path / "score_history_reconciliation_plan.csv"
     candidates = [

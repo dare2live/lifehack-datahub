@@ -40,6 +40,7 @@ def build_score_history_reconciliation_review_batch(
     output_dir: Path,
     issue_types: list[str] | None = None,
     limit_per_issue: int | None = None,
+    score_year: int | None = None,
     projection_csv: Path | None = None,
     core_db: Path | None = None,
     core_plan_year: int | None = None,
@@ -57,8 +58,11 @@ def build_score_history_reconciliation_review_batch(
     if unknown_issue_types:
         raise ValueError(f"unknown issue_type: {', '.join(unknown_issue_types)}")
 
+    score_year_filter = str(score_year) if score_year is not None else None
     grouped: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for row in rows:
+        if score_year_filter and str(row.get("score_year") or "").strip() != score_year_filter:
+            continue
         issue_type = str(row.get("issue_type") or "").strip()
         status = str(row.get("status") or "").strip()
         if issue_type not in selected_issue_types or status not in review_config["pending_statuses"]:
@@ -106,6 +110,7 @@ def build_score_history_reconciliation_review_batch(
         "csv": str(csv_path),
         "selected_issue_types": sorted(selected_issue_types),
         "limit_per_issue": limit,
+        "score_year": score_year,
         "reference_context": reference_context,
         "rows": len(batch_rows),
         "issue_counts": dict(sorted(issue_counts.items())),
@@ -118,6 +123,7 @@ def build_score_history_reconciliation_review_batch(
         "manifest": str(manifest_path),
         "rows": len(batch_rows),
         "issue_counts": dict(sorted(issue_counts.items())),
+        "score_year": score_year,
         "reference_context": reference_context,
     }
 

@@ -410,6 +410,7 @@ def main() -> int:
     build_score_reconciliation_batch.add_argument("--output-dir", required=True, type=Path)
     build_score_reconciliation_batch.add_argument("--issue-type", action="append", dest="issue_types")
     build_score_reconciliation_batch.add_argument("--limit-per-issue", type=int)
+    build_score_reconciliation_batch.add_argument("--score-year", type=int)
     build_score_reconciliation_batch.add_argument("--projection-csv", type=Path)
     build_score_reconciliation_batch.add_argument("--core-db", type=Path)
     build_score_reconciliation_batch.add_argument("--core-plan-year", type=int)
@@ -1409,6 +1410,7 @@ def main() -> int:
             output_dir=args.output_dir,
             issue_types=args.issue_types,
             limit_per_issue=args.limit_per_issue,
+            score_year=args.score_year,
             projection_csv=args.projection_csv,
             core_db=args.core_db,
             core_plan_year=args.core_plan_year,
