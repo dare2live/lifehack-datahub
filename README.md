@@ -407,6 +407,7 @@ python3 scripts/build_package.py parse-ln-application-workbook \
 ```
 
 生成的 cleaned CSV 仍不进入 Git。确认报告后，再分别用 `build-local --table fa_dim_ln_admission_plan` 和 `build-local --table fa_fact_ln_score_history` 生成数据包。
+默认解析配置会同时纳入 `物理类`、`历史类`、`物理类特殊`、`历史类特殊` 四个 sheet；特殊 sheet 中的地方专项、预科、八省区协作等计划属于本科批同一对账范围，不能在 reconciliation 中误判为 core-only 待删除。
 
 招生计划包导入实际 core 前，先做只读对账。审计范围、比较列和样本上限维护在 `config/source_schemas.json`，报告只输出差异，不写 core：
 
