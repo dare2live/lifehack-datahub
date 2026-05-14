@@ -6254,6 +6254,44 @@ def test_build_and_audit_city_context_collection_plan(tmp_path: Path):
     assert any("complete status missing evidence" in error for error in bad_audit["errors"])
 
 
+def test_audit_city_context_collection_plan_validates_source_metadata(tmp_path: Path):
+    city_input = tmp_path / "cities.csv"
+    with city_input.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=["adcode", "province", "city", "region_level", "priority_rank"])
+        writer.writeheader()
+        writer.writerow({"adcode": "210100", "province": "辽宁", "city": "沈阳", "region_level": "city", "priority_rank": "1"})
+
+    result = build_city_context_collection_plan(
+        city_input=city_input,
+        output_dir=tmp_path / "city_context",
+        domains=["economic"],
+        metric_year=2025,
+    )
+    with Path(result["csv"]).open(encoding="utf-8", newline="") as f:
+        rows = list(csv.DictReader(f))
+    rows[0]["status"] = "verified"
+    rows[0]["metric_year"] = "2025.5"
+    rows[0]["metric_value"] = "9000"
+    rows[0]["source_title"] = "fixture bulletin"
+    rows[0]["source_url"] = "ftp://example.com/shenyang-gdp"
+    rows[0]["evidence_quote"] = "地区生产总值9000亿元"
+    rows[0]["source_date"] = "2026-05-14"
+    rows[0]["availability_date"] = "2026-05-13"
+    rows[0]["reviewed_at"] = "2026/05/14"
+    reviewed = tmp_path / "city_context_bad_metadata.csv"
+    with reviewed.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=rows[0].keys())
+        writer.writeheader()
+        writer.writerows(rows)
+
+    audit = audit_city_context_collection_plan(reviewed)
+
+    assert "row 1 metric_year is not an integer" in audit["errors"]
+    assert "row 1 source_url must be an http(s) URL" in audit["errors"]
+    assert "row 1 reviewed_at must use YYYY-MM-DD" in audit["errors"]
+    assert "row 1 source_date must not be after availability_date" in audit["errors"]
+
+
 def test_build_city_ranking_collection_plan_and_package(tmp_path: Path):
     city_input = tmp_path / "cities.csv"
     with city_input.open("w", encoding="utf-8", newline="") as f:

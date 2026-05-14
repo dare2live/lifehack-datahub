@@ -255,7 +255,7 @@ python3 scripts/build_package.py build-city-context-from-collection-plan \
   --package-id 2026_city_context_{domain}
 ```
 
-采集计划不是 data package，不能导入 core。只有证据列完整并通过审计的行，才允许由 `build-city-context-from-collection-plan` 转成 `fa_fact_city_economic_indicator`、`fa_fact_city_public_resource` 或 `fa_fact_city_ranking_signal` 标准包。排名信号的源选择和维度维护在 `config/city_context_collection.json`，当前只纳入连续发布、方法论可解释且维度交叉较少的来源：第一财经新一线城市商业魅力、智联招聘/泽平宏观人才吸引力、国家创新型城市创新能力、Nature Index 科研城市和 GaWC 世界城市网络连接度。
+采集计划不是 data package，不能导入 core。只有证据列完整并通过审计的行，才允许由 `build-city-context-from-collection-plan` 转成 `fa_fact_city_economic_indicator`、`fa_fact_city_public_resource` 或 `fa_fact_city_ranking_signal` 标准包。审计会检查 metric 注册、单位和值域、`metric_year` 整数、HTTP(S) 来源 URL、`source_date/availability_date/reviewed_at` 日期格式以及 `source_date <= availability_date <= reviewed_at`，避免城市 GDP、医疗教育资源和城市榜单的坏证据进入评分层。排名信号的源选择和维度维护在 `config/city_context_collection.json`，当前只纳入连续发布、方法论可解释且维度交叉较少的来源：第一财经新一线城市商业魅力、智联招聘/泽平宏观人才吸引力、国家创新型城市创新能力、Nature Index 科研城市和 GaWC 世界城市网络连接度。
 
 城市发展底盘评分不在 core 里直接计算。先由 DataHub 采集并复核 `fa_fact_city_economic_indicator`、`fa_fact_city_public_resource` 和 `fa_fact_city_listed_company_signal`，再统一生成 `fa_mart_city_development_score`：
 

@@ -4,8 +4,10 @@ from __future__ import annotations
 import csv
 import json
 from collections import Counter
+from datetime import datetime
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 from datahub.config import load_city_context_collection
 
@@ -101,6 +103,8 @@ def _validate_row(
 
     if status not in audit_config["known_statuses"]:
         warnings.append(f"row {index} uses unknown city context status: {status}")
+    if _to_int(row.get("metric_year")) is None:
+        errors.append(f"row {index} metric_year is not an integer")
 
     _validate_json_list(index, "preferred_sources", row.get("preferred_sources"), errors)
     _validate_json_list(index, "search_queries", row.get("search_queries"), errors)
@@ -137,6 +141,16 @@ def _validate_row(
         if value_columns and not any(str(row.get(column) or "").strip() for column in value_columns):
             errors.append(f"row {index} complete status missing value: one of {', '.join(value_columns)}")
 
+    url_error = _source_url_error(row.get("source_url"))
+    if url_error:
+        errors.append(f"row {index} source_url {url_error}")
+    for date_field in ("source_date", "availability_date", "reviewed_at"):
+        date_error = _date_error(row.get(date_field))
+        if date_error:
+            errors.append(f"row {index} {date_field} {date_error}")
+    for date_order_error in _date_order_errors(row):
+        errors.append(f"row {index} {date_order_error}")
+
 
 def _validate_json_list(index: int, column: str, value: Any, errors: list[str]) -> None:
     try:
@@ -161,6 +175,62 @@ def _as_number(value: str) -> float | None:
         return float(text)
     except ValueError:
         return None
+
+
+def _to_int(value: Any) -> int | None:
+    if _is_blank(value):
+        return None
+    try:
+        text = str(value).strip()
+        if "." in text:
+            return None
+        return int(text)
+    except ValueError:
+        return None
+
+
+def _date_error(value: Any) -> str:
+    if _is_blank(value):
+        return ""
+    try:
+        datetime.strptime(str(value).strip(), "%Y-%m-%d")
+    except ValueError:
+        return "must use YYYY-MM-DD"
+    return ""
+
+
+def _parse_date(value: Any) -> datetime | None:
+    if _is_blank(value):
+        return None
+    try:
+        return datetime.strptime(str(value).strip(), "%Y-%m-%d")
+    except ValueError:
+        return None
+
+
+def _date_order_errors(row: dict[str, Any]) -> list[str]:
+    source_date = _parse_date(row.get("source_date"))
+    availability_date = _parse_date(row.get("availability_date"))
+    reviewed_at = _parse_date(row.get("reviewed_at"))
+    errors = []
+    if source_date and availability_date and source_date > availability_date:
+        errors.append("source_date must not be after availability_date")
+    if availability_date and reviewed_at and availability_date > reviewed_at:
+        errors.append("reviewed_at must not be before availability_date")
+    return errors
+
+
+def _source_url_error(value: Any) -> str:
+    if _is_blank(value):
+        return ""
+    parsed = urlparse(str(value).strip())
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        return "must be an http(s) URL"
+    return ""
+
+
+def _is_blank(value: Any) -> bool:
+    return value is None or str(value).strip() == ""
 
 
 def _read_csv(path: Path) -> list[dict[str, Any]]:
