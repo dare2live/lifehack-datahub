@@ -2262,6 +2262,63 @@ def test_apply_score_history_reconciliation_auto_decisions_uses_reference_packag
             "reviewed_at": "",
             "notes": "",
         },
+        {
+            "task_id": "major-single-official",
+            "issue_type": "major_code_drift_candidate",
+            "priority": "1",
+            "status": "todo",
+            "suggested_action": "review_major_code_alignment",
+            "match_confidence": "high",
+            "score_year": "2025",
+            "batch": "本科批",
+            "subject_cat": "物理类",
+            "school_code": "1004",
+            "package_major_code": "35",
+            "core_major_code": "26",
+            "package_min_score": "473",
+            "core_min_score": "473",
+            "package_min_rank": "57476",
+            "core_min_rank": "57476",
+            "package_key_json": "{}",
+            "core_key_json": "{}",
+            "core_candidates_json": json.dumps([{"key": {"school_code": "1004", "major_code": "26"}}], ensure_ascii=False),
+            "matching_values_json": "{}",
+            "differences_json": "[]",
+            "review_decision": "",
+            "reviewer": "",
+            "reviewed_at": "",
+            "notes": "",
+        },
+        {
+            "task_id": "major-multi-official",
+            "issue_type": "major_code_drift_candidate",
+            "priority": "1",
+            "status": "todo",
+            "suggested_action": "review_major_code_alignment",
+            "match_confidence": "high",
+            "score_year": "2025",
+            "batch": "本科批",
+            "subject_cat": "物理类",
+            "school_code": "1005",
+            "package_major_code": "35",
+            "core_major_code": "26|27",
+            "package_min_score": "473",
+            "core_min_score": "473",
+            "package_min_rank": "57476",
+            "core_min_rank": "57476",
+            "package_key_json": "{}",
+            "core_key_json": "{}",
+            "core_candidates_json": json.dumps([
+                {"key": {"school_code": "1005", "major_code": "26"}},
+                {"key": {"school_code": "1005", "major_code": "27"}},
+            ], ensure_ascii=False),
+            "matching_values_json": "{}",
+            "differences_json": "[]",
+            "review_decision": "",
+            "reviewer": "",
+            "reviewed_at": "",
+            "notes": "",
+        },
     ]
     with plan.open("w", encoding="utf-8", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=PLAN_COLUMNS, extrasaction="ignore")
@@ -2294,6 +2351,24 @@ def test_apply_score_history_reconciliation_auto_decisions_uses_reference_packag
                 "min_score": "453",
                 "min_rank": "80263",
             },
+            {
+                "school_code": "1004",
+                "major_code": "35",
+                "batch": "本科批",
+                "subject_cat": "物理类",
+                "score_year": "2025",
+                "min_score": "473",
+                "min_rank": "57476",
+            },
+            {
+                "school_code": "1005",
+                "major_code": "35",
+                "batch": "本科批",
+                "subject_cat": "物理类",
+                "score_year": "2025",
+                "min_score": "473",
+                "min_rank": "57476",
+            },
         ])
 
     output = tmp_path / "score_history_reconciliation_plan_reference.csv"
@@ -2303,9 +2378,10 @@ def test_apply_score_history_reconciliation_auto_decisions_uses_reference_packag
         reference_package_dirs=[reference_dir],
     )
 
-    assert report["updated_rows"] == 2
-    assert report["reference_rows"] == 2
+    assert report["updated_rows"] == 3
+    assert report["reference_rows"] == 4
     assert report["rule_counts"] == {
+        "official_reference_maps_single_major_code_drift": 1,
         "official_reference_keeps_core_only_row": 1,
         "official_reference_uses_package_only_row": 1,
     }
@@ -2314,6 +2390,8 @@ def test_apply_score_history_reconciliation_auto_decisions_uses_reference_packag
     assert by_id["core-official"]["review_decision"] == "keep_core_row"
     assert by_id["core-official"]["reviewer"] == "datahub_reference_rule"
     assert by_id["package-official"]["review_decision"] == "use_package_row"
+    assert by_id["major-single-official"]["review_decision"] == "map_package_to_core_major_code"
+    assert by_id["major-multi-official"]["status"] == "todo"
     assert by_id["core-not-official"]["status"] == "todo"
 
 

@@ -329,7 +329,7 @@ python3 scripts/build_package.py audit-score-source-coverage \
 
 `probe-source-candidates` 支持按 `sources.json` 的 `probe.blocked_content_markers` 识别反爬挑战页；命中后状态为 `blocked_by_antibot`，不会被计入可访问来源。
 
-真实 smoke：2022 辽宁招生考试之窗官方投档最低分附件 + 2022 官方图片表格一分一段，已生成 `2022_ln_score_history_derived_official_projection_grid` 包，`fa_fact_ln_score_history` 14,203 行，quality report 无错误，manifest 校验通过，core importer `--dry-run` 通过。只读对账显示与当前 core 2022 本科批普通类存在代码体系和旧值差异，`safe_to_import_without_reconciliation=false`：package 14,203 行、core scoped 14,195 行、matched 6,363 行、package-only 7,840 行、core-only 7,832 行、different 3,712 行，另有 3,055 个同分同位次但专业代码不同的候选对。已生成 `staging/score_history_reconciliation_2022_official_projection_grid` 复核计划 16,963 行和初始 100 行小批；未复核前构建可导入包和 delete plan 均会被拒绝。
+真实 smoke：2022 辽宁招生考试之窗官方投档最低分附件 + 2022 官方图片表格一分一段，已生成 `2022_ln_score_history_derived_official_projection_grid` 包，`fa_fact_ln_score_history` 14,203 行，quality report 无错误，manifest 校验通过，core importer `--dry-run` 通过。只读对账显示与当前 core 2022 本科批普通类存在代码体系和旧值差异，`safe_to_import_without_reconciliation=false`：package 14,203 行、core scoped 14,195 行、matched 6,363 行、package-only 7,840 行、core-only 7,832 行、different 3,712 行，另有 3,055 个同分同位次但专业代码不同的候选对。已生成 `staging/score_history_reconciliation_2022_official_projection_grid` 复核计划 16,963 行；自动规则和官方参考包已把 14,743 行推进到 reviewed，剩余 2,220 行仍需复核，并已生成 120 行小批；未完整复核前构建可导入包和 delete plan 均会被拒绝。
 
 高德地图数据走 Web API connector。API key 只从环境变量读取，不写入配置或 manifest；原始响应写入 ignored `raw/`，后续再由 parser/normalizer 生成标准包：
 
@@ -533,7 +533,7 @@ python3 scripts/build_package.py audit-score-history-reconciliation-plan \
   --report staging/score_history_reconciliation_2023_2024/readiness_report.json
 ```
 
-对严格配置可判定的低风险占位任务，可以先应用 `config/source_schemas.json.audit.reconciliation.review.auto_decision_rules`，把匹配规则的任务标为 reviewed，但后续仍必须跑 readiness audit、package/delete plan 和 core dry-run：
+对严格配置可判定的低风险任务，可以先应用 `config/source_schemas.json.audit.reconciliation.review.auto_decision_rules`，把匹配规则的任务标为 reviewed，但后续仍必须跑 readiness audit、package/delete plan 和 core dry-run。当前规则覆盖零占位删除候选、被官方参考包精确佐证的单侧行和值差异，以及官方 package 行精确匹配且只有一个 core 候选的专业代码漂移；多候选专业代码漂移仍必须人工复核：
 
 ```bash
 python3 scripts/build_package.py apply-score-history-reconciliation-auto-decisions \

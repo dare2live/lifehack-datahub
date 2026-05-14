@@ -233,6 +233,19 @@
                 "notes": "package value matches the supplied official reference package; use package row"
               },
               {
+                "rule_id": "official_reference_maps_single_major_code_drift",
+                "enabled": true,
+                "issue_type": "major_code_drift_candidate",
+                "match_confidence": "high",
+                "reference_side": "package",
+                "required_candidate_count": 1,
+                "status": "reviewed",
+                "review_decision": "map_package_to_core_major_code",
+                "reviewer": "datahub_reference_rule",
+                "reviewed_at": "2026-05-14",
+                "notes": "package row matches the supplied official reference package and has exactly one core candidate; map package score/rank to the core major_code"
+              },
+              {
                 "rule_id": "official_reference_keeps_core_value",
                 "enabled": true,
                 "issue_type": "value_drift",

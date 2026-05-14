@@ -129,6 +129,7 @@ def _normalize_rule(rule: dict[str, Any], review_config: dict[str, Any], index: 
         "issue_type": issue_type,
         "match_confidence": str(rule.get("match_confidence") or "").strip(),
         "required_row_values": {str(key): str(value) for key, value in required_values.items()},
+        "required_candidate_count": _required_candidate_count(rule, rule_id),
         "reference_side": _reference_side(rule, rule_id),
         "status": status,
         "review_decision": decision,
@@ -145,6 +146,15 @@ def _reference_side(rule: dict[str, Any], rule_id: str) -> str:
     return side
 
 
+def _required_candidate_count(rule: dict[str, Any], rule_id: str) -> int | None:
+    if "required_candidate_count" not in rule:
+        return None
+    count = rule["required_candidate_count"]
+    if not isinstance(count, int) or count < 0:
+        raise ValueError(f"auto_decision rule {rule_id} required_candidate_count must be a non-negative integer")
+    return count
+
+
 def _matching_rule(
     row: dict[str, Any],
     rules: list[dict[str, Any]],
@@ -159,10 +169,20 @@ def _matching_rule(
         required_values = rule["required_row_values"]
         if any(str(row.get(column) or "").strip() != expected for column, expected in required_values.items()):
             continue
+        if rule["required_candidate_count"] is not None and _candidate_count(row) != rule["required_candidate_count"]:
+            continue
         if rule["reference_side"] and not _matches_reference(row, rule["reference_side"], reference_index, schema):
             continue
         return rule
     return None
+
+
+def _candidate_count(row: dict[str, Any]) -> int:
+    try:
+        candidates = json.loads(str(row.get("core_candidates_json") or "[]"))
+    except json.JSONDecodeError:
+        return -1
+    return len(candidates) if isinstance(candidates, list) else -1
 
 
 def _matches_reference(
