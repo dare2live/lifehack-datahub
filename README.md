@@ -327,7 +327,7 @@ python3 scripts/build_package.py audit-score-source-coverage \
 
 学信网 2023/2024 直接页面已登记为候选入口，但普通 HTTP 下载返回 JS 挑战或 HTTP 412，不能作为 `remote_files` 使用；后续只有在浏览器会话、稳定附件镜像或受控人工 intake 能提供可校验原始文件时，才允许进入解析和打包链路。
 
-`probe-source-candidates` 支持按 `sources.json` 的 `probe.blocked_content_markers` 识别反爬挑战页；命中后状态为 `blocked_by_antibot`，不会被计入可访问来源。
+`probe-source-candidates` 支持按 `sources.json` 的 `probe.blocked_content_markers` 和 `probe.blocked_http_statuses` 识别反爬挑战页或挑战状态码；命中后状态为 `blocked_by_antibot`，不会被计入可访问来源。当前 `ln_score_distribution` 已把学信网直连返回的 HTTP 412 配为反爬阻断，真实探测结果为 19 个候选中 12 个可访问、7 个 `blocked_by_antibot`、0 个普通不可访问。
 
 真实 smoke：2022 辽宁招生考试之窗官方投档最低分附件 + 2022 官方图片表格一分一段，已生成 `2022_ln_score_history_derived_official_projection_grid` 包，`fa_fact_ln_score_history` 14,203 行，quality report 无错误，manifest 校验通过，core importer `--dry-run` 通过。只读对账显示与当前 core 2022 本科批普通类存在代码体系和旧值差异，`safe_to_import_without_reconciliation=false`：package 14,203 行、core scoped 14,195 行、matched 6,363 行、package-only 7,840 行、core-only 7,832 行、different 3,712 行，另有 3,055 个同分同位次但专业代码不同的候选对。已生成 `staging/score_history_reconciliation_2022_official_projection_grid` 复核计划 16,963 行；自动规则、官方参考包和专业名参考已把 15,821 行推进到 reviewed，剩余 1,142 行仍需复核，并已生成 120 行小批；未完整复核前构建可导入包和 delete plan 均会被拒绝。
 

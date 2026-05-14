@@ -201,6 +201,9 @@
           "A2Kal8hczzgd",
           "$_ts",
           "Precondition Failed"
+        ],
+        "blocked_http_statuses": [
+          412
         ]
       },
       "remote_files": [

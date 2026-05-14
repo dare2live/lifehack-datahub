@@ -4,6 +4,8 @@ import csv
 import hashlib
 import io
 import json
+from email.message import Message
+from urllib.error import HTTPError
 from zipfile import ZipFile
 
 import duckdb
@@ -554,6 +556,44 @@ def test_probe_source_candidates_detects_configured_antibot_marker(tmp_path: Pat
     assert report["candidates"][0]["probe_status"] == "blocked_by_antibot"
     assert report["candidates"][0]["blocked_marker"] == "$_ts"
     assert report["candidates"][0]["sha256"] == hashlib.sha256(body.encode("utf-8")).hexdigest()
+
+
+def test_probe_source_candidates_detects_configured_antibot_http_status(monkeypatch):
+    def fake_sources():
+        return {
+            "sources": {
+                "fixture_source": {
+                    "name": "Fixture Source",
+                    "probe": {"blocked_http_statuses": [412]},
+                    "research_candidates": [
+                        {
+                            "label": "blocked candidate",
+                            "kind": "fixture_page",
+                            "url": "https://example.test/challenge",
+                            "source_date": "2026-05-13",
+                            "expected_table": "fa_fact_fixture",
+                        }
+                    ],
+                }
+            }
+        }
+
+    def fake_urlopen(request, timeout=60):
+        headers = Message()
+        headers["Content-Type"] = "text/html"
+        raise HTTPError(request.full_url, 412, "Precondition Failed", headers, None)
+
+    monkeypatch.setattr("datahub.connectors.source_candidates.load_sources", fake_sources)
+    monkeypatch.setattr("datahub.connectors.source_candidates.urlopen", fake_urlopen)
+
+    report = probe_source_candidates("fixture_source")
+    assert report["candidate_count"] == 1
+    assert report["accessible_count"] == 0
+    assert report["inaccessible_count"] == 0
+    assert report["blocked_by_antibot_count"] == 1
+    assert report["candidates"][0]["probe_status"] == "blocked_by_antibot"
+    assert report["candidates"][0]["http_status"] == 412
+    assert report["candidates"][0]["blocked_http_status"] == 412
 
 
 def test_audit_sources_marks_admission_plan_manual():

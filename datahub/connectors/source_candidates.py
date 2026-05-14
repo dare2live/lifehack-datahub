@@ -30,6 +30,7 @@ def probe_source_candidates(
     if not isinstance(candidates, list):
         raise ValueError(f"{source_key}.research_candidates must be a list")
     blocked_markers = _blocked_content_markers(source)
+    blocked_http_statuses = _blocked_http_statuses(source)
 
     rows = [
         _probe_candidate(
@@ -38,6 +39,7 @@ def probe_source_candidates(
             timeout=timeout,
             max_bytes=max_bytes,
             blocked_markers=blocked_markers,
+            blocked_http_statuses=blocked_http_statuses,
         )
         for item in candidates
     ]
@@ -66,6 +68,7 @@ def _probe_candidate(
     timeout: int,
     max_bytes: int,
     blocked_markers: list[str],
+    blocked_http_statuses: set[int],
 ) -> dict[str, Any]:
     if not isinstance(item, dict):
         raise ValueError(f"{source_key}.research_candidates item must be an object")
@@ -89,6 +92,17 @@ def _probe_candidate(
                 **_response_digest(response, max_bytes=max_bytes, blocked_markers=blocked_markers),
             }
     except HTTPError as exc:
+        if exc.code in blocked_http_statuses:
+            return {
+                **base,
+                "probe_status": "blocked_by_antibot",
+                "http_status": exc.code,
+                "content_type": exc.headers.get("Content-Type"),
+                "size_bytes": 0,
+                "sha256": None,
+                "blocked_http_status": exc.code,
+                "error": f"response matched configured blocked HTTP status: {exc.code}",
+            }
         return {
             **base,
             "probe_status": "inaccessible",
@@ -159,6 +173,21 @@ def _blocked_content_markers(source: dict[str, Any]) -> list[str]:
     if not isinstance(markers, list) or not all(isinstance(marker, str) for marker in markers):
         raise ValueError("source.probe.blocked_content_markers must be a string list")
     return [marker for marker in markers if marker]
+
+
+def _blocked_http_statuses(source: dict[str, Any]) -> set[int]:
+    probe_config = source.get("probe") or {}
+    statuses = probe_config.get("blocked_http_statuses") or []
+    if not isinstance(statuses, list):
+        raise ValueError("source.probe.blocked_http_statuses must be an integer list")
+    result = set()
+    for status in statuses:
+        if not isinstance(status, int):
+            raise ValueError("source.probe.blocked_http_statuses must be an integer list")
+        if status < 100 or status > 599:
+            raise ValueError("source.probe.blocked_http_statuses values must be valid HTTP status codes")
+        result.add(status)
+    return result
 
 
 def _matched_blocked_marker(sample: bytes, markers: list[str]) -> str | None:
