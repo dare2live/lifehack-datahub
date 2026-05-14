@@ -1,0 +1,86 @@
+{
+  "version": "2026-05-14",
+  "notes": "学校-城市-产业连接评分配置。输入为学校招聘活动、科研产业连接、本地就业去向、城市产业园区和校区坐标，输出 fa_mart_school_city_industry_fit；权重、指标和值域均在本文件维护。",
+  "score_profile": {
+    "profile_id": "city_industry_default",
+    "snapshot_date": "2026-05-14",
+    "minimum_signal_count": 2
+  },
+  "component_weights": {
+    "recruitment_score": 0.3,
+    "research_score": 0.2,
+    "local_employment_score": 0.2,
+    "internship_score": 0.1,
+    "zone_proximity_score": 0.1,
+    "resilience_score": 0.1
+  },
+  "recruitment": {
+    "max_weighted_event_count": 20,
+    "event_type_weights": {
+      "campus_talk": 1.0,
+      "career_fair": 0.8,
+      "online_recruitment": 0.6,
+      "internship": 0.8,
+      "internship_base": 1.0
+    },
+    "internship_event_types": ["internship", "internship_base"],
+    "max_internship_event_count": 6
+  },
+  "research_platform_levels": {
+    "national": 1.0,
+    "province": 0.75,
+    "ministerial": 0.75,
+    "school": 0.45,
+    "industry_cooperation": 0.6,
+    "unknown": 0.35
+  },
+  "research": {
+    "max_weighted_platform_count": 5
+  },
+  "local_employment_metrics": {
+    "local_city_retention_rate": {
+      "component": "local_employment_score",
+      "min": 0,
+      "max": 0.8,
+      "polarity": "positive",
+      "weight": 0.45
+    },
+    "province_retention_rate": {
+      "component": "local_employment_score",
+      "min": 0,
+      "max": 0.9,
+      "polarity": "positive",
+      "weight": 0.2
+    },
+    "top_employer_hire_count": {
+      "component": "local_employment_score",
+      "min": 0,
+      "max": 200,
+      "polarity": "positive",
+      "weight": 0.2
+    },
+    "top_industry_share": {
+      "component": "local_employment_score",
+      "min": 0,
+      "max": 0.5,
+      "polarity": "positive",
+      "weight": 0.15
+    }
+  },
+  "zone_proximity": {
+    "max_distance_km": 60,
+    "fallback_same_city_score": 45
+  },
+  "resilience": {
+    "max_employer_count": 20,
+    "max_role_count": 12,
+    "max_metric_count": 5,
+    "employer_weight": 0.45,
+    "role_weight": 0.35,
+    "metric_weight": 0.2
+  },
+  "reason_thresholds": {
+    "strong_component_score": 70,
+    "weak_component_score": 35
+  }
+}

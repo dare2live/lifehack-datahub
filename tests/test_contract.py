@@ -50,6 +50,7 @@ from datahub.builders.city_context_target_cities import build_city_context_targe
 from datahub.builders.campus_living_score import build_campus_living_score_package
 from datahub.builders.city_development_score import build_city_development_score_package
 from datahub.builders.city_listed_company_signal import build_city_listed_company_signal_package
+from datahub.builders.school_city_industry_fit import build_school_city_industry_fit_package
 from datahub.builders.data_update_policy_audit import audit_data_update_policy
 from datahub.builders.data_update_batch_plan import build_data_update_batch_plan
 from datahub.builders.data_update_plan import build_data_update_plan
@@ -5952,6 +5953,519 @@ def test_build_campus_living_score_rejects_bad_input_metadata(tmp_path: Path):
     assert "region_living_cost row 1 source_url must be an http(s) URL" in message
     assert "region_living_cost row 1 metric_year is not an integer" in message
     assert "region_living_cost row 1 source_date must not be after availability_date" in message
+
+
+def test_build_school_city_industry_fit_package(tmp_path: Path):
+    recruitment_input = tmp_path / "school_recruitment.csv"
+    with recruitment_input.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(
+            f,
+            fieldnames=[
+                "national_school_code",
+                "local_school_code",
+                "school_name",
+                "campus_key",
+                "city",
+                "event_id",
+                "event_title",
+                "event_type",
+                "event_date",
+                "event_year",
+                "employer_name",
+                "employer_canonical_name",
+                "employer_city",
+                "employer_industry_tdx_l2",
+                "employer_industry_tdx_l2_name",
+                "target_majors_json",
+                "job_roles_json",
+                "source_title",
+                "source_url",
+                "raw_response_hash",
+                "source_date",
+                "availability_date",
+                "built_at",
+            ],
+        )
+        writer.writeheader()
+        base = {
+            "national_school_code": "4121010145",
+            "local_school_code": "0145",
+            "school_name": "东北大学",
+            "campus_key": "0145_main",
+            "city": "沈阳",
+            "event_year": "2026",
+            "employer_city": "沈阳",
+            "employer_industry_tdx_l2": "T1205",
+            "employer_industry_tdx_l2_name": "软件服务",
+            "target_majors_json": json.dumps(["计算机科学与技术", "软件工程"], ensure_ascii=False),
+            "source_title": "fixture recruitment",
+            "source_url": "https://example.com/recruitment",
+            "raw_response_hash": "hash-recruitment",
+            "source_date": "2026-05-13",
+            "availability_date": "2026-05-13",
+            "built_at": "2026-05-13T00:00:00",
+        }
+        for event_id, event_type, employer, roles in [
+            ("r1", "campus_talk", "沈阳软件A", ["后端工程师", "测试工程师"]),
+            ("r2", "internship", "沈阳软件B", ["实习工程师"]),
+            ("r3", "career_fair", "沈阳软件C", ["产品经理"]),
+        ]:
+            writer.writerow({
+                **base,
+                "event_id": event_id,
+                "event_title": f"{employer} 宣讲会",
+                "event_type": event_type,
+                "event_date": "2026-04-10",
+                "employer_name": employer,
+                "employer_canonical_name": employer,
+                "job_roles_json": json.dumps(roles, ensure_ascii=False),
+            })
+
+    research_input = tmp_path / "school_research.csv"
+    with research_input.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(
+            f,
+            fieldnames=[
+                "national_school_code",
+                "local_school_code",
+                "school_name",
+                "platform_name",
+                "platform_level",
+                "discipline",
+                "research_keywords_json",
+                "tdx_l2",
+                "tdx_l2_name",
+                "city",
+                "linked_company_name",
+                "industry_zone_name",
+                "evidence_quote",
+                "source_title",
+                "source_url",
+                "source_date",
+                "availability_date",
+                "built_at",
+            ],
+        )
+        writer.writeheader()
+        writer.writerow({
+            "national_school_code": "4121010145",
+            "local_school_code": "0145",
+            "school_name": "东北大学",
+            "platform_name": "软件工程国家重点实验室",
+            "platform_level": "national",
+            "discipline": "软件工程",
+            "research_keywords_json": json.dumps(["软件", "工业互联网"], ensure_ascii=False),
+            "tdx_l2": "T1205",
+            "tdx_l2_name": "软件服务",
+            "city": "沈阳",
+            "linked_company_name": "沈阳软件A",
+            "industry_zone_name": "沈阳软件园",
+            "evidence_quote": "实验室与本地软件企业合作。",
+            "source_title": "fixture research",
+            "source_url": "https://example.com/research",
+            "source_date": "2026-05-13",
+            "availability_date": "2026-05-13",
+            "built_at": "2026-05-13T00:00:00",
+        })
+
+    employment_input = tmp_path / "school_employment.csv"
+    with employment_input.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(
+            f,
+            fieldnames=[
+                "national_school_code",
+                "local_school_code",
+                "school_name",
+                "province",
+                "city",
+                "metric_key",
+                "metric_name",
+                "metric_value",
+                "metric_unit",
+                "metric_year",
+                "metric_scope",
+                "employer_name",
+                "industry_tdx_l2",
+                "industry_tdx_l2_name",
+                "source_title",
+                "source_url",
+                "evidence_quote",
+                "source_date",
+                "availability_date",
+                "built_at",
+            ],
+        )
+        writer.writeheader()
+        base = {
+            "national_school_code": "4121010145",
+            "local_school_code": "0145",
+            "school_name": "东北大学",
+            "province": "辽宁",
+            "city": "沈阳",
+            "metric_year": "2024",
+            "metric_scope": "本科毕业生",
+            "employer_name": "沈阳软件A",
+            "industry_tdx_l2": "T1205",
+            "industry_tdx_l2_name": "软件服务",
+            "source_title": "fixture employment",
+            "source_url": "https://example.com/employment",
+            "source_date": "2026-05-13",
+            "availability_date": "2026-05-13",
+            "built_at": "2026-05-13T00:00:00",
+        }
+        for metric_key, metric_name, value, unit in [
+            ("local_city_retention_rate", "留沈比例", "0.46", "ratio"),
+            ("top_employer_hire_count", "重点雇主录用人数", "80", "count"),
+            ("top_industry_share", "重点行业占比", "0.31", "ratio"),
+        ]:
+            writer.writerow({
+                **base,
+                "metric_key": metric_key,
+                "metric_name": metric_name,
+                "metric_value": value,
+                "metric_unit": unit,
+                "evidence_quote": f"{metric_name}{value}",
+            })
+
+    zone_input = tmp_path / "city_zone.csv"
+    with zone_input.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(
+            f,
+            fieldnames=[
+                "zone_id",
+                "zone_name",
+                "zone_level",
+                "province",
+                "city",
+                "district",
+                "adcode",
+                "longitude",
+                "latitude",
+                "coordinate_system",
+                "tdx_l2",
+                "tdx_l2_name",
+                "anchor_companies_json",
+                "source_title",
+                "source_url",
+                "evidence_quote",
+                "source_date",
+                "availability_date",
+                "built_at",
+            ],
+        )
+        writer.writeheader()
+        writer.writerow({
+            "zone_id": "sy-software-park",
+            "zone_name": "沈阳软件园",
+            "zone_level": "municipal",
+            "province": "辽宁",
+            "city": "沈阳",
+            "district": "浑南区",
+            "adcode": "210112",
+            "longitude": "123.46",
+            "latitude": "41.73",
+            "coordinate_system": "GCJ-02",
+            "tdx_l2": "T1205",
+            "tdx_l2_name": "软件服务",
+            "anchor_companies_json": json.dumps(["沈阳软件A"], ensure_ascii=False),
+            "source_title": "fixture zone",
+            "source_url": "https://example.com/zone",
+            "evidence_quote": "沈阳软件园聚集软件服务企业。",
+            "source_date": "2026-05-13",
+            "availability_date": "2026-05-13",
+            "built_at": "2026-05-13T00:00:00",
+        })
+
+    location_input = tmp_path / "school_location.csv"
+    with location_input.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(
+            f,
+            fieldnames=[
+                "national_school_code",
+                "local_school_code",
+                "school_name",
+                "campus_key",
+                "campus_name",
+                "address",
+                "province",
+                "city",
+                "district",
+                "adcode",
+                "longitude",
+                "latitude",
+                "coordinate_system",
+                "geocode_level",
+                "source_address_url",
+                "source_date",
+                "availability_date",
+                "built_at",
+            ],
+        )
+        writer.writeheader()
+        writer.writerow({
+            "national_school_code": "4121010145",
+            "local_school_code": "0145",
+            "school_name": "东北大学",
+            "campus_key": "0145_main",
+            "campus_name": "南湖校区",
+            "address": "辽宁省沈阳市和平区文化路三巷",
+            "province": "辽宁",
+            "city": "沈阳",
+            "district": "和平区",
+            "adcode": "210102",
+            "longitude": "123.425",
+            "latitude": "41.774",
+            "coordinate_system": "GCJ-02",
+            "geocode_level": "门牌号",
+            "source_address_url": "https://example.com/location",
+            "source_date": "2026-05-13",
+            "availability_date": "2026-05-13",
+            "built_at": "2026-05-13T00:00:00",
+        })
+
+    result = build_school_city_industry_fit_package(
+        recruitment_input=recruitment_input,
+        research_input=research_input,
+        employment_input=employment_input,
+        zone_input=zone_input,
+        location_input=location_input,
+        output_root=tmp_path / "exports",
+        package_id="pkg-school-city-industry-fit-test",
+        source_version="fixture-school-city-industry",
+    )
+
+    package_dir = Path(result["package_dir"])
+    assert validate_manifest(package_dir / "manifest.json")["errors"] == []
+    assert result["rows"] == 1
+    with (package_dir / "fa_mart_school_city_industry_fit.csv").open(encoding="utf-8", newline="") as f:
+        rows = list(csv.DictReader(f))
+    row = rows[0]
+    assert row["national_school_code"] == "4121010145"
+    assert row["city"] == "沈阳"
+    assert row["tdx_l2"] == "T1205"
+    assert row["score_profile"] == "city_industry_default"
+    assert float(row["overall_score"]) > 0
+    assert float(row["zone_proximity_score"]) > 0
+    contributions = json.loads(row["signal_contribution_json"])
+    assert "recruitment_score" in contributions["components"]
+    lineage = json.loads(row["pit_lineage_json"])
+    assert "fa_dim_city_industry_zone" in lineage["tables"]
+    assert result["quality_report"]["input_quality"]["errors"] == []
+
+
+def test_build_school_city_industry_fit_rejects_bad_input_metadata(tmp_path: Path):
+    recruitment_input = tmp_path / "school_recruitment.csv"
+    with recruitment_input.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(
+            f,
+            fieldnames=[
+                "national_school_code",
+                "school_name",
+                "city",
+                "event_id",
+                "event_type",
+                "event_date",
+                "event_year",
+                "employer_name",
+                "employer_industry_tdx_l2",
+                "source_title",
+                "source_url",
+                "source_date",
+                "availability_date",
+                "built_at",
+            ],
+        )
+        writer.writeheader()
+        writer.writerow({
+            "national_school_code": "4121010145",
+            "school_name": "东北大学",
+            "city": "沈阳",
+            "event_id": "bad-event",
+            "event_type": "unsupported",
+            "event_date": "2026/04/10",
+            "event_year": "2026.5",
+            "employer_name": "沈阳软件A",
+            "employer_industry_tdx_l2": "T1205",
+            "source_title": "fixture recruitment",
+            "source_url": "ftp://example.com/recruitment",
+            "source_date": "2026-05-14",
+            "availability_date": "2026-05-13",
+            "built_at": "2026-05-13T00:00:00",
+        })
+
+    research_input = tmp_path / "school_research.csv"
+    with research_input.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(
+            f,
+            fieldnames=[
+                "national_school_code",
+                "school_name",
+                "platform_name",
+                "platform_level",
+                "tdx_l2",
+                "tdx_l2_name",
+                "city",
+                "source_url",
+                "source_date",
+                "availability_date",
+                "built_at",
+            ],
+        )
+        writer.writeheader()
+        writer.writerow({
+            "national_school_code": "4121010145",
+            "school_name": "东北大学",
+            "platform_name": "平台",
+            "platform_level": "unknown_new",
+            "tdx_l2": "",
+            "tdx_l2_name": "",
+            "city": "沈阳",
+            "source_url": "https://example.com/research",
+            "source_date": "2026-05-13",
+            "availability_date": "2026-05-13",
+            "built_at": "2026-05-13T00:00:00",
+        })
+
+    employment_input = tmp_path / "school_employment.csv"
+    with employment_input.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(
+            f,
+            fieldnames=[
+                "national_school_code",
+                "school_name",
+                "city",
+                "metric_key",
+                "metric_name",
+                "metric_value",
+                "metric_unit",
+                "metric_year",
+                "industry_tdx_l2",
+                "source_title",
+                "source_url",
+                "source_date",
+                "availability_date",
+                "built_at",
+            ],
+        )
+        writer.writeheader()
+        writer.writerow({
+            "national_school_code": "4121010145",
+            "school_name": "东北大学",
+            "city": "沈阳",
+            "metric_key": "unknown_metric",
+            "metric_name": "未知指标",
+            "metric_value": "abc",
+            "metric_unit": "ratio",
+            "metric_year": "2026.5",
+            "industry_tdx_l2": "",
+            "source_title": "fixture employment",
+            "source_url": "https://example.com/employment",
+            "source_date": "2026-05-13",
+            "availability_date": "2026-05-13",
+            "built_at": "2026-05-13T00:00:00",
+        })
+
+    zone_input = tmp_path / "city_zone.csv"
+    with zone_input.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(
+            f,
+            fieldnames=[
+                "zone_id",
+                "zone_name",
+                "city",
+                "longitude",
+                "latitude",
+                "tdx_l2",
+                "tdx_l2_name",
+                "source_url",
+                "source_date",
+                "availability_date",
+                "built_at",
+            ],
+        )
+        writer.writeheader()
+        writer.writerow({
+            "zone_id": "bad-zone",
+            "zone_name": "坏园区",
+            "city": "沈阳",
+            "longitude": "bad",
+            "latitude": "100",
+            "tdx_l2": "T1205",
+            "tdx_l2_name": "软件服务",
+            "source_url": "https://example.com/zone",
+            "source_date": "2026-05-13",
+            "availability_date": "2026-05-13",
+            "built_at": "2026-05-13T00:00:00",
+        })
+
+    location_input = tmp_path / "school_location.csv"
+    with location_input.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(
+            f,
+            fieldnames=[
+                "national_school_code",
+                "school_name",
+                "campus_key",
+                "address",
+                "province",
+                "city",
+                "district",
+                "adcode",
+                "longitude",
+                "latitude",
+                "coordinate_system",
+                "geocode_level",
+                "source_address_url",
+                "source_date",
+                "availability_date",
+                "built_at",
+            ],
+        )
+        writer.writeheader()
+        writer.writerow({
+            "national_school_code": "4121010145",
+            "school_name": "东北大学",
+            "campus_key": "0145_main",
+            "address": "辽宁省沈阳市和平区文化路三巷",
+            "province": "辽宁",
+            "city": "沈阳",
+            "district": "和平区",
+            "adcode": "210102",
+            "longitude": "123.425",
+            "latitude": "41.774",
+            "coordinate_system": "GCJ-02",
+            "geocode_level": "门牌号",
+            "source_address_url": "ftp://example.com/location",
+            "source_date": "2026-05-13",
+            "availability_date": "2026-05-13",
+            "built_at": "2026-05-13T00:00:00",
+        })
+
+    with pytest.raises(ValueError) as exc:
+        build_school_city_industry_fit_package(
+            recruitment_input=recruitment_input,
+            research_input=research_input,
+            employment_input=employment_input,
+            zone_input=zone_input,
+            location_input=location_input,
+            output_root=tmp_path / "exports",
+            package_id="pkg-school-city-industry-fit-bad-input",
+            source_version="fixture-school-city-industry",
+        )
+
+    message = str(exc.value)
+    assert "recruitment row 1 source_url must be an http(s) URL" in message
+    assert "recruitment row 1 source_date must not be after availability_date" in message
+    assert "recruitment row 1 unregistered event_type: unsupported" in message
+    assert "recruitment row 1 event_date must use YYYY-MM-DD" in message
+    assert "recruitment row 1 event_year is not an integer" in message
+    assert "research row 1 missing tdx_l2" in message
+    assert "employment row 1 unregistered metric_key: unknown_metric" in message
+    assert "employment row 1 metric_year is not an integer" in message
+    assert "employment row 1 metric_value is not numeric: None" in message
+    assert "employment row 1 missing industry_tdx_l2" in message
+    assert "zone row 1 latitude outside range: 100" in message
+    assert "location row 1 source_address_url must be an http(s) URL" in message
 
 
 def test_build_city_development_score_package(tmp_path: Path):

@@ -100,6 +100,7 @@ from .builders.score_source_coverage import audit_score_source_coverage
 from .builders.score_distribution_csv_audit import audit_score_distribution_csvs
 from .builders.score_distribution_image_groups import parse_score_distribution_image_groups
 from .builders.school_identity_review_plan import build_school_identity_review_plan
+from .builders.school_city_industry_fit import build_school_city_industry_fit_package
 from .builders.school_location_geocode_audit import audit_school_location_geocode_input
 from .builders.school_location_from_amap import build_school_location_package_from_amap_geocode
 from .builders.school_location_geocode_plan import build_school_location_geocode_input_plan
@@ -814,6 +815,24 @@ def main() -> int:
     build_campus_living_score.add_argument("--poi-sheet")
     build_campus_living_score.add_argument("--housing-sheet")
     build_campus_living_score.add_argument("--region-cost-sheet")
+
+    build_school_city_industry_fit = sub.add_parser(
+        "build-school-city-industry-fit",
+        help="Build fa_mart_school_city_industry_fit from school recruitment, research, employment, zone, and location signals",
+    )
+    build_school_city_industry_fit.add_argument("--recruitment-input", required=True, type=Path)
+    build_school_city_industry_fit.add_argument("--research-input", required=True, type=Path)
+    build_school_city_industry_fit.add_argument("--employment-input", required=True, type=Path)
+    build_school_city_industry_fit.add_argument("--zone-input", required=True, type=Path)
+    build_school_city_industry_fit.add_argument("--location-input", required=True, type=Path)
+    build_school_city_industry_fit.add_argument("--output-root", required=True, type=Path)
+    build_school_city_industry_fit.add_argument("--package-id")
+    build_school_city_industry_fit.add_argument("--source-version")
+    build_school_city_industry_fit.add_argument("--recruitment-sheet")
+    build_school_city_industry_fit.add_argument("--research-sheet")
+    build_school_city_industry_fit.add_argument("--employment-sheet")
+    build_school_city_industry_fit.add_argument("--zone-sheet")
+    build_school_city_industry_fit.add_argument("--location-sheet")
 
     build_major_outcome_civil_service = sub.add_parser(
         "build-major-outcome-from-civil-service",
@@ -1792,6 +1811,24 @@ def main() -> int:
             poi_sheet=args.poi_sheet,
             housing_sheet=args.housing_sheet,
             region_cost_sheet=args.region_cost_sheet,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+    if args.cmd == "build-school-city-industry-fit":
+        result = build_school_city_industry_fit_package(
+            recruitment_input=args.recruitment_input,
+            research_input=args.research_input,
+            employment_input=args.employment_input,
+            zone_input=args.zone_input,
+            location_input=args.location_input,
+            output_root=args.output_root,
+            package_id=args.package_id,
+            source_version=args.source_version,
+            recruitment_sheet=args.recruitment_sheet,
+            research_sheet=args.research_sheet,
+            employment_sheet=args.employment_sheet,
+            zone_sheet=args.zone_sheet,
+            location_sheet=args.location_sheet,
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0

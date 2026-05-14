@@ -271,6 +271,21 @@ python3 scripts/build_package.py build-campus-living-score \
 
 通勤、商业便利、租房成本、医疗可达性和绿地环境的评分范围、POI 分组、租售指标和值域维护在 `config/campus_living_score.json`。构建 mart 前会先审计输入：校区 geocode 置信度和经纬度必须合法，POI `category_group` 必须注册，租售 `housing_metric_key/listing_type` 必须注册，区域生活成本 `metric_key` 和年份必须合法，指标值、来源 URL 和来源日期必须符合统一元数据门禁。租售价格只能作为带 `snapshot_date/source_date/sample_count` 的快照信号，不作为静态事实。
 
+学校城市产业连接评分同样不在 core 里计算。先由 DataHub 复核学校招聘活动、科研产业连接、本地就业去向、城市产业园区和校区坐标，再统一生成 `fa_mart_school_city_industry_fit`：
+
+```bash
+python3 scripts/build_package.py build-school-city-industry-fit \
+  --recruitment-input cleaned/school_recruitment_event.csv \
+  --research-input cleaned/school_research_industry_link.csv \
+  --employment-input cleaned/school_local_employment.csv \
+  --zone-input cleaned/city_industry_zone.csv \
+  --location-input cleaned/school_location.csv \
+  --output-root exports \
+  --package-id 2026_school_city_industry_fit
+```
+
+校园招聘、科研平台、本地就业、实习机会、产业园区距离和就业韧性的评分权重维护在 `config/school_city_industry_fit.json`。构建 mart 前会先审计输入：招聘 `event_type`、本地就业 `metric_key`、产业代码、metric 年份和值、园区经纬度、来源 URL 和日期顺序必须符合配置与元数据门禁。该 mart 用来表达学校是否已经接入所在城市的真实产业网络，不替代录取概率。
+
 城市发展底盘评分不在 core 里直接计算。先由 DataHub 采集并复核 `fa_fact_city_economic_indicator`、`fa_fact_city_public_resource` 和 `fa_fact_city_listed_company_signal`，再统一生成 `fa_mart_city_development_score`：
 
 ```bash

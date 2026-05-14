@@ -1285,7 +1285,7 @@
         "status": "derived_from_datahub_signals",
         "official_distribution": "DataHub 招聘活动、科研平台、本地就业、产业园区和校区坐标加工结果",
         "evidence_urls": [],
-        "notes": "该评分回答“这个学校和这个城市的某个产业是否有真实连接”。评分只消费已核验证据，权重由配置维护，core 只读取 mart 与 lineage。"
+        "notes": "该评分回答“这个学校和这个城市的某个产业是否有真实连接”。评分只消费已核验证据，权重、招聘类型、就业指标、园区距离和值域维护在 config/school_city_industry_fit.json，core 只读取 mart 与 lineage。"
       },
       "target_tables": ["fa_mart_school_city_industry_fit"]
     },
