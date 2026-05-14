@@ -7591,6 +7591,40 @@ def test_audit_outcome_collection_review_seeds_rejects_metric_value_out_of_range
     assert audit["errors"] == ["seed 1 metric_value is above max_value 1: 1.2"]
 
 
+def test_audit_outcome_collection_review_seeds_rejects_bad_year_and_dates(monkeypatch: pytest.MonkeyPatch):
+    seed = {
+        "seed_id": "bad_outcome_seed_dates",
+        "domain": "school",
+        "entity_code": "0001",
+        "entity_name": "测试大学",
+        "metric_key": "employment_rate",
+        "metric_year": "2024.0",
+        "status": "verified",
+        "metric_value": 0.9,
+        "source_title": "测试报告",
+        "source_url": "https://example.edu/report.pdf",
+        "evidence_quote": "毕业去向落实率为 90%。",
+        "metric_scope": "测试口径",
+        "source_date": "2024/12/31",
+        "availability_date": "2024-12-31",
+        "reviewer": "codex",
+        "reviewed_at": "2026-14-05",
+        "review_note": "测试年份和日期格式。",
+    }
+    monkeypatch.setattr(
+        "datahub.builders.outcome_collection_seed_merge.load_outcome_collection_review_seeds",
+        lambda: {"seeds": [seed]},
+    )
+
+    audit = audit_outcome_collection_review_seeds()
+
+    assert audit["errors"] == [
+        "seed 1 metric_year is not an integer",
+        "seed 1 source_date must use YYYY-MM-DD",
+        "seed 1 reviewed_at must use YYYY-MM-DD",
+    ]
+
+
 def test_merge_outcome_collection_batch_updates_only_editable_columns(tmp_path: Path):
     plan = tmp_path / "outcome_collection_plan.csv"
     rows = [

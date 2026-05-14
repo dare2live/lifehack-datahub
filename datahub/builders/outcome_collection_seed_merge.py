@@ -149,6 +149,12 @@ def _audit_seed_config() -> dict[str, Any]:
         domain = str(seed.get("domain") or "").strip()
         metric_key = str(seed.get("metric_key") or "").strip()
         status = str(seed.get("status") or "").strip()
+        if _to_int(seed.get("metric_year")) is None:
+            errors.append(f"seed {index} metric_year is not an integer")
+        for date_field in ("source_date", "availability_date", "reviewed_at"):
+            date_error = _date_error(seed.get(date_field))
+            if date_error:
+                errors.append(f"seed {index} {date_field} {date_error}")
         if domain and domain not in known_domains:
             errors.append(f"seed {index} unknown domain: {domain}")
         if domain and metric_key and metric_key not in domain_metrics.get(domain, {}):
@@ -209,6 +215,29 @@ def _to_float(value: Any) -> float | None:
         return float(str(value).replace(",", "").strip())
     except ValueError:
         return None
+
+
+def _to_int(value: Any) -> int | None:
+    if _is_blank(value):
+        return None
+    try:
+        text = str(value).strip()
+        if "." in text:
+            return None
+        return int(text)
+    except ValueError:
+        return None
+
+
+def _date_error(value: Any) -> str:
+    if _is_blank(value):
+        return ""
+    text = str(value).strip()
+    try:
+        datetime.strptime(text, "%Y-%m-%d")
+    except ValueError:
+        return "must use YYYY-MM-DD"
+    return ""
 
 
 def _metric_range_error(value: float, metric_config: dict[str, Any]) -> str:
