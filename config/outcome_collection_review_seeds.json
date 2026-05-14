@@ -289,6 +289,25 @@
       "review_note": "原文明确截至 2024 年 8 月 31 日应届本科毕业生总体就业率 87.54%；师范生/非师范生分组落实率未作为总体指标。"
     },
     {
+      "seed_id": "bhu_2024_undergraduate_postgrad_rate",
+      "domain": "school",
+      "entity_code": "0167",
+      "entity_name": "渤海大学",
+      "metric_key": "postgrad_rate",
+      "metric_year": 2024,
+      "status": "verified",
+      "metric_value": 0.217,
+      "source_title": "渤海大学2023-2024学年本科教学质量报告",
+      "source_url": "https://jwc.bhu.edu.cn/engine2/general/4172508/detail?currentBranch=0&engineInstanceId=657248&pageId=85848&typeId=2987587&websiteId=63219",
+      "evidence_quote": "毕业生最主要的毕业去向是企业，占 54.95%。升学 1160 人，占 21.70%，其中出国（境）留学 44 人，占 0.94%。",
+      "metric_scope": "2024届应届本科毕业生，截至2024年8月31日升学占比；原文同时说明其中出国（境）留学 44 人占 0.94%",
+      "source_date": "2024-12-19",
+      "availability_date": "2024-12-19",
+      "reviewer": "codex",
+      "reviewed_at": "2026-05-14",
+      "review_note": "同一官方报告段落已用于就业率种子；原文明确给出升学 1160 人，占 21.70%，因此按 postgrad_rate=0.2170 维护。"
+    },
+    {
       "seed_id": "lnnu_2024_undergraduate_employment_rate",
       "domain": "school",
       "entity_code": "0165",
