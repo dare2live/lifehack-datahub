@@ -1,8 +1,9 @@
 """Data package validation."""
 from __future__ import annotations
 
-import json
 from pathlib import Path
+
+from datahub.config import load_json_config
 
 
 REQUIRED_MANIFEST_FIELDS = {"package_id", "built_at", "tables", "files", "hashes", "quality_report"}
@@ -14,7 +15,11 @@ def validate_manifest(path: Path) -> dict:
     if not path.exists():
         return {"errors": [f"manifest not found: {path}"], "warnings": warnings}
 
-    data = json.loads(path.read_text(encoding="utf-8"))
+    try:
+        data = load_json_config(path)
+    except ValueError as exc:
+        return {"errors": [str(exc)], "warnings": warnings}
+
     missing = sorted(REQUIRED_MANIFEST_FIELDS - set(data))
     if missing:
         errors.append(f"manifest missing fields: {missing}")
