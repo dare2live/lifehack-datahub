@@ -289,6 +289,25 @@
       "review_note": "原文明确毕业生初次毕业去向落实率 84.98%。"
     },
     {
+      "seed_id": "dlnu_2024_undergraduate_postgrad_rate",
+      "domain": "school",
+      "entity_code": "2026",
+      "entity_name": "大连民族大学",
+      "metric_key": "postgrad_rate",
+      "metric_year": 2024,
+      "status": "verified",
+      "metric_value": 0.2233,
+      "source_title": "大连民族大学2023-2024学年本科教学质量报告",
+      "source_url": "https://new.dlnu.edu.cn/shpg/info/1117/1553.htm",
+      "evidence_quote": "2024 届本科毕业生总计人，实际毕业人数 4434 人，毕业率为 99.84%，应届本科生学位授予率为 100%。表 6-2 毕业生毕业去向分布一览表：1.应届毕业生升学或深造基本情况（人）总数 990，升学考取本校 143，升学考取外校 478，免试推荐研究生 0，出国（境）深造 130，升入第二学士学位 239。",
+      "metric_scope": "2024届应届本科毕业生，升学或深造总数 990 人除以实际毕业人数 4434 人；包含本校升学、外校升学、出国（境）深造和第二学士学位",
+      "source_date": "2024-12-05",
+      "availability_date": "2024-12-05",
+      "reviewer": "codex",
+      "reviewed_at": "2026-05-14",
+      "review_note": "原文表 6-2 给出应届毕业生升学或深造总数及分类；按 outcome 深造率定义采用 990/4434=22.33%，并在口径中保留第二学士学位计入说明。"
+    },
+    {
       "seed_id": "bhu_2024_undergraduate_employment_rate",
       "domain": "school",
       "entity_code": "0167",
