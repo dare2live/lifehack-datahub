@@ -9143,10 +9143,10 @@ def test_parse_ln_application_workbook_outputs_plan_and_score_history(tmp_path: 
         report_output=tmp_path / "report.json",
     )
 
-    assert report["row_counts"]["fa_dim_ln_admission_plan"] == 1
-    assert report["row_counts"]["fa_fact_ln_score_history"] == 2
+    assert report["row_counts"]["fa_dim_ln_admission_plan"] == 2
+    assert report["row_counts"]["fa_fact_ln_score_history"] == 3
     assert report["duplicate_counts"]["fa_dim_ln_admission_plan"] == 1
-    assert any(item["sheet"] == "物理类特殊" for item in report["ignored_sheets"])
+    assert any(item["sheet"] == "物理类特殊" for item in report["matched_sheets"])
     with (tmp_path / "plan.csv").open(encoding="utf-8", newline="") as f:
         plan_rows = list(csv.DictReader(f))
     assert plan_rows[0]["batch"] == "本科批"
@@ -9157,6 +9157,9 @@ def test_parse_ln_application_workbook_outputs_plan_and_score_history(tmp_path: 
     assert plan_rows[0]["school_nature"] == "公办"
     assert plan_rows[0]["source_date"] == "2025-08-27"
     assert plan_rows[0]["id"]
+    assert plan_rows[1]["school_code"] == "0140"
+    assert plan_rows[1]["major_code"] == "AC"
+    assert plan_rows[1]["major_full"] == "法学类"
     with (tmp_path / "score.csv").open(encoding="utf-8", newline="") as f:
         score_rows = list(csv.DictReader(f))
     assert {row["score_year"] for row in score_rows} == {"2024", "2025"}

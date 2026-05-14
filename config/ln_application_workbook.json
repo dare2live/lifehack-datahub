@@ -17,7 +17,17 @@
           "subject_cat": "物理类"
         },
         {
+          "sheet_names": ["物理类特殊"],
+          "batch": "本科批",
+          "subject_cat": "物理类"
+        },
+        {
           "sheet_names": ["历史类"],
+          "batch": "本科批",
+          "subject_cat": "历史类"
+        },
+        {
+          "sheet_names": ["历史类特殊"],
           "batch": "本科批",
           "subject_cat": "历史类"
         }
