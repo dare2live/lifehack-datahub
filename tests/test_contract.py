@@ -6602,6 +6602,113 @@ def test_build_major_city_employment_fit_package(tmp_path: Path):
     assert contributions["listed_company_count"] == 2
     lineage = json.loads(row["pit_lineage_json"])
     assert "fa_fact_company_role_demand_signal" in lineage["tables"]
+    assert result["quality_report"]["input_quality"]["errors"] == []
+
+
+def test_build_major_city_employment_fit_rejects_bad_input_metadata(tmp_path: Path):
+    role_input = tmp_path / "major_roles.csv"
+    with role_input.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(
+            f,
+            fieldnames=[
+                "major_code",
+                "major_name",
+                "role_key",
+                "role_name",
+                "role_type",
+                "public_sector_fit",
+                "private_sector_fit",
+                "listed_company_fit",
+                "confidence",
+                "source_url",
+                "source_date",
+                "availability_date",
+                "built_at",
+            ],
+        )
+        writer.writeheader()
+        writer.writerow({
+            "major_code": "120203K",
+            "major_name": "会计学",
+            "role_key": "accountant",
+            "role_name": "会计",
+            "role_type": "direct",
+            "public_sector_fit": "70",
+            "private_sector_fit": "120",
+            "listed_company_fit": "80",
+            "confidence": "high",
+            "source_url": "https://example.com/role-map",
+            "source_date": "2026-05-13",
+            "availability_date": "2026-05-13",
+            "built_at": "2026-05-13T00:00:00",
+        })
+
+    demand_input = tmp_path / "company_role_demand.csv"
+    with demand_input.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(
+            f,
+            fieldnames=[
+                "company_id",
+                "company_name",
+                "listed_company_flag",
+                "province",
+                "city",
+                "role_key",
+                "role_name",
+                "role_family",
+                "metric_key",
+                "metric_name",
+                "metric_value",
+                "metric_unit",
+                "metric_year",
+                "metric_scope",
+                "source_title",
+                "source_url",
+                "evidence_quote",
+                "source_date",
+                "availability_date",
+                "built_at",
+            ],
+        )
+        writer.writeheader()
+        writer.writerow({
+            "company_id": "bank-a",
+            "company_name": "沈阳银行A",
+            "listed_company_flag": "true",
+            "province": "辽宁",
+            "city": "沈阳",
+            "role_key": "accountant",
+            "role_name": "会计",
+            "role_family": "财务",
+            "metric_key": "unsupported_metric",
+            "metric_name": "未知指标",
+            "metric_value": "12",
+            "metric_unit": "count",
+            "metric_year": "2026.5",
+            "metric_scope": "公开样本",
+            "source_title": "fixture demand",
+            "source_url": "ftp://example.com/bad-demand",
+            "evidence_quote": "未知指标12",
+            "source_date": "2026-05-14",
+            "availability_date": "2026-05-13",
+            "built_at": "2026-05-13T00:00:00",
+        })
+
+    with pytest.raises(ValueError) as exc:
+        build_major_city_employment_fit_package(
+            role_input=role_input,
+            demand_input=demand_input,
+            output_root=tmp_path / "exports",
+            package_id="pkg-major-city-employment-fit-bad-input",
+            source_version="fixture-major-city-fit",
+        )
+
+    message = str(exc.value)
+    assert "role row 1 private_sector_fit outside 0-100: 120" in message
+    assert "demand row 1 source_url must be an http(s) URL" in message
+    assert "demand row 1 source_date must not be after availability_date" in message
+    assert "demand row 1 unregistered metric_key: unsupported_metric" in message
+    assert "demand row 1 metric_year is not an integer" in message
 
 
 def test_build_outcome_collection_plan_from_core_admission_plan(tmp_path: Path):

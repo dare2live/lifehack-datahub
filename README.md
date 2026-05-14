@@ -280,7 +280,7 @@ python3 scripts/build_package.py build-major-city-employment-fit \
   --package-id 2026_major_city_employment_fit
 ```
 
-评分档案、组件权重、岗位需求指标、上市公司计分和主角色选择权重维护在 `config/major_city_employment_fit.json`。这样会计、人力资源、法律等通用岗位不会被强行塞进单一行业结论，而是通过就业角色、城市岗位需求和上市公司适配进入同一张 mart。
+评分档案、组件权重、岗位需求指标、上市公司计分和主角色选择权重维护在 `config/major_city_employment_fit.json`。构建 mart 前会先审计输入：角色适配分必须在 0-100，岗位需求 `metric_key` 必须在配置中注册，`metric_year` 必须是整数，需求值必须可数值化，来源 URL 和来源日期必须符合统一元数据门禁。这样会计、人力资源、法律等通用岗位不会被强行塞进单一行业结论，而是通过就业角色、城市岗位需求和上市公司适配进入同一张 mart。
 
 ## 本地数据包生成
 

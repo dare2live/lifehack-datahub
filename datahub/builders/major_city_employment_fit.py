@@ -7,6 +7,7 @@ from collections import defaultdict
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 from datahub.config import get_table_schema, load_major_city_employment_fit
 from datahub.exporters.package_exporter import write_manifest
@@ -37,6 +38,10 @@ def build_major_city_employment_fit_package(
     built_at = datetime.utcnow().replace(microsecond=0).isoformat()
     rows = _score_rows(role_rows, demand_rows, config, built_at)
     quality = _quality_report(rows, output_schema)
+    input_quality = _input_quality_report(role_rows, demand_rows, config)
+    quality["input_quality"] = input_quality
+    quality["errors"].extend(input_quality["errors"])
+    quality["warnings"].extend(input_quality["warnings"])
     if quality["errors"]:
         raise ValueError("; ".join(quality["errors"]))
 
@@ -411,6 +416,115 @@ def _quality_report(rows: list[dict[str, Any]], schema: dict[str, Any]) -> dict[
         "warnings": warnings,
         "errors": errors,
     }
+
+
+def _input_quality_report(
+    role_rows: list[dict[str, Any]],
+    demand_rows: list[dict[str, Any]],
+    config: dict[str, Any],
+) -> dict[str, Any]:
+    errors: list[str] = []
+    warnings: list[str] = []
+    demand_metrics = config.get("demand_metrics", {})
+    confidence_values = set(config.get("confidence_weights", {}))
+    for index, row in enumerate(role_rows, start=1):
+        _validate_source_metadata(f"role row {index}", row, errors)
+        confidence = str(row.get("confidence") or "").strip()
+        if confidence and confidence not in confidence_values:
+            warnings.append(f"role row {index} unknown confidence: {confidence}")
+        for field in ("public_sector_fit", "private_sector_fit", "listed_company_fit"):
+            value = _number(row.get(field))
+            if row.get(field) not in (None, "") and value is None:
+                errors.append(f"role row {index} {field} is not numeric: {row.get(field)}")
+            elif value is not None and not (0 <= value <= 100):
+                errors.append(f"role row {index} {field} outside 0-100: {value:g}")
+
+    for index, row in enumerate(demand_rows, start=1):
+        _validate_source_metadata(f"demand row {index}", row, errors)
+        metric_key = str(row.get("metric_key") or "").strip()
+        metric_rule = demand_metrics.get(metric_key)
+        if metric_key not in demand_metrics:
+            errors.append(f"demand row {index} unregistered metric_key: {metric_key}")
+        metric_year = _to_int(row.get("metric_year"))
+        if metric_year is None:
+            errors.append(f"demand row {index} metric_year is not an integer")
+        metric_value = _number(row.get("metric_value"))
+        if metric_value is None:
+            errors.append(f"demand row {index} metric_value is not numeric: {row.get('metric_value')}")
+        elif metric_rule:
+            min_value = _number(metric_rule.get("min"))
+            if min_value is not None and metric_value < min_value:
+                errors.append(f"demand row {index} metric_value below min for {metric_key}: {metric_value:g} < {min_value:g}")
+    return {
+        "role_rows": len(role_rows),
+        "demand_rows": len(demand_rows),
+        "errors": errors,
+        "warnings": warnings,
+    }
+
+
+def _validate_source_metadata(prefix: str, row: dict[str, Any], errors: list[str]) -> None:
+    url_error = _source_url_error(row.get("source_url"))
+    if url_error:
+        errors.append(f"{prefix} source_url {url_error}")
+    for date_field in ("source_date", "availability_date"):
+        date_error = _date_error(row.get(date_field))
+        if date_error:
+            errors.append(f"{prefix} {date_field} {date_error}")
+    for date_order_error in _date_order_errors(row):
+        errors.append(f"{prefix} {date_order_error}")
+
+
+def _source_url_error(value: Any) -> str:
+    if _is_blank(value):
+        return ""
+    parsed = urlparse(str(value).strip())
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        return "must be an http(s) URL"
+    return ""
+
+
+def _date_error(value: Any) -> str:
+    if _is_blank(value):
+        return ""
+    try:
+        datetime.strptime(str(value).strip(), "%Y-%m-%d")
+    except ValueError:
+        return "must use YYYY-MM-DD"
+    return ""
+
+
+def _parse_date(value: Any) -> datetime | None:
+    if _is_blank(value):
+        return None
+    try:
+        return datetime.strptime(str(value).strip(), "%Y-%m-%d")
+    except ValueError:
+        return None
+
+
+def _date_order_errors(row: dict[str, Any]) -> list[str]:
+    source_date = _parse_date(row.get("source_date"))
+    availability_date = _parse_date(row.get("availability_date"))
+    if source_date and availability_date and source_date > availability_date:
+        return ["source_date must not be after availability_date"]
+    return []
+
+
+def _to_int(value: Any) -> int | None:
+    if _is_blank(value):
+        return None
+    try:
+        text = str(value).strip()
+        if "." in text:
+            return None
+        return int(text)
+    except ValueError:
+        return None
+
+
+def _is_blank(value: Any) -> bool:
+    return value is None or str(value).strip() == ""
 
 
 def _write_csv(path: Path, rows: list[dict[str, Any]], columns: list[str]) -> None:
