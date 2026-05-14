@@ -74,7 +74,7 @@ def build_score_history_delete_plan_from_reconciliation_plan(
         "built_at": datetime.utcnow().isoformat(),
         "target_table": TARGET_TABLE,
         "plan_csv": str(plan_csv),
-        "csv": str(csv_path),
+        "csv": csv_path.name,
         "rows": len(rows),
         "primary_key": primary_key,
         "decision_counts": dict(sorted(issue_counts.items())),

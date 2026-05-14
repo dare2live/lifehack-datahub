@@ -195,6 +195,54 @@
                 "reviewer": "datahub_auto_rule",
                 "reviewed_at": "2026-05-14",
                 "notes": "core_only zero score/rank placeholder; eligible for reviewed delete-plan generation only, not direct database deletion"
+              },
+              {
+                "rule_id": "official_reference_keeps_core_only_row",
+                "enabled": true,
+                "issue_type": "core_only_unmatched",
+                "match_confidence": "none",
+                "reference_side": "core",
+                "status": "reviewed",
+                "review_decision": "keep_core_row",
+                "reviewer": "datahub_reference_rule",
+                "reviewed_at": "2026-05-14",
+                "notes": "core row matches the supplied official reference package; keep core row"
+              },
+              {
+                "rule_id": "official_reference_uses_package_only_row",
+                "enabled": true,
+                "issue_type": "package_only_unmatched",
+                "match_confidence": "none",
+                "reference_side": "package",
+                "status": "reviewed",
+                "review_decision": "use_package_row",
+                "reviewer": "datahub_reference_rule",
+                "reviewed_at": "2026-05-14",
+                "notes": "package row matches the supplied official reference package; use package row"
+              },
+              {
+                "rule_id": "official_reference_uses_package_value",
+                "enabled": true,
+                "issue_type": "value_drift",
+                "match_confidence": "primary_key_match",
+                "reference_side": "package",
+                "status": "reviewed",
+                "review_decision": "use_package_row",
+                "reviewer": "datahub_reference_rule",
+                "reviewed_at": "2026-05-14",
+                "notes": "package value matches the supplied official reference package; use package row"
+              },
+              {
+                "rule_id": "official_reference_keeps_core_value",
+                "enabled": true,
+                "issue_type": "value_drift",
+                "match_confidence": "primary_key_match",
+                "reference_side": "core",
+                "status": "reviewed",
+                "review_decision": "keep_core_row",
+                "reviewer": "datahub_reference_rule",
+                "reviewed_at": "2026-05-14",
+                "notes": "core value matches the supplied official reference package; keep core row"
               }
             ]
           },

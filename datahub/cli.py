@@ -422,6 +422,7 @@ def main() -> int:
     apply_score_reconciliation_auto.add_argument("--output", required=True, type=Path)
     apply_score_reconciliation_auto.add_argument("--report", type=Path)
     apply_score_reconciliation_auto.add_argument("--rule-id", action="append", dest="rule_ids")
+    apply_score_reconciliation_auto.add_argument("--reference-package-dir", action="append", dest="reference_package_dirs", type=Path)
     apply_score_reconciliation_auto.add_argument("--limit", type=int)
 
     build_score_reconciliation_package = sub.add_parser(
@@ -432,6 +433,7 @@ def main() -> int:
     build_score_reconciliation_package.add_argument("--output-root", required=True, type=Path)
     build_score_reconciliation_package.add_argument("--package-id")
     build_score_reconciliation_package.add_argument("--source-version")
+    build_score_reconciliation_package.add_argument("--allow-core-exclude-rows", action="store_true")
 
     build_score_delete_plan = sub.add_parser(
         "build-score-history-delete-plan",
@@ -1358,6 +1360,7 @@ def main() -> int:
             output=args.output,
             report_path=args.report,
             rule_ids=args.rule_ids,
+            reference_package_dirs=args.reference_package_dirs,
             limit=args.limit,
         )
         print(json.dumps(report, ensure_ascii=False, indent=2))
@@ -1368,6 +1371,7 @@ def main() -> int:
             output_root=args.output_root,
             package_id=args.package_id,
             source_version=args.source_version,
+            allow_core_exclude_rows=args.allow_core_exclude_rows,
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0

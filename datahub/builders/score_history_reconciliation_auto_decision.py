@@ -20,11 +20,13 @@ def apply_score_history_reconciliation_auto_decisions(
     output: Path,
     report_path: Path | None = None,
     rule_ids: list[str] | None = None,
+    reference_package_dirs: list[Path] | None = None,
     limit: int | None = None,
 ) -> dict[str, Any]:
     schema = get_table_schema(TARGET_TABLE)
     review_config = _review_config(schema)
     rules = _auto_decision_rules(review_config, rule_ids=rule_ids)
+    reference_index = _read_reference_index(reference_package_dirs or [], schema)
     rows, fieldnames = _read_csv(plan_csv)
     _ensure_columns(fieldnames)
 
@@ -37,7 +39,7 @@ def apply_score_history_reconciliation_auto_decisions(
             break
         if str(row.get("status") or "").strip() not in review_config["pending_statuses"]:
             continue
-        rule = _matching_rule(row, rules)
+        rule = _matching_rule(row, rules, reference_index, schema)
         if not rule:
             continue
         row["status"] = rule["status"]
@@ -59,6 +61,8 @@ def apply_score_history_reconciliation_auto_decisions(
         "plan_csv": str(plan_csv),
         "output": str(output),
         "configured_rules": [rule["rule_id"] for rule in rules],
+        "reference_package_dirs": [str(path) for path in reference_package_dirs or []],
+        "reference_rows": len(reference_index),
         "limit": limit,
         "input_rows": len(rows),
         "updated_rows": updated_rows,
@@ -125,6 +129,7 @@ def _normalize_rule(rule: dict[str, Any], review_config: dict[str, Any], index: 
         "issue_type": issue_type,
         "match_confidence": str(rule.get("match_confidence") or "").strip(),
         "required_row_values": {str(key): str(value) for key, value in required_values.items()},
+        "reference_side": _reference_side(rule, rule_id),
         "status": status,
         "review_decision": decision,
         "reviewer": str(rule["reviewer"]).strip(),
@@ -133,7 +138,19 @@ def _normalize_rule(rule: dict[str, Any], review_config: dict[str, Any], index: 
     }
 
 
-def _matching_rule(row: dict[str, Any], rules: list[dict[str, Any]]) -> dict[str, Any] | None:
+def _reference_side(rule: dict[str, Any], rule_id: str) -> str:
+    side = str(rule.get("reference_side") or "").strip()
+    if side and side not in {"core", "package"}:
+        raise ValueError(f"auto_decision rule {rule_id} reference_side must be core or package")
+    return side
+
+
+def _matching_rule(
+    row: dict[str, Any],
+    rules: list[dict[str, Any]],
+    reference_index: dict[tuple[str, ...], dict[str, Any]],
+    schema: dict[str, Any],
+) -> dict[str, Any] | None:
     for rule in rules:
         if str(row.get("issue_type") or "").strip() != rule["issue_type"]:
             continue
@@ -142,8 +159,69 @@ def _matching_rule(row: dict[str, Any], rules: list[dict[str, Any]]) -> dict[str
         required_values = rule["required_row_values"]
         if any(str(row.get(column) or "").strip() != expected for column, expected in required_values.items()):
             continue
+        if rule["reference_side"] and not _matches_reference(row, rule["reference_side"], reference_index, schema):
+            continue
         return rule
     return None
+
+
+def _matches_reference(
+    row: dict[str, Any],
+    side: str,
+    reference_index: dict[tuple[str, ...], dict[str, Any]],
+    schema: dict[str, Any],
+) -> bool:
+    if not reference_index:
+        return False
+    ref = reference_index.get(_side_key(row, side, schema["primary_key"]))
+    if not ref:
+        return False
+    return (
+        _normalized_number(ref.get("min_score")) == _normalized_number(row.get(f"{side}_min_score"))
+        and _normalized_number(ref.get("min_rank")) == _normalized_number(row.get(f"{side}_min_rank"))
+    )
+
+
+def _side_key(row: dict[str, Any], side: str, primary_key: list[str]) -> tuple[str, ...]:
+    side_major_column = f"{side}_major_code"
+    values = []
+    for column in primary_key:
+        if column == "major_code":
+            values.append(str(row.get(side_major_column) or "").strip())
+        else:
+            values.append(str(row.get(column) or "").strip())
+    return tuple(values)
+
+
+def _read_reference_index(package_dirs: list[Path], schema: dict[str, Any]) -> dict[tuple[str, ...], dict[str, Any]]:
+    if not package_dirs:
+        return {}
+    primary_key = schema["primary_key"]
+    index: dict[tuple[str, ...], dict[str, Any]] = {}
+    duplicate_keys: set[tuple[str, ...]] = set()
+    for package_dir in package_dirs:
+        table_path = package_dir / f"{TARGET_TABLE}.csv"
+        if not table_path.exists():
+            raise ValueError(f"reference package missing {TARGET_TABLE}.csv: {package_dir}")
+        rows, fieldnames = _read_csv(table_path)
+        missing = [column for column in primary_key + ["min_score", "min_rank"] if column not in fieldnames]
+        if missing:
+            raise ValueError(f"reference package {table_path} missing columns: {', '.join(missing)}")
+        for row in rows:
+            key = tuple(str(row.get(column) or "").strip() for column in primary_key)
+            if key in index:
+                duplicate_keys.add(key)
+            index[key] = row
+    if duplicate_keys:
+        raise ValueError(f"duplicate reference primary keys: {len(duplicate_keys)}")
+    return index
+
+
+def _normalized_number(value: Any) -> str:
+    text = str(value or "").strip()
+    if text.endswith(".0"):
+        text = text[:-2]
+    return text
 
 
 def _append_note(current: str, note: str) -> str:

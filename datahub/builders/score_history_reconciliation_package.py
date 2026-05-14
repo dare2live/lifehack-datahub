@@ -24,6 +24,7 @@ def build_score_history_package_from_reconciliation_plan(
     output_root: Path,
     package_id: str | None = None,
     source_version: str | None = None,
+    allow_core_exclude_rows: bool = False,
 ) -> dict[str, Any]:
     schema = get_table_schema(TARGET_TABLE)
     review_config = _review_config(schema)
@@ -39,7 +40,7 @@ def build_score_history_package_from_reconciliation_plan(
         )
 
     plan_rows, _ = _read_csv(plan_csv)
-    rows, skipped = _build_rows(plan_rows, review_config)
+    rows, skipped = _build_rows(plan_rows, review_config, allow_core_exclude_rows=allow_core_exclude_rows)
     quality = _quality_report(rows, schema, plan_rows, skipped, readiness)
     if quality["errors"]:
         raise ValueError("; ".join(quality["errors"]))
@@ -62,7 +63,8 @@ def build_score_history_package_from_reconciliation_plan(
         "evidence_urls": [],
         "notes": (
             "Rows were selected from a package/core reconciliation plan. "
-            "This package must be imported through the core importer and retains the reviewed decision summary in quality_report."
+            "This package must be imported through the core importer and retains the reviewed decision summary in quality_report. "
+            "Core-backed exclude rows are handled only by the separate delete-plan path."
         ),
         "files": [{"file_name": plan_csv.name, "path": str(plan_csv)}],
     }
@@ -82,12 +84,15 @@ def build_score_history_package_from_reconciliation_plan(
         "skipped_rows": skipped,
         "quality_report": quality,
         "source_lineage": lineage,
+        "allow_core_exclude_rows": allow_core_exclude_rows,
     }
 
 
 def _build_rows(
     plan_rows: list[dict[str, Any]],
     review_config: dict[str, Any],
+    *,
+    allow_core_exclude_rows: bool = False,
 ) -> tuple[list[dict[str, Any]], int]:
     rows = []
     skipped = 0
@@ -98,6 +103,9 @@ def _build_rows(
         decision = str(row.get("review_decision") or "").strip()
         if decision == "exclude_row":
             if _has_core_side(row):
+                if allow_core_exclude_rows:
+                    skipped += 1
+                    continue
                 raise ValueError(
                     f"task {row.get('task_id')} excludes a core-backed row; "
                     "the package importer cannot delete existing core rows"
