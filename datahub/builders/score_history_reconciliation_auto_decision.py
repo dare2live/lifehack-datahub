@@ -11,7 +11,8 @@ from typing import Any
 from datahub.builders.score_history_package_audit import TARGET_TABLE
 from datahub.builders.score_history_reconciliation_audit import _review_config
 from datahub.builders.score_history_reconciliation_plan import PLAN_COLUMNS
-from datahub.config import get_table_schema
+from datahub.config import get_table_schema, load_json_config
+from datahub.validators.package_validator import validate_manifest
 
 
 def apply_score_history_reconciliation_auto_decisions(
@@ -220,6 +221,7 @@ def _read_reference_index(package_dirs: list[Path], schema: dict[str, Any]) -> d
     index: dict[tuple[str, ...], dict[str, Any]] = {}
     duplicate_keys: set[tuple[str, ...]] = set()
     for package_dir in package_dirs:
+        _validate_reference_package(package_dir)
         table_path = package_dir / f"{TARGET_TABLE}.csv"
         if not table_path.exists():
             raise ValueError(f"reference package missing {TARGET_TABLE}.csv: {package_dir}")
@@ -235,6 +237,24 @@ def _read_reference_index(package_dirs: list[Path], schema: dict[str, Any]) -> d
     if duplicate_keys:
         raise ValueError(f"duplicate reference primary keys: {len(duplicate_keys)}")
     return index
+
+
+def _validate_reference_package(package_dir: Path) -> None:
+    manifest_path = package_dir / "manifest.json"
+    report = validate_manifest(manifest_path)
+    if report["errors"]:
+        sample = "; ".join(str(error) for error in report["errors"][:3])
+        raise ValueError(f"reference package manifest errors in {package_dir}: {sample}")
+    manifest = load_json_config(manifest_path)
+    table_file = f"{TARGET_TABLE}.csv"
+    tables = manifest.get("tables") or []
+    if not any(
+        isinstance(table, dict)
+        and table.get("name") == TARGET_TABLE
+        and table.get("file") == table_file
+        for table in tables
+    ):
+        raise ValueError(f"reference package manifest does not declare {TARGET_TABLE}: {package_dir}")
 
 
 def _normalized_number(value: Any) -> str:

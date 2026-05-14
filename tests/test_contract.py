@@ -200,6 +200,13 @@ def test_manifest_rejects_duplicate_json_keys(tmp_path: Path):
     assert any("duplicate JSON key" in err for err in report["errors"])
 
 
+def test_manifest_rejects_non_object(tmp_path: Path):
+    path = tmp_path / "manifest.json"
+    path.write_text('["not", "an", "object"]\n', encoding="utf-8")
+    report = validate_manifest(path)
+    assert report["errors"] == ["manifest must be an object"]
+
+
 def test_manifest_requires_declared_quality_report_file(tmp_path: Path):
     path = tmp_path / "manifest.json"
     path.write_text(
@@ -3228,6 +3235,16 @@ def test_apply_score_history_reconciliation_auto_decisions_uses_reference_packag
                 "min_rank": "57476",
             },
         ])
+    (reference_dir / "quality_report.json").write_text('{"errors":[],"warnings":[]}\n', encoding="utf-8")
+    (reference_dir / "manifest.json").write_text(json.dumps({
+        "package_id": "official-reference",
+        "built_at": "2026-05-14T00:00:00",
+        "source_version": "official-reference-fixture",
+        "tables": [{"name": "fa_fact_ln_score_history", "file": "fa_fact_ln_score_history.csv"}],
+        "files": ["fa_fact_ln_score_history.csv"],
+        "hashes": {},
+        "quality_report": "quality_report.json",
+    }), encoding="utf-8")
 
     output = tmp_path / "score_history_reconciliation_plan_reference.csv"
     report = apply_score_history_reconciliation_auto_decisions(
@@ -3251,6 +3268,39 @@ def test_apply_score_history_reconciliation_auto_decisions_uses_reference_packag
     assert by_id["major-single-official"]["review_decision"] == "map_package_to_core_major_code"
     assert by_id["major-multi-official"]["status"] == "todo"
     assert by_id["core-not-official"]["status"] == "todo"
+
+    bad_reference_dir = tmp_path / "bad_official_reference"
+    bad_reference_dir.mkdir()
+    (bad_reference_dir / "fa_fact_ln_score_history.csv").write_text(
+        (reference_dir / "fa_fact_ln_score_history.csv").read_text(encoding="utf-8"),
+        encoding="utf-8",
+    )
+    (bad_reference_dir / "quality_report.json").write_text(
+        '{"errors":["reference source review is not complete"],"warnings":[]}\n',
+        encoding="utf-8",
+    )
+    (bad_reference_dir / "manifest.json").write_text(json.dumps({
+        "package_id": "bad-official-reference",
+        "built_at": "2026-05-14T00:00:00",
+        "source_version": "bad-official-reference-fixture",
+        "tables": [{"name": "fa_fact_ln_score_history", "file": "fa_fact_ln_score_history.csv"}],
+        "files": ["fa_fact_ln_score_history.csv"],
+        "hashes": {},
+        "quality_report": "quality_report.json",
+    }), encoding="utf-8")
+    try:
+        apply_score_history_reconciliation_auto_decisions(
+            plan_csv=plan,
+            output=tmp_path / "bad_reference_output.csv",
+            reference_package_dirs=[bad_reference_dir],
+        )
+        rejected_bad_reference = False
+    except ValueError as exc:
+        rejected_bad_reference = (
+            "reference package manifest errors" in str(exc)
+            and "quality_report has errors" in str(exc)
+        )
+    assert rejected_bad_reference
 
 
 def test_build_score_history_reconciliation_review_batch_limits_pending_rows(tmp_path: Path):

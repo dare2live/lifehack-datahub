@@ -22,6 +22,8 @@ def validate_manifest(path: Path) -> dict:
         data = load_json_config(path)
     except ValueError as exc:
         return {"errors": [str(exc)], "warnings": warnings}
+    if not isinstance(data, dict):
+        return {"errors": ["manifest must be an object"], "warnings": warnings}
 
     missing = sorted(REQUIRED_MANIFEST_FIELDS - set(data))
     if missing:
