@@ -4,6 +4,8 @@
 
 本项目负责外部数据的采集、解析、清洗、校验和发布。核心仓库只导入本项目产出的 data package，不直接爬网站、不解析 Excel、不维护反爬和字段清洗逻辑。
 
+网页 intake 工具评估见 `docs/web_intake_tool_research.md`。当前建议是优先用本项目既有连接器和 Trafilatura 类本地正文抽取，Firecrawl 作为可选托管补充，Scrapy/Crawlee/Crawl4AI 只在来源稳定、规模变大或动态页面确实需要时引入；所有网页输出仍必须进入 DataHub 复核门禁。
+
 ## 边界
 
 - DataHub 可以接触原始 Excel、PDF、HTML、CSV。
