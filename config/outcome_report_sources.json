@@ -91,6 +91,18 @@
     },
     {
       "domain": "school",
+      "entity_name": "长春工业大学",
+      "metric_year": 2024,
+      "report_scope": "employment_quality_report",
+      "candidate_report_title": "长春工业大学2024届毕业生就业质量年度报告",
+      "candidate_report_url": "https://www.ccut.edu.cn/zsjyw/info/1097/1256.htm",
+      "candidate_file_name": "长春工业大学2024届毕业生就业质量年度报告.pdf",
+      "candidate_source_date": "2025-01-03",
+      "availability_date": "2025-01-03",
+      "evidence_note": "长春工业大学招生就业处页面发布 2024 届毕业生就业质量年度报告，页面列出附件下载链接；附件下载页需要验证码时保持 manual intake。"
+    },
+    {
+      "domain": "school",
       "entity_name": "沈阳师范大学",
       "metric_year": 2024,
       "report_scope": "undergraduate_teaching_quality_report",
