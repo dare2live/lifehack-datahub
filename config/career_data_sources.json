@@ -103,6 +103,48 @@
       "career_salary_survey": ["metric_value", "metric_scope", "source_title", "source_url", "evidence_quote", "source_date", "availability_date"]
     }
   },
+  "platform_source_policy": {
+    "notes": "招聘平台数据用于观察职业、行业和城市招聘需求，不用于直接发布学校毕业去向或专业毕业去向。所有平台来源必须先进入 career_source_plan 或人工复核种子，再由标准包门禁发布。",
+    "default_allowed_targets": ["fa_fact_career_signal", "fa_mart_career_score", "fa_mart_major_city_employment_fit"],
+    "disallowed_targets": ["fa_fact_school_outcome", "fa_fact_major_outcome"],
+    "tiers": {
+      "public_research_report": {
+        "examples": ["智联招聘 CIER 指数报告", "智联招聘企业招聘薪酬报告", "BOSS 直聘职业科学实验室报告", "猎聘人才吸引力报告", "脉脉人才迁徙报告"],
+        "allowed_evidence_targets": ["fa_fact_career_signal", "fa_mart_career_score", "fa_mart_major_city_employment_fit"],
+        "allowed_metrics": ["job_posting_count", "shortage_rank", "salary_median", "salary_p25", "salary_p75", "work_intensity_index"],
+        "publish_rule": "仅当报告给出明确统计期、地域/行业/职业口径、样本或指数含义、可引用来源链接和证据摘录时，才可作为职业信号候选；不能从平台报告推导学校就业率。"
+      },
+      "licensed_api_or_terminal": {
+        "examples": ["Wind/Choice 等已授权终端导出的 CIER、薪酬或招聘需求序列", "招聘平台企业级人才大数据服务"],
+        "allowed_evidence_targets": ["fa_fact_career_signal", "fa_mart_career_score"],
+        "allowed_metrics": ["job_posting_count", "shortage_rank", "salary_median", "salary_p25", "salary_p75", "work_intensity_index"],
+        "publish_rule": "必须保留授权来源、导出时间、指标定义、地域/行业/职业映射和可复核导出文件 hash；未确认授权的接口不得进入标准包。"
+      },
+      "government_market_report": {
+        "examples": ["人社部门人力资源市场供求分析", "公共就业服务机构紧缺职业目录"],
+        "allowed_evidence_targets": ["fa_fact_career_signal", "fa_mart_career_score", "fa_mart_major_city_employment_fit"],
+        "allowed_metrics": ["job_posting_count", "shortage_rank", "salary_median", "salary_p25", "salary_p75"],
+        "publish_rule": "优先级高于商业平台报告；可作为职业需求和城市就业机会信号，但仍需明确统计期、样本范围和指标含义。"
+      },
+      "platform_html_snapshot": {
+        "examples": ["公开职位列表页快照", "学校招聘活动页中的平台职位链接"],
+        "allowed_evidence_targets": ["fa_fact_career_signal"],
+        "allowed_metrics": ["job_posting_count", "salary_median", "salary_p75", "work_intensity_index"],
+        "publish_rule": "只允许合规、可复核、可重复的受控快照；不得维护反爬绕过逻辑；单页岗位数默认只能作为 research_candidate，复核后才可晋级。"
+      },
+      "community_scraper": {
+        "examples": ["GitHub 非官方招聘站爬虫", "未授权接口逆向脚本"],
+        "allowed_evidence_targets": [],
+        "allowed_metrics": [],
+        "publish_rule": "不得直接进入 raw package、career_source_plan verified 行或 core；最多用于人工研究线索，且不能保存绕过登录、验证码或反爬的实现。"
+      }
+    },
+    "bias_controls": [
+      "记录平台样本偏差，例如智联偏传统行业、BOSS 偏中小微和移动端招聘、猎聘偏中高端、脉脉偏互联网人才流动。",
+      "高权重职业信号至少与政府公开供求分析、学校招聘活动、企业官网招聘或另一平台报告交叉验证。",
+      "岗位发布量、薪资和人才迁徙不能单独解释毕业可进入机会，必须与学校出口、专业角色、城市产业和生活成本共同使用。"
+    ]
+  },
   "review_batch": {
     "selection_statuses": ["todo", "in_progress"],
     "editable_columns": ["status", "metric_value", "metric_scope", "source_title", "source_url", "evidence_quote", "source_date", "availability_date", "reviewer", "reviewed_at", "notes"],
@@ -159,7 +201,7 @@
         "kind": "controlled_market_snapshot",
         "target_tables": ["fa_fact_career_signal"],
         "official_distribution": "人社部门公开供求分析、招聘平台公开聚合页、企业招聘页、第三方报告；遵守目标站点 ToS，优先官方公开报告、人工导出或公开数据集",
-        "collection_methods": ["manual_platform_export", "controlled_html_snapshot", "api_adapter_when_allowed"],
+        "collection_methods": ["public_research_report_metric", "manual_platform_export", "licensed_data_terminal_export", "controlled_html_snapshot", "api_adapter_when_allowed"],
         "evidence_urls": [],
         "metrics": ["job_posting_count", "shortage_rank", "salary_median", "salary_p75", "work_intensity_index"],
         "query_templates": [
@@ -167,7 +209,7 @@
           "{entity_name} 岗位 JD 加班 强度 {city}",
           "{city} 人力资源市场 供求 状况 分析 {entity_name} {metric_year}"
         ],
-        "notes": "不在本项目维护平台反爬绕过逻辑；只保留可复现、可引用、可人工复核的快照。"
+        "notes": "公开平台报告、授权终端导出和政府供求分析可作为职业信号候选；非官方爬虫和未授权接口不得进入标准包。不在本项目维护平台反爬绕过逻辑；只保留可复现、可引用、可人工复核的快照。"
       },
       "career_civil_service_posts": {
         "name": "公考与事业编岗位目录",

@@ -5149,6 +5149,26 @@ def test_audit_career_source_coverage_maps_metrics_to_sources(tmp_path: Path):
     assert report["summary"]["covered_metric_count"] == report["metric_count"]
 
 
+def test_career_platform_source_policy_blocks_outcome_publication():
+    config = load_career_data_sources()
+    policy = config["platform_source_policy"]
+    tiers = policy["tiers"]
+
+    assert "fa_fact_school_outcome" in policy["disallowed_targets"]
+    assert "fa_fact_major_outcome" in policy["disallowed_targets"]
+    assert "fa_fact_career_signal" in tiers["public_research_report"]["allowed_evidence_targets"]
+    assert "fa_mart_major_city_employment_fit" in tiers["government_market_report"]["allowed_evidence_targets"]
+    assert tiers["community_scraper"]["allowed_evidence_targets"] == []
+    assert tiers["community_scraper"]["allowed_metrics"] == []
+    assert "授权" in tiers["licensed_api_or_terminal"]["publish_rule"]
+    assert any("平台样本偏差" in control for control in policy["bias_controls"])
+
+    recruitment = config["source_plan"]["sources"]["career_recruitment_snapshot"]
+    assert "public_research_report_metric" in recruitment["collection_methods"]
+    assert "licensed_data_terminal_export" in recruitment["collection_methods"]
+    assert "fa_fact_career_signal" in recruitment["target_tables"]
+
+
 def test_apply_career_shortage_page_updates_plan_candidates(tmp_path: Path):
     html = """
     <html><body><p>

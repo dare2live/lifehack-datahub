@@ -1600,9 +1600,9 @@
       "remote_files": [],
       "acquisition": {
         "status": "source_collection_required",
-        "official_distribution": "招聘平台公开快照、职位表、薪酬调查、就业质量报告；遵守来源 ToS，优先官方附件和受控人工导出",
+        "official_distribution": "招聘平台公开研究报告、授权终端/API 导出、职位表、薪酬调查、就业质量报告；遵守来源 ToS，优先官方附件、公开报告和受控人工导出",
         "evidence_urls": [],
-        "notes": "职业信号原始采集、清洗和加工都在 DataHub。每条信号必须带 source_url/evidence_quote/source_date，避免把无来源判断导入 core。"
+        "notes": "职业信号原始采集、清洗和加工都在 DataHub。招聘平台报告只能作为职业/行业/城市需求信号，不能直接发布学校或专业毕业去向；未授权 API、社区爬虫和反爬绕过实现不得进入标准包。每条信号必须带 source_url/evidence_quote/source_date，避免把无来源判断导入 core。"
       },
       "target_tables": ["fa_fact_career_signal"]
     },
