@@ -50,6 +50,7 @@ def build_score_history_reconciliation_review_batch(
     issue_types: list[str] | None = None,
     limit_per_issue: int | None = None,
     score_year: int | None = None,
+    subject_cat: str | None = None,
     value_drift_core_state: str | None = None,
     value_drift_score_delta_bucket: str | None = None,
     value_drift_rank_delta_bucket: str | None = None,
@@ -71,6 +72,7 @@ def build_score_history_reconciliation_review_batch(
         raise ValueError(f"unknown issue_type: {', '.join(unknown_issue_types)}")
 
     score_year_filter = str(score_year) if score_year is not None else None
+    subject_cat_filter = subject_cat.strip() if subject_cat else None
     value_drift_core_state_filter = _normalize_value_drift_core_state_filter(value_drift_core_state)
     score_delta_bucket_filter = _normalize_delta_bucket_filter(
         value_drift_score_delta_bucket,
@@ -87,6 +89,8 @@ def build_score_history_reconciliation_review_batch(
     grouped: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for row in rows:
         if score_year_filter and str(row.get("score_year") or "").strip() != score_year_filter:
+            continue
+        if subject_cat_filter and str(row.get("subject_cat") or "").strip() != subject_cat_filter:
             continue
         if value_drift_core_state_filter and not _matches_value_drift_core_state(row, value_drift_core_state_filter):
             continue
@@ -144,6 +148,7 @@ def build_score_history_reconciliation_review_batch(
         "selected_issue_types": sorted(selected_issue_types),
         "limit_per_issue": limit,
         "score_year": score_year,
+        "subject_cat": subject_cat_filter,
         "value_drift_core_state": value_drift_core_state_filter,
         "value_drift_score_delta_bucket": score_delta_bucket_filter,
         "value_drift_rank_delta_bucket": rank_delta_bucket_filter,
@@ -161,6 +166,7 @@ def build_score_history_reconciliation_review_batch(
         "rows": len(batch_rows),
         "issue_counts": dict(sorted(issue_counts.items())),
         "score_year": score_year,
+        "subject_cat": subject_cat_filter,
         "value_drift_core_state": value_drift_core_state_filter,
         "value_drift_score_delta_bucket": score_delta_bucket_filter,
         "value_drift_rank_delta_bucket": rank_delta_bucket_filter,

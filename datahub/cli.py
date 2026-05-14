@@ -411,6 +411,7 @@ def main() -> int:
     build_score_reconciliation_batch.add_argument("--issue-type", action="append", dest="issue_types")
     build_score_reconciliation_batch.add_argument("--limit-per-issue", type=int)
     build_score_reconciliation_batch.add_argument("--score-year", type=int)
+    build_score_reconciliation_batch.add_argument("--subject-cat")
     build_score_reconciliation_batch.add_argument("--value-drift-core-state")
     build_score_reconciliation_batch.add_argument("--value-drift-score-delta-bucket")
     build_score_reconciliation_batch.add_argument("--value-drift-rank-delta-bucket")
@@ -1414,6 +1415,7 @@ def main() -> int:
             issue_types=args.issue_types,
             limit_per_issue=args.limit_per_issue,
             score_year=args.score_year,
+            subject_cat=args.subject_cat,
             value_drift_core_state=args.value_drift_core_state,
             value_drift_score_delta_bucket=args.value_drift_score_delta_bucket,
             value_drift_rank_delta_bucket=args.value_drift_rank_delta_bucket,
