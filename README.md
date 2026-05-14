@@ -515,7 +515,7 @@ python3 scripts/build_package.py audit-score-history-package-against-core \
 
 若报告出现 `different_rows`、`core_only_rows` 或重叠作用域下的 `package_only_rows`，先做代码体系/来源体系 reconciliation，不直接覆盖实际工作库。报告中的 `reconciliation_hints.same_values_different_key_candidates` 会按配置化匹配列提示“同校同年同分同位次但专业代码不同”的疑似代码漂移。
 
-审计之后可生成可复核任务表。任务状态、优先级、建议动作、匹配置信度和 0 分/0 位次占位识别由同一份 schema 配置维护，输出只是本地 review plan，不能导入 core。core-only 且 `min_score/min_rank` 均为 0 的旧占位记录会标成 `core_only_zero_placeholder`，便于人工确认后进入 delete plan；它仍不会自动删除 core 数据：
+审计之后可生成可复核任务表。任务状态、优先级、建议动作、匹配置信度和 0 分/0 位次占位识别由同一份 schema 配置维护，输出只是本地 review plan，不能导入 core。core-only 且 `min_score/min_rank` 均为 0 的旧占位记录会标成 `core_only_zero_placeholder`，便于确认后进入 delete plan；它仍不会自动删除 core 数据：
 
 ```bash
 python3 scripts/build_package.py build-score-history-reconciliation-plan \
@@ -532,6 +532,17 @@ python3 scripts/build_package.py audit-score-history-reconciliation-plan \
   --plan-csv staging/score_history_reconciliation_2023_2024/score_history_reconciliation_plan.csv \
   --report staging/score_history_reconciliation_2023_2024/readiness_report.json
 ```
+
+对严格配置可判定的低风险占位任务，可以先应用 `config/source_schemas.json.audit.reconciliation.review.auto_decision_rules`，把匹配规则的任务标为 reviewed，但后续仍必须跑 readiness audit、package/delete plan 和 core dry-run：
+
+```bash
+python3 scripts/build_package.py apply-score-history-reconciliation-auto-decisions \
+  --plan-csv staging/score_history_reconciliation_2023_2024/score_history_reconciliation_plan.csv \
+  --output staging/score_history_reconciliation_2023_2024/score_history_reconciliation_plan_auto.csv \
+  --report staging/score_history_reconciliation_2023_2024/auto_decision_report.json
+```
+
+真实 smoke：对本地报考工作簿历史分数 reconciliation plan 应用 `core_zero_placeholder_to_delete_plan`，10,461 条任务中 10,184 条 `core_only_zero_placeholder` 被标为 `reviewed/exclude_row`，仍有 277 条非占位差异保持 `todo`，readiness audit 为 `package_ready=false`，说明自动规则只降低复核量，不越过剩余复核和写库门禁。
 
 人工复核启动时可先抽一个小批次；默认每类数量由配置维护，也可用参数覆盖：
 

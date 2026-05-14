@@ -269,6 +269,17 @@ python3 scripts/build_package.py audit-score-history-reconciliation-plan \
 
 审计会校验任务列、任务 ID、issue type、状态、review decision、JSON 字段和 ready 状态必填列。只有 `ready.package_ready=true` 时，后续才可以进入可导入 package 构建；当前真实 2023/2024 队列仍是 `todo=24,478`，`package_ready=false`。
 
+配置明确的低风险占位任务可以先应用自动复核规则。规则维护在 `config/source_schemas.json.audit.reconciliation.review.auto_decision_rules`，目前只覆盖 core 侧 `min_score/min_rank` 均为 0 的 `core_only_zero_placeholder`，输出仍是 review plan，不会写库：
+
+```bash
+python3 scripts/build_package.py apply-score-history-reconciliation-auto-decisions \
+  --plan-csv staging/score_history_reconciliation_2023_2024/score_history_reconciliation_plan.csv \
+  --output staging/score_history_reconciliation_2023_2024/score_history_reconciliation_plan_auto.csv \
+  --report staging/score_history_reconciliation_2023_2024/auto_decision_report.json
+```
+
+真实 smoke：对本地报考工作簿历史分数 reconciliation plan 应用 `core_zero_placeholder_to_delete_plan`，10,461 条任务中 10,184 条 `core_only_zero_placeholder` 自动标为 `reviewed/exclude_row`，其余 277 条非占位差异仍为 `todo`；readiness audit 无错误但 `package_ready=false`，因此不会越过后续复核和写库门禁。
+
 为了让人工复核先从小样本启动，可按 issue type 抽取 pending 任务：
 
 ```bash

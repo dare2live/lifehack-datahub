@@ -90,6 +90,7 @@ from datahub.builders.policy_tables import (
 from datahub.builders.score_history_from_projection import build_score_history_from_projection_package
 from datahub.builders.score_history_package_audit import audit_score_history_package_against_core
 from datahub.builders.score_history_reconciliation_audit import audit_score_history_reconciliation_plan
+from datahub.builders.score_history_reconciliation_auto_decision import apply_score_history_reconciliation_auto_decisions
 from datahub.builders.score_history_reconciliation_batch import (
     build_score_history_reconciliation_review_batch,
     merge_score_history_reconciliation_review_batch,
@@ -2091,6 +2092,90 @@ def test_audit_score_history_reconciliation_plan_blocks_source_research_decision
     assert report["ready"]["review_complete"] is True
     assert report["progress"]["blocking_decision_rows"] == 1
     assert report["ready"]["package_ready"] is False
+
+
+def test_apply_score_history_reconciliation_auto_decisions_marks_zero_placeholders(tmp_path: Path):
+    plan = tmp_path / "score_history_reconciliation_plan.csv"
+    rows = [
+        {
+            "task_id": "zero-1",
+            "issue_type": "core_only_zero_placeholder",
+            "priority": "5",
+            "status": "todo",
+            "suggested_action": "review_core_zero_placeholder_for_delete_plan",
+            "match_confidence": "zero_placeholder",
+            "score_year": "2024",
+            "batch": "本科批",
+            "subject_cat": "物理类",
+            "school_code": "1001",
+            "package_major_code": "",
+            "core_major_code": "01",
+            "package_min_score": "",
+            "core_min_score": "0",
+            "package_min_rank": "",
+            "core_min_rank": "0",
+            "package_key_json": "{}",
+            "core_key_json": "{\"school_code\":\"1001\"}",
+            "core_candidates_json": "[]",
+            "matching_values_json": "{}",
+            "differences_json": "[]",
+            "review_decision": "",
+            "reviewer": "",
+            "reviewed_at": "",
+            "notes": "",
+        },
+        {
+            "task_id": "nonzero-1",
+            "issue_type": "core_only_unmatched",
+            "priority": "4",
+            "status": "todo",
+            "suggested_action": "review_core_only_row",
+            "match_confidence": "none",
+            "score_year": "2024",
+            "batch": "本科批",
+            "subject_cat": "物理类",
+            "school_code": "1002",
+            "package_major_code": "",
+            "core_major_code": "02",
+            "package_min_score": "",
+            "core_min_score": "510",
+            "package_min_rank": "",
+            "core_min_rank": "40000",
+            "package_key_json": "{}",
+            "core_key_json": "{\"school_code\":\"1002\"}",
+            "core_candidates_json": "[]",
+            "matching_values_json": "{}",
+            "differences_json": "[]",
+            "review_decision": "",
+            "reviewer": "",
+            "reviewed_at": "",
+            "notes": "",
+        },
+    ]
+    with plan.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=PLAN_COLUMNS, extrasaction="ignore")
+        writer.writeheader()
+        writer.writerows(rows)
+
+    output = tmp_path / "score_history_reconciliation_plan_auto.csv"
+    report = apply_score_history_reconciliation_auto_decisions(plan_csv=plan, output=output)
+
+    assert report["updated_rows"] == 1
+    assert report["rule_counts"] == {"core_zero_placeholder_to_delete_plan": 1}
+    with output.open(encoding="utf-8", newline="") as f:
+        by_id = {row["task_id"]: row for row in csv.DictReader(f)}
+    zero_row = by_id["zero-1"]
+    assert zero_row["status"] == "reviewed"
+    assert zero_row["review_decision"] == "exclude_row"
+    assert zero_row["reviewer"] == "datahub_auto_rule"
+    assert "auto_rule=core_zero_placeholder_to_delete_plan" in zero_row["notes"]
+    assert by_id["nonzero-1"]["status"] == "todo"
+
+    audit = audit_score_history_reconciliation_plan(output)
+    assert audit["errors"] == []
+    assert audit["progress"]["ready_rows"] == 1
+    assert audit["progress"]["pending_rows"] == 1
+    assert audit["ready"]["package_ready"] is False
 
 
 def test_build_score_history_reconciliation_review_batch_limits_pending_rows(tmp_path: Path):

@@ -121,6 +121,7 @@ def _review_config(schema: dict[str, Any]) -> dict[str, Any]:
         "required_ready_columns": [str(item) for item in review["required_ready_columns"]],
         "batch_editable_columns": [str(item) for item in review["batch_editable_columns"]],
         "batch_limit_per_issue": int(review.get("batch_limit_per_issue") or 50),
+        "auto_decision_rules": review.get("auto_decision_rules", []),
     }
 
 

@@ -179,7 +179,24 @@
             "blocking_review_decisions": ["needs_source_research"],
             "required_ready_columns": ["review_decision", "reviewer", "reviewed_at"],
             "batch_editable_columns": ["status", "review_decision", "reviewer", "reviewed_at", "notes"],
-            "batch_limit_per_issue": 50
+            "batch_limit_per_issue": 50,
+            "auto_decision_rules": [
+              {
+                "rule_id": "core_zero_placeholder_to_delete_plan",
+                "enabled": true,
+                "issue_type": "core_only_zero_placeholder",
+                "match_confidence": "zero_placeholder",
+                "required_row_values": {
+                  "core_min_score": "0",
+                  "core_min_rank": "0"
+                },
+                "status": "reviewed",
+                "review_decision": "exclude_row",
+                "reviewer": "datahub_auto_rule",
+                "reviewed_at": "2026-05-14",
+                "notes": "core_only zero score/rank placeholder; eligible for reviewed delete-plan generation only, not direct database deletion"
+              }
+            ]
           },
           "issue_types": {
             "major_code_drift_candidate": {

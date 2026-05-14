@@ -82,6 +82,7 @@ from .builders.policy_tables import (
 from .builders.score_history_from_projection import build_score_history_from_projection_package
 from .builders.score_history_package_audit import audit_score_history_package_against_core
 from .builders.score_history_reconciliation_audit import audit_score_history_reconciliation_plan
+from .builders.score_history_reconciliation_auto_decision import apply_score_history_reconciliation_auto_decisions
 from .builders.score_history_reconciliation_batch import (
     build_score_history_reconciliation_review_batch,
     merge_score_history_reconciliation_review_batch,
@@ -412,6 +413,16 @@ def main() -> int:
     merge_score_reconciliation_batch.add_argument("--batch-csv", required=True, type=Path)
     merge_score_reconciliation_batch.add_argument("--output", required=True, type=Path)
     merge_score_reconciliation_batch.add_argument("--report", type=Path)
+
+    apply_score_reconciliation_auto = sub.add_parser(
+        "apply-score-history-reconciliation-auto-decisions",
+        help="Apply configured safe auto decisions to score-history reconciliation tasks",
+    )
+    apply_score_reconciliation_auto.add_argument("--plan-csv", required=True, type=Path)
+    apply_score_reconciliation_auto.add_argument("--output", required=True, type=Path)
+    apply_score_reconciliation_auto.add_argument("--report", type=Path)
+    apply_score_reconciliation_auto.add_argument("--rule-id", action="append", dest="rule_ids")
+    apply_score_reconciliation_auto.add_argument("--limit", type=int)
 
     build_score_reconciliation_package = sub.add_parser(
         "build-score-history-from-reconciliation-plan",
@@ -1339,6 +1350,16 @@ def main() -> int:
         if args.report:
             args.report.parent.mkdir(parents=True, exist_ok=True)
             args.report.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        print(json.dumps(report, ensure_ascii=False, indent=2))
+        return 0
+    if args.cmd == "apply-score-history-reconciliation-auto-decisions":
+        report = apply_score_history_reconciliation_auto_decisions(
+            plan_csv=args.plan_csv,
+            output=args.output,
+            report_path=args.report,
+            rule_ids=args.rule_ids,
+            limit=args.limit,
+        )
         print(json.dumps(report, ensure_ascii=False, indent=2))
         return 0
     if args.cmd == "build-score-history-from-reconciliation-plan":
