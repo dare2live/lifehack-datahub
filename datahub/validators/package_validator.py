@@ -39,7 +39,7 @@ def validate_manifest(path: Path) -> dict:
         elif not (path.parent / quality_path).exists():
             errors.append(f"declared quality report not found: {quality_report}")
         else:
-            errors.extend(_quality_report_errors(path.parent / quality_path))
+            errors.extend(_quality_report_errors(path.parent / quality_path, data))
 
     hashes = data.get("hashes", {})
     if "hashes" in data and not isinstance(hashes, dict):
@@ -102,7 +102,7 @@ def _sha256(path: Path) -> str:
     return h.hexdigest()
 
 
-def _quality_report_errors(path: Path) -> list[str]:
+def _quality_report_errors(path: Path, manifest: dict | None = None) -> list[str]:
     try:
         data = load_json_config(path)
     except ValueError as exc:
@@ -112,7 +112,46 @@ def _quality_report_errors(path: Path) -> list[str]:
     errors = data.get("errors", [])
     if not isinstance(errors, list):
         return ["quality_report error: quality_report.errors must be a list"]
+    report_errors: list[str] = []
     if errors:
         sample = "; ".join(str(error) for error in errors[:3])
-        return [f"quality_report error: quality_report has errors: {sample}"]
-    return []
+        report_errors.append(f"quality_report error: quality_report has errors: {sample}")
+    report_errors.extend(_quality_readiness_errors(data))
+    if _is_reviewed_reconciliation_manifest(manifest):
+        if "readiness" not in data:
+            report_errors.append("quality_report error: reviewed reconciliation package quality_report missing readiness")
+        decision_counts = data.get("decision_counts")
+        if not isinstance(decision_counts, dict):
+            report_errors.append(
+                "quality_report error: reviewed reconciliation package quality_report.decision_counts must be an object"
+            )
+    return report_errors
+
+
+def _quality_readiness_errors(data: dict) -> list[str]:
+    readiness = data.get("readiness")
+    if readiness is None:
+        return []
+    if not isinstance(readiness, dict):
+        return ["quality_report error: quality_report.readiness must be an object"]
+    progress = readiness.get("progress")
+    if not isinstance(progress, dict):
+        return ["quality_report error: quality_report.readiness.progress must be an object"]
+    errors: list[str] = []
+    blockers: list[str] = []
+    for field in ("pending_rows", "blocked_rows", "blocking_decision_rows", "unknown_status_rows"):
+        value = progress.get(field, 0)
+        if not isinstance(value, (int, float)):
+            errors.append(f"quality_report error: quality_report.readiness.progress.{field} must be numeric")
+        elif value:
+            blockers.append(f"{field}={value}")
+    if blockers:
+        errors.append("quality_report error: quality_report readiness is not clear: " + ", ".join(blockers))
+    return errors
+
+
+def _is_reviewed_reconciliation_manifest(manifest: dict | None) -> bool:
+    if not isinstance(manifest, dict):
+        return False
+    lineage = manifest.get("source_lineage")
+    return isinstance(lineage, dict) and lineage.get("source_kind") == "reviewed_reconciliation_plan"

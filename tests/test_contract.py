@@ -239,6 +239,74 @@ def test_manifest_rejects_malformed_quality_report_errors(tmp_path: Path):
     assert any("quality_report.errors must be a list" in err for err in report["errors"])
 
 
+def test_manifest_rejects_pending_quality_readiness(tmp_path: Path):
+    path = tmp_path / "manifest.json"
+    (tmp_path / "quality_report.json").write_text(json.dumps({
+        "errors": [],
+        "readiness": {
+            "progress": {
+                "pending_rows": 1,
+                "blocked_rows": 0,
+                "blocking_decision_rows": 0,
+                "unknown_status_rows": 0,
+            }
+        },
+    }), encoding="utf-8")
+    path.write_text(
+        '{"package_id":"p","built_at":"now","tables":[],"files":[],"hashes":{},"quality_report":"quality_report.json"}',
+        encoding="utf-8",
+    )
+    report = validate_manifest(path)
+    assert any("quality_report readiness is not clear" in err for err in report["errors"])
+
+
+def test_manifest_rejects_reviewed_reconciliation_quality_without_readiness(tmp_path: Path):
+    path = tmp_path / "manifest.json"
+    (tmp_path / "quality_report.json").write_text(
+        '{"errors":[],"warnings":[],"decision_counts":{"use_package_row":1}}\n',
+        encoding="utf-8",
+    )
+    path.write_text(json.dumps({
+        "package_id": "p",
+        "built_at": "now",
+        "tables": [],
+        "files": [],
+        "hashes": {},
+        "quality_report": "quality_report.json",
+        "source_lineage": {"source_kind": "reviewed_reconciliation_plan"},
+    }), encoding="utf-8")
+    report = validate_manifest(path)
+    assert any("quality_report missing readiness" in err for err in report["errors"])
+
+
+def test_manifest_rejects_reviewed_reconciliation_malformed_decision_counts(tmp_path: Path):
+    path = tmp_path / "manifest.json"
+    (tmp_path / "quality_report.json").write_text(json.dumps({
+        "errors": [],
+        "warnings": [],
+        "decision_counts": [],
+        "readiness": {
+            "progress": {
+                "pending_rows": 0,
+                "blocked_rows": 0,
+                "blocking_decision_rows": 0,
+                "unknown_status_rows": 0,
+            }
+        },
+    }), encoding="utf-8")
+    path.write_text(json.dumps({
+        "package_id": "p",
+        "built_at": "now",
+        "tables": [],
+        "files": [],
+        "hashes": {},
+        "quality_report": "quality_report.json",
+        "source_lineage": {"source_kind": "reviewed_reconciliation_plan"},
+    }), encoding="utf-8")
+    report = validate_manifest(path)
+    assert any("quality_report.decision_counts must be an object" in err for err in report["errors"])
+
+
 def test_manifest_rejects_declared_hash_mismatch(tmp_path: Path):
     path = tmp_path / "manifest.json"
     (tmp_path / "quality_report.json").write_text('{"errors":[]}\n', encoding="utf-8")
