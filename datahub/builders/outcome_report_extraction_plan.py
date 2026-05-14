@@ -147,6 +147,22 @@ def _block_reason(input_path: str, *, supported_extensions: set[str]) -> str:
         return "local_report_path_not_found"
     if path.suffix.lower() not in supported_extensions:
         return "unsupported_report_format"
+    signature_block = _file_signature_block_reason(path)
+    if signature_block:
+        return signature_block
+    return ""
+
+
+def _file_signature_block_reason(path: Path) -> str:
+    try:
+        header = path.read_bytes()[:256].lstrip()
+    except OSError as exc:
+        return f"cannot_read_local_report_path: {exc}"
+    lowered = header.lower()
+    if lowered.startswith(b"<!doctype html") or lowered.startswith(b"<html"):
+        return "local_report_path_is_html"
+    if path.suffix.lower() == ".pdf" and not header.startswith(b"%PDF"):
+        return "invalid_pdf_header"
     return ""
 
 

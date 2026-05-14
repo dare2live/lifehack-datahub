@@ -5918,6 +5918,8 @@ def test_build_outcome_report_extraction_plan_requires_local_file(tmp_path: Path
     local_pdf.write_bytes(b"%PDF-1.4\n")
     local_ofd = tmp_path / "raw" / "lnu2025.ofd"
     local_ofd.write_bytes(b"ofd fixture")
+    html_pdf = tmp_path / "raw" / "captcha.pdf"
+    html_pdf.write_text("<!DOCTYPE html><html><body>验证码</body></html>", encoding="utf-8")
     source_rows[0].update({
         "status": "verified",
         "candidate_report_title": "辽宁大学2025届毕业生就业质量报告",
@@ -5934,6 +5936,14 @@ def test_build_outcome_report_extraction_plan_requires_local_file(tmp_path: Path
         "availability_date": "2026-01-05",
         "local_report_path": str(local_ofd),
     })
+    html_row = {**source_rows[0]}
+    html_row.update({
+        "report_scope": "undergraduate_teaching_quality_report",
+        "candidate_report_title": "辽宁大学2025年本科教学质量报告",
+        "candidate_report_url": "https://example.edu/captcha.pdf",
+        "local_report_path": str(html_pdf),
+    })
+    source_rows.append(html_row)
     report_source_csv = tmp_path / "outcome_report_source_plan_verified.csv"
     with report_source_csv.open("w", encoding="utf-8", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=source_rows[0].keys())
@@ -5945,9 +5955,9 @@ def test_build_outcome_report_extraction_plan_requires_local_file(tmp_path: Path
         output_dir=tmp_path / "extract",
     )
 
-    assert result["rows"] == 2
+    assert result["rows"] == 3
     assert result["ready_rows"] == 2
-    assert result["blocked_rows"] == 0
+    assert result["blocked_rows"] == 1
     with Path(result["csv"]).open(encoding="utf-8", newline="") as f:
         extraction_rows = list(csv.DictReader(f))
     assert extraction_rows[0]["extraction_status"] == "ready"
@@ -5955,6 +5965,8 @@ def test_build_outcome_report_extraction_plan_requires_local_file(tmp_path: Path
     assert extraction_rows[0]["output_path"].endswith("school_10140_2025_employment_quality_report_candidates.csv")
     assert extraction_rows[1]["extraction_status"] == "ready"
     assert extraction_rows[1]["block_reason"] == ""
+    assert extraction_rows[2]["extraction_status"] == "blocked"
+    assert extraction_rows[2]["block_reason"] == "local_report_path_is_html"
 
 
 def test_run_outcome_report_extraction_plan_writes_candidate_csv(tmp_path: Path, monkeypatch):
