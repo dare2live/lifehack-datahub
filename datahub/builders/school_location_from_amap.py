@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from datahub.builders.local_package import build_local_package
-from datahub.config import load_sources
+from datahub.config import load_json_config, load_sources
 
 
 SOURCE_KEY = "school_location_geocode"
@@ -132,7 +132,9 @@ def _to_location_row(
 def _load_manifest(path: Path) -> dict[str, Any]:
     if not path.exists():
         raise ValueError(f"Amap raw manifest not found: {path}")
-    data = json.loads(path.read_text(encoding="utf-8"))
+    data = load_json_config(path)
+    if not isinstance(data, dict):
+        raise ValueError("Amap raw manifest must be an object")
     if data.get("operation") != "geocode":
         raise ValueError(f"Amap raw manifest operation must be geocode: {data.get('operation')}")
     return data

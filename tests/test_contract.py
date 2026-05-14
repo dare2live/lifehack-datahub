@@ -10962,6 +10962,29 @@ def test_build_school_location_package_from_amap_geocode(tmp_path: Path, monkeyp
     assert manifest["source_lineage"]["raw_manifest"] == str(raw_manifest)
     assert manifest["source_lineage"]["source_kind"] == "parsed_amap_web_api_geocode"
 
+    duplicate_manifest = raw_dir / "_amap_web_api_geocode_duplicate.json"
+    duplicate_manifest.write_text(
+        (
+            '{"source_key":"school_location_geocode",'
+            '"source_key":"shadow_source",'
+            '"source_date":"2026-05-13",'
+            '"operation":"geocode"}\n'
+        ),
+        encoding="utf-8",
+    )
+    try:
+        build_school_location_package_from_amap_geocode(
+            raw_jsonl=raw_jsonl,
+            raw_manifest=duplicate_manifest,
+            output_root=tmp_path / "exports",
+            package_id="pkg-school-location-duplicate-manifest-test",
+            source_version="fixture-school-location",
+        )
+        duplicate_manifest_rejected = False
+    except ValueError as exc:
+        duplicate_manifest_rejected = "duplicate JSON key" in str(exc)
+    assert duplicate_manifest_rejected
+
 
 def test_download_page_images_from_config(tmp_path: Path, monkeypatch):
     image = tmp_path / "table.png"
