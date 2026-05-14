@@ -5665,6 +5665,117 @@ def test_build_city_development_score_package(tmp_path: Path):
     assert "industry_depth_score" in contributions["components"]
     lineage = json.loads(row["pit_lineage_json"])
     assert "fa_fact_city_public_resource" in lineage["tables"]
+    assert result["quality_report"]["input_quality"]["errors"] == []
+
+
+def test_build_city_development_score_rejects_bad_input_metadata(tmp_path: Path):
+    economic_input = tmp_path / "city_economic.csv"
+    with economic_input.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(
+            f,
+            fieldnames=[
+                "adcode",
+                "province",
+                "city",
+                "region_level",
+                "metric_key",
+                "metric_name",
+                "metric_value",
+                "metric_unit",
+                "metric_year",
+                "metric_scope",
+                "source_title",
+                "source_url",
+                "evidence_quote",
+                "source_date",
+                "availability_date",
+                "built_at",
+            ],
+        )
+        writer.writeheader()
+        writer.writerow({
+            "adcode": "210100",
+            "province": "辽宁",
+            "city": "沈阳",
+            "region_level": "city",
+            "metric_key": "unknown_metric",
+            "metric_name": "未知指标",
+            "metric_value": "9000",
+            "metric_unit": "亿元",
+            "metric_year": "2025.5",
+            "metric_scope": "年度统计",
+            "source_title": "fixture economic bulletin",
+            "source_url": "ftp://example.com/bad-economic",
+            "evidence_quote": "未知指标9000",
+            "source_date": "2026-05-14",
+            "availability_date": "2026-05-13",
+            "built_at": "2026-05-13T00:00:00",
+        })
+
+    public_input = tmp_path / "city_public.csv"
+    with public_input.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(
+            f,
+            fieldnames=[
+                "adcode",
+                "province",
+                "city",
+                "region_level",
+                "resource_domain",
+                "metric_key",
+                "metric_name",
+                "metric_value",
+                "metric_unit",
+                "metric_year",
+                "metric_scope",
+                "source_title",
+                "source_url",
+                "evidence_quote",
+                "source_date",
+                "availability_date",
+                "built_at",
+            ],
+        )
+        writer.writeheader()
+
+    listed_input = tmp_path / "city_listed.csv"
+    with listed_input.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(
+            f,
+            fieldnames=[
+                "province",
+                "city",
+                "tdx_l2",
+                "tdx_l2_name",
+                "metric_key",
+                "metric_name",
+                "metric_value",
+                "metric_unit",
+                "metric_year",
+                "source_system",
+                "source_scope",
+                "source_date",
+                "availability_date",
+                "built_at",
+            ],
+        )
+        writer.writeheader()
+
+    with pytest.raises(ValueError) as exc:
+        build_city_development_score_package(
+            economic_input=economic_input,
+            public_resource_input=public_input,
+            listed_company_input=listed_input,
+            output_root=tmp_path / "exports",
+            package_id="pkg-city-development-score-bad-input",
+            source_version="fixture-city-development",
+        )
+
+    message = str(exc.value)
+    assert "economic row 1 unregistered metric_key: unknown_metric" in message
+    assert "economic row 1 metric_year is not an integer" in message
+    assert "economic row 1 source_url must be an http(s) URL" in message
+    assert "economic row 1 source_date must not be after availability_date" in message
 
 
 def test_entity_normalization_registry_config_and_schemas():

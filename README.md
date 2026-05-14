@@ -268,7 +268,7 @@ python3 scripts/build_package.py build-city-development-score \
   --package-id 2026_city_development_score
 ```
 
-GDP、人均指标、医疗资源、教育资源、轨道交通、公共服务和上市公司产业厚度的评分范围与权重维护在 `config/city_development_score.json`。该 mart 只解释城市长期承载能力和机会密度，不直接决定录取分档。
+GDP、人均指标、医疗资源、教育资源、轨道交通、公共服务和上市公司产业厚度的评分范围与权重维护在 `config/city_development_score.json`。构建 mart 前会先审计输入：`metric_key` 必须在配置中注册，`metric_year` 必须是整数，指标值必须可数值化，来源 URL 和来源日期必须符合统一元数据门禁。该 mart 只解释城市长期承载能力和机会密度，不直接决定录取分档。
 
 专业到城市就业机会的评分不直接写在 core。先用 `fa_bridge_major_employment_role` 表达专业可进入的直接岗位、通用职能岗位、公共部门/升学路径，再用 `fa_fact_company_role_demand_signal` 表达企业和上市公司岗位需求，最后生成 `fa_mart_major_city_employment_fit`：
 

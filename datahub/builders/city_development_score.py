@@ -7,6 +7,7 @@ from collections import defaultdict
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 from datahub.config import get_table_schema, load_city_development_score
 from datahub.exporters.package_exporter import write_manifest
@@ -41,6 +42,10 @@ def build_city_development_score_package(
     built_at = datetime.utcnow().replace(microsecond=0).isoformat()
     rows = _score_rows(economic_rows, public_rows, listed_rows, config, built_at)
     quality = _quality_report(rows, output_schema)
+    input_quality = _input_quality_report(economic_rows, public_rows, listed_rows, config)
+    quality["input_quality"] = input_quality
+    quality["errors"].extend(input_quality["errors"])
+    quality["warnings"].extend(input_quality["warnings"])
     if quality["errors"]:
         raise ValueError("; ".join(quality["errors"]))
 
@@ -296,6 +301,115 @@ def _quality_report(rows: list[dict[str, Any]], schema: dict[str, Any]) -> dict[
         "warnings": warnings,
         "errors": errors,
     }
+
+
+def _input_quality_report(
+    economic_rows: list[dict[str, Any]],
+    public_rows: list[dict[str, Any]],
+    listed_rows: list[dict[str, Any]],
+    config: dict[str, Any],
+) -> dict[str, Any]:
+    errors: list[str] = []
+    warnings: list[str] = []
+    _validate_metric_rows("economic", economic_rows, config.get("economic_metrics", {}), errors)
+    _validate_metric_rows("public_resource", public_rows, config.get("public_resource_metrics", {}), errors)
+    _validate_metric_rows("listed_company", listed_rows, config.get("listed_company_metrics", {}), errors)
+    return {
+        "economic_rows": len(economic_rows),
+        "public_resource_rows": len(public_rows),
+        "listed_company_rows": len(listed_rows),
+        "errors": errors,
+        "warnings": warnings,
+    }
+
+
+def _validate_metric_rows(
+    label: str,
+    rows: list[dict[str, Any]],
+    metric_rules: dict[str, Any],
+    errors: list[str],
+) -> None:
+    for index, row in enumerate(rows, start=1):
+        prefix = f"{label} row {index}"
+        metric_key = str(row.get("metric_key") or "").strip()
+        metric_rule = metric_rules.get(metric_key)
+        if metric_key not in metric_rules:
+            errors.append(f"{prefix} unregistered metric_key: {metric_key}")
+        metric_year = _to_int(row.get("metric_year"))
+        if metric_year is None:
+            errors.append(f"{prefix} metric_year is not an integer")
+        metric_value = _number(row.get("metric_value"))
+        if metric_value is None:
+            errors.append(f"{prefix} metric_value is not numeric: {row.get('metric_value')}")
+        elif metric_rule:
+            min_value = _number(metric_rule.get("min"))
+            if min_value is not None and metric_value < min_value:
+                errors.append(f"{prefix} metric_value below min for {metric_key}: {metric_value:g} < {min_value:g}")
+        _validate_source_metadata(prefix, row, errors)
+
+
+def _validate_source_metadata(prefix: str, row: dict[str, Any], errors: list[str]) -> None:
+    url_error = _source_url_error(row.get("source_url"))
+    if url_error:
+        errors.append(f"{prefix} source_url {url_error}")
+    for date_field in ("source_date", "availability_date"):
+        date_error = _date_error(row.get(date_field))
+        if date_error:
+            errors.append(f"{prefix} {date_field} {date_error}")
+    for date_order_error in _date_order_errors(row):
+        errors.append(f"{prefix} {date_order_error}")
+
+
+def _source_url_error(value: Any) -> str:
+    if _is_blank(value):
+        return ""
+    parsed = urlparse(str(value).strip())
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        return "must be an http(s) URL"
+    return ""
+
+
+def _date_error(value: Any) -> str:
+    if _is_blank(value):
+        return ""
+    try:
+        datetime.strptime(str(value).strip(), "%Y-%m-%d")
+    except ValueError:
+        return "must use YYYY-MM-DD"
+    return ""
+
+
+def _parse_date(value: Any) -> datetime | None:
+    if _is_blank(value):
+        return None
+    try:
+        return datetime.strptime(str(value).strip(), "%Y-%m-%d")
+    except ValueError:
+        return None
+
+
+def _date_order_errors(row: dict[str, Any]) -> list[str]:
+    source_date = _parse_date(row.get("source_date"))
+    availability_date = _parse_date(row.get("availability_date"))
+    if source_date and availability_date and source_date > availability_date:
+        return ["source_date must not be after availability_date"]
+    return []
+
+
+def _to_int(value: Any) -> int | None:
+    if _is_blank(value):
+        return None
+    try:
+        text = str(value).strip()
+        if "." in text:
+            return None
+        return int(text)
+    except ValueError:
+        return None
+
+
+def _is_blank(value: Any) -> bool:
+    return value is None or str(value).strip() == ""
 
 
 def _city_meta(row: dict[str, Any]) -> dict[str, Any]:
