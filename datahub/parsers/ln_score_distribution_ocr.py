@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import json
-import re
 from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
@@ -19,6 +18,16 @@ from datahub.parsers.score_distribution_ocr_io import (
     write_candidate_csv,
     write_cleaned_score_distribution_csv,
     write_review_task_csv,
+)
+from datahub.parsers.score_distribution_ocr_numeric import (
+    as_int as _as_int,
+    extract_numbers as _extract_numbers,
+    infer_counts_from_numbers as _infer_counts_from_numbers,
+    valid_score as _valid_score,
+)
+from datahub.parsers.score_distribution_ocr_suggestions import (
+    build_review_suggestions as _build_review_suggestions,
+    complete_numeric_row as _complete_numeric_row,
 )
 from datahub.validators.score_distribution import validate_score_distribution
 
@@ -619,48 +628,6 @@ def _parse_block(
     }
 
 
-def _extract_numbers(text: str) -> list[int]:
-    normalized = text.replace("，", ",").replace(".", ",").replace("。", ",")
-    if "及以上" in normalized:
-        match = re.search(r"(\d{2,3})\s*及以上\s*(\d{1,4})", normalized)
-        if match:
-            prefix = [int(match.group(1)), int(match.group(2))]
-            tail = normalized[match.end():]
-            tail_numbers = _extract_numbers(tail)
-            if not tail_numbers:
-                tail_numbers = [prefix[1]]
-            return [*prefix, *tail_numbers]
-    numbers = []
-    for part in re.split(r"\s+", normalized):
-        for token in re.findall(r"\d[\d,]*", part):
-            cleaned = token.strip(",")
-            if not cleaned:
-                continue
-            numbers.extend(_coerce_numeric_token(cleaned))
-    return numbers
-
-
-def _coerce_numeric_token(value: str) -> list[int]:
-    if "," in value:
-        prefix = value.split(",", 1)[0]
-        if len(prefix) > 3:
-            stuck = re.fullmatch(r"(\d{1,3})(\d{2}),(\d{3})", value)
-            if stuck:
-                return [int(stuck.group(1)), int(f"{stuck.group(2)}{stuck.group(3)}")]
-        return [int(value.replace(",", ""))]
-    if len(value) >= 6:
-        return _split_stuck_numbers(value)
-    return [int(value)]
-
-
-def _split_stuck_numbers(value: str) -> list[int]:
-    if len(value) == 6:
-        return [int(value[:3]), int(value[3:])]
-    if len(value) == 7:
-        return [int(value[:3]), int(value[3:])]
-    return [int(value)]
-
-
 def _mark_math_status(rows: list[dict[str, Any]]) -> None:
     parsed = [
         row for row in rows
@@ -737,273 +704,9 @@ def _infer_missing_scores(rows: list[dict[str, Any]], config: dict[str, Any]) ->
             previous_cumulative = cumulative_rank
 
 
-def _build_review_suggestions(
-    rows: list[dict[str, Any]],
-    config: dict[str, Any],
-) -> dict[tuple[str, str, str, str, str, str, str], dict[str, int]]:
-    suggestions = _build_sequence_review_suggestions(rows, config)
-    suggestions.update(_build_single_boundary_review_suggestions(rows, config))
-    return suggestions
-
-
-def _build_single_boundary_review_suggestions(
-    rows: list[dict[str, Any]],
-    config: dict[str, Any],
-) -> dict[tuple[str, str, str, str, str, str, str], dict[str, int]]:
-    suggestion_config = config.get("single_boundary_suggestion") or {}
-    if not suggestion_config.get("enabled"):
-        return {}
-    min_group_rows = int(suggestion_config["min_group_rows"])
-    max_anchor_score = int(suggestion_config["max_anchor_score"])
-    grouped: dict[tuple[str, int, str, int], list[dict[str, Any]]] = {}
-    for row in rows:
-        subject = str(row.get("subject_cat") or "")
-        year = _as_int(row.get("score_year"))
-        image_file = str(row.get("image_file") or "")
-        block_index = _as_int(row.get("block_index") or 0)
-        grouped.setdefault((subject, year, image_file, block_index), []).append(row)
-
-    suggestions: dict[tuple[str, str, str, str, str, str, str], dict[str, int]] = {}
-    for group_rows in grouped.values():
-        indexed_rows = list(enumerate(sorted(group_rows, key=lambda item: float(item["row_y"]), reverse=True)))
-        if len(indexed_rows) < min_group_rows:
-            continue
-        anchor_score = _single_boundary_anchor_score(indexed_rows, max_anchor_score=max_anchor_score)
-        if anchor_score is None:
-            continue
-        if not _anchor_matches_complete_rows(indexed_rows, anchor_score):
-            continue
-        previous_cumulative: int | None = None
-        for index, row in indexed_rows:
-            if _complete_numeric_row(row):
-                previous_cumulative = _as_int(row["cumulative_rank"])
-                continue
-            expected_score = anchor_score - index
-            if not _valid_score(expected_score):
-                continue
-            numbers = _extract_numbers(str(row.get("raw_text") or ""))
-            inferred = _infer_counts_from_numbers(
-                numbers,
-                previous_cumulative=previous_cumulative,
-                allow_single_number=bool(config.get("infer_single_number_rows")),
-            )
-            if not inferred:
-                continue
-            score_count, cumulative_rank = inferred
-            if score_count <= 0 or cumulative_rank <= score_count:
-                continue
-            suggestions[_candidate_key(row)] = {
-                "score": expected_score,
-                "score_count": score_count,
-                "cumulative_rank": cumulative_rank,
-            }
-            previous_cumulative = cumulative_rank
-    return suggestions
-
-
-def _build_sequence_review_suggestions(
-    rows: list[dict[str, Any]],
-    config: dict[str, Any],
-) -> dict[tuple[str, str, str, str, str, str, str], dict[str, int]]:
-    suggestion_config = config.get("sequence_suggestion") or {}
-    if not suggestion_config.get("enabled"):
-        return {}
-
-    expected_scores = _expected_scores_by_candidate(rows, suggestion_config)
-    cumulative_by_score: dict[tuple[str, int, int], int] = {}
-    row_by_key = {_candidate_key(row): row for row in rows}
-    for row in rows:
-        key = _candidate_key(row)
-        score = expected_scores.get(key) or _valid_int_score(row.get("score"))
-        if score is None:
-            continue
-        cumulative = _sequence_cumulative_candidate(
-            row,
-            expected_score=score,
-            max_digit_length=int(suggestion_config["max_cumulative_digit_length"]),
-        )
-        if cumulative is None:
-            continue
-        cumulative_by_score[(str(row.get("subject_cat") or ""), _as_int(row.get("score_year")), score)] = cumulative
-
-    suggestions: dict[tuple[str, str, str, str, str, str, str], dict[str, int]] = {}
-    for key, row in row_by_key.items():
-        score = expected_scores.get(key) or _valid_int_score(row.get("score"))
-        if score is None:
-            continue
-        cumulative = cumulative_by_score.get((str(row.get("subject_cat") or ""), _as_int(row.get("score_year")), score))
-        if cumulative is None:
-            continue
-        previous = cumulative_by_score.get((str(row.get("subject_cat") or ""), _as_int(row.get("score_year")), score + 1))
-        if previous is None:
-            if _int_like(row.get("score_count")) and _as_int(row.get("score_count")) == cumulative:
-                score_count = cumulative
-            else:
-                continue
-        else:
-            score_count = cumulative - previous
-        if score_count <= 0 or cumulative <= score_count:
-            continue
-        if score_count > int(suggestion_config["max_suggested_score_count"]):
-            continue
-        existing_count = _positive_int_or_none(row.get("score_count"))
-        if existing_count and _raw_digits_start_with_score(row, score) and existing_count != score_count:
-            continue
-        suggestions[key] = {
-            "score": score,
-            "score_count": score_count,
-            "cumulative_rank": cumulative,
-        }
-    return suggestions
-
-
-def _expected_scores_by_candidate(
-    rows: list[dict[str, Any]],
-    suggestion_config: dict[str, Any],
-) -> dict[tuple[str, str, str, str, str, str, str], int]:
-    min_anchor_rows = int(suggestion_config["min_anchor_rows"])
-    grouped: dict[tuple[str, int, str, int], list[dict[str, Any]]] = {}
-    for row in rows:
-        subject = str(row.get("subject_cat") or "")
-        year = _as_int(row.get("score_year"))
-        image_file = str(row.get("image_file") or "")
-        block_index = _as_int(row.get("block_index") or 0)
-        grouped.setdefault((subject, year, image_file, block_index), []).append(row)
-
-    expected: dict[tuple[str, str, str, str, str, str, str], int] = {}
-    for group_rows in grouped.values():
-        indexed_rows = list(enumerate(sorted(group_rows, key=lambda item: float(item["row_y"]), reverse=True)))
-        anchors = [
-            score + index
-            for index, row in indexed_rows
-            if (score := _valid_int_score(row.get("score"))) is not None
-            and row.get("parse_status") in COMPLETE_PARSE_STATUSES
-        ]
-        if not anchors:
-            continue
-        [(anchor_score, anchor_count)] = Counter(anchors).most_common(1)
-        if anchor_count < min_anchor_rows or not _valid_score(anchor_score):
-            continue
-        if not _anchor_matches_complete_rows(indexed_rows, anchor_score):
-            continue
-        for index, row in indexed_rows:
-            score = anchor_score - index
-            if _valid_score(score):
-                expected[_candidate_key(row)] = score
-    return expected
-
-
-def _sequence_cumulative_candidate(row: dict[str, Any], *, expected_score: int, max_digit_length: int) -> int | None:
-    existing = _positive_int_or_none(row.get("cumulative_rank"))
-    raw_text = str(row.get("raw_text") or "")
-    digits = re.sub(r"\D", "", raw_text)
-    if (
-        digits
-        and len(digits) <= max_digit_length
-        and not digits.startswith(str(expected_score))
-    ):
-        value = int(digits)
-        if value > expected_score:
-            return value
-    if existing:
-        return existing
-    return None
-
-
-def _raw_digits_start_with_score(row: dict[str, Any], score: int) -> bool:
-    digits = re.sub(r"\D", "", str(row.get("raw_text") or ""))
-    return bool(digits and digits.startswith(str(score)))
-
-
-def _single_boundary_anchor_score(
-    indexed_rows: list[tuple[int, dict[str, Any]]],
-    *,
-    max_anchor_score: int,
-) -> int | None:
-    boundary_rows = [
-        (index, row)
-        for index, row in [indexed_rows[0], indexed_rows[-1]]
-        if _complete_numeric_row(row) and _as_int(row.get("score")) <= max_anchor_score
-    ]
-    if len(boundary_rows) != 1:
-        return None
-    index, row = boundary_rows[0]
-    return _as_int(row["score"]) + index
-
-
-def _anchor_matches_complete_rows(indexed_rows: list[tuple[int, dict[str, Any]]], anchor_score: int) -> bool:
-    for index, row in indexed_rows:
-        if _complete_numeric_row(row) and _as_int(row["score"]) + index != anchor_score:
-            return False
-    return True
-
-
-def _complete_numeric_row(row: dict[str, Any]) -> bool:
-    return (
-        row.get("parse_status") in COMPLETE_PARSE_STATUSES
-        and _int_like(row.get("score"))
-        and _int_like(row.get("score_count"))
-        and _int_like(row.get("cumulative_rank"))
-    )
-
-
-def _infer_counts_from_numbers(
-    numbers: list[int],
-    *,
-    previous_cumulative: int | None,
-    allow_single_number: bool,
-) -> tuple[int, int] | None:
-    if len(numbers) == 2:
-        return numbers[0], numbers[1]
-    if len(numbers) != 1 or previous_cumulative is None or not allow_single_number:
-        return None
-    value = numbers[0]
-    if value > previous_cumulative:
-        return value - previous_cumulative, value
-    return value, previous_cumulative + value
-
-
 def _is_noise(text: str) -> bool:
     return any(marker in text for marker in NOISE_MARKERS)
 
 
 def _has_digit(text: str) -> bool:
     return any(char.isdigit() for char in text)
-
-
-def _valid_score(value: Any) -> bool:
-    return isinstance(value, int) and 0 <= value <= 750
-
-
-def _valid_int_score(value: Any) -> int | None:
-    if not _int_like(value):
-        return None
-    score = _as_int(value)
-    if _valid_score(score):
-        return score
-    return None
-
-
-def _positive_int_or_none(value: Any) -> int | None:
-    if not _int_like(value):
-        return None
-    number = _as_int(value)
-    if number > 0:
-        return number
-    return None
-
-
-def _int_like(value: Any) -> bool:
-    if value in (None, ""):
-        return False
-    try:
-        int(float(str(value).replace(",", "").strip()))
-    except ValueError:
-        return False
-    return True
-
-
-def _as_int(value: Any) -> int:
-    if value in (None, ""):
-        raise ValueError(f"integer value required: {value}")
-    return int(float(str(value).replace(",", "").strip()))
