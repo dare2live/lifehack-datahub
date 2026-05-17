@@ -603,6 +603,19 @@
       "candidate_source_date": "2025-01-11",
       "availability_date": "2025-01-11",
       "evidence_note": "锦州师范高等专科学校官网校园公告发布《锦州师范高等专科学校高等职业教育质量报告（2024年度）及企业参与高等职业教育人才培养报告（2024年度）》，页面发布日期 2025-01-11。"
+    },
+    {
+      "domain": "school",
+      "entity_code": "0171",
+      "entity_name": "朝阳师范学院",
+      "metric_year": 2024,
+      "report_scope": "undergraduate_teaching_quality_report",
+      "candidate_report_title": "朝阳师范学院2023-2024学年本科教学质量报告",
+      "candidate_report_url": "https://www.cynu.edu.cn/info/1163/8685.htm",
+      "candidate_file_name": "朝阳师范学院2023-2024学年本科教学质量报告.pdf",
+      "candidate_source_date": "2024-12-05",
+      "availability_date": "2024-12-05",
+      "evidence_note": "朝阳师范学院信息公开页面发布《朝阳师范学院2023-2024学年本科教学质量报告》，页面日期 2024-12-05，页面列出官方 PDF 附件。"
     }
   ]
 }
