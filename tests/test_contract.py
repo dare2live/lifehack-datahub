@@ -9444,7 +9444,7 @@ def test_apply_outcome_report_source_seeds_updates_matching_pending_rows(tmp_pat
     sut = next(row for row in merged_rows if row["entity_name"] == "沈阳工业大学" and row["report_scope"] == "undergraduate_teaching_quality_report")
     assert sut["candidate_report_url"] == "https://www.sut.edu.cn/info/1584/67026.htm"
     dlu = next(row for row in merged_rows if row["entity_name"] == "大连大学" and row["report_scope"] == "undergraduate_teaching_quality_report")
-    assert dlu["candidate_report_url"] == "https://zgc.dlu.edu.cn/info/1051/1754.htm"
+    assert dlu["candidate_report_url"] == "https://zgc.dlu.edu.cn/__local/5/C0/61/B92A4F9A28A99F089DF02DC8B08_93E673A2_121692.pdf"
     synu = next(row for row in merged_rows if row["entity_name"] == "沈阳师范大学" and row["report_scope"] == "undergraduate_teaching_quality_report")
     assert synu["status"] == "todo"
     assert synu["candidate_report_url"] == ""
