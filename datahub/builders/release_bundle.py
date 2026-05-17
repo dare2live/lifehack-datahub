@@ -151,6 +151,7 @@ def _summarize_package(
     blockers = _package_blockers(
         validation=validation,
         quality=quality,
+        source_lineage=manifest.get("source_lineage") if isinstance(manifest, dict) else None,
         target_tables=target_tables,
         readiness=readiness,
         review=review,
@@ -488,6 +489,7 @@ def _package_blockers(
     *,
     validation: dict[str, Any],
     quality: dict[str, Any],
+    source_lineage: Any,
     target_tables: list[dict[str, Any]],
     readiness: dict[str, Any],
     review: dict[str, Any],
@@ -505,6 +507,8 @@ def _package_blockers(
     missing_load_modes = [table["name"] for table in target_tables if table.get("load_mode") == "unspecified"]
     if missing_load_modes:
         blockers.append({"code": "load_mode_missing", "details": missing_load_modes})
+    if not isinstance(source_lineage, dict):
+        blockers.append({"code": "source_lineage_missing", "details": "manifest.source_lineage must be an object"})
     if readiness.get("status") != "passed":
         blockers.append({"code": "readiness_not_passed", "details": readiness})
     if review.get("status") not in {"passed", "not_required"}:

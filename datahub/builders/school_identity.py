@@ -69,6 +69,16 @@ def build_school_identity_package(
         files=[table_file],
         tables=[{"name": TARGET_TABLE, "file": table_file}],
         source_version=source_version or "school_identity_bridge",
+        source_lineage={
+            "source_kind": "reviewed_school_identity_bridge",
+            "core_db": str(core_db),
+            "school_profile_csv": str(school_profile_csv),
+            "review_plan_csv": str(review_plan_csv) if review_plan_csv else None,
+            "local_school_rows": len(local_schools),
+            "school_profile_rows": len(profiles),
+            "reviewed_identity_rows": len(reviewed_identity),
+            "unmatched_rows": len(unmatched),
+        },
     )
     return {
         "package_id": package_id,
