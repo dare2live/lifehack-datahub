@@ -101,7 +101,7 @@ def _build_rows(
     blocked_status = extraction_config.get("blocked_status", "blocked")
     rows = []
     for source_row in source_rows:
-        source_status = str(source_row.get("status") or source_row.get("intake_status") or "").strip()
+        source_status = str(source_row.get("intake_status") or source_row.get("status") or source_row.get("source_status") or "").strip()
         if source_status not in selected_statuses:
             continue
         input_path = str(source_row.get("local_report_path") or "").strip()

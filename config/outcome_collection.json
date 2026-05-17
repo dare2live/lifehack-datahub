@@ -147,7 +147,7 @@
     }
   },
   "report_extraction_plan": {
-    "source_statuses": ["candidate_found", "verified", "ready"],
+    "source_statuses": ["candidate_found", "verified", "ready", "downloaded"],
     "supported_extensions": [".pdf", ".ofd"],
     "output_path_template": "candidates/{domain}_{safe_entity_code}_{metric_year}_{report_scope}_candidates.csv",
     "ready_status": "ready",

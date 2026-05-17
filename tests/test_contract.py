@@ -10173,6 +10173,40 @@ def test_build_outcome_report_extraction_plan_accepts_intake_status(tmp_path: Pa
     assert extraction_rows[0]["input_path"] == str(local_pdf)
 
 
+def test_build_outcome_report_extraction_plan_defaults_to_downloaded_intake_status(tmp_path: Path):
+    local_pdf = tmp_path / "raw" / "lnu2025.pdf"
+    local_pdf.parent.mkdir(parents=True)
+    local_pdf.write_bytes(b"%PDF-1.4\n")
+    report_source_csv = tmp_path / "outcome_report_intake_results.csv"
+    rows = [{
+        "domain": "school",
+        "entity_code": "10140",
+        "entity_name": "辽宁大学",
+        "metric_year": "2025",
+        "report_scope": "employment_quality_report",
+        "candidate_report_title": "辽宁大学2025届毕业生就业质量报告",
+        "candidate_report_url": "https://example.edu/lnu2025.pdf",
+        "candidate_source_date": "2025-12-31",
+        "availability_date": "2026-01-05",
+        "source_status": "candidate_found",
+        "intake_status": "downloaded",
+        "download_status": "downloaded",
+        "local_report_path": str(local_pdf),
+    }]
+    with report_source_csv.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=rows[0].keys())
+        writer.writeheader()
+        writer.writerows(rows)
+
+    result = build_outcome_report_extraction_plan(
+        report_source_csv=report_source_csv,
+        output_dir=tmp_path / "extract",
+    )
+
+    assert result["rows"] == 1
+    assert result["ready_rows"] == 1
+
+
 def test_run_outcome_report_extraction_plan_writes_candidate_csv(tmp_path: Path, monkeypatch):
     input_pdf = tmp_path / "raw" / "lnu2025.pdf"
     input_pdf.parent.mkdir(parents=True)
