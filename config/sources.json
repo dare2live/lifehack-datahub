@@ -839,6 +839,9 @@
           "市": 0.45,
           "省": 0.3,
           "unknown": 0.5
+        },
+        "quality_policy": {
+          "min_geocode_confidence": 0.8
         }
       },
       "acquisition": {

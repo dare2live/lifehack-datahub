@@ -13169,6 +13169,46 @@ def test_build_school_location_package_from_amap_geocode(tmp_path: Path, monkeyp
     assert manifest["source_lineage"]["raw_manifest"] == str(raw_manifest)
     assert manifest["source_lineage"]["source_kind"] == "parsed_amap_web_api_geocode"
 
+    bad_jsonl = raw_dir / "amap_web_api_geocode_bad.jsonl"
+    bad_jsonl.write_text(
+        json.dumps({
+            "request_index": 2,
+            "operation": "geocode",
+            "params": {"address": "沈阳市测试学院", "city": "沈阳"},
+            "source_row": {
+                "national_school_code": "4121000000",
+                "local_school_code": "0000",
+                "school_name": "测试学院",
+                "campus_key": "main",
+                "campus_name": "主校区",
+                "city": "沈阳",
+            },
+            "raw_response_hash": "bad123",
+            "response": {
+                "status": "1",
+                "geocodes": [{
+                    "formatted_address": "辽宁省大连市测试路",
+                    "province": "辽宁省",
+                    "city": "大连市",
+                    "district": "西岗区",
+                    "adcode": "210203",
+                    "citycode": "0411",
+                    "location": "121.6,38.9",
+                    "level": "市",
+                }],
+            },
+        }, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="confidence below minimum"):
+        build_school_location_package_from_amap_geocode(
+            raw_jsonl=bad_jsonl,
+            raw_manifest=raw_manifest,
+            output_root=tmp_path / "exports",
+            package_id="pkg-school-location-bad-geocode-test",
+            source_version="fixture-school-location",
+        )
+
     duplicate_manifest = raw_dir / "_amap_web_api_geocode_duplicate.json"
     duplicate_manifest.write_text(
         (

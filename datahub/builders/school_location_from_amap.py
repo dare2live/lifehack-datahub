@@ -32,12 +32,19 @@ def build_school_location_package_from_amap_geocode(
     raw_manifest = raw_manifest or raw_jsonl.with_name("_amap_web_api_geocode.json")
     manifest = _load_manifest(raw_manifest)
     built_at = datetime.utcnow().replace(microsecond=0).isoformat()
-    rows = [
-        row
-        for record in _read_jsonl(raw_jsonl)
-        for row in [_to_location_row(record, source_config, manifest, built_at)]
-        if row
-    ]
+    rows = []
+    quality_errors = []
+    for record in _read_jsonl(raw_jsonl):
+        row = _to_location_row(record, source_config, manifest, built_at)
+        if not row:
+            continue
+        errors = _validate_location_row(row, record, source_config)
+        if errors:
+            quality_errors.extend(errors)
+            continue
+        rows.append(row)
+    if quality_errors:
+        raise ValueError("; ".join(quality_errors))
     if not rows:
         raise ValueError("no valid school location rows parsed from Amap geocode raw JSONL")
 
@@ -127,6 +134,60 @@ def _to_location_row(
         "availability_date": manifest.get("source_date"),
         "built_at": built_at,
     }
+
+
+def _validate_location_row(
+    row: dict[str, Any],
+    record: dict[str, Any],
+    source_config: dict[str, Any],
+) -> list[str]:
+    errors = []
+    label = f"request {record.get('request_index', '')} {row.get('school_name') or row.get('local_school_code')}"
+    for column in ("longitude", "latitude", "adcode"):
+        if not str(row.get(column) or "").strip():
+            errors.append(f"{label} missing geocode {column}")
+    min_confidence = _min_geocode_confidence(source_config)
+    confidence = _as_float(row.get("geocode_confidence"))
+    if confidence is None or confidence < min_confidence:
+        errors.append(
+            f"{label} geocode confidence below minimum: "
+            f"{row.get('geocode_confidence')} < {min_confidence}"
+        )
+    expected_city = _first(record.get("source_row") or {}, ["city", "城市"])
+    actual_city = row.get("city")
+    if expected_city and actual_city and not _same_city(expected_city, actual_city):
+        errors.append(f"{label} geocode city mismatch: expected {expected_city}, got {actual_city}")
+    return errors
+
+
+def _min_geocode_confidence(source_config: dict[str, Any]) -> float:
+    interfaces = source_config.get("interfaces") or {}
+    policy = interfaces.get("quality_policy") or {}
+    value = policy.get("min_geocode_confidence", 0.8)
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return 0.8
+
+
+def _as_float(value: Any) -> float | None:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _same_city(expected: Any, actual: Any) -> bool:
+    return _normalize_city(expected) == _normalize_city(actual)
+
+
+def _normalize_city(value: Any) -> str:
+    text = str(value or "").strip()
+    for suffix in ("市", "地区", "盟", "自治州", "州"):
+        if text.endswith(suffix):
+            text = text[: -len(suffix)]
+            break
+    return text
 
 
 def _load_manifest(path: Path) -> dict[str, Any]:
