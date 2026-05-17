@@ -694,6 +694,45 @@
       "candidate_source_date": "2024-12-24",
       "availability_date": "2024-12-24",
       "evidence_note": "东北石油大学教学质量监控与评估中心本科教学质量报告栏目列出《东北石油大学2023-2024学年本科教学质量报告》，页面日期 2024-12-24，搜索结果可见官方 PDF 附件。"
+    },
+    {
+      "domain": "school",
+      "entity_code": "0763",
+      "entity_name": "喀什大学",
+      "metric_year": 2024,
+      "report_scope": "undergraduate_teaching_quality_report",
+      "candidate_report_title": "喀什大学2023-2024学年本科教学质量报告",
+      "candidate_report_url": "https://www.ksu.edu.cn/info/1031/28145.htm",
+      "candidate_file_name": "喀什大学2023-2024学年本科教学质量报告（定稿）.pdf",
+      "candidate_source_date": "2024-12-10",
+      "availability_date": "2024-12-10",
+      "evidence_note": "喀什大学官网通知公告发布《喀什大学2023-2024学年本科教学质量报告》，页面日期 2024-12-10，并列出官方 PDF 附件。"
+    },
+    {
+      "domain": "school",
+      "entity_code": "0112",
+      "entity_name": "太原理工大学",
+      "metric_year": 2024,
+      "report_scope": "undergraduate_teaching_quality_report",
+      "candidate_report_title": "太原理工大学2023-2024学年本科教学质量报告",
+      "candidate_report_url": "https://xxgk.tyut.edu.cn/info/1046/2212.htm",
+      "candidate_file_name": "太原理工大学2023-2024学年本科教学质量报告.pdf",
+      "candidate_source_date": "2025-04-30",
+      "availability_date": "2025-04-30",
+      "evidence_note": "太原理工大学信息公开网发布《太原理工大学2023-2024学年本科教学质量报告》，页面日期 2025-04-30；页面未稳定暴露附件，可能需要 manual intake。"
+    },
+    {
+      "domain": "school",
+      "entity_code": "1647",
+      "entity_name": "浙江传媒学院",
+      "metric_year": 2024,
+      "report_scope": "undergraduate_teaching_quality_report",
+      "candidate_report_title": "浙江传媒学院2023-2024学年本科教学质量报告",
+      "candidate_report_url": "https://xxgk.cuz.edu.cn/info/1011/1609.htm",
+      "candidate_file_name": "浙江传媒学院2023-2024学年本科教学质量报告.pdf",
+      "candidate_source_date": "2024-12-02",
+      "availability_date": "2024-12-02",
+      "evidence_note": "浙江传媒学院信息公开网发布《浙江传媒学院2023-2024学年本科教学质量报告》，页面日期 2024-12-02，并列出官方 PDF 附件。"
     }
   ]
 }
