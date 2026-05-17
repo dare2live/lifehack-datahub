@@ -177,6 +177,19 @@
     },
     {
       "domain": "school",
+      "entity_code": "0146",
+      "entity_name": "辽宁科技大学",
+      "metric_year": 2024,
+      "report_scope": "undergraduate_teaching_quality_report",
+      "candidate_report_title": "辽宁科技大学2023-2024学年本科教学质量报告",
+      "candidate_report_url": "https://www.ustl.edu.cn/xinxigongkai/gkml/jxzlxx/kskcs.htm",
+      "candidate_file_name": "辽宁科技大学2023-2024学年本科教学质量报告.pdf",
+      "candidate_source_date": "2024-12-05",
+      "availability_date": "2024-12-05",
+      "evidence_note": "辽宁科技大学信息公开网教学质量信息目录列出《辽宁科技大学2023-2024学年本科教学质量报告》，发布日期 2024-12-05；报告详情页当前跳转到权限提示页，后续需 manual intake 获取正文或附件后再抽取指标。"
+    },
+    {
+      "domain": "school",
       "entity_code": "0167",
       "entity_name": "渤海大学",
       "metric_year": 2024,
@@ -434,6 +447,19 @@
       "candidate_source_date": "2024-04-16",
       "availability_date": "2024-04-16",
       "evidence_note": "辽宁传媒学院官网页面发布 2024 年毕业生就业质量年度报告，页面显示发布日期 2024-04-16 并列出官方 PDF 附件；PDF 直链为 https://www.lncu.edu.cn/wp-content/uploads/2025/12/%E8%BE%BD%E5%AE%81%E4%BC%A0%E5%AA%92%E5%AD%A6%E9%99%A2-2024%E5%B9%B4-%E6%AF%95%E4%B8%9A%E7%94%9F%E5%B0%B1%E4%B8%9A%E8%B4%A8%E9%87%8F%E5%B9%B4%E5%BA%A6%E6%8A%A5%E5%91%8A-1.pdf，本机 urllib 验证为 application/pdf。"
+    },
+    {
+      "domain": "school",
+      "entity_code": "4289",
+      "entity_name": "辽宁医药职业学院",
+      "metric_year": 2024,
+      "report_scope": "employment_quality_report",
+      "candidate_report_title": "辽宁医药职业学院高等职业教育质量报告（2024年度）",
+      "candidate_report_url": "https://www.lnvcm.edu.cn/__local/F/E9/30/EDA09E825AF0EC3F2C4F3E9279F_A5412DCD_EDBE2C.pdf",
+      "candidate_file_name": "辽宁医药职业学院高等职业教育质量报告（2024年度）.pdf",
+      "candidate_source_date": "2025-02-16",
+      "availability_date": "2025-02-16",
+      "evidence_note": "辽宁医药职业学院官网校内新闻页面发布《辽宁医药职业学院高等职业教育质量报告（2024年度）》，时间 2025-02-16；官方 PDF 直链为 lnvcm.edu.cn/__local/F/E9/30/EDA09E825AF0EC3F2C4F3E9279F_A5412DCD_EDBE2C.pdf。"
     },
     {
       "domain": "school",
