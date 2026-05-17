@@ -590,6 +590,19 @@
       "candidate_source_date": "2024-12-01",
       "availability_date": "2024-12-01",
       "evidence_note": "大连艺术学院教务处页面发布《大连艺术学院2023-2024学年本科教学质量报告》相关内容，页面说明学校按辽宁省教育厅通知完成报告并于 2024 年 12 月报送辽宁省教育厅高教处。"
+    },
+    {
+      "domain": "school",
+      "entity_code": "0180",
+      "entity_name": "锦州师范高等专科学校",
+      "metric_year": 2024,
+      "report_scope": "employment_quality_report",
+      "candidate_report_title": "锦州师范高等专科学校高等职业教育质量报告（2024年度）及企业参与高等职业教育人才培养报告（2024年度）",
+      "candidate_report_url": "https://www.jzsz.com.cn/info/1039/19041.htm",
+      "candidate_file_name": "锦州师范高等专科学校高等职业教育质量报告（2024年度）.pdf",
+      "candidate_source_date": "2025-01-11",
+      "availability_date": "2025-01-11",
+      "evidence_note": "锦州师范高等专科学校官网校园公告发布《锦州师范高等专科学校高等职业教育质量报告（2024年度）及企业参与高等职业教育人才培养报告（2024年度）》，页面发布日期 2025-01-11。"
     }
   ]
 }
