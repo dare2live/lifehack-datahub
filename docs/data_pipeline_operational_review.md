@@ -34,6 +34,7 @@ Tools can be modular. Scheduling, state, error handling, lineage, evidence gates
 - The top identity/profile gaps by admissions priority are 国防科技大学, 陆军兵种大学, 华北电力大学(北京), 陆军工程大学, and 华北电力大学(保定). The top outcome gaps are 沈阳音乐学院, 星海音乐学院, 沈阳师范大学, 辽宁生态工程职业学院, and 浙江音乐学院.
 - `build-school-identity-review-plan` can now consume `identity_missing_schools.csv` from the operational audit through `--priority-missing-csv`. The real local review plan now aligns to the 72-code operational identity gap, carries plan-row/major/batch/subject priority fields, and currently has 20 suggested MOE-profile candidates.
 - `audit-school-identity-review-plan` is the read-only gate before rebuilding `fa_bridge_school_identity` from a review plan. It reports approved/blocking rows, duplicate local codes, approved rows without reviewed national codes, and returns non-zero until every row is approved and package-ready.
+- `build-school-identity-review-batch` and `merge-school-identity-review-batch` now provide the controlled manual-review loop for the 72 identity/profile gaps. Reviewers work on priority-ordered batch CSVs; only review fields can be merged back into the full plan; the existing audit gate remains the final blocker before any identity package rebuild.
 
 ### CLI Coupling Reduction
 

@@ -131,6 +131,10 @@ from datahub.config import (
 )
 from datahub.builders.school_identity import build_school_identity_package
 from datahub.builders.school_identity_review_audit import audit_school_identity_review_plan
+from datahub.builders.school_identity_review_batch import (
+    build_school_identity_review_batch,
+    merge_school_identity_review_batch,
+)
 from datahub.builders.school_identity_review_plan import build_school_identity_review_plan
 from datahub.builders.school_location_geocode_audit import audit_school_location_geocode_input
 from datahub.builders.school_location_from_amap import build_school_location_package_from_amap_geocode
@@ -11367,6 +11371,105 @@ def test_audit_school_identity_review_plan_blocks_until_approved(tmp_path: Path)
     assert approved_report["approved_rows"] == 1
     assert approved_report["ready"]["ready_for_identity_package"] is True
     assert json.loads((tmp_path / "audit.json").read_text(encoding="utf-8"))["ready"]["ready_for_identity_package"] is True
+
+
+def test_build_school_identity_review_batch_selects_priority_pending_rows(tmp_path: Path):
+    plan = tmp_path / "school_identity_review_plan.csv"
+    rows = [
+        _school_identity_review_row("9002", "第二学校", priority_rank="2", review_status="todo"),
+        _school_identity_review_row("9001", "第一学校", priority_rank="1", review_status="needs_review"),
+        _school_identity_review_row("9003", "已批学校", priority_rank="3", review_status="approved"),
+    ]
+    _write_school_identity_review_plan(plan, rows)
+
+    result = build_school_identity_review_batch(plan_csv=plan, output_dir=tmp_path / "batch", limit=2)
+
+    assert result["rows"] == 2
+    with Path(result["csv"]).open(encoding="utf-8", newline="") as f:
+        batch_rows = list(csv.DictReader(f))
+    assert [row["local_school_code"] for row in batch_rows] == ["9001", "9002"]
+    manifest = json.loads(Path(result["manifest"]).read_text(encoding="utf-8"))
+    assert manifest["editable_columns"] == ["notes", "review_status", "reviewed_at", "reviewed_national_school_code", "reviewer"]
+
+
+def test_merge_school_identity_review_batch_updates_only_review_fields(tmp_path: Path):
+    plan = tmp_path / "school_identity_review_plan.csv"
+    rows = [
+        _school_identity_review_row("9001", "北京大学医学部", priority_rank="1", review_status="todo"),
+        _school_identity_review_row("9002", "第二学校", priority_rank="2", review_status="todo"),
+    ]
+    _write_school_identity_review_plan(plan, rows)
+
+    batch = tmp_path / "school_identity_review_batch.csv"
+    reviewed = [dict(rows[0])]
+    reviewed[0]["local_school_name"] = "不应覆盖的名称"
+    reviewed[0]["review_status"] = "approved"
+    reviewed[0]["reviewed_national_school_code"] = "4111010001"
+    reviewed[0]["reviewer"] = "reviewer-a"
+    reviewed[0]["reviewed_at"] = "2026-05-18"
+    reviewed[0]["notes"] = "matched by official MOE profile"
+    _write_school_identity_review_plan(batch, reviewed)
+
+    report = merge_school_identity_review_batch(
+        plan_csv=plan,
+        batch_csv=batch,
+        output_csv=tmp_path / "merged.csv",
+        report_path=tmp_path / "merge_report.json",
+    )
+
+    assert report["matched_rows"] == 1
+    assert report["updated_rows"] == 1
+    assert report["unknown_codes"] == []
+    with (tmp_path / "merged.csv").open(encoding="utf-8", newline="") as f:
+        merged_rows = {row["local_school_code"]: row for row in csv.DictReader(f)}
+    assert merged_rows["9001"]["local_school_name"] == "北京大学医学部"
+    assert merged_rows["9001"]["review_status"] == "approved"
+    assert merged_rows["9001"]["reviewed_national_school_code"] == "4111010001"
+    assert merged_rows["9001"]["reviewer"] == "reviewer-a"
+    assert merged_rows["9002"]["review_status"] == "todo"
+    assert json.loads((tmp_path / "merge_report.json").read_text(encoding="utf-8"))["updated_rows"] == 1
+
+
+def _school_identity_review_row(
+    local_school_code: str,
+    local_school_name: str,
+    *,
+    priority_rank: str,
+    review_status: str,
+) -> dict[str, str]:
+    return {
+        "priority_rank": priority_rank,
+        "priority_score": str(100 - int(priority_rank)),
+        "local_school_code": local_school_code,
+        "local_school_name": local_school_name,
+        "plan_row_count": "10",
+        "major_count": "8",
+        "batches": "本科批",
+        "subject_cats": "物理类",
+        "reason": "unmatched",
+        "candidate_count": "0",
+        "suggested_national_school_code": "4111010001" if local_school_code == "9001" else "",
+        "suggested_school_name": "北京大学" if local_school_code == "9001" else "",
+        "suggested_province": "北京市" if local_school_code == "9001" else "",
+        "suggested_city": "北京市" if local_school_code == "9001" else "",
+        "suggestion_method": "base_name_contains_profile" if local_school_code == "9001" else "",
+        "suggestion_count": "1" if local_school_code == "9001" else "0",
+        "review_status": review_status,
+        "reviewed_national_school_code": "",
+        "reviewer": "",
+        "reviewed_at": "",
+        "source_date": "2026-05-13",
+        "availability_date": "2026-05-13",
+        "built_at": "2026-05-13T00:00:00",
+        "notes": "",
+    }
+
+
+def _write_school_identity_review_plan(path: Path, rows: list[dict[str, str]]) -> None:
+    with path.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=list(rows[0]))
+        writer.writeheader()
+        writer.writerows(rows)
 
 
 def test_build_score_history_snapshot_filters_incomplete_rows(tmp_path: Path):

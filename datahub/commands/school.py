@@ -8,6 +8,10 @@ from pathlib import Path
 
 from datahub.builders.school_identity import build_school_identity_package
 from datahub.builders.school_identity_review_audit import audit_school_identity_review_plan
+from datahub.builders.school_identity_review_batch import (
+    build_school_identity_review_batch,
+    merge_school_identity_review_batch,
+)
 from datahub.builders.school_identity_review_plan import build_school_identity_review_plan
 from datahub.builders.school_location_from_amap import build_school_location_package_from_amap_geocode
 from datahub.builders.school_location_geocode_audit import audit_school_location_geocode_input
@@ -20,6 +24,8 @@ COMMANDS = {
     "build-school-identity",
     "build-school-identity-review-plan",
     "audit-school-identity-review-plan",
+    "build-school-identity-review-batch",
+    "merge-school-identity-review-batch",
     "build-school-location-geocode-input",
     "audit-school-location-geocode-input",
     "build-school-location-from-amap-geocode",
@@ -60,6 +66,24 @@ def register_school_commands(sub) -> None:
     audit_school_identity_review.add_argument("--plan-csv", required=True, type=Path)
     audit_school_identity_review.add_argument("--report", type=Path)
     audit_school_identity_review.add_argument("--approved-status", action="append", dest="approved_statuses")
+
+    build_school_identity_batch = sub.add_parser(
+        "build-school-identity-review-batch",
+        help="Build a priority-ordered manual review batch from a school identity review plan",
+    )
+    build_school_identity_batch.add_argument("--plan-csv", required=True, type=Path)
+    build_school_identity_batch.add_argument("--output-dir", required=True, type=Path)
+    build_school_identity_batch.add_argument("--limit", required=True, type=int)
+    build_school_identity_batch.add_argument("--status", action="append", dest="statuses")
+
+    merge_school_identity_batch = sub.add_parser(
+        "merge-school-identity-review-batch",
+        help="Merge reviewed school identity batch fields back into the full review plan",
+    )
+    merge_school_identity_batch.add_argument("--plan-csv", required=True, type=Path)
+    merge_school_identity_batch.add_argument("--batch-csv", required=True, type=Path)
+    merge_school_identity_batch.add_argument("--output", required=True, type=Path)
+    merge_school_identity_batch.add_argument("--report", type=Path)
 
     build_school_location_geocode_input = sub.add_parser(
         "build-school-location-geocode-input",
@@ -135,6 +159,24 @@ def handle_school_command(args: Namespace) -> int | None:
         )
         _print_json(report)
         return 0 if report["ready"]["ready_for_identity_package"] else 1
+    if args.cmd == "build-school-identity-review-batch":
+        result = build_school_identity_review_batch(
+            plan_csv=args.plan_csv,
+            output_dir=args.output_dir,
+            limit=args.limit,
+            statuses=args.statuses,
+        )
+        _print_json(result)
+        return 0
+    if args.cmd == "merge-school-identity-review-batch":
+        report = merge_school_identity_review_batch(
+            plan_csv=args.plan_csv,
+            batch_csv=args.batch_csv,
+            output_csv=args.output,
+            report_path=args.report,
+        )
+        _print_json(report)
+        return 0
     if args.cmd == "build-school-location-geocode-input":
         result = build_school_location_geocode_input_plan(
             core_db=args.core_db,
