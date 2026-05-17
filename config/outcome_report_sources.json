@@ -385,6 +385,32 @@
     },
     {
       "domain": "school",
+      "entity_code": "2592",
+      "entity_name": "辽宁职业学院",
+      "metric_year": 2024,
+      "report_scope": "employment_quality_report",
+      "candidate_report_title": "辽宁职业学院高等职业教育质量报告(2024年度)",
+      "candidate_report_url": "https://www.lnvc.edu.cn/uploadfile/5/Attachment/a946c56f0c.pdf",
+      "candidate_file_name": "辽宁职业学院高等职业教育质量报告(2024年度).pdf",
+      "candidate_source_date": "2025-02-15",
+      "availability_date": "2025-02-15",
+      "evidence_note": "辽宁职业学院官网页面发布高等职业教育质量报告(2024年度)，页面日期为 2025-02-15，正文 iframe 指向官方 PDF 附件；本机 urllib 验证 PDF 直链可读。"
+    },
+    {
+      "domain": "school",
+      "entity_code": "4189",
+      "entity_name": "辽宁建筑职业学院",
+      "metric_year": 2024,
+      "report_scope": "employment_quality_report",
+      "candidate_report_title": "辽宁建筑职业学院2024届毕业生就业质量年度报告",
+      "candidate_report_url": "https://www.lnjzxy.edu.cn/FileUploads/www/site/2024/12/31/ZZX1KM8A090Q5AZ4U8.pdf",
+      "candidate_file_name": "辽宁建筑职业学院2024届毕业生就业质量年度报告.pdf",
+      "candidate_source_date": "2024-12-31",
+      "availability_date": "2024-12-31",
+      "evidence_note": "辽宁建筑职业学院官网 PDF 直链可访问，报告正文为 2024 届毕业生就业质量年度报告并含毕业去向落实率等就业指标；本机 urllib 验证为 application/pdf。"
+    },
+    {
+      "domain": "school",
       "entity_code": "0728",
       "entity_name": "西安音乐学院",
       "metric_year": 2024,
