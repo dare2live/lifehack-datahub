@@ -21,11 +21,11 @@
     {
       "key": "ln_score_history",
       "label": "Liaoning historical score/rank",
-      "classification": "required_unavailable",
+      "classification": "required_available",
       "business_importance": "P0",
-      "availability": "partially_available_reconciliation_pending",
+      "availability": "current_core_reconciliation_passed_with_formal_bundle",
       "use_depth": "core_admission_band",
-      "normal_operation_requirement": "Must pass year-level reconciliation before it can be treated as official admission probability evidence."
+      "normal_operation_requirement": "Must pass year-level reconciliation before it can be treated as official admission probability evidence. Current 2025 package/core reconciliation was rebuilt against the current core DB, auto-reviewed against the official reference package, produced a zero-row delete plan, passed manifest validation and core importer dry-run, and was imported through release bundle score_history_reconciled_current_20260518_v3."
     },
     {
       "key": "school_identity",
