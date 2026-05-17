@@ -93,10 +93,15 @@ def _read_local_schools(core_db: Path) -> list[dict[str, str]]:
         """).fetchall()
     finally:
         con.close()
+    names_by_code: dict[str, list[str]] = {}
+    for code, name in rows:
+        local_code = str(code).strip()
+        local_name = str(name).strip()
+        if local_code and local_name:
+            names_by_code.setdefault(local_code, []).append(local_name)
     return [
-        {"local_school_code": str(code).strip(), "local_school_name": str(name).strip()}
-        for code, name in rows
-        if str(code).strip() and str(name).strip()
+        {"local_school_code": code, "local_school_name": _canonical_local_school_name(names)}
+        for code, names in sorted(names_by_code.items())
     ]
 
 
@@ -278,6 +283,11 @@ def _normalize_name(value: str | None) -> str:
         "】": "）",
     })
     return str(value or "").translate(translation).replace(" ", "").replace("\u3000", "").strip()
+
+
+def _canonical_local_school_name(names: list[str]) -> str:
+    unique_names = sorted({str(name).strip() for name in names if str(name).strip()})
+    return sorted(unique_names, key=lambda value: (-len(_normalize_name(value)), _normalize_name(value)))[0]
 
 
 def _clean_text(value: Any) -> str | None:

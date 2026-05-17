@@ -11253,6 +11253,8 @@ def test_build_school_identity_package_matches_unique_school_names(tmp_path: Pat
                 ('0140', '辽宁大学', '02', '汉语言文学', '本科批', '历史类'),
                 ('0183', '吉林大学', '01', '计算机类', '本科批', '物理类'),
                 ('1414', '中国石油大学(北京)', '01', '机械类', '本科批', '物理类'),
+                ('6407', '香港中文大学', '01', '测试专业', '本科批', '物理类'),
+                ('6407', '香港中文大学(深圳)', '02', '测试专业', '本科批', '物理类'),
                 ('9999', '不存在大学', '01', '测试专业', '本科批', '物理类')
         """)
     finally:
@@ -11320,6 +11322,20 @@ def test_build_school_identity_package_matches_unique_school_names(tmp_path: Pat
             "availability_date": "2025-06-27",
             "built_at": "2026-05-13T00:00:00",
         })
+        writer.writerow({
+            "national_school_code": "4144016407",
+            "school_name": "香港中文大学（深圳）",
+            "province": "广东省",
+            "city": "深圳市",
+            "school_tier": "本科",
+            "school_type": "",
+            "ownership": "",
+            "official_site": "",
+            "competent_authority": "广东省",
+            "source_date": "2025-06-20",
+            "availability_date": "2025-06-27",
+            "built_at": "2026-05-13T00:00:00",
+        })
 
     result = build_school_identity_package(
         core_db=db,
@@ -11330,7 +11346,7 @@ def test_build_school_identity_package_matches_unique_school_names(tmp_path: Pat
     )
     package_dir = Path(result["package_dir"])
     assert validate_manifest(package_dir / "manifest.json")["errors"] == []
-    assert result["rows"] == 3
+    assert result["rows"] == 4
     assert result["unmatched_rows"] == 1
 
     with (package_dir / "fa_bridge_school_identity.csv").open(encoding="utf-8", newline="") as f:
@@ -11339,6 +11355,8 @@ def test_build_school_identity_package_matches_unique_school_names(tmp_path: Pat
     assert by_local_code["0140"]["national_school_code"] == "4121010140"
     assert by_local_code["0183"]["match_method"] == "unique_exact_school_name"
     assert by_local_code["1414"]["national_school_code"] == "4111011414"
+    assert by_local_code["6407"]["local_school_name"] == "香港中文大学(深圳)"
+    assert by_local_code["6407"]["national_school_code"] == "4144016407"
 
 
 def test_build_merged_school_profile_package_preserves_base_rows_and_adds_reviewed_supplements(tmp_path: Path):
