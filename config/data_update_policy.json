@@ -367,14 +367,24 @@
       "concurrency_group": "official_reference_parallel",
       "parallelizable": true,
       "validity_profile": "remote_file",
-      "promotion_gate": "package_quality_ok"
+      "promotion_gate": "package_quality_ok",
+      "notes": "正式导入 core 前，如存在 school_profile_supplemental approved 行，必须用 build-school-profile-merged 生成全量 fa_dim_school_profile 包，不能用补充行单独 replace 主表。"
+    },
+    "school_profile_supplemental": {
+      "update_mode": "manual_review_promote",
+      "cadence": "after_school_profile_gap_review",
+      "concurrency_group": "official_reference_parallel",
+      "parallelizable": true,
+      "validity_profile": "manual_file",
+      "promotion_gate": "manual_review_approved_and_lineage_complete",
+      "notes": "仅用于补当前 MOE 基础画像缺失但辽宁招生计划需要的学校身份口径；发布前必须与完整 MOE school_profile 合并为全量包。"
     },
     "school_identity_bridge": {
       "update_mode": "manual_review_promote",
       "cadence": "after_school_or_admission_scope_change",
       "concurrency_group": "derived_readonly_mart",
       "parallelizable": true,
-      "depends_on": ["school_profile", "ln_admission_plan"],
+      "depends_on": ["school_profile", "school_profile_supplemental", "ln_admission_plan"],
       "validity_profile": "derived_mart",
       "promotion_gate": "identity_review_ok",
       "notes": "只读 core 招生计划和学校画像，未唯一匹配的学校进入人工复核计划。"

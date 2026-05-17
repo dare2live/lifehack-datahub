@@ -1047,6 +1047,8 @@ def test_audit_sources_marks_admission_plan_manual():
     assert by_key["ln_score_distribution"]["ocr_engine"] == "macos_vision"
     assert by_key["major_mapping_review"]["status"] == "local_db_configured"
     assert by_key["school_profile"]["status"] == "remote_configured"
+    assert by_key["school_profile_supplemental"]["status"] == "manual_review_configured"
+    assert by_key["school_profile_supplemental"]["target_tables"] == ["fa_dim_school_profile"]
     assert by_key["school_location_geocode"]["status"] == "web_api_configured_requires_connector"
     assert by_key["school_location_geocode"]["target_tables"] == ["fa_dim_school_location"]
     assert by_key["region_profile_geocode"]["status"] == "web_api_configured_requires_connector"
@@ -7797,6 +7799,8 @@ def test_data_update_policy_config_and_schemas():
         "ln_projection_score",
         "ln_score_distribution",
     ]
+    assert config["source_policies"]["school_profile_supplemental"]["validity_profile"] == "manual_file"
+    assert "school_profile_supplemental" in config["source_policies"]["school_identity_bridge"]["depends_on"]
     assert config["source_policies"]["city_economic_indicator"]["parallelizable"] is True
     assert config["source_policies"]["region_profile_geocode"]["parallelizable"] is False
     assert "city_listed_company_signal" in config["source_policies"]["city_development_score"]["depends_on"]

@@ -781,6 +781,25 @@
       },
       "target_tables": ["fa_dim_school_profile"]
     },
+    "school_profile_supplemental": {
+      "name": "高校基础画像受控补充",
+      "kind": "reviewed_supplemental_profile",
+      "owner": "lifehack-datahub",
+      "raw_glob": "raw/school_profile_supplemental/**/*",
+      "remote_files": [],
+      "acquisition": {
+        "status": "manual_review_configured",
+        "official_distribution": "学校官网、招生章程、章程或主管部门公开信息；只补当前 MOE 基础画像缺失但辽宁招生需要的学校身份口径",
+        "evidence_urls": [
+          "https://www.btmc.edu.cn/zsxxw/info/1263/2313.htm",
+          "https://www.btmc.edu.cn/xxgk/xxjj.htm",
+          "https://zsw.bttc.edu.cn/info/1680/1024.htm",
+          "https://www.bttc.edu.cn/xxgk1/xxjj.htm"
+        ],
+        "notes": "补充 profile 不能单独导入 core；必须先通过 build-school-profile-merged 与完整 MOE profile 合并为全量 fa_dim_school_profile 包，避免 replace 导入覆盖主表。"
+      },
+      "target_tables": ["fa_dim_school_profile"]
+    },
     "school_location_geocode": {
       "name": "高校地理位置增强",
       "kind": "verified_address_plus_amap_web_api_geocode",
