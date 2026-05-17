@@ -129,6 +129,7 @@ def register_school_commands(sub) -> None:
     build_school_location_geocode_input.add_argument("--output-dir", required=True, type=Path)
     build_school_location_geocode_input.add_argument("--school-profile", type=Path)
     build_school_location_geocode_input.add_argument("--school-identity", type=Path)
+    build_school_location_geocode_input.add_argument("--identity-approved-status", action="append", dest="identity_approved_statuses")
     build_school_location_geocode_input.add_argument("--limit", type=int)
     build_school_location_geocode_input.add_argument("--source-date")
     build_school_location_geocode_input.add_argument("--availability-date")
@@ -247,6 +248,7 @@ def handle_school_command(args: Namespace) -> int | None:
             output_dir=args.output_dir,
             school_profile_csv=args.school_profile,
             school_identity_csv=args.school_identity,
+            approved_identity_statuses=args.identity_approved_statuses,
             limit=args.limit,
             source_date=args.source_date,
             availability_date=args.availability_date,

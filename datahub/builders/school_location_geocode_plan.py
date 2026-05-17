@@ -56,6 +56,7 @@ def build_school_location_geocode_input_plan(
     output_dir: Path,
     school_profile_csv: Path | None = None,
     school_identity_csv: Path | None = None,
+    approved_identity_statuses: list[str] | None = None,
     limit: int | None = None,
     source_date: str | None = None,
     availability_date: str | None = None,
@@ -69,7 +70,10 @@ def build_school_location_geocode_input_plan(
     local_schools = _read_local_schools(core_db, config, limit)
     profiles = _read_csv_by_key(school_profile_csv, "national_school_code") if school_profile_csv else {}
     profiles_by_name = _profiles_by_name(profiles.values())
-    identity = _read_identity(school_identity_csv) if school_identity_csv else {}
+    identity = _read_identity(
+        school_identity_csv,
+        approved_statuses=approved_identity_statuses or ["approved"],
+    ) if school_identity_csv else {}
 
     rows = [
         _build_plan_row(
@@ -189,14 +193,35 @@ def _read_csv_by_key(path: Path, key: str) -> dict[str, dict[str, str]]:
     }
 
 
-def _read_identity(path: Path) -> dict[str, str]:
+def _read_identity(path: Path, approved_statuses: list[str]) -> dict[str, dict[str, str]]:
+    approved = {str(status).strip() for status in approved_statuses if str(status).strip()}
+    if not approved:
+        raise ValueError("approved_identity_statuses must not be empty")
     rows = _read_csv(path)
     result = {}
     for row in rows:
         local_code = str(row.get("local_school_code") or "").strip()
-        national_code = str(row.get("national_school_code") or "").strip()
-        if local_code and national_code:
-            result[local_code] = national_code
+        national_code = str(
+            row.get("national_school_code")
+            or row.get("reviewed_national_school_code")
+            or ""
+        ).strip()
+        review_status = str(row.get("review_status") or "").strip()
+        if not local_code:
+            continue
+        if review_status and review_status not in approved:
+            result[local_code] = {
+                "national_school_code": national_code,
+                "review_status": review_status,
+                "is_approved": "false",
+            }
+            continue
+        if national_code:
+            result[local_code] = {
+                "national_school_code": national_code,
+                "review_status": review_status,
+                "is_approved": "true",
+            }
     return result
 
 
@@ -223,13 +248,13 @@ def _build_plan_row(
     config: dict[str, Any],
     profiles: dict[str, dict[str, str]],
     profiles_by_name: dict[str, list[dict[str, str]]],
-    identity: dict[str, str],
+    identity: dict[str, dict[str, str]],
     source_date: str,
     availability_date: str,
     built_at: str,
 ) -> dict[str, Any]:
     defaults = config["defaults"]
-    national_code, profile, match_method = _match_profile(local, profiles, profiles_by_name, identity)
+    national_code, profile, match_method, identity_blocking = _match_profile(local, profiles, profiles_by_name, identity)
     region_geo = _region_geo(local.get("region"), config.get("province_prefixes", []))
     province = region_geo.get("province") or (profile.get("province") if profile else None)
     city = _preferred_city(region_geo.get("city"), profile.get("city") if profile else None)
@@ -242,6 +267,7 @@ def _build_plan_row(
     campus_key = _format_query(defaults.get("campus_key_template") or defaults["campus_key"], **campus_values)
     campus_name = _format_query(defaults.get("campus_name_template") or defaults["campus_name"], **campus_values)
     blocking = []
+    blocking.extend(identity_blocking)
     if not national_code:
         blocking.append("missing_national_school_code")
     if not query:
@@ -273,19 +299,22 @@ def _match_profile(
     local: dict[str, Any],
     profiles: dict[str, dict[str, str]],
     profiles_by_name: dict[str, list[dict[str, str]]],
-    identity: dict[str, str],
-) -> tuple[str | None, dict[str, str] | None, str]:
+    identity: dict[str, dict[str, str]],
+) -> tuple[str | None, dict[str, str] | None, str, list[str]]:
     local_code = str(local.get("local_school_code") or "").strip()
-    national_code = identity.get(local_code)
+    identity_row = identity.get(local_code)
+    if identity_row and identity_row.get("is_approved") == "false":
+        return None, None, "identity_not_approved", ["identity_not_approved"]
+    national_code = identity_row.get("national_school_code") if identity_row else None
     if national_code:
-        return national_code, profiles.get(national_code), "identity_bridge"
+        return national_code, profiles.get(national_code), "identity_bridge", []
     matches = profiles_by_name.get(_normalize_name(local.get("school_name")), [])
     if len(matches) == 1:
         profile = matches[0]
-        return profile.get("national_school_code"), profile, "unique_profile_name"
+        return profile.get("national_school_code"), profile, "unique_profile_name", []
     if len(matches) > 1:
-        return None, None, "ambiguous_profile_name"
-    return None, None, "unmatched_profile_name"
+        return None, None, "ambiguous_profile_name", []
+    return None, None, "unmatched_profile_name", []
 
 
 def _region_geo(region: str | None, province_prefixes: list[str]) -> dict[str, str | None]:

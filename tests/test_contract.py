@@ -12678,6 +12678,7 @@ def test_build_school_location_geocode_input_plan(tmp_path: Path):
             ('10183', '吉林大学', '吉林省长春市', '本科批'),
             ('9145', '东北大学秦皇岛分校', '河北秦皇岛', '本科批'),
             ('99999', '测试学院', '辽宁大连', '本科批'),
+            ('66666', '待审核学院', '辽宁沈阳', '本科批'),
             ('88888', '未匹配学院', '辽宁鞍山', '专科批'),
             ('77777', '过滤学院', '辽宁沈阳', '艺术类')
         """)
@@ -12709,13 +12710,20 @@ def test_build_school_location_geocode_input_plan(tmp_path: Path):
             "province": "吉林省",
             "city": "长春市",
         })
+        writer.writerow({
+            "national_school_code": "4121066666",
+            "school_name": "待审核学院",
+            "province": "辽宁省",
+            "city": "沈阳市",
+        })
 
     identity_csv = tmp_path / "school_identity.csv"
     with identity_csv.open("w", encoding="utf-8", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=["local_school_code", "national_school_code"])
+        writer = csv.DictWriter(f, fieldnames=["local_school_code", "national_school_code", "review_status"])
         writer.writeheader()
-        writer.writerow({"local_school_code": "99999", "national_school_code": "4121099999"})
-        writer.writerow({"local_school_code": "9145", "national_school_code": "4121010145"})
+        writer.writerow({"local_school_code": "99999", "national_school_code": "4121099999", "review_status": "approved"})
+        writer.writerow({"local_school_code": "9145", "national_school_code": "4121010145", "review_status": "approved"})
+        writer.writerow({"local_school_code": "66666", "national_school_code": "4121066666", "review_status": "needs_review"})
 
     result = build_school_location_geocode_input_plan(
         core_db=core_db,
@@ -12725,9 +12733,9 @@ def test_build_school_location_geocode_input_plan(tmp_path: Path):
         source_date="2026-05-13",
     )
 
-    assert result["rows"] == 5
+    assert result["rows"] == 6
     assert result["ready_rows"] == 4
-    assert result["blocked_rows"] == 1
+    assert result["blocked_rows"] == 2
     with Path(result["amap_input_csv"]).open(encoding="utf-8", newline="") as f:
         input_rows = list(csv.DictReader(f))
     assert {row["national_school_code"] for row in input_rows} == {"4121010145", "4121099999", "4122010183"}
@@ -12743,8 +12751,11 @@ def test_build_school_location_geocode_input_plan(tmp_path: Path):
     with Path(result["plan_csv"]).open(encoding="utf-8", newline="") as f:
         plan_rows = list(csv.DictReader(f))
     blocked = [row for row in plan_rows if row["request_status"] == "blocked"]
-    assert len(blocked) == 1
-    assert blocked[0]["blocking_reason"] == "missing_national_school_code"
+    assert len(blocked) == 2
+    assert {row["local_school_code"]: row["blocking_reason"] for row in blocked} == {
+        "66666": "identity_not_approved;missing_national_school_code",
+        "88888": "missing_national_school_code",
+    }
     manifest = json.loads(Path(result["manifest"]).read_text(encoding="utf-8"))
     assert manifest["source_key"] == "school_location_geocode"
     assert "--address-column geocode_query" in manifest["fetch_command_hint"]
@@ -12757,7 +12768,7 @@ def test_build_school_location_geocode_input_plan(tmp_path: Path):
     assert audit["errors"] == []
     assert audit["row_counts"]["ready_rows"] == 4
     assert audit["primary_key_checks"]["duplicate_count"] == 0
-    assert audit["warnings"][0]["count"] == 1
+    assert audit["warnings"][0]["count"] == 2
 
     duplicate_input = tmp_path / "duplicate_input.csv"
     duplicate_input.write_text(
