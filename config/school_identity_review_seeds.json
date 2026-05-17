@@ -266,10 +266,11 @@
       "seed_id": "sid-0693-xizang-agriculture",
       "local_school_code": "0693",
       "local_school_name": "西藏农牧学院",
-      "review_status": "needs_research",
+      "review_status": "approved",
       "reviewer": "datahub_seed_review",
       "reviewed_at": "2026-05-18",
-      "review_note": "当前 profile 表未检索到西藏农牧学院，需确认学校画像来源是否漏收后再批准。"
+      "review_note": "教育部 2016 年同意建立西藏农牧学院的函披露标识码为 4154010693；当前 MOE 2025 基础画像中同一标识码学校名称为西藏农牧大学。本地招生名称仍为西藏农牧学院，identity 按名称变更归并到 4154010693。来源：https://www.moe.gov.cn/srcsite/A03/s181/201606/t20160622_269368.html",
+      "reviewed_national_school_code": "4154010693"
     },
     {
       "seed_id": "sid-6401-uic",
