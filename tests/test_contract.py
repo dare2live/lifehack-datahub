@@ -10456,6 +10456,44 @@ def test_merge_outcome_report_candidates_requires_approved_status(tmp_path: Path
     assert merged_rows[1]["metric_value"] == ""
 
 
+def test_merge_outcome_report_candidates_requires_metric_scope(tmp_path: Path):
+    plan = tmp_path / "outcome_collection_plan.csv"
+    rows = [
+        _outcome_plan_row("school", "10140", "辽宁大学", "employment_rate", status="todo", priority_rank="1"),
+    ]
+    _write_outcome_plan(plan, rows)
+    candidates = tmp_path / "outcome_candidates.csv"
+    with candidates.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=CANDIDATE_COLUMNS)
+        writer.writeheader()
+        base = {column: "" for column in CANDIDATE_COLUMNS}
+        writer.writerow({
+            **base,
+            "domain": "school",
+            "entity_code": "10140",
+            "entity_name": "辽宁大学",
+            "metric_key": "employment_rate",
+            "metric_label": "毕业去向落实率",
+            "metric_unit": "ratio",
+            "metric_year": "2025",
+            "candidate_value": "0.8582",
+            "source_title": "辽宁大学2023-2024学年本科教学质量报告",
+            "source_url": "https://example.edu/lnu.pdf",
+            "evidence_quote": "毕业去向落实率为85.82%。",
+            "source_date": "2024-12-06",
+            "availability_date": "2024-12-06",
+            "review_status": "approved",
+        })
+
+    output = tmp_path / "outcome_collection_plan_merged.csv"
+    with pytest.raises(ValueError, match="incomplete approved candidate rows"):
+        merge_outcome_report_candidates(
+            plan_csv=plan,
+            candidate_csv=candidates,
+            output=output,
+        )
+
+
 def test_build_outcome_packages_from_verified_collection_plan(tmp_path: Path):
     plan = tmp_path / "outcome_collection_plan.csv"
     fieldnames = [

@@ -145,7 +145,14 @@ def _candidate_updates(candidate: dict[str, Any], target_status: str, built_at: 
 
 
 def _missing_required_candidate_values(row: dict[str, Any]) -> list[str]:
-    required = ["candidate_value", "source_url", "evidence_quote", "source_date", "availability_date"]
+    required = [
+        "candidate_value",
+        "source_url",
+        "evidence_quote",
+        "metric_scope",
+        "source_date",
+        "availability_date",
+    ]
     return [column for column in required if not str(row.get(column) or "").strip()]
 
 
