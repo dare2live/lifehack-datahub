@@ -20,12 +20,14 @@ from datahub.builders.school_identity_review_seed_merge import (
 from datahub.builders.school_location_from_amap import build_school_location_package_from_amap_geocode
 from datahub.builders.school_location_geocode_audit import audit_school_location_geocode_input
 from datahub.builders.school_location_geocode_plan import build_school_location_geocode_input_plan
+from datahub.builders.school_profile_merge import build_merged_school_profile_package
 from datahub.config import get_table_schema
 from datahub.parsers.moe_school_profile import parse_moe_school_profile_xls
 
 
 COMMANDS = {
     "build-school-identity",
+    "build-school-profile-merged",
     "build-school-identity-review-plan",
     "audit-school-identity-review-plan",
     "build-school-identity-review-batch",
@@ -53,6 +55,17 @@ def register_school_commands(sub) -> None:
     build_school_identity.add_argument("--availability-date")
     build_school_identity.add_argument("--review-plan", type=Path)
     build_school_identity.add_argument("--approved-status", action="append", dest="approved_statuses")
+
+    build_school_profile_merged = sub.add_parser(
+        "build-school-profile-merged",
+        help="Build a full fa_dim_school_profile package by merging MOE base profile rows with reviewed supplements",
+    )
+    build_school_profile_merged.add_argument("--base-profile", required=True, type=Path)
+    build_school_profile_merged.add_argument("--supplemental-profile", required=True, type=Path)
+    build_school_profile_merged.add_argument("--output-root", required=True, type=Path)
+    build_school_profile_merged.add_argument("--package-id")
+    build_school_profile_merged.add_argument("--source-version")
+    build_school_profile_merged.add_argument("--allow-override", action="store_true")
 
     build_school_identity_review = sub.add_parser(
         "build-school-identity-review-plan",
@@ -160,6 +173,17 @@ def handle_school_command(args: Namespace) -> int | None:
             availability_date=args.availability_date,
             review_plan_csv=args.review_plan,
             approved_statuses=args.approved_statuses,
+        )
+        _print_json(result)
+        return 0
+    if args.cmd == "build-school-profile-merged":
+        result = build_merged_school_profile_package(
+            base_profile_csv=args.base_profile,
+            supplemental_profile_csv=args.supplemental_profile,
+            output_root=args.output_root,
+            package_id=args.package_id,
+            source_version=args.source_version,
+            allow_override=args.allow_override,
         )
         _print_json(result)
         return 0

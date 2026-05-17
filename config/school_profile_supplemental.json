@@ -1,0 +1,44 @@
+{
+  "version": "2026-05-18",
+  "notes": "Reviewed supplemental school profiles for schools absent from the current MOE base profile package. These rows must be merged with the full MOE profile package before core import because core loads fa_dim_school_profile with replace semantics.",
+  "profiles": [
+    {
+      "national_school_code": "4115019127",
+      "school_name": "内蒙古科技大学包头医学院",
+      "province": "内蒙古自治区",
+      "city": "包头市",
+      "school_tier": "本科",
+      "school_type": "医药类",
+      "ownership": "公办",
+      "official_site": "https://www.btmc.edu.cn/",
+      "competent_authority": "内蒙古自治区",
+      "source_date": "2026-05-18",
+      "availability_date": "2026-05-18",
+      "built_at": "2026-05-18T00:00:00",
+      "evidence_urls": [
+        "https://www.btmc.edu.cn/zsxxw/info/1263/2313.htm",
+        "https://www.btmc.edu.cn/xxgk/xxjj.htm"
+      ],
+      "review_note": "官方招生章程披露学校标准代码 19127；学校简介披露 2005 年经自治区人民政府批准以独立法人资格运行。当前完整 national_school_code 采用自治区前缀 41150 + 标准代码 19127，后续如官方学校标识码来源提供不同口径，应以官方学校标识码来源覆盖。"
+    },
+    {
+      "national_school_code": "4115018127",
+      "school_name": "内蒙古科技大学包头师范学院",
+      "province": "内蒙古自治区",
+      "city": "包头市",
+      "school_tier": "本科",
+      "school_type": "师范类",
+      "ownership": "公办",
+      "official_site": "https://www.bttc.edu.cn/",
+      "competent_authority": "内蒙古自治区",
+      "source_date": "2026-05-18",
+      "availability_date": "2026-05-18",
+      "built_at": "2026-05-18T00:00:00",
+      "evidence_urls": [
+        "https://zsw.bttc.edu.cn/info/1680/1024.htm",
+        "https://www.bttc.edu.cn/xxgk1/xxjj.htm"
+      ],
+      "review_note": "官方招生章程披露国标代码 18127；学校简介披露 2004 年经自治区人民政府批准以独立法人资格运行。当前完整 national_school_code 采用自治区前缀 41150 + 国标代码 18127，后续如官方学校标识码来源提供不同口径，应以官方学校标识码来源覆盖。"
+    }
+  ]
+}

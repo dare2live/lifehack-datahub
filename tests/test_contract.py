@@ -131,6 +131,7 @@ from datahub.config import (
     load_source_schemas,
 )
 from datahub.builders.school_identity import build_school_identity_package
+from datahub.builders.school_profile_merge import build_merged_school_profile_package
 from datahub.builders.school_identity_review_audit import audit_school_identity_review_plan
 from datahub.builders.school_identity_review_batch import (
     build_school_identity_review_batch,
@@ -11334,6 +11335,80 @@ def test_build_school_identity_package_matches_unique_school_names(tmp_path: Pat
     assert by_local_code["0140"]["national_school_code"] == "4121010140"
     assert by_local_code["0183"]["match_method"] == "unique_exact_school_name"
     assert by_local_code["1414"]["national_school_code"] == "4111011414"
+
+
+def test_build_merged_school_profile_package_preserves_base_rows_and_adds_reviewed_supplements(tmp_path: Path):
+    fieldnames = [
+        "national_school_code",
+        "school_name",
+        "province",
+        "city",
+        "school_tier",
+        "school_type",
+        "ownership",
+        "official_site",
+        "competent_authority",
+        "source_date",
+        "availability_date",
+        "built_at",
+    ]
+    base_profile = tmp_path / "base_profile.csv"
+    with base_profile.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerow({
+            "national_school_code": "4115010127",
+            "school_name": "内蒙古科技大学",
+            "province": "内蒙古自治区",
+            "city": "包头市",
+            "school_tier": "本科",
+            "school_type": "理工类",
+            "ownership": "公办",
+            "official_site": "https://www.imust.edu.cn/",
+            "competent_authority": "内蒙古自治区",
+            "source_date": "2025-06-20",
+            "availability_date": "2025-06-27",
+            "built_at": "2026-05-18T00:00:00",
+        })
+
+    supplemental_profile = tmp_path / "supplemental_profile.csv"
+    with supplemental_profile.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerow({
+            "national_school_code": "4115019127",
+            "school_name": "内蒙古科技大学包头医学院",
+            "province": "内蒙古自治区",
+            "city": "包头市",
+            "school_tier": "本科",
+            "school_type": "医药类",
+            "ownership": "公办",
+            "official_site": "https://www.btmc.edu.cn/",
+            "competent_authority": "内蒙古自治区",
+            "source_date": "2026-05-18",
+            "availability_date": "2026-05-18",
+            "built_at": "2026-05-18T00:00:00",
+        })
+
+    result = build_merged_school_profile_package(
+        base_profile_csv=base_profile,
+        supplemental_profile_csv=supplemental_profile,
+        output_root=tmp_path / "exports",
+        package_id="pkg-school-profile-merged-test",
+        source_version="fixture-school-profile-merged",
+    )
+    package_dir = Path(result["package_dir"])
+    assert validate_manifest(package_dir / "manifest.json")["errors"] == []
+    assert result["base_rows"] == 1
+    assert result["supplemental_rows"] == 1
+    assert result["rows"] == 2
+    assert result["quality_report"]["merge_report"]["skipped_duplicate_supplemental_keys"] == []
+
+    with (package_dir / "fa_dim_school_profile.csv").open(encoding="utf-8", newline="") as f:
+        rows = list(csv.DictReader(f))
+    by_code = {row["national_school_code"]: row for row in rows}
+    assert by_code["4115010127"]["school_name"] == "内蒙古科技大学"
+    assert by_code["4115019127"]["school_name"] == "内蒙古科技大学包头医学院"
 
 
 def test_build_school_identity_review_plan_suggests_base_school(tmp_path: Path):
