@@ -372,6 +372,19 @@
     },
     {
       "domain": "school",
+      "entity_code": "3220",
+      "entity_name": "沈阳城市学院",
+      "metric_year": 2024,
+      "report_scope": "undergraduate_teaching_quality_report",
+      "candidate_report_title": "沈阳城市学院2023-2024学年本科教学质量报告",
+      "candidate_report_url": "https://www.shenyangcu.edu.cn/gywm/xydt/xysx/202412/P020241210307880391546.pdf",
+      "candidate_file_name": "沈阳城市学院2023-2024学年本科教学质量报告.pdf",
+      "candidate_source_date": "2024-12-10",
+      "availability_date": "2024-12-10",
+      "evidence_note": "沈阳城市学院官网 PDF 直链可访问，报告正文标题为《沈阳城市学院2023-2024学年本科教学质量报告》；正文学生学习效果部分给出 2024 届本科毕业生、截至 2024-08-31 初次就业率以及国内外研究生升学人数。"
+    },
+    {
+      "domain": "school",
       "entity_code": "2594",
       "entity_name": "沈阳职业技术学院",
       "metric_year": 2024,
