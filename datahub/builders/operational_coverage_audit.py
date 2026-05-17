@@ -172,18 +172,40 @@ def _load_admission_schools(con: duckdb.DuckDBPyConnection, columns: set[str]) -
         raise ValueError(f"{ADMISSION_TABLE} must contain one of: {', '.join(ADMISSION_SCHOOL_CODE_COLUMNS)}")
     name_col = _first_column(columns, ADMISSION_SCHOOL_NAME_COLUMNS)
     name_expr = _quoted(name_col) if name_col else "''"
+    major_col = _first_column(columns, ("major_code", "major_full", "major_short", "major_name"))
+    major_count_expr = f"count(distinct {_quoted(major_col)})" if major_col else "0"
+    batch_col = _first_column(columns, ("batch",))
+    batch_expr = f"string_agg(distinct cast({_quoted(batch_col)} as varchar), '|')" if batch_col else "''"
+    subject_col = _first_column(columns, ("subject_cat",))
+    subject_expr = f"string_agg(distinct cast({_quoted(subject_col)} as varchar), '|')" if subject_col else "''"
     sql = f"""
-        select distinct
+        select
             cast({_quoted(code_col)} as varchar) as school_code,
-            cast({name_expr} as varchar) as school_name
+            min(cast({name_expr} as varchar)) as school_name,
+            count(*) as plan_row_count,
+            {major_count_expr} as major_count,
+            {batch_expr} as batches,
+            {subject_expr} as subject_cats
         from {_quoted(ADMISSION_TABLE)}
         where {_quoted(code_col)} is not null and trim(cast({_quoted(code_col)} as varchar)) <> ''
-        order by school_code
+        group by cast({_quoted(code_col)} as varchar)
+        order by plan_row_count desc, major_count desc, school_code
     """
     return [
-        {"school_code": str(code or "").strip(), "school_name": str(name or "").strip()}
-        for code, name in con.execute(sql).fetchall()
+        {
+            "school_code": str(code or "").strip(),
+            "school_name": str(name or "").strip(),
+            "plan_row_count": int(plan_rows or 0),
+            "major_count": int(major_count or 0),
+            "batches": _sort_pipe_values(batches),
+            "subject_cats": _sort_pipe_values(subject_cats),
+        }
+        for code, name, plan_rows, major_count, batches, subject_cats in con.execute(sql).fetchall()
     ]
+
+
+def _sort_pipe_values(value: Any) -> str:
+    return "|".join(sorted(part for part in str(value or "").split("|") if part))
 
 
 def _coverage_for_area(
@@ -240,7 +262,9 @@ def _coverage_for_area(
         return row
 
     covered = admission_codes & covered_codes
-    missing = [school for school in admission_schools if school["school_code"] not in covered]
+    missing = _rank_missing_schools(
+        [school for school in admission_schools if school["school_code"] not in covered]
+    )
     row.update({
         "covered_school_count": len(covered),
         "missing_school_count": len(missing),
@@ -305,6 +329,25 @@ def _load_school_codes(con: duckdb.DuckDBPyConnection, table: str, column: str) 
     return {str(row[0]).strip() for row in con.execute(sql).fetchall() if str(row[0]).strip()}
 
 
+def _rank_missing_schools(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    ranked = sorted(
+        rows,
+        key=lambda row: (
+            -int(row.get("plan_row_count") or 0),
+            -int(row.get("major_count") or 0),
+            str(row.get("school_code") or ""),
+        ),
+    )
+    return [
+        {
+            **row,
+            "priority_rank": index + 1,
+            "priority_score": int(row.get("plan_row_count") or 0) * 10 + int(row.get("major_count") or 0),
+        }
+        for index, row in enumerate(ranked)
+    ]
+
+
 def _first_column(columns: set[str], candidates: tuple[str, ...]) -> str | None:
     for candidate in candidates:
         if candidate in columns:
@@ -334,12 +377,33 @@ def _write_missing_records(
     missing_dir.mkdir(parents=True, exist_ok=True)
     output = missing_dir / f"{area_key}_missing_schools.csv"
     with output.open("w", encoding="utf-8", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=["school_code", "school_name", "coverage_area", "review_status", "notes"])
+        writer = csv.DictWriter(
+            f,
+            fieldnames=[
+                "priority_rank",
+                "priority_score",
+                "school_code",
+                "school_name",
+                "plan_row_count",
+                "major_count",
+                "batches",
+                "subject_cats",
+                "coverage_area",
+                "review_status",
+                "notes",
+            ],
+        )
         writer.writeheader()
         for row in rows:
             writer.writerow({
+                "priority_rank": row.get("priority_rank", ""),
+                "priority_score": row.get("priority_score", ""),
                 "school_code": row.get("school_code", ""),
                 "school_name": row.get("school_name", ""),
+                "plan_row_count": row.get("plan_row_count", ""),
+                "major_count": row.get("major_count", ""),
+                "batches": row.get("batches", ""),
+                "subject_cats": row.get("subject_cats", ""),
                 "coverage_area": area_key,
                 "review_status": "todo",
                 "notes": "",

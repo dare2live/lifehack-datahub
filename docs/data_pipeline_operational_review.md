@@ -26,6 +26,13 @@ Tools can be modular. Scheduling, state, error handling, lineage, evidence gates
 
 ## Work Completed So Far
 
+### Operational Coverage Gates
+
+- `audit-operational-coverage` now audits the Liaoning admission-school universe from the core DB in read-only mode and emits P0 blockers when identity, profile, outcome, location, campus, or school-city-industry coverage is below the configured operational threshold.
+- Missing-school queues now include `priority_rank`, `priority_score`, `plan_row_count`, `major_count`, `batches`, and `subject_cats`. This makes the next data-completion pass executable by admissions importance instead of a flat alphabetical missing list.
+- Current real audit on the local core DB finds 1,590 Liaoning admission schools. Identity/profile cover 1,518 and miss 72; school outcome evidence covers 12 and misses 1,578; location, campus living, and school-city-industry fit tables are still absent from the core DB.
+- The top identity/profile gaps by admissions priority are 国防科技大学, 陆军兵种大学, 华北电力大学(北京), 陆军工程大学, and 华北电力大学(保定). The top outcome gaps are 沈阳音乐学院, 星海音乐学院, 沈阳师范大学, 辽宁生态工程职业学院, and 浙江音乐学院.
+
 ### Data Contracts And Import
 
 - Standard data packages now carry `manifest.json`, `quality_report.json`, table files, source lineage, hashes, row counts, and schema checks.

@@ -9,8 +9,25 @@ def test_operational_coverage_audit_reports_missing_school_blockers(tmp_path: Pa
     db_path = tmp_path / "core.duckdb"
     con = duckdb.connect(str(db_path))
     try:
-        con.execute("create table fa_dim_ln_admission_plan (school_code varchar, school_name varchar)")
-        con.execute("insert into fa_dim_ln_admission_plan values ('1001', 'Alpha University'), ('1002', 'Beta College')")
+        con.execute(
+            """
+            create table fa_dim_ln_admission_plan (
+                school_code varchar,
+                school_name varchar,
+                major_code varchar,
+                batch varchar,
+                subject_cat varchar
+            )
+            """
+        )
+        con.execute(
+            """
+            insert into fa_dim_ln_admission_plan values
+                ('1001', 'Alpha University', '01', '本科批', '物理类'),
+                ('1002', 'Beta College', '01', '本科批', '物理类'),
+                ('1002', 'Beta College', '02', '本科批', '历史类')
+            """
+        )
         con.execute("create table fa_bridge_school_identity (school_code varchar)")
         con.execute("insert into fa_bridge_school_identity values ('1001'), ('1002')")
         con.execute("create table fa_dim_school_profile (school_code varchar)")
@@ -42,10 +59,19 @@ def test_operational_coverage_audit_reports_missing_school_blockers(tmp_path: Pa
     assert profile["missing_school_count"] == 1
     assert profile["missing_records_path"] == str(missing_dir / "profile_missing_schools.csv")
     assert (missing_dir / "profile_missing_schools.csv").read_text(encoding="utf-8").splitlines() == [
-        "school_code,school_name,coverage_area,review_status,notes",
-        "1002,Beta College,profile,todo,",
+        "priority_rank,priority_score,school_code,school_name,plan_row_count,major_count,batches,subject_cats,coverage_area,review_status,notes",
+        "1,22,1002,Beta College,2,2,本科批,历史类|物理类,profile,todo,",
     ]
-    assert profile["missing_samples"] == [{"school_code": "1002", "school_name": "Beta College"}]
+    assert profile["missing_samples"] == [{
+        "school_code": "1002",
+        "school_name": "Beta College",
+        "plan_row_count": 2,
+        "major_count": 2,
+        "batches": "本科批",
+        "subject_cats": "历史类|物理类",
+        "priority_rank": 1,
+        "priority_score": 22,
+    }]
     assert any(blocker["code"] == "PROFILE_COVERAGE_BELOW_THRESHOLD" for blocker in report["p0_blockers"])
 
 
