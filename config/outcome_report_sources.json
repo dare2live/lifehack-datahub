@@ -226,6 +226,32 @@
       "candidate_source_date": "2024-12-05",
       "availability_date": "2024-12-05",
       "evidence_note": "大连民族大学本科教育教学审核评估专题网站发布，页面列出本科教学质量报告 PDF 附件。"
+    },
+    {
+      "domain": "school",
+      "entity_code": "0177",
+      "entity_name": "沈阳音乐学院",
+      "metric_year": 2024,
+      "report_scope": "undergraduate_teaching_quality_report",
+      "candidate_report_title": "沈阳音乐学院2023-2024学年本科教学质量报告",
+      "candidate_report_url": "https://www.sycm.edu.cn/display_son.aspx?DWid=50&Nid=28438&Vid=-1",
+      "candidate_file_name": "沈阳音乐学院2023-2024学年本科教学质量报告.pdf",
+      "candidate_source_date": "2024-12-05",
+      "availability_date": "2024-12-05",
+      "evidence_note": "沈阳音乐学院信息公开网教学管理页面发布，页面列出发布时间和 PDF 附件；PDF 直链为 https://www.sycm.edu.cn/video/%E6%B2%88%E9%98%B3%E9%9F%B3%E4%B9%90%E5%AD%A6%E9%99%A22023-2024%E5%AD%A6%E5%B9%B4%E6%9C%AC%E7%A7%91%E6%95%99%E5%AD%A6%E8%B4%A8%E9%87%8F%E6%8A%A5%E5%91%8A.pdf。"
+    },
+    {
+      "domain": "school",
+      "entity_code": "1688",
+      "entity_name": "山东工商学院",
+      "metric_year": 2024,
+      "report_scope": "undergraduate_teaching_quality_report",
+      "candidate_report_title": "山东工商学院2023-2024学年本科教学质量报告",
+      "candidate_report_url": "https://xxgk.sdtbu.edu.cn/system/_content/download.jsp?urltype=news.DownloadAttachUrl&owner=1404357077&wbfileid=12070907",
+      "candidate_file_name": "山东工商学院2023-2024学年本科教学质量报告.pdf",
+      "candidate_source_date": "2024-12-05",
+      "availability_date": "2024-12-05",
+      "evidence_note": "山东工商学院信息公开网教学质量信息页面发布，页面 https://xxgk.sdtbu.edu.cn/info/1017/2642.htm 列出发布时间和 PDF 附件；candidate_report_url 使用该页附件直链。"
     }
   ]
 }

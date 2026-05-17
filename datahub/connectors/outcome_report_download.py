@@ -119,7 +119,7 @@ def _download_row(row: dict[str, Any], *, timeout: int) -> dict[str, Any]:
     source_url = _required_text(row, "candidate_report_url")
     target_path = Path(_required_text(row, "suggested_local_report_path"))
     file_name = str(row.get("candidate_file_name") or target_path.name).strip()
-    response = _open(source_url, timeout=timeout)
+    response = _open(source_url, timeout=timeout, referer=source_url)
     content_type = response["content_type"]
     body = response["body"]
 
@@ -128,7 +128,7 @@ def _download_row(row: dict[str, Any], *, timeout: int) -> dict[str, Any]:
         file_body = body
     else:
         file_url = _find_attachment_url(source_url, body, content_type, file_name)
-        file_response = _open(file_url, timeout=timeout)
+        file_response = _open(file_url, timeout=timeout, referer=source_url)
         if not _looks_like_file_response(file_url, file_response["content_type"], file_response["body"]):
             block_reason = _html_block_reason(file_response["content_type"], file_response["body"])
             raise ValueError(f"{block_reason}: {file_url}")
@@ -150,8 +150,11 @@ def _download_row(row: dict[str, Any], *, timeout: int) -> dict[str, Any]:
     }
 
 
-def _open(url: str, *, timeout: int) -> dict[str, Any]:
-    request = Request(url, headers={"User-Agent": USER_AGENT})
+def _open(url: str, *, timeout: int, referer: str | None = None) -> dict[str, Any]:
+    headers = {"User-Agent": USER_AGENT}
+    if referer:
+        headers["Referer"] = referer
+    request = Request(url, headers=headers)
     with urlopen(request, timeout=timeout) as response:
         return {
             "url": response.geturl(),

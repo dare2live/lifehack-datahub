@@ -9652,6 +9652,71 @@ def test_download_outcome_report_intake_assets_summarizes_failure_reasons(tmp_pa
     assert report["failure_reason_counts"] == {"attachment requires captcha or manual intake": 1}
 
 
+def test_download_outcome_report_intake_assets_sends_referer_for_direct_attachment(tmp_path: Path, monkeypatch):
+    intake_csv = tmp_path / "outcome_report_intake_plan.csv"
+    row = {
+        "domain": "school",
+        "entity_code": "1688",
+        "entity_name": "山东工商学院",
+        "metric_year": "2024",
+        "report_scope": "undergraduate_teaching_quality_report",
+        "candidate_report_title": "山东工商学院2023-2024学年本科教学质量报告",
+        "candidate_report_url": "https://example.edu/system/_content/download.jsp?id=1",
+        "candidate_file_name": "山东工商学院2023-2024学年本科教学质量报告.pdf",
+        "candidate_source_date": "2024-12-05",
+        "availability_date": "2024-12-05",
+        "suggested_local_report_path": str(tmp_path / "report.pdf"),
+        "local_report_path": "",
+        "intake_status": "ready_for_intake",
+        "block_reason": "",
+        "source_status": "candidate_found",
+        "notes": "",
+    }
+    with intake_csv.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=list(row))
+        writer.writeheader()
+        writer.writerow(row)
+
+    class FakeHeaders:
+        def get(self, name: str, default=None):
+            return "application/octet-stream" if name == "Content-Type" else default
+
+    class FakeResponse:
+        headers = FakeHeaders()
+
+        def __init__(self, url: str):
+            self._url = url
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def read(self):
+            return b"%PDF-1.7\nfixture"
+
+        def geturl(self):
+            return self._url
+
+    seen_headers = {}
+
+    def fake_urlopen(request, timeout=60):
+        seen_headers.update(request.headers)
+        assert request.headers["Referer"] == request.full_url
+        return FakeResponse(request.full_url)
+
+    monkeypatch.setattr("datahub.connectors.outcome_report_download.urlopen", fake_urlopen)
+
+    report = download_outcome_report_intake_assets(
+        intake_csv=intake_csv,
+        output=tmp_path / "downloaded.csv",
+    )
+
+    assert report["downloaded_rows"] == 1
+    assert seen_headers["Referer"] == row["candidate_report_url"]
+
+
 def test_cli_download_outcome_report_intake_assets_can_allow_partial_failures(tmp_path: Path, monkeypatch):
     from datahub import cli
     from datahub.commands import outcome
