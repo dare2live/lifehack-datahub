@@ -72,6 +72,96 @@
       "review_note": "山东大学威海分校招生口径归并到山东大学 4137010422；校区位置和城市产业证据必须按威海校区单独复核。"
     },
     {
+      "seed_id": "sid-9002-ruc-suzhou",
+      "local_school_code": "9002",
+      "local_school_name": "中国人民大学(苏州校区)",
+      "review_status": "approved",
+      "reviewed_national_school_code": "4111010002",
+      "reviewer": "datahub_seed_review",
+      "reviewed_at": "2026-05-18",
+      "review_note": "review plan 中唯一候选为中国人民大学 4111010002，suggestion_method=base_name_contains_profile 且 suggestion_count=1；identity 可归并人大，location/campus 证据必须按苏州校区单独复核。"
+    },
+    {
+      "seed_id": "sid-9004-bjtu-weihai",
+      "local_school_code": "9004",
+      "local_school_name": "北京交通大学(威海校区)",
+      "review_status": "approved",
+      "reviewed_national_school_code": "4111010004",
+      "reviewer": "datahub_seed_review",
+      "reviewed_at": "2026-05-18",
+      "review_note": "review plan 中唯一候选为北京交通大学 4111010004，suggestion_method=base_name_contains_profile 且 suggestion_count=1；identity 可归并北交大，校区证据按威海校区单独复核。"
+    },
+    {
+      "seed_id": "sid-8213-hit-shenzhen",
+      "local_school_code": "8213",
+      "local_school_name": "哈尔滨工业大学(深圳)",
+      "review_status": "approved",
+      "reviewed_national_school_code": "4123010213",
+      "reviewer": "datahub_seed_review",
+      "reviewed_at": "2026-05-18",
+      "review_note": "review plan 中唯一候选为哈尔滨工业大学 4123010213，suggestion_method=base_name_contains_profile 且 suggestion_count=1；identity 可归并哈工大，校区位置和城市产业证据按深圳校区单独复核。"
+    },
+    {
+      "seed_id": "sid-9213-hit-weihai",
+      "local_school_code": "9213",
+      "local_school_name": "哈尔滨工业大学(威海)",
+      "review_status": "approved",
+      "reviewed_national_school_code": "4123010213",
+      "reviewer": "datahub_seed_review",
+      "reviewed_at": "2026-05-18",
+      "review_note": "review plan 中唯一候选为哈尔滨工业大学 4123010213，suggestion_method=base_name_contains_profile 且 suggestion_count=1；identity 可归并哈工大，校区位置和城市产业证据按威海校区单独复核。"
+    },
+    {
+      "seed_id": "sid-9246-fudan-medical",
+      "local_school_code": "9246",
+      "local_school_name": "复旦大学医学院",
+      "review_status": "approved",
+      "reviewed_national_school_code": "4131010246",
+      "reviewer": "datahub_seed_review",
+      "reviewed_at": "2026-05-18",
+      "review_note": "review plan 中唯一候选为复旦大学 4131010246，suggestion_method=base_name_contains_profile 且 suggestion_count=1；identity 可归并复旦，专业出口和校区生活需保留医学院口径。"
+    },
+    {
+      "seed_id": "sid-9248-sjtu-medical",
+      "local_school_code": "9248",
+      "local_school_name": "上海交通大学医学院",
+      "review_status": "approved",
+      "reviewed_national_school_code": "4131010248",
+      "reviewer": "datahub_seed_review",
+      "reviewed_at": "2026-05-18",
+      "review_note": "review plan 中唯一候选为上海交通大学 4131010248，suggestion_method=base_name_contains_profile 且 suggestion_count=1；identity 可归并上交，专业出口和校区生活需保留医学院口径。"
+    },
+    {
+      "seed_id": "sid-9335-zju-medical",
+      "local_school_code": "9335",
+      "local_school_name": "浙江大学医学院",
+      "review_status": "approved",
+      "reviewed_national_school_code": "4133010335",
+      "reviewer": "datahub_seed_review",
+      "reviewed_at": "2026-05-18",
+      "review_note": "review plan 中唯一候选为浙江大学 4133010335，suggestion_method=base_name_contains_profile 且 suggestion_count=1；identity 可归并浙大，专业出口和校区生活需保留医学院口径。"
+    },
+    {
+      "seed_id": "sid-9359-hfut-xuancheng",
+      "local_school_code": "9359",
+      "local_school_name": "合肥工业大学(宣城校区)",
+      "review_status": "approved",
+      "reviewed_national_school_code": "4134010359",
+      "reviewer": "datahub_seed_review",
+      "reviewed_at": "2026-05-18",
+      "review_note": "review plan 中唯一候选为合肥工业大学 4134010359，suggestion_method=base_name_contains_profile 且 suggestion_count=1；identity 可归并合工大，校区位置和城市产业证据按宣城校区单独复核。"
+    },
+    {
+      "seed_id": "sid-9635-swu-rongchang",
+      "local_school_code": "9635",
+      "local_school_name": "西南大学(荣昌校区)",
+      "review_status": "approved",
+      "reviewed_national_school_code": "4150010635",
+      "reviewer": "datahub_seed_review",
+      "reviewed_at": "2026-05-18",
+      "review_note": "review plan 中唯一候选为西南大学 4150010635，suggestion_method=base_name_contains_profile 且 suggestion_count=1；identity 可归并西南大学，校区位置和城市产业证据按荣昌校区单独复核。"
+    },
+    {
       "seed_id": "sid-j002-ndut",
       "local_school_code": "J002",
       "local_school_name": "国防科技大学",
