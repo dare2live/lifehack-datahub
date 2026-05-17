@@ -9181,12 +9181,14 @@ def test_apply_outcome_report_source_seeds_updates_matching_pending_rows(tmp_pat
         _outcome_plan_row("school", "10140", "辽宁大学", "employment_rate", status="todo", priority_rank="1"),
         _outcome_plan_row("school", "10142", "沈阳工业大学", "employment_rate", status="todo", priority_rank="1"),
         _outcome_plan_row("school", "11258", "大连大学", "employment_rate", status="todo", priority_rank="1"),
+        _outcome_plan_row("school", "0166", "沈阳师范大学", "employment_rate", status="todo", priority_rank="1"),
         _outcome_plan_row("major", "法学", "法学", "employment_rate", status="todo", priority_rank="2"),
     ]
     rows[0]["metric_year"] = "2022"
     rows[1]["metric_year"] = "2024"
     rows[2]["metric_year"] = "2024"
-    rows[3]["metric_year"] = "2022"
+    rows[3]["metric_year"] = "2024"
+    rows[4]["metric_year"] = "2022"
     _write_outcome_plan(plan, rows)
     source_result = build_outcome_report_source_plan(
         plan_csv=plan,
@@ -9204,6 +9206,7 @@ def test_apply_outcome_report_source_seeds_updates_matching_pending_rows(tmp_pat
     assert "school|辽宁大学|2022|employment_quality_report" not in report["unmatched_seed_ids"]
     assert "school|沈阳工业大学|2024|undergraduate_teaching_quality_report" not in report["unmatched_seed_ids"]
     assert "school|大连大学|2024|undergraduate_teaching_quality_report" not in report["unmatched_seed_ids"]
+    assert "school|0166|2024|undergraduate_teaching_quality_report" in report["inactive_seed_ids"]
     with output.open(encoding="utf-8", newline="") as f:
         merged_rows = list(csv.DictReader(f))
     lnu = next(row for row in merged_rows if row["entity_name"] == "辽宁大学" and row["report_scope"] == "employment_quality_report")
@@ -9214,6 +9217,9 @@ def test_apply_outcome_report_source_seeds_updates_matching_pending_rows(tmp_pat
     assert sut["candidate_report_url"] == "https://www.sut.edu.cn/info/1584/67026.htm"
     dlu = next(row for row in merged_rows if row["entity_name"] == "大连大学" and row["report_scope"] == "undergraduate_teaching_quality_report")
     assert dlu["candidate_report_url"] == "https://zgc.dlu.edu.cn/info/1051/1754.htm"
+    synu = next(row for row in merged_rows if row["entity_name"] == "沈阳师范大学" and row["report_scope"] == "undergraduate_teaching_quality_report")
+    assert synu["status"] == "todo"
+    assert synu["candidate_report_url"] == ""
     major = next(row for row in merged_rows if row["domain"] == "major")
     assert major["status"] == "todo"
 
@@ -9223,12 +9229,13 @@ def test_audit_outcome_report_source_seeds_validates_config(tmp_path: Path):
 
     assert report["errors"] == []
     assert report["seed_count"] >= 7
+    assert report["inactive_seed_count"] >= 1
     assert report["applied_status"] == "candidate_found"
     assert not any("school seed missing entity_code" in warning for warning in report["warnings"])
     assert all(row["entity_code"] for row in report["seed_rows"] if row["domain"] == "school")
     assert any(row["entity_name"] == "辽宁大学" for row in report["seed_rows"])
     assert any(row["entity_name"] == "吉林大学" and row["metric_year"] == 2024 for row in report["seed_rows"])
-    assert any(row["entity_name"] == "沈阳师范大学" and row["metric_year"] == 2024 for row in report["seed_rows"])
+    assert any(row["entity_name"] == "沈阳师范大学" and row["metric_year"] == 2024 and row["seed_status"] == "rejected" for row in report["seed_rows"])
     assert any(row["entity_name"] == "大连外国语大学" and row["metric_year"] == 2024 for row in report["seed_rows"])
     assert any(row["entity_name"] == "辽宁师范大学" and row["metric_year"] == 2024 for row in report["seed_rows"])
     assert any(row["entity_name"] == "大连大学" and row["metric_year"] == 2024 for row in report["seed_rows"])

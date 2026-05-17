@@ -120,7 +120,8 @@
       "candidate_file_name": "沈阳师范大学2023-2024学年本科教学质量报告.pdf",
       "candidate_source_date": "2025-10-31",
       "availability_date": "2025-10-31",
-      "evidence_note": "沈阳师范大学信息公开列表发布本科教学质量报告附件；列表页未展示单条发布日期，当前使用附件 HTTP Last-Modified 作为可用日期。"
+      "seed_status": "rejected",
+      "evidence_note": "沈阳师范大学信息公开列表发布本科教学质量报告附件；列表页未展示单条发布日期，当前使用附件 HTTP Last-Modified 作为可用日期。2026-05-18 已下载并用 pypdf 诊断，文本可抽取但未包含就业、升学、毕业去向落实率等 outcome 指标，不能作为当前学校 outcome 指标来源，保留留痕但不再自动预填。"
     },
     {
       "domain": "school",

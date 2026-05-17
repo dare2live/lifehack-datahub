@@ -25,6 +25,9 @@ EDITABLE_COLUMNS = [
     "notes",
 ]
 
+ACTIVE_SEED_STATUSES = {"active", "candidate_found"}
+INACTIVE_SEED_STATUSES = {"rejected", "inactive"}
+
 
 def audit_outcome_report_source_seeds(*, report_path: Path | None = None) -> dict[str, Any]:
     source_config = load_outcome_report_sources()
@@ -37,6 +40,7 @@ def audit_outcome_report_source_seeds(*, report_path: Path | None = None) -> dic
     warnings: list[str] = []
     seed_rows = []
     seen_keys: set[str] = set()
+    seed_status_counts: Counter[str] = Counter()
     applied_status = str(source_config.get("applied_status") or "")
     if applied_status not in complete_statuses:
         errors.append(f"applied_status not accepted by report_source_plan.complete_statuses: {applied_status}")
@@ -78,6 +82,10 @@ def audit_outcome_report_source_seeds(*, report_path: Path | None = None) -> dic
             errors.append(f"seed {index} candidate_report_url {url_error}: {url}")
         if not str(seed.get("evidence_note") or "").strip():
             warnings.append(f"seed {index} missing evidence_note")
+        seed_status = _seed_status(seed)
+        if seed_status not in ACTIVE_SEED_STATUSES and seed_status not in INACTIVE_SEED_STATUSES:
+            errors.append(f"seed {index} unknown seed_status: {seed_status}")
+        seed_status_counts[seed_status] += 1
         seed_rows.append({
             "seed_id": key,
             "domain": seed.get("domain", ""),
@@ -85,6 +93,7 @@ def audit_outcome_report_source_seeds(*, report_path: Path | None = None) -> dic
             "entity_name": seed.get("entity_name", ""),
             "metric_year": seed.get("metric_year", ""),
             "report_scope": seed.get("report_scope", ""),
+            "seed_status": seed_status,
             "candidate_report_url": url,
         })
 
@@ -92,6 +101,9 @@ def audit_outcome_report_source_seeds(*, report_path: Path | None = None) -> dic
         "built_at": datetime.utcnow().replace(microsecond=0).isoformat(),
         "config_version": source_config.get("version"),
         "seed_count": len(seed_rows),
+        "active_seed_count": sum(count for status, count in seed_status_counts.items() if status in ACTIVE_SEED_STATUSES),
+        "inactive_seed_count": sum(count for status, count in seed_status_counts.items() if status in INACTIVE_SEED_STATUSES),
+        "seed_status_counts": dict(sorted(seed_status_counts.items())),
         "applied_status": applied_status,
         "seed_rows": seed_rows,
         "errors": errors,
@@ -119,7 +131,7 @@ def apply_outcome_report_source_seeds(
     collection_config = load_outcome_collection()
     report_source_config = collection_config.get("report_source_plan") or {}
     pending_statuses = set(report_source_config.get("pending_statuses") or ["todo", "in_progress", "needs_review"])
-    seeds = _load_seeds(source_config)
+    seeds, inactive_seed_ids = _load_seeds(source_config)
     rows = _read_csv(plan_csv)
     updated_rows = 0
     matched_seed_ids: set[str] = set()
@@ -150,6 +162,7 @@ def apply_outcome_report_source_seeds(
         "updated_rows": updated_rows,
         "skipped_rows": skipped_rows,
         "unmatched_seed_ids": sorted(set(seeds) - matched_seed_ids),
+        "inactive_seed_ids": inactive_seed_ids,
         "status_counts": dict(sorted(status_counts.items())),
         "editable_columns": EDITABLE_COLUMNS,
         "notes": "Applied configured report-source seeds only. Download/intake, extraction, candidate review, and package build remain separate gates.",
@@ -160,20 +173,24 @@ def apply_outcome_report_source_seeds(
     return report
 
 
-def _load_seeds(config: dict[str, Any]) -> dict[str, dict[str, Any]]:
+def _load_seeds(config: dict[str, Any]) -> tuple[dict[str, dict[str, Any]], list[str]]:
     rows = config.get("seeds")
     if not isinstance(rows, list):
         raise ValueError("outcome_report_sources.seeds must be a list")
     seeds: dict[str, dict[str, Any]] = {}
+    inactive_seed_ids: list[str] = []
     for index, seed in enumerate(rows, start=1):
         if not isinstance(seed, dict):
             raise ValueError("outcome_report_sources.seeds item must be an object")
         _validate_seed(seed, index)
         seed_id = _seed_id(seed, index)
+        if _seed_status(seed) in INACTIVE_SEED_STATUSES:
+            inactive_seed_ids.append(seed_id)
+            continue
         item = dict(seed)
         item["seed_id"] = seed_id
         seeds[seed_id] = item
-    return seeds
+    return seeds, inactive_seed_ids
 
 
 def _validate_seed(seed: dict[str, Any], index: int) -> None:
@@ -203,6 +220,10 @@ def _seed_id(seed: dict[str, Any], index: int) -> str:
         str(seed.get("metric_year") or ""),
         str(seed.get("report_scope") or ""),
     ])
+
+
+def _seed_status(seed: dict[str, Any]) -> str:
+    return str(seed.get("seed_status") or "active").strip() or "active"
 
 
 def _report_scopes_by_domain(report_source_config: dict[str, Any]) -> dict[str, set[str]]:
