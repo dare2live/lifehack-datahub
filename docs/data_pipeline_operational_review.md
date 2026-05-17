@@ -361,3 +361,23 @@ python3 -m datahub.cli audit-operational-coverage \
 命令使用 DuckDB `read_only=True` 连接 core DB，不采集来源、不构建包、不导入 core、不修改 staging/exports 大产物。报告输出每个覆盖域的覆盖学校数、缺口学校样例、覆盖率和 P0 blockers；存在 P0 blockers 时 CLI 返回非零状态。
 
 传入 `--missing-dir` 时，会为每个覆盖域输出一个 `*_missing_schools.csv`，字段为 `school_code, school_name, coverage_area, review_status, notes`。这些 CSV 是后续人工分派、source seed 扩面、DataHub 批处理和 core 缺口解释的输入，不是 data package，不能直接导入 core。
+
+## 运营数据组合评估
+
+`assess-operational-data-portfolio` 用 `config/operational_data_portfolio.json` 定义的数据域清单，结合覆盖审计结果，把数据分成五类：
+
+- `required_available`：正常运营必需，且通过覆盖/readiness 后可正式使用。
+- `required_unavailable`：正常运营必需，但当前缺表、覆盖不足、复核未清或短期无法获取。
+- `easy_but_underused`：相对容易获取或已存在，但当前产品使用深度不足。
+- `optional_enhancement`：增强体验或差异化，不阻断上线。
+- `not_for_formal_recommendation`：只能做候选、smoke 或审计，不得进入正式推荐。
+
+示例：
+
+```bash
+python3 -m datahub.cli assess-operational-data-portfolio \
+  --coverage-report staging/audits/ln_operational_coverage.json \
+  --report staging/audits/ln_operational_data_portfolio.json
+```
+
+该评估用于回答“哪些数据必须使用、哪些必须但暂时无法获取、哪些易获取但使用不足、哪些不能进正式推荐”。它不采集、不导入、不改变 core；如果 P0 必需数据仍不可用，CLI 返回非零状态。

@@ -55,6 +55,7 @@ from .builders.outcome_collection_seed_merge import (
 from .builders.outcome_candidate_merge import merge_outcome_report_candidates
 from .builders.outcome_collection_audit import audit_outcome_collection_plan
 from .builders.outcome_collection_package import build_outcome_packages_from_collection_plan
+from .builders.operational_data_portfolio import assess_operational_data_portfolio
 from .builders.operational_coverage_audit import audit_operational_coverage
 from .builders.major_mapping_review import build_major_mapping_review_package
 from .builders.local_package import build_local_package
@@ -1078,6 +1079,18 @@ def main() -> int:
     audit_operational_coverage_parser.add_argument("--report", type=Path)
     audit_operational_coverage_parser.add_argument("--missing-dir", type=Path)
     audit_operational_coverage_parser.add_argument("--sample-limit", type=int, default=20)
+
+    assess_operational_data_parser = sub.add_parser(
+        "assess-operational-data-portfolio",
+        help="Classify operational data domains by necessity, availability, coverage and use depth",
+    )
+    assess_operational_data_parser.add_argument(
+        "--config",
+        type=Path,
+        default=Path("config/operational_data_portfolio.json"),
+    )
+    assess_operational_data_parser.add_argument("--coverage-report", type=Path)
+    assess_operational_data_parser.add_argument("--report", type=Path)
 
     prefill_distribution_review = sub.add_parser(
         "prefill-ln-score-distribution-review-suggestions",
@@ -2118,6 +2131,14 @@ def main() -> int:
             report_path=args.report,
             missing_dir=args.missing_dir,
             sample_limit=args.sample_limit,
+        )
+        print(json.dumps(report, ensure_ascii=False, indent=2))
+        return 0 if not report["p0_blockers"] else 1
+    if args.cmd == "assess-operational-data-portfolio":
+        report = assess_operational_data_portfolio(
+            config_path=args.config,
+            coverage_report_path=args.coverage_report,
+            report_path=args.report,
         )
         print(json.dumps(report, ensure_ascii=False, indent=2))
         return 0 if not report["p0_blockers"] else 1

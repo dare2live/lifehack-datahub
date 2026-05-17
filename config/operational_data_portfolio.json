@@ -1,0 +1,118 @@
+{
+  "version": "2026-05-17",
+  "notes": "Operational data portfolio assessment for Liaoning consulting readiness. Categories describe business necessity, availability and current use depth; coverage_area links to audit-operational-coverage output when applicable.",
+  "categories": {
+    "required_available": "Required for normal consulting and currently usable when coverage/readiness gates pass.",
+    "required_unavailable": "Required for normal consulting but currently missing, under-covered or blocked by review/readiness.",
+    "easy_but_underused": "Relatively easy to obtain or already present, but the current product does not use it deeply enough.",
+    "optional_enhancement": "Useful for differentiation or future quality improvement, but not a launch blocker.",
+    "not_for_formal_recommendation": "May exist as raw/candidate/smoke data, but must not influence formal recommendation until reviewed."
+  },
+  "domains": [
+    {
+      "key": "ln_admission_plan",
+      "label": "Liaoning admission plan",
+      "classification": "required_available",
+      "business_importance": "P0",
+      "availability": "available_with_reconciliation_risk",
+      "use_depth": "core_filter_and_option_universe",
+      "normal_operation_requirement": "Defines the school-major option universe and plan count for Liaoning families."
+    },
+    {
+      "key": "ln_score_history",
+      "label": "Liaoning historical score/rank",
+      "classification": "required_unavailable",
+      "business_importance": "P0",
+      "availability": "partially_available_reconciliation_pending",
+      "use_depth": "core_admission_band",
+      "normal_operation_requirement": "Must pass year-level reconciliation before it can be treated as official admission probability evidence."
+    },
+    {
+      "key": "school_identity",
+      "label": "School identity/profile bridge",
+      "classification": "required_unavailable",
+      "coverage_area": "identity",
+      "business_importance": "P0",
+      "availability": "mostly_available_with_missing_school_codes",
+      "use_depth": "joins_profile_outcome_location",
+      "normal_operation_requirement": "Every Liaoning admission school code must map to a stable school identity or an explicit reviewed exception."
+    },
+    {
+      "key": "school_profile",
+      "label": "School profile",
+      "classification": "required_unavailable",
+      "coverage_area": "profile",
+      "business_importance": "P0",
+      "availability": "mostly_available_with_missing_school_codes",
+      "use_depth": "school_context_and_report_labels",
+      "normal_operation_requirement": "Every recommended school should have province, city, school type, tier and official profile evidence."
+    },
+    {
+      "key": "school_outcome",
+      "label": "School outcome evidence",
+      "classification": "required_unavailable",
+      "coverage_area": "outcome",
+      "business_importance": "P0",
+      "availability": "under_collected_manual_review_required",
+      "use_depth": "currently_shallow",
+      "normal_operation_requirement": "Recommended paths need employment, postgrad, keep-research or public-sector outcome evidence, or an explicit missing-data explanation."
+    },
+    {
+      "key": "school_location",
+      "label": "School location and campus address",
+      "classification": "required_unavailable",
+      "coverage_area": "location",
+      "business_importance": "P0",
+      "availability": "not_imported",
+      "use_depth": "not_available",
+      "normal_operation_requirement": "Required to explain distance, campus life, commute and local opportunity for families."
+    },
+    {
+      "key": "campus_living",
+      "label": "Campus living score",
+      "classification": "required_unavailable",
+      "coverage_area": "campus",
+      "business_importance": "P0",
+      "availability": "not_imported",
+      "use_depth": "not_available",
+      "normal_operation_requirement": "Required to compare daily life cost, surrounding services and family distance concerns."
+    },
+    {
+      "key": "school_city_industry",
+      "label": "School-city-industry connection",
+      "classification": "required_unavailable",
+      "coverage_area": "city_industry",
+      "business_importance": "P0",
+      "availability": "not_imported",
+      "use_depth": "not_available",
+      "normal_operation_requirement": "Required to answer whether the city can absorb graduates in the recommended major direction."
+    },
+    {
+      "key": "major_outcome",
+      "label": "Major outcome evidence",
+      "classification": "easy_but_underused",
+      "business_importance": "P1",
+      "availability": "partial_derived_signals_available",
+      "use_depth": "civil_service_fit_dominant",
+      "normal_operation_requirement": "Should distinguish direct professional roles, generalist roles, public-sector paths and postgrad paths."
+    },
+    {
+      "key": "holland_career_bridge",
+      "label": "Holland to career bridge",
+      "classification": "not_for_formal_recommendation",
+      "business_importance": "P1",
+      "availability": "needs_review_only",
+      "use_depth": "filtered_until_approved",
+      "normal_operation_requirement": "Only approved mappings may appear as formal career suggestions."
+    },
+    {
+      "key": "city_macro_context",
+      "label": "City macro context",
+      "classification": "optional_enhancement",
+      "business_importance": "P2",
+      "availability": "partial_or_derivable",
+      "use_depth": "supporting_context",
+      "normal_operation_requirement": "Useful to improve city explanation, but should not replace school/major outcome evidence."
+    }
+  ]
+}
