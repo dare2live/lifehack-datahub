@@ -5,9 +5,6 @@ import re
 from pathlib import Path
 from typing import Any
 
-from pypdf import PdfReader
-
-
 CATEGORY_RE = re.compile(r"^(?:(\d{2})\s*)?学科门类：(.+)$")
 PENDING_CATEGORY_RE = re.compile(r"^\d{2}$")
 MAJOR_CLASS_RE = re.compile(r"^(\d{4})\s+(.+类)$")
@@ -16,6 +13,7 @@ NOTE_RE = re.compile(r"（注：(.+?)）")
 
 
 def parse_moe_major_catalog_pdf(path: Path) -> list[dict[str, Any]]:
+    PdfReader = _pdf_reader()
     reader = PdfReader(str(path))
     lines: list[str] = []
     for page in reader.pages:
@@ -97,3 +95,11 @@ def _is_noise(line: str) -> bool:
         or line in {"附件 2", "普通高等学校本科专业目录", "教 育 部"}
         or line.endswith("年4月")
     )
+
+
+def _pdf_reader():
+    try:
+        from pypdf import PdfReader
+    except ImportError as exc:
+        raise RuntimeError("pypdf is required only for parsing MOE major catalog PDFs") from exc
+    return PdfReader

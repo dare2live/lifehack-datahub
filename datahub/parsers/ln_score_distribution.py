@@ -5,9 +5,6 @@ import re
 from pathlib import Path
 from typing import Any
 
-from pypdf import PdfReader
-
-
 ROW_RE = re.compile(r"(?P<score>\d{2,3})\s+(?P<count>[\d,]+)\s+(?P<cumulative>[\d,]+)(?:及以上)?")
 
 
@@ -18,6 +15,7 @@ def parse_ln_score_distribution_pdf(
     subject_cat: str | None = None,
     source_date: str,
 ) -> list[dict[str, Any]]:
+    PdfReader = _pdf_reader()
     reader = PdfReader(str(path))
     lines: list[str] = []
     for page in reader.pages:
@@ -84,3 +82,11 @@ def _is_noise(line: str) -> bool:
 
 def _parse_int(value: str) -> int:
     return int(value.replace(",", ""))
+
+
+def _pdf_reader():
+    try:
+        from pypdf import PdfReader
+    except ImportError as exc:
+        raise RuntimeError("pypdf is required only for parsing score distribution PDFs") from exc
+    return PdfReader

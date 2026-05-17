@@ -7,7 +7,6 @@ from pathlib import Path
 from typing import Any
 from zipfile import BadZipFile, ZipFile
 
-import msoffcrypto
 from openpyxl import load_workbook
 
 
@@ -100,6 +99,7 @@ def _load_workbook_path(path: Path, password_candidates: list[str]):
         pass
 
     with path.open("rb") as f:
+        msoffcrypto = _msoffcrypto()
         office = msoffcrypto.OfficeFile(f)
         if not office.is_encrypted():
             raise ValueError(f"workbook is not readable as xlsx and is not encrypted: {path}")
@@ -122,6 +122,7 @@ def _load_workbook_bytes(data: bytes, source_path: Path, password_candidates: li
     except BadZipFile:
         pass
 
+    msoffcrypto = _msoffcrypto()
     office = msoffcrypto.OfficeFile(io.BytesIO(data))
     if not office.is_encrypted():
         raise ValueError(f"workbook in zip is not readable as xlsx and is not encrypted: {source_path}")
@@ -135,6 +136,16 @@ def _load_workbook_bytes(data: bytes, source_path: Path, password_candidates: li
         except Exception:
             office = msoffcrypto.OfficeFile(io.BytesIO(data))
     raise ValueError(f"encrypted workbook in zip cannot be decrypted: {source_path}")
+
+
+def _msoffcrypto():
+    try:
+        import msoffcrypto
+    except ImportError as exc:
+        raise RuntimeError(
+            "msoffcrypto is required only for encrypted Liaoning projection score workbooks"
+        ) from exc
+    return msoffcrypto
 
 
 def _subject_from_worksheet(ws) -> str:
