@@ -424,6 +424,19 @@
     },
     {
       "domain": "school",
+      "entity_code": "3631",
+      "entity_name": "大连东软信息学院",
+      "metric_year": 2024,
+      "report_scope": "employment_quality_report",
+      "candidate_report_title": "大连东软信息学院2024年度毕业生就业质量年度报告",
+      "candidate_report_url": "https://www.neusoft.edu.cn/attachment/cms/item/2025_04/27_17/1ea8cd8c637620a0.pdf",
+      "candidate_file_name": "大连东软信息学院2024年度毕业生就业质量年度报告.pdf",
+      "candidate_source_date": "2025-04-27",
+      "availability_date": "2025-04-27",
+      "evidence_note": "大连东软信息学院官网年度毕业生就业质量报告列表列出 2024 年度毕业生就业质量年度报告，官方 PDF 附件路径为 neusoft.edu.cn/attachment/cms/item/2025_04/27_17/1ea8cd8c637620a0.pdf；报告正文给出 2024 届初次毕业去向落实率和升学率。"
+    },
+    {
+      "domain": "school",
       "entity_code": "0728",
       "entity_name": "西安音乐学院",
       "metric_year": 2024,
