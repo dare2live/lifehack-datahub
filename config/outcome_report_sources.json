@@ -476,6 +476,19 @@
     },
     {
       "domain": "school",
+      "entity_code": "2595",
+      "entity_name": "辽宁理工职业大学",
+      "metric_year": 2024,
+      "report_scope": "employment_quality_report",
+      "candidate_report_title": "辽宁理工职业大学高等职业教育质量报告（2024年度）",
+      "candidate_report_url": "https://www.lnvut.edu.cn/zyjynb_2024.pdf",
+      "candidate_file_name": "辽宁理工职业大学高等职业教育质量报告（2024年度）.pdf",
+      "candidate_source_date": "2024-12-03",
+      "availability_date": "2024-12-03",
+      "evidence_note": "辽宁理工职业大学官网 PDF 直链可访问，报告正文标题为《辽宁理工职业大学高等职业教育质量报告（2024年度）》，并在公开形式中注明辽宁理工职业大学官网发布、公开网址为 lnvut.edu.cn；报告前言提到 2024-12-03 召开质量报告编制部署与培训会。"
+    },
+    {
+      "domain": "school",
       "entity_code": "4240",
       "entity_name": "辽宁现代服务职业技术学院",
       "metric_year": 2024,
