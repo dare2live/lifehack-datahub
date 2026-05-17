@@ -8,6 +8,7 @@ from pathlib import Path
 from datahub.builders.local_package import build_local_package
 from datahub.builders.release_bundle import build_release_bundle
 from datahub.connectors.amap_web_api import fetch_amap_web_api
+from datahub.connectors.amap_web_api_readiness import audit_amap_web_api_readiness
 from datahub.connectors.manual_files import intake_manual_assets
 from datahub.connectors.macos_vision_ocr import ocr_page_images
 from datahub.connectors.page_images import download_page_images
@@ -28,6 +29,7 @@ COMMANDS = {
     "probe-source-candidates",
     "download-page-images",
     "fetch-amap-web-api",
+    "audit-amap-web-api-readiness",
     "ocr-page-images",
     "intake-manual",
 }
@@ -107,6 +109,21 @@ def register_package_commands(sub) -> None:
     fetch_amap.add_argument("--timeout", type=int)
     fetch_amap.add_argument("--limit", type=int)
     fetch_amap.add_argument("--sleep-seconds", type=float)
+
+    audit_amap = sub.add_parser(
+        "audit-amap-web-api-readiness",
+        help="Audit Amap Web API source/input/key readiness without sending requests",
+    )
+    audit_amap.add_argument("--source-key", required=True)
+    audit_amap.add_argument("--operation", required=True, choices=["geocode", "district", "place_around"])
+    audit_amap.add_argument("--input", type=Path)
+    audit_amap.add_argument("--output", type=Path)
+    audit_amap.add_argument("--address-column", default="address")
+    audit_amap.add_argument("--location-column", default="location")
+    audit_amap.add_argument("--longitude-column", default="longitude")
+    audit_amap.add_argument("--latitude-column", default="latitude")
+    audit_amap.add_argument("--keywords")
+    audit_amap.add_argument("--limit", type=int)
 
     ocr_images = sub.add_parser("ocr-page-images", help="Run configured OCR over page-image manifests")
     ocr_images.add_argument("--source-key", required=True)
@@ -213,6 +230,21 @@ def handle_package_command(args: Namespace) -> int | None:
         )
         _print_json(result)
         return 0
+    if args.cmd == "audit-amap-web-api-readiness":
+        report = audit_amap_web_api_readiness(
+            source_key=args.source_key,
+            operation=args.operation,
+            input_path=args.input,
+            output=args.output,
+            address_column=args.address_column,
+            location_column=args.location_column,
+            longitude_column=args.longitude_column,
+            latitude_column=args.latitude_column,
+            keywords=args.keywords,
+            limit=args.limit,
+        )
+        _print_json(report)
+        return 0 if report["ready_for_fetch"] else 1
     if args.cmd == "ocr-page-images":
         result = ocr_page_images(
             args.source_key,

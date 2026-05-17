@@ -144,6 +144,7 @@ from datahub.builders.school_location_geocode_audit import audit_school_location
 from datahub.builders.school_location_from_amap import build_school_location_package_from_amap_geocode
 from datahub.builders.school_location_geocode_plan import build_school_location_geocode_input_plan
 from datahub.connectors.amap_web_api import fetch_amap_web_api
+from datahub.connectors.amap_web_api_readiness import audit_amap_web_api_readiness
 from datahub.connectors.manual_files import intake_manual_assets
 from datahub.connectors.macos_vision_ocr import ocr_page_images
 from datahub.connectors.outcome_report_download import download_outcome_report_intake_assets
@@ -11927,6 +11928,79 @@ def test_fetch_amap_web_api_geocode_writes_raw_manifest(tmp_path: Path, monkeypa
     assert record["params"]["city"] == "沈阳"
     assert record["response"]["status"] == "1"
     assert "key" not in record["params"]
+
+
+def test_audit_amap_web_api_readiness_blocks_missing_key(tmp_path: Path, monkeypatch):
+    source = tmp_path / "schools.csv"
+    source.write_text("school_name,address,city\n东北大学,沈阳市和平区文化路3号巷11号,沈阳\n", encoding="utf-8")
+    monkeypatch.delenv("AMAP_WEB_SERVICE_KEY", raising=False)
+    monkeypatch.setattr(
+        "datahub.connectors.amap_web_api_readiness.load_sources",
+        lambda: {
+            "sources": {
+                "school_location_geocode": {
+                    "interfaces": {
+                        "web_service": {
+                            "provider": "amap_web_service",
+                            "key_env": "AMAP_WEB_SERVICE_KEY",
+                            "endpoints": {
+                                "geocode": "https://restapi.amap.com/v3/geocode/geo",
+                            },
+                        }
+                    },
+                }
+            }
+        },
+    )
+
+    report = audit_amap_web_api_readiness(
+        source_key="school_location_geocode",
+        operation="geocode",
+        input_path=source,
+        address_column="address",
+        output=tmp_path / "readiness.json",
+    )
+
+    assert report["ready_for_fetch"] is False
+    assert report["key_present"] is False
+    assert report["row_counts"]["requestable_rows"] == 1
+    assert any("AMAP_WEB_SERVICE_KEY" in error for error in report["errors"])
+    assert json.loads((tmp_path / "readiness.json").read_text(encoding="utf-8"))["ready_for_fetch"] is False
+
+
+def test_audit_amap_web_api_readiness_passes_without_fetching(tmp_path: Path, monkeypatch):
+    source = tmp_path / "schools.csv"
+    source.write_text("school_name,address,city\n东北大学,沈阳市和平区文化路3号巷11号,沈阳\n", encoding="utf-8")
+    monkeypatch.setenv("AMAP_WEB_SERVICE_KEY", "fixture-key")
+    monkeypatch.setattr(
+        "datahub.connectors.amap_web_api_readiness.load_sources",
+        lambda: {
+            "sources": {
+                "school_location_geocode": {
+                    "interfaces": {
+                        "web_service": {
+                            "provider": "amap_web_service",
+                            "key_env": "AMAP_WEB_SERVICE_KEY",
+                            "endpoints": {
+                                "geocode": "https://restapi.amap.com/v3/geocode/geo",
+                            },
+                        }
+                    },
+                }
+            }
+        },
+    )
+
+    report = audit_amap_web_api_readiness(
+        source_key="school_location_geocode",
+        operation="geocode",
+        input_path=source,
+        address_column="address",
+    )
+
+    assert report["ready_for_fetch"] is True
+    assert report["key_present"] is True
+    assert report["errors"] == []
 
 
 def test_fetch_amap_web_api_district_uses_config_scope(tmp_path: Path, monkeypatch):
