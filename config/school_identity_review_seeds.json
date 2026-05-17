@@ -185,82 +185,91 @@
       "seed_id": "sid-j002-ndut",
       "local_school_code": "J002",
       "local_school_name": "国防科技大学",
-      "review_status": "needs_research",
+      "review_status": "approved",
       "reviewer": "datahub_seed_review",
       "reviewed_at": "2026-05-18",
-      "review_note": "军委直属招生军校；J/JV 代码只能作为辽宁本地招生计划代码保留，不得当 canonical school_code。需建立 military supplemental profile 后映射到中国人民解放军国防科技大学身份。证据：https://www.81.cn/jx_208569/jdt_208570/16391959.html"
+      "review_note": "批准映射到受控补充身份 MIL-NDUT（中国人民解放军国防科技大学）。该身份码不是教育部普通高校数字标识码；J002 保留为辽宁本地招生代码，不在招生计划层与其他代码变体合并。证据：https://www.81.cn/jx_208569/jdt_208570/16391959.html",
+      "reviewed_national_school_code": "MIL-NDUT"
     },
     {
       "seed_id": "sid-j005-army-branches",
       "local_school_code": "J005",
       "local_school_name": "陆军兵种大学",
-      "review_status": "needs_research",
+      "review_status": "approved",
       "reviewer": "datahub_seed_review",
       "reviewed_at": "2026-05-18",
-      "review_note": "军事院校未在当前 MOE school profile 中形成可用候选，需单独建立受控军校 profile 来源后再批准。"
+      "review_note": "批准映射到受控补充身份 MIL-ARMY-BRANCHES（中国人民解放军陆军兵种大学）。该身份码不是教育部普通高校数字标识码；J005 保留为辽宁本地招生代码，不在招生计划层与其他代码变体合并。证据：https://www.mod.gov.cn/gfbw/xwfyr/jt/16386255.html",
+      "reviewed_national_school_code": "MIL-ARMY-BRANCHES"
     },
     {
       "seed_id": "sid-j004-army-engineering",
       "local_school_code": "J004",
       "local_school_name": "陆军工程大学",
-      "review_status": "needs_research",
+      "review_status": "approved",
       "reviewer": "datahub_seed_review",
       "reviewed_at": "2026-05-18",
-      "review_note": "军事院校未在当前 MOE school profile 中形成可用候选，需单独建立受控军校 profile 来源后再批准。"
+      "review_note": "批准映射到受控补充身份 MIL-ARMY-ENGINEERING（中国人民解放军陆军工程大学）。该身份码不是教育部普通高校数字标识码；J004 保留为辽宁本地招生代码，不在招生计划层与其他代码变体合并。证据：https://www.81.cn/jx_208569/jdt_208570/16391959.html",
+      "reviewed_national_school_code": "MIL-ARMY-ENGINEERING"
     },
     {
       "seed_id": "sid-j013-navy-engineering",
       "local_school_code": "J013",
       "local_school_name": "海军工程大学",
-      "review_status": "needs_research",
+      "review_status": "approved",
       "reviewer": "datahub_seed_review",
       "reviewed_at": "2026-05-18",
-      "review_note": "军事院校未在当前 MOE school profile 中形成可用候选，需单独建立受控军校 profile 来源后再批准。"
+      "review_note": "批准映射到受控补充身份 MIL-NAVY-ENGINEERING（中国人民解放军海军工程大学）。该身份码不是教育部普通高校数字标识码；J013 保留为辽宁本地招生代码，不在招生计划层与其他代码变体合并。证据：https://www.81.cn/jx_208569/jdt_208570/16391959.html",
+      "reviewed_national_school_code": "MIL-NAVY-ENGINEERING"
     },
     {
       "seed_id": "sid-j022-air-force-engineering",
       "local_school_code": "J022",
       "local_school_name": "空军工程大学",
-      "review_status": "needs_research",
+      "review_status": "approved",
       "reviewer": "datahub_seed_review",
       "reviewed_at": "2026-05-18",
-      "review_note": "军事院校未在当前 MOE school profile 中形成可用候选，需单独建立受控军校 profile 来源后再批准。"
+      "review_note": "批准映射到受控补充身份 MIL-AIR-ENGINEERING（中国人民解放军空军工程大学）。该身份码不是教育部普通高校数字标识码；J022 保留为辽宁本地招生代码，不在招生计划层与其他代码变体合并。证据：https://www.81.cn/jx_208569/jdt_208570/16391959.html",
+      "reviewed_national_school_code": "MIL-AIR-ENGINEERING"
     },
     {
       "seed_id": "sid-j034-cyberspace-force",
       "local_school_code": "J034",
       "local_school_name": "网络空间部队信息工程大学",
-      "review_status": "needs_research",
+      "review_status": "approved",
       "reviewer": "datahub_seed_review",
       "reviewed_at": "2026-05-18",
-      "review_note": "网络空间部队信息工程大学需建立 military supplemental profile；不得自动归并到旧战略支援部队信息工程大学，也不得与信息支援部队工程大学合并。证据：https://www.81.cn/jx_208569/jdt_208570/16391959.html"
+      "review_note": "批准映射到受控补充身份 MIL-CYBERSPACE-INFO-ENGINEERING（中国人民解放军网络空间部队信息工程大学）。该身份码不是教育部普通高校数字标识码；J034 保留为辽宁本地招生代码，不在招生计划层与其他代码变体合并。证据：https://www.81.cn/jx_208569/jdt_208570/16391959.html",
+      "reviewed_national_school_code": "MIL-CYBERSPACE-INFO-ENGINEERING"
     },
     {
       "seed_id": "sid-j036-joint-logistics",
       "local_school_code": "J036",
       "local_school_name": "联勤保障部队工程大学",
-      "review_status": "needs_research",
+      "review_status": "approved",
       "reviewer": "datahub_seed_review",
       "reviewed_at": "2026-05-18",
-      "review_note": "联勤保障部队工程大学为 2025 新组建军队院校，需建立 military supplemental profile；J/JV 本地代码保留为招生计划代码。证据：https://www.mod.gov.cn/gfbw/xwfyr/jt/16386255.html"
+      "review_note": "批准映射到受控补充身份 MIL-JOINT-LOGISTICS-ENGINEERING（中国人民解放军联勤保障部队工程大学）。该身份码不是教育部普通高校数字标识码；J036 保留为辽宁本地招生代码，不在招生计划层与其他代码变体合并。证据：https://www.mod.gov.cn/gfbw/xwfyr/jt/16386255.html",
+      "reviewed_national_school_code": "MIL-JOINT-LOGISTICS-ENGINEERING"
     },
     {
       "seed_id": "sid-j017-navy-medical",
       "local_school_code": "J017",
       "local_school_name": "海军军医大学",
-      "review_status": "needs_research",
+      "review_status": "approved",
       "reviewer": "datahub_seed_review",
       "reviewed_at": "2026-05-18",
-      "review_note": "军事医学类院校需单独确认 national profile 和招生身份，不得因名称相近自动合并。"
+      "review_note": "批准映射到受控补充身份 MIL-NAVY-MEDICAL（中国人民解放军海军军医大学）。该身份码不是教育部普通高校数字标识码；J017 保留为辽宁本地招生代码，不在招生计划层与其他代码变体合并。证据：https://www.81.cn/jx_208569/jdt_208570/16391959.html",
+      "reviewed_national_school_code": "MIL-NAVY-MEDICAL"
     },
     {
       "seed_id": "sid-j014-navy-dalian",
       "local_school_code": "J014",
       "local_school_name": "海军大连舰艇学院",
-      "review_status": "needs_research",
+      "review_status": "approved",
       "reviewer": "datahub_seed_review",
       "reviewed_at": "2026-05-18",
-      "review_note": "军事院校未在当前 MOE school profile 中形成可用候选，需单独建立受控军校 profile 来源后再批准。"
+      "review_note": "批准映射到受控补充身份 MIL-NAVY-DALIAN（中国人民解放军海军大连舰艇学院）。该身份码不是教育部普通高校数字标识码；J014 保留为辽宁本地招生代码，不在招生计划层与其他代码变体合并。证据：https://www.81.cn/jx_208569/jdt_208570/16391959.html",
+      "reviewed_national_school_code": "MIL-NAVY-DALIAN"
     },
     {
       "seed_id": "sid-0693-xizang-agriculture",
@@ -296,100 +305,111 @@
       "seed_id": "sid-j038-armed-police-engineering",
       "local_school_code": "J038",
       "local_school_name": "武警工程大学",
-      "review_status": "needs_research",
+      "review_status": "approved",
       "reviewer": "datahub_seed_review",
       "reviewed_at": "2026-05-18",
-      "review_note": "军事院校未在当前 MOE school profile 中形成可用候选，需单独建立受控军校 profile 来源后再批准。"
+      "review_note": "批准映射到受控补充身份 MIL-PAP-ENGINEERING（中国人民武装警察部队工程大学）。该身份码不是教育部普通高校数字标识码；J038 保留为辽宁本地招生代码，不在招生计划层与其他代码变体合并。证据：https://www.81.cn/jx_208569/jdt_208570/16391959.html",
+      "reviewed_national_school_code": "MIL-PAP-ENGINEERING"
     },
     {
       "seed_id": "sid-j031-needs-research",
       "local_school_code": "J031",
       "local_school_name": "火箭军工程大学",
-      "review_status": "needs_research",
+      "review_status": "approved",
       "reviewer": "datahub_seed_review",
       "reviewed_at": "2026-05-18",
-      "review_note": "军事院校或军检/专项招生代码当前没有可用 MOE profile 候选；需建立受控军校 profile 来源，区分普通招生代码与军检/专项代码后再批准。"
+      "review_note": "批准映射到受控补充身份 MIL-ROCKET-ENGINEERING（中国人民解放军火箭军工程大学）。该身份码不是教育部普通高校数字标识码；J031 保留为辽宁本地招生代码，不在招生计划层与其他代码变体合并。证据：https://www.81.cn/jx_208569/jdt_208570/16391959.html",
+      "reviewed_national_school_code": "MIL-ROCKET-ENGINEERING"
     },
     {
       "seed_id": "sid-j016-needs-research",
       "local_school_code": "J016",
       "local_school_name": "海军航空大学",
-      "review_status": "needs_research",
+      "review_status": "approved",
       "reviewer": "datahub_seed_review",
       "reviewed_at": "2026-05-18",
-      "review_note": "军事院校或军检/专项招生代码当前没有可用 MOE profile 候选；需建立受控军校 profile 来源，区分普通招生代码与军检/专项代码后再批准。"
+      "review_note": "批准映射到受控补充身份 MIL-NAVY-AVIATION（中国人民解放军海军航空大学）。该身份码不是教育部普通高校数字标识码；J016 保留为辽宁本地招生代码，不在招生计划层与其他代码变体合并。证据：https://www.81.cn/jx_208569/jdt_208570/16391959.html",
+      "reviewed_national_school_code": "MIL-NAVY-AVIATION"
     },
     {
       "seed_id": "sid-j035-needs-research",
       "local_school_code": "J035",
       "local_school_name": "信息支援部队工程大学",
-      "review_status": "needs_research",
+      "review_status": "approved",
       "reviewer": "datahub_seed_review",
       "reviewed_at": "2026-05-18",
-      "review_note": "信息支援部队工程大学为 2025 新组建军队院校，需建立 military supplemental profile；不得与网络空间部队信息工程大学合并。证据：https://www.mod.gov.cn/gfbw/xwfyr/jt/16386255.html"
+      "review_note": "批准映射到受控补充身份 MIL-INFO-SUPPORT-ENGINEERING（中国人民解放军信息支援部队工程大学）。该身份码不是教育部普通高校数字标识码；J035 保留为辽宁本地招生代码，不在招生计划层与其他代码变体合并。证据：https://www.mod.gov.cn/gfbw/xwfyr/jt/16386255.html",
+      "reviewed_national_school_code": "MIL-INFO-SUPPORT-ENGINEERING"
     },
     {
       "seed_id": "sid-j006-needs-research",
       "local_school_code": "J006",
       "local_school_name": "陆军步兵学院",
-      "review_status": "needs_research",
+      "review_status": "approved",
       "reviewer": "datahub_seed_review",
       "reviewed_at": "2026-05-18",
-      "review_note": "军事院校或军检/专项招生代码当前没有可用 MOE profile 候选；需建立受控军校 profile 来源，区分普通招生代码与军检/专项代码后再批准。"
+      "review_note": "批准映射到受控补充身份 MIL-ARMY-INFANTRY（中国人民解放军陆军步兵学院）。该身份码不是教育部普通高校数字标识码；J006 保留为辽宁本地招生代码，不在招生计划层与其他代码变体合并。证据：https://www.81.cn/jx_208569/jdt_208570/16391959.html",
+      "reviewed_national_school_code": "MIL-ARMY-INFANTRY"
     },
     {
       "seed_id": "sid-j039-needs-research",
       "local_school_code": "J039",
       "local_school_name": "武警警官学院",
-      "review_status": "needs_research",
+      "review_status": "approved",
       "reviewer": "datahub_seed_review",
       "reviewed_at": "2026-05-18",
-      "review_note": "军事院校或军检/专项招生代码当前没有可用 MOE profile 候选；需建立受控军校 profile 来源，区分普通招生代码与军检/专项代码后再批准。"
+      "review_note": "批准映射到受控补充身份 MIL-PAP-OFFICER（中国人民武装警察部队警官学院）。该身份码不是教育部普通高校数字标识码；J039 保留为辽宁本地招生代码，不在招生计划层与其他代码变体合并。证据：https://www.81.cn/jx_208569/jdt_208570/16391959.html",
+      "reviewed_national_school_code": "MIL-PAP-OFFICER"
     },
     {
       "seed_id": "sid-j033-needs-research",
       "local_school_code": "J033",
       "local_school_name": "军事航天部队航天工程大学",
-      "review_status": "needs_research",
+      "review_status": "approved",
       "reviewer": "datahub_seed_review",
       "reviewed_at": "2026-05-18",
-      "review_note": "军事院校或军检/专项招生代码当前没有可用 MOE profile 候选；需建立受控军校 profile 来源，区分普通招生代码与军检/专项代码后再批准。"
+      "review_note": "批准映射到受控补充身份 MIL-AEROSPACE-ENGINEERING（中国人民解放军军事航天部队航天工程大学）。该身份码不是教育部普通高校数字标识码；J033 保留为辽宁本地招生代码，不在招生计划层与其他代码变体合并。证据：https://www.81.cn/jx_208569/jdt_208570/16391959.html",
+      "reviewed_national_school_code": "MIL-AEROSPACE-ENGINEERING"
     },
     {
       "seed_id": "sid-jv34-needs-research",
       "local_school_code": "JV34",
       "local_school_name": "网络空间部队信息工程大学",
-      "review_status": "needs_research",
+      "review_status": "approved",
       "reviewer": "datahub_seed_review",
       "reviewed_at": "2026-05-18",
-      "review_note": "军事院校或军检/专项招生代码当前没有可用 MOE profile 候选；需建立受控军校 profile 来源，区分普通招生代码与军检/专项代码后再批准。"
+      "review_note": "批准映射到受控补充身份 MIL-CYBERSPACE-INFO-ENGINEERING（中国人民解放军网络空间部队信息工程大学）。该身份码不是教育部普通高校数字标识码；JV34 保留为辽宁本地招生代码，不在招生计划层与其他代码变体合并。证据：https://www.81.cn/jx_208569/jdt_208570/16391959.html",
+      "reviewed_national_school_code": "MIL-CYBERSPACE-INFO-ENGINEERING"
     },
     {
       "seed_id": "sid-x002-needs-research",
       "local_school_code": "X002",
       "local_school_name": "香港中文大学",
-      "review_status": "needs_research",
+      "review_status": "approved",
       "reviewer": "datahub_seed_review",
       "reviewed_at": "2026-05-18",
-      "review_note": "当前 profile 候选为香港中文大学（深圳）4144016407，但本地招生名称为香港中文大学，缺少“深圳”限定；需确认辽宁招生口径是香港本部还是深圳校区/内地合作办学后再批准。"
+      "review_note": "批准映射到受控补充身份 HKG-CUHK（香港中文大学）。该身份码不是教育部普通高校数字标识码；X002 保留为辽宁本地招生代码，不在招生计划层与其他代码变体合并。证据：https://admission.cuhk.edu.hk/sc/application/mainland-gaokao/",
+      "reviewed_national_school_code": "HKG-CUHK"
     },
     {
       "seed_id": "sid-j015-needs-research",
       "local_school_code": "J015",
       "local_school_name": "海军潜艇学院",
-      "review_status": "needs_research",
+      "review_status": "approved",
       "reviewer": "datahub_seed_review",
       "reviewed_at": "2026-05-18",
-      "review_note": "军事院校或军检/专项招生代码当前没有可用 MOE profile 候选；需建立受控军校 profile 来源，区分普通招生代码与军检/专项代码后再批准。"
+      "review_note": "批准映射到受控补充身份 MIL-NAVY-SUBMARINE（中国人民解放军海军潜艇学院）。该身份码不是教育部普通高校数字标识码；J015 保留为辽宁本地招生代码，不在招生计划层与其他代码变体合并。证据：https://www.81.cn/jx_208569/jdt_208570/16391959.html",
+      "reviewed_national_school_code": "MIL-NAVY-SUBMARINE"
     },
     {
       "seed_id": "sid-jv02-needs-research",
       "local_school_code": "JV02",
       "local_school_name": "国防科技大学",
-      "review_status": "needs_research",
+      "review_status": "approved",
       "reviewer": "datahub_seed_review",
       "reviewed_at": "2026-05-18",
-      "review_note": "军事院校或军检/专项招生代码当前没有可用 MOE profile 候选；需建立受控军校 profile 来源，区分普通招生代码与军检/专项代码后再批准。"
+      "review_note": "批准映射到受控补充身份 MIL-NDUT（中国人民解放军国防科技大学）。该身份码不是教育部普通高校数字标识码；JV02 保留为辽宁本地招生代码，不在招生计划层与其他代码变体合并。证据：https://www.81.cn/jx_208569/jdt_208570/16391959.html",
+      "reviewed_national_school_code": "MIL-NDUT"
     },
     {
       "seed_id": "sid-6407-needs-research",
@@ -404,28 +424,31 @@
       "seed_id": "sid-j027-needs-research",
       "local_school_code": "J027",
       "local_school_name": "空军军医大学",
-      "review_status": "needs_research",
+      "review_status": "approved",
       "reviewer": "datahub_seed_review",
       "reviewed_at": "2026-05-18",
-      "review_note": "军事院校或军检/专项招生代码当前没有可用 MOE profile 候选；需建立受控军校 profile 来源，区分普通招生代码与军检/专项代码后再批准。"
+      "review_note": "批准映射到受控补充身份 MIL-AIR-MEDICAL（中国人民解放军空军军医大学）。该身份码不是教育部普通高校数字标识码；J027 保留为辽宁本地招生代码，不在招生计划层与其他代码变体合并。证据：https://www.81.cn/jx_208569/jdt_208570/16391959.html",
+      "reviewed_national_school_code": "MIL-AIR-MEDICAL"
     },
     {
       "seed_id": "sid-jv13-needs-research",
       "local_school_code": "JV13",
       "local_school_name": "海军工程大学",
-      "review_status": "needs_research",
+      "review_status": "approved",
       "reviewer": "datahub_seed_review",
       "reviewed_at": "2026-05-18",
-      "review_note": "军事院校或军检/专项招生代码当前没有可用 MOE profile 候选；需建立受控军校 profile 来源，区分普通招生代码与军检/专项代码后再批准。"
+      "review_note": "批准映射到受控补充身份 MIL-NAVY-ENGINEERING（中国人民解放军海军工程大学）。该身份码不是教育部普通高校数字标识码；JV13 保留为辽宁本地招生代码，不在招生计划层与其他代码变体合并。证据：https://www.81.cn/jx_208569/jdt_208570/16391959.html",
+      "reviewed_national_school_code": "MIL-NAVY-ENGINEERING"
     },
     {
       "seed_id": "sid-jv36-needs-research",
       "local_school_code": "JV36",
       "local_school_name": "联勤保障部队工程大学",
-      "review_status": "needs_research",
+      "review_status": "approved",
       "reviewer": "datahub_seed_review",
       "reviewed_at": "2026-05-18",
-      "review_note": "军事院校或军检/专项招生代码当前没有可用 MOE profile 候选；需建立受控军校 profile 来源，区分普通招生代码与军检/专项代码后再批准。"
+      "review_note": "批准映射到受控补充身份 MIL-JOINT-LOGISTICS-ENGINEERING（中国人民解放军联勤保障部队工程大学）。该身份码不是教育部普通高校数字标识码；JV36 保留为辽宁本地招生代码，不在招生计划层与其他代码变体合并。证据：https://www.mod.gov.cn/gfbw/xwfyr/jt/16386255.html",
+      "reviewed_national_school_code": "MIL-JOINT-LOGISTICS-ENGINEERING"
     },
     {
       "seed_id": "sid-9127-needs-research",
@@ -441,100 +464,111 @@
       "seed_id": "sid-j010-needs-research",
       "local_school_code": "J010",
       "local_school_name": "陆军防化学院",
-      "review_status": "needs_research",
+      "review_status": "approved",
       "reviewer": "datahub_seed_review",
       "reviewed_at": "2026-05-18",
-      "review_note": "军事院校或军检/专项招生代码当前没有可用 MOE profile 候选；需建立受控军校 profile 来源，区分普通招生代码与军检/专项代码后再批准。"
+      "review_note": "批准映射到受控补充身份 MIL-ARMY-CHEMICAL-DEFENSE（中国人民解放军陆军防化学院）。该身份码不是教育部普通高校数字标识码；J010 保留为辽宁本地招生代码，不在招生计划层与其他代码变体合并。证据：https://www.81.cn/jx_208569/jdt_208570/16391959.html",
+      "reviewed_national_school_code": "MIL-ARMY-CHEMICAL-DEFENSE"
     },
     {
       "seed_id": "sid-j011-needs-research",
       "local_school_code": "J011",
       "local_school_name": "陆军军医大学",
-      "review_status": "needs_research",
+      "review_status": "approved",
       "reviewer": "datahub_seed_review",
       "reviewed_at": "2026-05-18",
-      "review_note": "军事院校或军检/专项招生代码当前没有可用 MOE profile 候选；需建立受控军校 profile 来源，区分普通招生代码与军检/专项代码后再批准。"
+      "review_note": "批准映射到受控补充身份 MIL-ARMY-MEDICAL（中国人民解放军陆军军医大学）。该身份码不是教育部普通高校数字标识码；J011 保留为辽宁本地招生代码，不在招生计划层与其他代码变体合并。证据：https://www.81.cn/jx_208569/jdt_208570/16391959.html",
+      "reviewed_national_school_code": "MIL-ARMY-MEDICAL"
     },
     {
       "seed_id": "sid-j023-needs-research",
       "local_school_code": "J023",
       "local_school_name": "空军预警学院",
-      "review_status": "needs_research",
+      "review_status": "approved",
       "reviewer": "datahub_seed_review",
       "reviewed_at": "2026-05-18",
-      "review_note": "军事院校或军检/专项招生代码当前没有可用 MOE profile 候选；需建立受控军校 profile 来源，区分普通招生代码与军检/专项代码后再批准。"
+      "review_note": "批准映射到受控补充身份 MIL-AIR-EARLY-WARNING（中国人民解放军空军预警学院）。该身份码不是教育部普通高校数字标识码；J023 保留为辽宁本地招生代码，不在招生计划层与其他代码变体合并。证据：https://www.81.cn/jx_208569/jdt_208570/16391959.html",
+      "reviewed_national_school_code": "MIL-AIR-EARLY-WARNING"
     },
     {
       "seed_id": "sid-x006-needs-research",
       "local_school_code": "X006",
       "local_school_name": "香港城市大学",
-      "review_status": "needs_research",
+      "review_status": "approved",
       "reviewer": "datahub_seed_review",
       "reviewed_at": "2026-05-18",
-      "review_note": "当前 profile 候选为香港城市大学（东莞）4144014851，但本地招生名称为香港城市大学，缺少“东莞”限定；需确认辽宁招生口径是香港本部还是东莞校区/内地合作办学后再批准。"
+      "review_note": "批准映射到受控补充身份 HKG-CITYU（香港城市大学）。该身份码不是教育部普通高校数字标识码；X006 保留为辽宁本地招生代码，不在招生计划层与其他代码变体合并。证据：https://www.cityu.edu.hk/zh-cn/vpms/mainland",
+      "reviewed_national_school_code": "HKG-CITYU"
     },
     {
       "seed_id": "sid-x012-needs-research",
       "local_school_code": "X012",
       "local_school_name": "香港珠海学院",
-      "review_status": "needs_research",
+      "review_status": "approved",
       "reviewer": "datahub_seed_review",
       "reviewed_at": "2026-05-18",
-      "review_note": "港澳高校/合作办学口径当前没有可用 profile 候选；需补受控 profile 来源并确认招生身份后再批准。"
+      "review_note": "批准映射到受控补充身份 HKG-CHC（香港珠海学院）。该身份码不是教育部普通高校数字标识码；X012 保留为辽宁本地招生代码，不在招生计划层与其他代码变体合并。证据：https://www.chuhai.edu.hk/sc/%E5%86%85%E5%9C%B0%E9%AB%98%E8%80%83",
+      "reviewed_national_school_code": "HKG-CHC"
     },
     {
       "seed_id": "sid-jv04-needs-research",
       "local_school_code": "JV04",
       "local_school_name": "陆军工程大学",
-      "review_status": "needs_research",
+      "review_status": "approved",
       "reviewer": "datahub_seed_review",
       "reviewed_at": "2026-05-18",
-      "review_note": "军事院校或军检/专项招生代码当前没有可用 MOE profile 候选；需建立受控军校 profile 来源，区分普通招生代码与军检/专项代码后再批准。"
+      "review_note": "批准映射到受控补充身份 MIL-ARMY-ENGINEERING（中国人民解放军陆军工程大学）。该身份码不是教育部普通高校数字标识码；JV04 保留为辽宁本地招生代码，不在招生计划层与其他代码变体合并。证据：https://www.81.cn/jx_208569/jdt_208570/16391959.html",
+      "reviewed_national_school_code": "MIL-ARMY-ENGINEERING"
     },
     {
       "seed_id": "sid-jv14-needs-research",
       "local_school_code": "JV14",
       "local_school_name": "海军大连舰艇学院",
-      "review_status": "needs_research",
+      "review_status": "approved",
       "reviewer": "datahub_seed_review",
       "reviewed_at": "2026-05-18",
-      "review_note": "军事院校或军检/专项招生代码当前没有可用 MOE profile 候选；需建立受控军校 profile 来源，区分普通招生代码与军检/专项代码后再批准。"
+      "review_note": "批准映射到受控补充身份 MIL-NAVY-DALIAN（中国人民解放军海军大连舰艇学院）。该身份码不是教育部普通高校数字标识码；JV14 保留为辽宁本地招生代码，不在招生计划层与其他代码变体合并。证据：https://www.81.cn/jx_208569/jdt_208570/16391959.html",
+      "reviewed_national_school_code": "MIL-NAVY-DALIAN"
     },
     {
       "seed_id": "sid-jv16-needs-research",
       "local_school_code": "JV16",
       "local_school_name": "海军航空大学",
-      "review_status": "needs_research",
+      "review_status": "approved",
       "reviewer": "datahub_seed_review",
       "reviewed_at": "2026-05-18",
-      "review_note": "军事院校或军检/专项招生代码当前没有可用 MOE profile 候选；需建立受控军校 profile 来源，区分普通招生代码与军检/专项代码后再批准。"
+      "review_note": "批准映射到受控补充身份 MIL-NAVY-AVIATION（中国人民解放军海军航空大学）。该身份码不是教育部普通高校数字标识码；JV16 保留为辽宁本地招生代码，不在招生计划层与其他代码变体合并。证据：https://www.81.cn/jx_208569/jdt_208570/16391959.html",
+      "reviewed_national_school_code": "MIL-NAVY-AVIATION"
     },
     {
       "seed_id": "sid-jv31-needs-research",
       "local_school_code": "JV31",
       "local_school_name": "火箭军工程大学",
-      "review_status": "needs_research",
+      "review_status": "approved",
       "reviewer": "datahub_seed_review",
       "reviewed_at": "2026-05-18",
-      "review_note": "军事院校或军检/专项招生代码当前没有可用 MOE profile 候选；需建立受控军校 profile 来源，区分普通招生代码与军检/专项代码后再批准。"
+      "review_note": "批准映射到受控补充身份 MIL-ROCKET-ENGINEERING（中国人民解放军火箭军工程大学）。该身份码不是教育部普通高校数字标识码；JV31 保留为辽宁本地招生代码，不在招生计划层与其他代码变体合并。证据：https://www.81.cn/jx_208569/jdt_208570/16391959.html",
+      "reviewed_national_school_code": "MIL-ROCKET-ENGINEERING"
     },
     {
       "seed_id": "sid-jv33-needs-research",
       "local_school_code": "JV33",
       "local_school_name": "军事航天部队航天工程大学",
-      "review_status": "needs_research",
+      "review_status": "approved",
       "reviewer": "datahub_seed_review",
       "reviewed_at": "2026-05-18",
-      "review_note": "军事院校或军检/专项招生代码当前没有可用 MOE profile 候选；需建立受控军校 profile 来源，区分普通招生代码与军检/专项代码后再批准。"
+      "review_note": "批准映射到受控补充身份 MIL-AEROSPACE-ENGINEERING（中国人民解放军军事航天部队航天工程大学）。该身份码不是教育部普通高校数字标识码；JV33 保留为辽宁本地招生代码，不在招生计划层与其他代码变体合并。证据：https://www.81.cn/jx_208569/jdt_208570/16391959.html",
+      "reviewed_national_school_code": "MIL-AEROSPACE-ENGINEERING"
     },
     {
       "seed_id": "sid-jv35-needs-research",
       "local_school_code": "JV35",
       "local_school_name": "信息支援部队工程大学",
-      "review_status": "needs_research",
+      "review_status": "approved",
       "reviewer": "datahub_seed_review",
       "reviewed_at": "2026-05-18",
-      "review_note": "军事院校或军检/专项招生代码当前没有可用 MOE profile 候选；需建立受控军校 profile 来源，区分普通招生代码与军检/专项代码后再批准。"
+      "review_note": "批准映射到受控补充身份 MIL-INFO-SUPPORT-ENGINEERING（中国人民解放军信息支援部队工程大学）。该身份码不是教育部普通高校数字标识码；JV35 保留为辽宁本地招生代码，不在招生计划层与其他代码变体合并。证据：https://www.mod.gov.cn/gfbw/xwfyr/jt/16386255.html",
+      "reviewed_national_school_code": "MIL-INFO-SUPPORT-ENGINEERING"
     },
     {
       "seed_id": "sid-6412-hkust-gz",
@@ -550,127 +584,141 @@
       "seed_id": "sid-j021-needs-research",
       "local_school_code": "J021",
       "local_school_name": "空军航空大学",
-      "review_status": "needs_research",
+      "review_status": "approved",
       "reviewer": "datahub_seed_review",
       "reviewed_at": "2026-05-18",
-      "review_note": "军事院校或军检/专项招生代码当前没有可用 MOE profile 候选；需建立受控军校 profile 来源，区分普通招生代码与军检/专项代码后再批准。"
+      "review_note": "批准映射到受控补充身份 MIL-AIR-AVIATION（中国人民解放军空军航空大学）。该身份码不是教育部普通高校数字标识码；J021 保留为辽宁本地招生代码，不在招生计划层与其他代码变体合并。证据：https://www.81.cn/jx_208569/jdt_208570/16391959.html",
+      "reviewed_national_school_code": "MIL-AIR-AVIATION"
     },
     {
       "seed_id": "sid-jv17-needs-research",
       "local_school_code": "JV17",
       "local_school_name": "海军军医大学",
-      "review_status": "needs_research",
+      "review_status": "approved",
       "reviewer": "datahub_seed_review",
       "reviewed_at": "2026-05-18",
-      "review_note": "军事院校或军检/专项招生代码当前没有可用 MOE profile 候选；需建立受控军校 profile 来源，区分普通招生代码与军检/专项代码后再批准。"
+      "review_note": "批准映射到受控补充身份 MIL-NAVY-MEDICAL（中国人民解放军海军军医大学）。该身份码不是教育部普通高校数字标识码；JV17 保留为辽宁本地招生代码，不在招生计划层与其他代码变体合并。证据：https://www.81.cn/jx_208569/jdt_208570/16391959.html",
+      "reviewed_national_school_code": "MIL-NAVY-MEDICAL"
     },
     {
       "seed_id": "sid-jv38-needs-research",
       "local_school_code": "JV38",
       "local_school_name": "武警工程大学",
-      "review_status": "needs_research",
+      "review_status": "approved",
       "reviewer": "datahub_seed_review",
       "reviewed_at": "2026-05-18",
-      "review_note": "军事院校或军检/专项招生代码当前没有可用 MOE profile 候选；需建立受控军校 profile 来源，区分普通招生代码与军检/专项代码后再批准。"
+      "review_note": "批准映射到受控补充身份 MIL-PAP-ENGINEERING（中国人民武装警察部队工程大学）。该身份码不是教育部普通高校数字标识码；JV38 保留为辽宁本地招生代码，不在招生计划层与其他代码变体合并。证据：https://www.81.cn/jx_208569/jdt_208570/16391959.html",
+      "reviewed_national_school_code": "MIL-PAP-ENGINEERING"
     },
     {
       "seed_id": "sid-jv10-needs-research",
       "local_school_code": "JV10",
       "local_school_name": "陆军防化学院",
-      "review_status": "needs_research",
+      "review_status": "approved",
       "reviewer": "datahub_seed_review",
       "reviewed_at": "2026-05-18",
-      "review_note": "军事院校或军检/专项招生代码当前没有可用 MOE profile 候选；需建立受控军校 profile 来源，区分普通招生代码与军检/专项代码后再批准。"
+      "review_note": "批准映射到受控补充身份 MIL-ARMY-CHEMICAL-DEFENSE（中国人民解放军陆军防化学院）。该身份码不是教育部普通高校数字标识码；JV10 保留为辽宁本地招生代码，不在招生计划层与其他代码变体合并。证据：https://www.81.cn/jx_208569/jdt_208570/16391959.html",
+      "reviewed_national_school_code": "MIL-ARMY-CHEMICAL-DEFENSE"
     },
     {
       "seed_id": "sid-jv11-needs-research",
       "local_school_code": "JV11",
       "local_school_name": "陆军军医大学",
-      "review_status": "needs_research",
+      "review_status": "approved",
       "reviewer": "datahub_seed_review",
       "reviewed_at": "2026-05-18",
-      "review_note": "军事院校或军检/专项招生代码当前没有可用 MOE profile 候选；需建立受控军校 profile 来源，区分普通招生代码与军检/专项代码后再批准。"
+      "review_note": "批准映射到受控补充身份 MIL-ARMY-MEDICAL（中国人民解放军陆军军医大学）。该身份码不是教育部普通高校数字标识码；JV11 保留为辽宁本地招生代码，不在招生计划层与其他代码变体合并。证据：https://www.81.cn/jx_208569/jdt_208570/16391959.html",
+      "reviewed_national_school_code": "MIL-ARMY-MEDICAL"
     },
     {
       "seed_id": "sid-jv21-needs-research",
       "local_school_code": "JV21",
       "local_school_name": "空军航空大学",
-      "review_status": "needs_research",
+      "review_status": "approved",
       "reviewer": "datahub_seed_review",
       "reviewed_at": "2026-05-18",
-      "review_note": "军事院校或军检/专项招生代码当前没有可用 MOE profile 候选；需建立受控军校 profile 来源，区分普通招生代码与军检/专项代码后再批准。"
+      "review_note": "批准映射到受控补充身份 MIL-AIR-AVIATION（中国人民解放军空军航空大学）。该身份码不是教育部普通高校数字标识码；JV21 保留为辽宁本地招生代码，不在招生计划层与其他代码变体合并。证据：https://www.81.cn/jx_208569/jdt_208570/16391959.html",
+      "reviewed_national_school_code": "MIL-AIR-AVIATION"
     },
     {
       "seed_id": "sid-jv22-needs-research",
       "local_school_code": "JV22",
       "local_school_name": "空军工程大学",
-      "review_status": "needs_research",
+      "review_status": "approved",
       "reviewer": "datahub_seed_review",
       "reviewed_at": "2026-05-18",
-      "review_note": "军事院校或军检/专项招生代码当前没有可用 MOE profile 候选；需建立受控军校 profile 来源，区分普通招生代码与军检/专项代码后再批准。"
+      "review_note": "批准映射到受控补充身份 MIL-AIR-ENGINEERING（中国人民解放军空军工程大学）。该身份码不是教育部普通高校数字标识码；JV22 保留为辽宁本地招生代码，不在招生计划层与其他代码变体合并。证据：https://www.81.cn/jx_208569/jdt_208570/16391959.html",
+      "reviewed_national_school_code": "MIL-AIR-ENGINEERING"
     },
     {
       "seed_id": "sid-jv23-needs-research",
       "local_school_code": "JV23",
       "local_school_name": "空军预警学院",
-      "review_status": "needs_research",
+      "review_status": "approved",
       "reviewer": "datahub_seed_review",
       "reviewed_at": "2026-05-18",
-      "review_note": "军事院校或军检/专项招生代码当前没有可用 MOE profile 候选；需建立受控军校 profile 来源，区分普通招生代码与军检/专项代码后再批准。"
+      "review_note": "批准映射到受控补充身份 MIL-AIR-EARLY-WARNING（中国人民解放军空军预警学院）。该身份码不是教育部普通高校数字标识码；JV23 保留为辽宁本地招生代码，不在招生计划层与其他代码变体合并。证据：https://www.81.cn/jx_208569/jdt_208570/16391959.html",
+      "reviewed_national_school_code": "MIL-AIR-EARLY-WARNING"
     },
     {
       "seed_id": "sid-jv27-needs-research",
       "local_school_code": "JV27",
       "local_school_name": "空军军医大学",
-      "review_status": "needs_research",
+      "review_status": "approved",
       "reviewer": "datahub_seed_review",
       "reviewed_at": "2026-05-18",
-      "review_note": "军事院校或军检/专项招生代码当前没有可用 MOE profile 候选；需建立受控军校 profile 来源，区分普通招生代码与军检/专项代码后再批准。"
+      "review_note": "批准映射到受控补充身份 MIL-AIR-MEDICAL（中国人民解放军空军军医大学）。该身份码不是教育部普通高校数字标识码；JV27 保留为辽宁本地招生代码，不在招生计划层与其他代码变体合并。证据：https://www.81.cn/jx_208569/jdt_208570/16391959.html",
+      "reviewed_national_school_code": "MIL-AIR-MEDICAL"
     },
     {
       "seed_id": "sid-jx16-needs-research",
       "local_school_code": "JX16",
       "local_school_name": "海军航空大学",
-      "review_status": "needs_research",
+      "review_status": "approved",
       "reviewer": "datahub_seed_review",
       "reviewed_at": "2026-05-18",
-      "review_note": "军事院校或军检/专项招生代码当前没有可用 MOE profile 候选；需建立受控军校 profile 来源，区分普通招生代码与军检/专项代码后再批准。"
+      "review_note": "批准映射到受控补充身份 MIL-NAVY-AVIATION（中国人民解放军海军航空大学）。该身份码不是教育部普通高校数字标识码；JX16 保留为辽宁本地招生代码，不在招生计划层与其他代码变体合并。证据：https://www.81.cn/jx_208569/jdt_208570/16391959.html",
+      "reviewed_national_school_code": "MIL-NAVY-AVIATION"
     },
     {
       "seed_id": "sid-jx21-needs-research",
       "local_school_code": "JX21",
       "local_school_name": "空军航空大学",
-      "review_status": "needs_research",
+      "review_status": "approved",
       "reviewer": "datahub_seed_review",
       "reviewed_at": "2026-05-18",
-      "review_note": "军事院校或军检/专项招生代码当前没有可用 MOE profile 候选；需建立受控军校 profile 来源，区分普通招生代码与军检/专项代码后再批准。"
+      "review_note": "批准映射到受控补充身份 MIL-AIR-AVIATION（中国人民解放军空军航空大学）。该身份码不是教育部普通高校数字标识码；JX21 保留为辽宁本地招生代码，不在招生计划层与其他代码变体合并。证据：https://www.81.cn/jx_208569/jdt_208570/16391959.html",
+      "reviewed_national_school_code": "MIL-AIR-AVIATION"
     },
     {
       "seed_id": "sid-jy16-needs-research",
       "local_school_code": "JY16",
       "local_school_name": "海军航空大学",
-      "review_status": "needs_research",
+      "review_status": "approved",
       "reviewer": "datahub_seed_review",
       "reviewed_at": "2026-05-18",
-      "review_note": "军事院校或军检/专项招生代码当前没有可用 MOE profile 候选；需建立受控军校 profile 来源，区分普通招生代码与军检/专项代码后再批准。"
+      "review_note": "批准映射到受控补充身份 MIL-NAVY-AVIATION（中国人民解放军海军航空大学）。该身份码不是教育部普通高校数字标识码；JY16 保留为辽宁本地招生代码，不在招生计划层与其他代码变体合并。证据：https://www.81.cn/jx_208569/jdt_208570/16391959.html",
+      "reviewed_national_school_code": "MIL-NAVY-AVIATION"
     },
     {
       "seed_id": "sid-jy21-needs-research",
       "local_school_code": "JY21",
       "local_school_name": "空军航空大学",
-      "review_status": "needs_research",
+      "review_status": "approved",
       "reviewer": "datahub_seed_review",
       "reviewed_at": "2026-05-18",
-      "review_note": "军事院校或军检/专项招生代码当前没有可用 MOE profile 候选；需建立受控军校 profile 来源，区分普通招生代码与军检/专项代码后再批准。"
+      "review_note": "批准映射到受控补充身份 MIL-AIR-AVIATION（中国人民解放军空军航空大学）。该身份码不是教育部普通高校数字标识码；JY21 保留为辽宁本地招生代码，不在招生计划层与其他代码变体合并。证据：https://www.81.cn/jx_208569/jdt_208570/16391959.html",
+      "reviewed_national_school_code": "MIL-AIR-AVIATION"
     },
     {
       "seed_id": "sid-jz21-needs-research",
       "local_school_code": "JZ21",
       "local_school_name": "空军航空大学",
-      "review_status": "needs_research",
+      "review_status": "approved",
       "reviewer": "datahub_seed_review",
       "reviewed_at": "2026-05-18",
-      "review_note": "军事院校或军检/专项招生代码当前没有可用 MOE profile 候选；需建立受控军校 profile 来源，区分普通招生代码与军检/专项代码后再批准。"
+      "review_note": "批准映射到受控补充身份 MIL-AIR-AVIATION（中国人民解放军空军航空大学）。该身份码不是教育部普通高校数字标识码；JZ21 保留为辽宁本地招生代码，不在招生计划层与其他代码变体合并。证据：https://www.81.cn/jx_208569/jdt_208570/16391959.html",
+      "reviewed_national_school_code": "MIL-AIR-AVIATION"
     }
   ]
 }

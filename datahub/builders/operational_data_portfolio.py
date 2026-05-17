@@ -48,7 +48,10 @@ def assess_operational_data_portfolio(
                 "coverage_rate": area.get("coverage_rate"),
                 "missing_records_path": area.get("missing_records_path"),
             }
-            if area.get("status") != "pass" and item.get("business_importance") == "P0":
+            if area.get("status") == "pass" and item.get("business_importance") == "P0":
+                item["classification"] = "required_available"
+                item["availability"] = "coverage_gate_passed"
+            elif area.get("status") != "pass" and item.get("business_importance") == "P0":
                 item["classification"] = "required_unavailable"
                 p0_blockers.append({
                     "code": f"{str(item.get('key', '')).upper()}_NOT_OPERATIONAL",

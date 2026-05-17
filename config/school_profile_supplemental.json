@@ -1,6 +1,6 @@
 {
   "version": "2026-05-18",
-  "notes": "Reviewed supplemental school profiles for schools absent from the current MOE base profile package. These rows must be merged with the full MOE profile package before core import because core loads fa_dim_school_profile with replace semantics.",
+  "notes": "Reviewed supplemental school profiles for schools absent from the current MOE base profile package. Includes transparent non-MOE controlled identity codes for military and Hong Kong admission schools; these codes are not official MOE numeric identifiers and should migrate to a dedicated admission-school identity table when schema v2 is introduced.",
   "profiles": [
     {
       "national_school_code": "4115019127",
@@ -39,6 +39,456 @@
         "https://www.bttc.edu.cn/xxgk1/xxjj.htm"
       ],
       "review_note": "官方招生章程披露国标代码 18127；学校简介披露 2004 年经自治区人民政府批准以独立法人资格运行。当前完整 national_school_code 采用自治区前缀 41150 + 国标代码 18127，后续如官方学校标识码来源提供不同口径，应以官方学校标识码来源覆盖。"
+    },
+    {
+      "national_school_code": "MIL-NDUT",
+      "school_name": "中国人民解放军国防科技大学",
+      "province": "待复核",
+      "city": "待复核",
+      "school_tier": "本科",
+      "school_type": "军委直属军校",
+      "ownership": "军队院校",
+      "official_site": "",
+      "competent_authority": "军委直属",
+      "source_date": "2026-05-18",
+      "availability_date": "2026-05-18",
+      "built_at": "2026-05-18T00:00:00",
+      "evidence_urls": [
+        "https://www.81.cn/jx_208569/jdt_208570/16391959.html"
+      ],
+      "review_note": "受控补充身份码，不是教育部普通高校数字标识码；用于先打通辽宁招生本地代码 identity/profile 主键，后续可迁移到专门的 military/HK admission school profile 表。"
+    },
+    {
+      "national_school_code": "MIL-ARMY-ENGINEERING",
+      "school_name": "中国人民解放军陆军工程大学",
+      "province": "待复核",
+      "city": "待复核",
+      "school_tier": "本科",
+      "school_type": "陆军军校",
+      "ownership": "军队院校",
+      "official_site": "",
+      "competent_authority": "陆军",
+      "source_date": "2026-05-18",
+      "availability_date": "2026-05-18",
+      "built_at": "2026-05-18T00:00:00",
+      "evidence_urls": [
+        "https://www.81.cn/jx_208569/jdt_208570/16391959.html"
+      ],
+      "review_note": "受控补充身份码，不是教育部普通高校数字标识码；用于先打通辽宁招生本地代码 identity/profile 主键，后续可迁移到专门的 military/HK admission school profile 表。"
+    },
+    {
+      "national_school_code": "MIL-ARMY-BRANCHES",
+      "school_name": "中国人民解放军陆军兵种大学",
+      "province": "待复核",
+      "city": "待复核",
+      "school_tier": "本科",
+      "school_type": "陆军军校",
+      "ownership": "军队院校",
+      "official_site": "",
+      "competent_authority": "陆军",
+      "source_date": "2026-05-18",
+      "availability_date": "2026-05-18",
+      "built_at": "2026-05-18T00:00:00",
+      "evidence_urls": [
+        "https://www.mod.gov.cn/gfbw/xwfyr/jt/16386255.html"
+      ],
+      "review_note": "受控补充身份码，不是教育部普通高校数字标识码；用于先打通辽宁招生本地代码 identity/profile 主键，后续可迁移到专门的 military/HK admission school profile 表。"
+    },
+    {
+      "national_school_code": "MIL-ARMY-INFANTRY",
+      "school_name": "中国人民解放军陆军步兵学院",
+      "province": "待复核",
+      "city": "待复核",
+      "school_tier": "本科",
+      "school_type": "陆军军校",
+      "ownership": "军队院校",
+      "official_site": "",
+      "competent_authority": "陆军",
+      "source_date": "2026-05-18",
+      "availability_date": "2026-05-18",
+      "built_at": "2026-05-18T00:00:00",
+      "evidence_urls": [
+        "https://www.81.cn/jx_208569/jdt_208570/16391959.html"
+      ],
+      "review_note": "受控补充身份码，不是教育部普通高校数字标识码；用于先打通辽宁招生本地代码 identity/profile 主键，后续可迁移到专门的 military/HK admission school profile 表。"
+    },
+    {
+      "national_school_code": "MIL-ARMY-CHEMICAL-DEFENSE",
+      "school_name": "中国人民解放军陆军防化学院",
+      "province": "待复核",
+      "city": "待复核",
+      "school_tier": "本科",
+      "school_type": "陆军军校",
+      "ownership": "军队院校",
+      "official_site": "",
+      "competent_authority": "陆军",
+      "source_date": "2026-05-18",
+      "availability_date": "2026-05-18",
+      "built_at": "2026-05-18T00:00:00",
+      "evidence_urls": [
+        "https://www.81.cn/jx_208569/jdt_208570/16391959.html"
+      ],
+      "review_note": "受控补充身份码，不是教育部普通高校数字标识码；用于先打通辽宁招生本地代码 identity/profile 主键，后续可迁移到专门的 military/HK admission school profile 表。"
+    },
+    {
+      "national_school_code": "MIL-ARMY-MEDICAL",
+      "school_name": "中国人民解放军陆军军医大学",
+      "province": "待复核",
+      "city": "待复核",
+      "school_tier": "本科",
+      "school_type": "陆军军校",
+      "ownership": "军队院校",
+      "official_site": "",
+      "competent_authority": "陆军",
+      "source_date": "2026-05-18",
+      "availability_date": "2026-05-18",
+      "built_at": "2026-05-18T00:00:00",
+      "evidence_urls": [
+        "https://www.81.cn/jx_208569/jdt_208570/16391959.html"
+      ],
+      "review_note": "受控补充身份码，不是教育部普通高校数字标识码；用于先打通辽宁招生本地代码 identity/profile 主键，后续可迁移到专门的 military/HK admission school profile 表。"
+    },
+    {
+      "national_school_code": "MIL-NAVY-ENGINEERING",
+      "school_name": "中国人民解放军海军工程大学",
+      "province": "待复核",
+      "city": "待复核",
+      "school_tier": "本科",
+      "school_type": "海军军校",
+      "ownership": "军队院校",
+      "official_site": "",
+      "competent_authority": "海军",
+      "source_date": "2026-05-18",
+      "availability_date": "2026-05-18",
+      "built_at": "2026-05-18T00:00:00",
+      "evidence_urls": [
+        "https://www.81.cn/jx_208569/jdt_208570/16391959.html"
+      ],
+      "review_note": "受控补充身份码，不是教育部普通高校数字标识码；用于先打通辽宁招生本地代码 identity/profile 主键，后续可迁移到专门的 military/HK admission school profile 表。"
+    },
+    {
+      "national_school_code": "MIL-NAVY-DALIAN",
+      "school_name": "中国人民解放军海军大连舰艇学院",
+      "province": "待复核",
+      "city": "待复核",
+      "school_tier": "本科",
+      "school_type": "海军军校",
+      "ownership": "军队院校",
+      "official_site": "",
+      "competent_authority": "海军",
+      "source_date": "2026-05-18",
+      "availability_date": "2026-05-18",
+      "built_at": "2026-05-18T00:00:00",
+      "evidence_urls": [
+        "https://www.81.cn/jx_208569/jdt_208570/16391959.html"
+      ],
+      "review_note": "受控补充身份码，不是教育部普通高校数字标识码；用于先打通辽宁招生本地代码 identity/profile 主键，后续可迁移到专门的 military/HK admission school profile 表。"
+    },
+    {
+      "national_school_code": "MIL-NAVY-SUBMARINE",
+      "school_name": "中国人民解放军海军潜艇学院",
+      "province": "待复核",
+      "city": "待复核",
+      "school_tier": "本科",
+      "school_type": "海军军校",
+      "ownership": "军队院校",
+      "official_site": "",
+      "competent_authority": "海军",
+      "source_date": "2026-05-18",
+      "availability_date": "2026-05-18",
+      "built_at": "2026-05-18T00:00:00",
+      "evidence_urls": [
+        "https://www.81.cn/jx_208569/jdt_208570/16391959.html"
+      ],
+      "review_note": "受控补充身份码，不是教育部普通高校数字标识码；用于先打通辽宁招生本地代码 identity/profile 主键，后续可迁移到专门的 military/HK admission school profile 表。"
+    },
+    {
+      "national_school_code": "MIL-NAVY-AVIATION",
+      "school_name": "中国人民解放军海军航空大学",
+      "province": "待复核",
+      "city": "待复核",
+      "school_tier": "本科",
+      "school_type": "海军军校",
+      "ownership": "军队院校",
+      "official_site": "",
+      "competent_authority": "海军",
+      "source_date": "2026-05-18",
+      "availability_date": "2026-05-18",
+      "built_at": "2026-05-18T00:00:00",
+      "evidence_urls": [
+        "https://www.81.cn/jx_208569/jdt_208570/16391959.html"
+      ],
+      "review_note": "受控补充身份码，不是教育部普通高校数字标识码；用于先打通辽宁招生本地代码 identity/profile 主键，后续可迁移到专门的 military/HK admission school profile 表。"
+    },
+    {
+      "national_school_code": "MIL-NAVY-MEDICAL",
+      "school_name": "中国人民解放军海军军医大学",
+      "province": "待复核",
+      "city": "待复核",
+      "school_tier": "本科",
+      "school_type": "海军军校",
+      "ownership": "军队院校",
+      "official_site": "",
+      "competent_authority": "海军",
+      "source_date": "2026-05-18",
+      "availability_date": "2026-05-18",
+      "built_at": "2026-05-18T00:00:00",
+      "evidence_urls": [
+        "https://www.81.cn/jx_208569/jdt_208570/16391959.html"
+      ],
+      "review_note": "受控补充身份码，不是教育部普通高校数字标识码；用于先打通辽宁招生本地代码 identity/profile 主键，后续可迁移到专门的 military/HK admission school profile 表。"
+    },
+    {
+      "national_school_code": "MIL-AIR-AVIATION",
+      "school_name": "中国人民解放军空军航空大学",
+      "province": "待复核",
+      "city": "待复核",
+      "school_tier": "本科",
+      "school_type": "空军军校",
+      "ownership": "军队院校",
+      "official_site": "",
+      "competent_authority": "空军",
+      "source_date": "2026-05-18",
+      "availability_date": "2026-05-18",
+      "built_at": "2026-05-18T00:00:00",
+      "evidence_urls": [
+        "https://www.81.cn/jx_208569/jdt_208570/16391959.html"
+      ],
+      "review_note": "受控补充身份码，不是教育部普通高校数字标识码；用于先打通辽宁招生本地代码 identity/profile 主键，后续可迁移到专门的 military/HK admission school profile 表。"
+    },
+    {
+      "national_school_code": "MIL-AIR-ENGINEERING",
+      "school_name": "中国人民解放军空军工程大学",
+      "province": "待复核",
+      "city": "待复核",
+      "school_tier": "本科",
+      "school_type": "空军军校",
+      "ownership": "军队院校",
+      "official_site": "",
+      "competent_authority": "空军",
+      "source_date": "2026-05-18",
+      "availability_date": "2026-05-18",
+      "built_at": "2026-05-18T00:00:00",
+      "evidence_urls": [
+        "https://www.81.cn/jx_208569/jdt_208570/16391959.html"
+      ],
+      "review_note": "受控补充身份码，不是教育部普通高校数字标识码；用于先打通辽宁招生本地代码 identity/profile 主键，后续可迁移到专门的 military/HK admission school profile 表。"
+    },
+    {
+      "national_school_code": "MIL-AIR-EARLY-WARNING",
+      "school_name": "中国人民解放军空军预警学院",
+      "province": "待复核",
+      "city": "待复核",
+      "school_tier": "本科",
+      "school_type": "空军军校",
+      "ownership": "军队院校",
+      "official_site": "",
+      "competent_authority": "空军",
+      "source_date": "2026-05-18",
+      "availability_date": "2026-05-18",
+      "built_at": "2026-05-18T00:00:00",
+      "evidence_urls": [
+        "https://www.81.cn/jx_208569/jdt_208570/16391959.html"
+      ],
+      "review_note": "受控补充身份码，不是教育部普通高校数字标识码；用于先打通辽宁招生本地代码 identity/profile 主键，后续可迁移到专门的 military/HK admission school profile 表。"
+    },
+    {
+      "national_school_code": "MIL-AIR-MEDICAL",
+      "school_name": "中国人民解放军空军军医大学",
+      "province": "待复核",
+      "city": "待复核",
+      "school_tier": "本科",
+      "school_type": "空军军校",
+      "ownership": "军队院校",
+      "official_site": "",
+      "competent_authority": "空军",
+      "source_date": "2026-05-18",
+      "availability_date": "2026-05-18",
+      "built_at": "2026-05-18T00:00:00",
+      "evidence_urls": [
+        "https://www.81.cn/jx_208569/jdt_208570/16391959.html"
+      ],
+      "review_note": "受控补充身份码，不是教育部普通高校数字标识码；用于先打通辽宁招生本地代码 identity/profile 主键，后续可迁移到专门的 military/HK admission school profile 表。"
+    },
+    {
+      "national_school_code": "MIL-ROCKET-ENGINEERING",
+      "school_name": "中国人民解放军火箭军工程大学",
+      "province": "待复核",
+      "city": "待复核",
+      "school_tier": "本科",
+      "school_type": "火箭军军校",
+      "ownership": "军队院校",
+      "official_site": "",
+      "competent_authority": "火箭军",
+      "source_date": "2026-05-18",
+      "availability_date": "2026-05-18",
+      "built_at": "2026-05-18T00:00:00",
+      "evidence_urls": [
+        "https://www.81.cn/jx_208569/jdt_208570/16391959.html"
+      ],
+      "review_note": "受控补充身份码，不是教育部普通高校数字标识码；用于先打通辽宁招生本地代码 identity/profile 主键，后续可迁移到专门的 military/HK admission school profile 表。"
+    },
+    {
+      "national_school_code": "MIL-AEROSPACE-ENGINEERING",
+      "school_name": "中国人民解放军军事航天部队航天工程大学",
+      "province": "待复核",
+      "city": "待复核",
+      "school_tier": "本科",
+      "school_type": "军事航天部队军校",
+      "ownership": "军队院校",
+      "official_site": "",
+      "competent_authority": "军事航天部队",
+      "source_date": "2026-05-18",
+      "availability_date": "2026-05-18",
+      "built_at": "2026-05-18T00:00:00",
+      "evidence_urls": [
+        "https://www.81.cn/jx_208569/jdt_208570/16391959.html"
+      ],
+      "review_note": "受控补充身份码，不是教育部普通高校数字标识码；用于先打通辽宁招生本地代码 identity/profile 主键，后续可迁移到专门的 military/HK admission school profile 表。"
+    },
+    {
+      "national_school_code": "MIL-CYBERSPACE-INFO-ENGINEERING",
+      "school_name": "中国人民解放军网络空间部队信息工程大学",
+      "province": "待复核",
+      "city": "待复核",
+      "school_tier": "本科",
+      "school_type": "网络空间部队军校",
+      "ownership": "军队院校",
+      "official_site": "",
+      "competent_authority": "网络空间部队",
+      "source_date": "2026-05-18",
+      "availability_date": "2026-05-18",
+      "built_at": "2026-05-18T00:00:00",
+      "evidence_urls": [
+        "https://www.81.cn/jx_208569/jdt_208570/16391959.html"
+      ],
+      "review_note": "受控补充身份码，不是教育部普通高校数字标识码；用于先打通辽宁招生本地代码 identity/profile 主键，后续可迁移到专门的 military/HK admission school profile 表。"
+    },
+    {
+      "national_school_code": "MIL-INFO-SUPPORT-ENGINEERING",
+      "school_name": "中国人民解放军信息支援部队工程大学",
+      "province": "待复核",
+      "city": "待复核",
+      "school_tier": "本科",
+      "school_type": "信息支援部队军校",
+      "ownership": "军队院校",
+      "official_site": "",
+      "competent_authority": "信息支援部队",
+      "source_date": "2026-05-18",
+      "availability_date": "2026-05-18",
+      "built_at": "2026-05-18T00:00:00",
+      "evidence_urls": [
+        "https://www.mod.gov.cn/gfbw/xwfyr/jt/16386255.html"
+      ],
+      "review_note": "受控补充身份码，不是教育部普通高校数字标识码；用于先打通辽宁招生本地代码 identity/profile 主键，后续可迁移到专门的 military/HK admission school profile 表。"
+    },
+    {
+      "national_school_code": "MIL-JOINT-LOGISTICS-ENGINEERING",
+      "school_name": "中国人民解放军联勤保障部队工程大学",
+      "province": "待复核",
+      "city": "待复核",
+      "school_tier": "本科",
+      "school_type": "联勤保障部队军校",
+      "ownership": "军队院校",
+      "official_site": "",
+      "competent_authority": "联勤保障部队",
+      "source_date": "2026-05-18",
+      "availability_date": "2026-05-18",
+      "built_at": "2026-05-18T00:00:00",
+      "evidence_urls": [
+        "https://www.mod.gov.cn/gfbw/xwfyr/jt/16386255.html"
+      ],
+      "review_note": "受控补充身份码，不是教育部普通高校数字标识码；用于先打通辽宁招生本地代码 identity/profile 主键，后续可迁移到专门的 military/HK admission school profile 表。"
+    },
+    {
+      "national_school_code": "MIL-PAP-ENGINEERING",
+      "school_name": "中国人民武装警察部队工程大学",
+      "province": "待复核",
+      "city": "待复核",
+      "school_tier": "本科",
+      "school_type": "武警院校",
+      "ownership": "军队院校",
+      "official_site": "",
+      "competent_authority": "武警院校",
+      "source_date": "2026-05-18",
+      "availability_date": "2026-05-18",
+      "built_at": "2026-05-18T00:00:00",
+      "evidence_urls": [
+        "https://www.81.cn/jx_208569/jdt_208570/16391959.html"
+      ],
+      "review_note": "受控补充身份码，不是教育部普通高校数字标识码；用于先打通辽宁招生本地代码 identity/profile 主键，后续可迁移到专门的 military/HK admission school profile 表。"
+    },
+    {
+      "national_school_code": "MIL-PAP-OFFICER",
+      "school_name": "中国人民武装警察部队警官学院",
+      "province": "待复核",
+      "city": "待复核",
+      "school_tier": "本科",
+      "school_type": "武警院校",
+      "ownership": "军队院校",
+      "official_site": "",
+      "competent_authority": "武警院校",
+      "source_date": "2026-05-18",
+      "availability_date": "2026-05-18",
+      "built_at": "2026-05-18T00:00:00",
+      "evidence_urls": [
+        "https://www.81.cn/jx_208569/jdt_208570/16391959.html"
+      ],
+      "review_note": "受控补充身份码，不是教育部普通高校数字标识码；用于先打通辽宁招生本地代码 identity/profile 主键，后续可迁移到专门的 military/HK admission school profile 表。"
+    },
+    {
+      "national_school_code": "HKG-CUHK",
+      "school_name": "香港中文大学",
+      "province": "香港特别行政区",
+      "city": "香港",
+      "school_tier": "本科",
+      "school_type": "港澳高校",
+      "ownership": "港澳高校",
+      "official_site": "",
+      "competent_authority": "香港特别行政区",
+      "source_date": "2026-05-18",
+      "availability_date": "2026-05-18",
+      "built_at": "2026-05-18T00:00:00",
+      "evidence_urls": [
+        "https://admission.cuhk.edu.hk/sc/application/mainland-gaokao/"
+      ],
+      "review_note": "受控补充身份码，不是教育部普通高校数字标识码；用于先打通辽宁招生本地代码 identity/profile 主键，后续可迁移到专门的 military/HK admission school profile 表。"
+    },
+    {
+      "national_school_code": "HKG-CITYU",
+      "school_name": "香港城市大学",
+      "province": "香港特别行政区",
+      "city": "香港",
+      "school_tier": "本科",
+      "school_type": "港澳高校",
+      "ownership": "港澳高校",
+      "official_site": "",
+      "competent_authority": "香港特别行政区",
+      "source_date": "2026-05-18",
+      "availability_date": "2026-05-18",
+      "built_at": "2026-05-18T00:00:00",
+      "evidence_urls": [
+        "https://www.cityu.edu.hk/zh-cn/vpms/mainland"
+      ],
+      "review_note": "受控补充身份码，不是教育部普通高校数字标识码；用于先打通辽宁招生本地代码 identity/profile 主键，后续可迁移到专门的 military/HK admission school profile 表。"
+    },
+    {
+      "national_school_code": "HKG-CHC",
+      "school_name": "香港珠海学院",
+      "province": "香港特别行政区",
+      "city": "香港",
+      "school_tier": "本科",
+      "school_type": "港澳高校",
+      "ownership": "港澳高校",
+      "official_site": "",
+      "competent_authority": "香港特别行政区",
+      "source_date": "2026-05-18",
+      "availability_date": "2026-05-18",
+      "built_at": "2026-05-18T00:00:00",
+      "evidence_urls": [
+        "https://www.chuhai.edu.hk/sc/%E5%86%85%E5%9C%B0%E9%AB%98%E8%80%83"
+      ],
+      "review_note": "受控补充身份码，不是教育部普通高校数字标识码；用于先打通辽宁招生本地代码 identity/profile 主键，后续可迁移到专门的 military/HK admission school profile 表。"
     }
   ]
 }
