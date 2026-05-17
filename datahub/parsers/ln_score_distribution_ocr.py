@@ -1,7 +1,6 @@
 """Parse OCR observations into reviewable Liaoning score distribution candidates."""
 from __future__ import annotations
 
-import csv
 import json
 import re
 from collections import Counter
@@ -11,63 +10,17 @@ from statistics import mean
 from typing import Any
 
 from datahub.config import get_table_schema, load_sources
+from datahub.parsers.score_distribution_ocr_io import (
+    CANDIDATE_COLUMNS,
+    CLEANED_COLUMNS,
+    REVIEW_TASK_COLUMNS,
+    read_candidate_csv,
+    read_review_csv,
+    write_candidate_csv,
+    write_cleaned_score_distribution_csv,
+    write_review_task_csv,
+)
 from datahub.validators.score_distribution import validate_score_distribution
-
-
-CANDIDATE_COLUMNS = [
-    "subject_cat",
-    "score_year",
-    "score",
-    "score_count",
-    "cumulative_rank",
-    "source_date",
-    "image_file",
-    "block_index",
-    "row_y",
-    "ocr_confidence",
-    "parse_status",
-    "math_status",
-    "raw_text",
-]
-
-
-REVIEW_TASK_COLUMNS = [
-    "review_id",
-    "priority",
-    "issue_type",
-    "suggested_action",
-    "subject_cat",
-    "score_year",
-    "score",
-    "score_count",
-    "cumulative_rank",
-    "source_date",
-    "image_file",
-    "block_index",
-    "row_y",
-    "ocr_confidence",
-    "parse_status",
-    "math_status",
-    "raw_text",
-    "suggested_score",
-    "suggested_score_count",
-    "suggested_cumulative_rank",
-    "review_status",
-    "reviewer_notes",
-    "corrected_score",
-    "corrected_score_count",
-    "corrected_cumulative_rank",
-]
-
-
-CLEANED_COLUMNS = [
-    "subject_cat",
-    "score_year",
-    "score",
-    "score_count",
-    "cumulative_rank",
-    "source_date",
-]
 
 
 COMPLETE_PARSE_STATUSES = {"parsed", "inferred_score", "inferred_row"}
@@ -153,14 +106,6 @@ def parse_ln_score_distribution_ocr_jsonl(
     return rows, report
 
 
-def write_candidate_csv(path: Path, rows: list[dict[str, Any]]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", encoding="utf-8", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=CANDIDATE_COLUMNS, extrasaction="ignore")
-        writer.writeheader()
-        writer.writerows(rows)
-
-
 def build_score_distribution_review_tasks(
     candidate_csv: Path,
     *,
@@ -168,7 +113,7 @@ def build_score_distribution_review_tasks(
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     review_config = _load_ocr_review_config(source_key)
     parser_config = _load_ocr_table_config(source_key)
-    rows = _read_candidate_csv(candidate_csv)
+    rows = read_candidate_csv(candidate_csv)
     suggestions = _build_review_suggestions(rows, parser_config)
     tasks = [
         _review_task(row, index, review_config, suggestions.get(_candidate_key(row)))
@@ -194,14 +139,6 @@ def build_score_distribution_review_tasks(
     return tasks, report
 
 
-def write_review_task_csv(path: Path, rows: list[dict[str, Any]]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", encoding="utf-8", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=REVIEW_TASK_COLUMNS, extrasaction="ignore")
-        writer.writeheader()
-        writer.writerows(rows)
-
-
 def prefill_score_distribution_review_suggestions(
     review_csv: Path,
     *,
@@ -209,7 +146,7 @@ def prefill_score_distribution_review_suggestions(
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     review_config = _load_ocr_review_config(source_key)
     prefill_config = _load_suggestion_prefill_config(source_key, review_config)
-    rows = _read_review_csv(review_csv)
+    rows = read_review_csv(review_csv)
     counts = Counter()
     if prefill_config["enabled"]:
         for row in rows:
@@ -239,8 +176,8 @@ def apply_score_distribution_review(
     allow_unresolved: bool = False,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     review_config = _load_ocr_review_config(source_key)
-    candidate_rows = _read_candidate_csv(candidate_csv)
-    review_rows = _read_review_csv(review_csv)
+    candidate_rows = read_candidate_csv(candidate_csv)
+    review_rows = read_review_csv(review_csv)
     review_by_key = {_candidate_key(row): row for row in review_rows}
 
     output_rows: list[dict[str, Any]] = []
@@ -295,14 +232,6 @@ def apply_score_distribution_review(
         if errors:
             raise ValueError("; ".join(errors))
     return output_rows, report
-
-
-def write_cleaned_score_distribution_csv(path: Path, rows: list[dict[str, Any]]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", encoding="utf-8", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=CLEANED_COLUMNS, extrasaction="ignore")
-        writer.writeheader()
-        writer.writerows(rows)
 
 
 def _load_ocr_table_config(source_key: str) -> dict[str, Any]:
@@ -423,16 +352,6 @@ def _load_suggestion_prefill_config(source_key: str, review_config: dict[str, An
         "reviewer_note": str(config.get("reviewer_note") or "").strip(),
         "overwrite_corrected": bool(config.get("overwrite_corrected")),
     }
-
-
-def _read_candidate_csv(path: Path) -> list[dict[str, Any]]:
-    with path.open(encoding="utf-8", newline="") as f:
-        return list(csv.DictReader(f))
-
-
-def _read_review_csv(path: Path) -> list[dict[str, Any]]:
-    with path.open(encoding="utf-8", newline="") as f:
-        return list(csv.DictReader(f))
 
 
 def _needs_review(row: dict[str, Any], review_config: dict[str, Any]) -> bool:
