@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import csv
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -73,6 +74,7 @@ def audit_operational_coverage(
     *,
     core_db: Path = DEFAULT_CORE_DB,
     report_path: Path | None = None,
+    missing_dir: Path | None = None,
     sample_limit: int = 20,
 ) -> dict[str, Any]:
     """Read the core DB in read-only mode and report school-level operational coverage."""
@@ -129,6 +131,7 @@ def audit_operational_coverage(
                 area=area,
                 admission_schools=admission_schools,
                 admission_codes=admission_codes,
+                missing_dir=missing_dir,
                 sample_limit=sample_limit,
             )
             report["coverage_areas"].append(area_report)
@@ -190,6 +193,7 @@ def _coverage_for_area(
     area: dict[str, Any],
     admission_schools: list[dict[str, str]],
     admission_codes: set[str],
+    missing_dir: Path | None,
     sample_limit: int,
 ) -> dict[str, Any]:
     total = len(admission_schools)
@@ -204,6 +208,7 @@ def _coverage_for_area(
         "covered_school_count": 0,
         "missing_school_count": total,
         "coverage_rate": 0.0,
+        "missing_records_path": None,
         "missing_samples": admission_schools[:sample_limit],
         "status": "missing_table",
         "blocker": None,
@@ -212,6 +217,7 @@ def _coverage_for_area(
         row["status"] = "no_admission_schools"
         return row
     if not available_table:
+        row["missing_records_path"] = _write_missing_records(missing_dir, area["key"], admission_schools)
         row["blocker"] = {
             "code": f"{area['key'].upper()}_TABLE_MISSING",
             "severity": "P0",
@@ -222,6 +228,7 @@ def _coverage_for_area(
 
     covered_codes = _covered_admission_codes(con, tables, available_table)
     if not covered_codes:
+        row["missing_records_path"] = _write_missing_records(missing_dir, area["key"], admission_schools)
         row["status"] = "missing_school_code_column"
         row["blocker"] = {
             "code": f"{area['key'].upper()}_SCHOOL_CODE_COLUMN_MISSING",
@@ -238,6 +245,7 @@ def _coverage_for_area(
         "covered_school_count": len(covered),
         "missing_school_count": len(missing),
         "coverage_rate": round(len(covered) / total, 6),
+        "missing_records_path": _write_missing_records(missing_dir, area["key"], missing),
         "missing_samples": missing[:sample_limit],
         "status": "pass" if len(covered) / total >= area["threshold"] else "below_threshold",
     })
@@ -313,3 +321,27 @@ def _write_report(report_path: Path | None, report: dict[str, Any]) -> None:
         return
     report_path.parent.mkdir(parents=True, exist_ok=True)
     report_path.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def _write_missing_records(
+    missing_dir: Path | None,
+    area_key: str,
+    rows: list[dict[str, str]],
+) -> str | None:
+    if not missing_dir:
+        return None
+    missing_dir = Path(missing_dir)
+    missing_dir.mkdir(parents=True, exist_ok=True)
+    output = missing_dir / f"{area_key}_missing_schools.csv"
+    with output.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=["school_code", "school_name", "coverage_area", "review_status", "notes"])
+        writer.writeheader()
+        for row in rows:
+            writer.writerow({
+                "school_code": row.get("school_code", ""),
+                "school_name": row.get("school_name", ""),
+                "coverage_area": area_key,
+                "review_status": "todo",
+                "notes": "",
+            })
+    return str(output)

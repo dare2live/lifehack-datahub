@@ -1076,6 +1076,7 @@ def main() -> int:
         default=Path("/Users/dp/Documents/M/lifehack/backend/data/university.db"),
     )
     audit_operational_coverage_parser.add_argument("--report", type=Path)
+    audit_operational_coverage_parser.add_argument("--missing-dir", type=Path)
     audit_operational_coverage_parser.add_argument("--sample-limit", type=int, default=20)
 
     prefill_distribution_review = sub.add_parser(
@@ -2115,6 +2116,7 @@ def main() -> int:
         report = audit_operational_coverage(
             core_db=args.core_db,
             report_path=args.report,
+            missing_dir=args.missing_dir,
             sample_limit=args.sample_limit,
         )
         print(json.dumps(report, ensure_ascii=False, indent=2))

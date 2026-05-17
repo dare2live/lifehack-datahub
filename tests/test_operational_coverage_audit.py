@@ -27,13 +27,24 @@ def test_operational_coverage_audit_reports_missing_school_blockers(tmp_path: Pa
         con.close()
 
     report_path = tmp_path / "report.json"
-    report = audit_operational_coverage(core_db=db_path, report_path=report_path, sample_limit=5)
+    missing_dir = tmp_path / "missing"
+    report = audit_operational_coverage(
+        core_db=db_path,
+        report_path=report_path,
+        missing_dir=missing_dir,
+        sample_limit=5,
+    )
 
     assert report_path.exists()
     assert report["summary"]["liaoning_admission_school_count"] == 2
     profile = next(row for row in report["coverage_areas"] if row["key"] == "profile")
     assert profile["covered_school_count"] == 1
     assert profile["missing_school_count"] == 1
+    assert profile["missing_records_path"] == str(missing_dir / "profile_missing_schools.csv")
+    assert (missing_dir / "profile_missing_schools.csv").read_text(encoding="utf-8").splitlines() == [
+        "school_code,school_name,coverage_area,review_status,notes",
+        "1002,Beta College,profile,todo,",
+    ]
     assert profile["missing_samples"] == [{"school_code": "1002", "school_name": "Beta College"}]
     assert any(blocker["code"] == "PROFILE_COVERAGE_BELOW_THRESHOLD" for blocker in report["p0_blockers"])
 

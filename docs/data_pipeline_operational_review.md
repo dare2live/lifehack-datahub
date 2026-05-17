@@ -354,7 +354,10 @@ This is stricter than ordinary scraping, but it is necessary because the product
 ```bash
 python3 -m datahub.cli audit-operational-coverage \
   --core-db /Users/dp/Documents/M/lifehack/backend/data/university.db \
-  --report staging/audits/ln_operational_coverage.json
+  --report staging/audits/ln_operational_coverage.json \
+  --missing-dir staging/audits/ln_operational_missing
 ```
 
 命令使用 DuckDB `read_only=True` 连接 core DB，不采集来源、不构建包、不导入 core、不修改 staging/exports 大产物。报告输出每个覆盖域的覆盖学校数、缺口学校样例、覆盖率和 P0 blockers；存在 P0 blockers 时 CLI 返回非零状态。
+
+传入 `--missing-dir` 时，会为每个覆盖域输出一个 `*_missing_schools.csv`，字段为 `school_code, school_name, coverage_area, review_status, notes`。这些 CSV 是后续人工分派、source seed 扩面、DataHub 批处理和 core 缺口解释的输入，不是 data package，不能直接导入 core。
