@@ -24,6 +24,7 @@ from datahub.builders.major_outcome_civil_service import build_major_outcome_fro
 from datahub.connectors.scs_resources import download_scs_resources
 from datahub.parsers.digital_occupation_catalog import (
     build_broad_occupation_catalog_seed_rows,
+    merge_occupation_catalog_csvs,
     parse_digital_occupation_catalog_file,
     write_digital_occupation_catalog_csv,
 )
@@ -48,6 +49,7 @@ COMMANDS = {
     "build-career-score",
     "build-major-outcome-from-civil-service",
     "build-broad-occupation-catalog",
+    "merge-occupation-catalogs",
     "parse-digital-occupation-catalog",
     "parse-scs-position-workbook",
 }
@@ -196,6 +198,13 @@ def register_career_commands(sub) -> None:
     )
     build_broad_occupation.add_argument("--seeds", required=True, type=Path)
     build_broad_occupation.add_argument("--output", required=True, type=Path)
+
+    merge_occupation_catalogs = sub.add_parser(
+        "merge-occupation-catalogs",
+        help="Merge multiple cleaned occupation catalog CSVs into one full candidate table",
+    )
+    merge_occupation_catalogs.add_argument("--input", required=True, action="append", type=Path)
+    merge_occupation_catalogs.add_argument("--output", required=True, type=Path)
 
     parse_scs_positions = sub.add_parser(
         "parse-scs-position-workbook",
@@ -348,6 +357,11 @@ def handle_career_command(args: Namespace) -> int | None:
         rows = build_broad_occupation_catalog_seed_rows(args.seeds)
         write_digital_occupation_catalog_csv(args.output, rows)
         _print_json({"output": str(args.output), "rows": len(rows)})
+        return 0
+    if args.cmd == "merge-occupation-catalogs":
+        rows = merge_occupation_catalog_csvs(args.input)
+        write_digital_occupation_catalog_csv(args.output, rows)
+        _print_json({"output": str(args.output), "rows": len(rows), "inputs": [str(path) for path in args.input]})
         return 0
     if args.cmd == "parse-scs-position-workbook":
         rows = parse_scs_position_workbook(

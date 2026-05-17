@@ -106,6 +106,30 @@ def write_digital_occupation_catalog_csv(path: Path, rows: list[dict[str, Any]])
         writer.writerows(rows)
 
 
+def merge_occupation_catalog_csvs(paths: list[Path]) -> list[dict[str, Any]]:
+    if not paths:
+        raise ValueError("at least one occupation catalog input is required")
+    rows: list[dict[str, Any]] = []
+    seen_codes: set[str] = set()
+    for path in paths:
+        with Path(path).open("r", encoding="utf-8", newline="") as f:
+            reader = csv.DictReader(f)
+            missing = [column for column in CATALOG_COLUMNS if column not in (reader.fieldnames or [])]
+            if missing:
+                raise ValueError(f"{path} missing columns: {', '.join(missing)}")
+            for row in reader:
+                code = str(row.get("occupation_code") or "").strip()
+                if not OCCUPATION_CODE_RE.match(code):
+                    raise ValueError(f"{path} has invalid occupation_code: {code}")
+                if code in seen_codes:
+                    raise ValueError(f"duplicate occupation_code across occupation catalogs: {code}")
+                seen_codes.add(code)
+                rows.append({column: row.get(column, "") for column in CATALOG_COLUMNS})
+    if not rows:
+        raise ValueError("merged occupation catalog has no rows")
+    return rows
+
+
 def build_broad_occupation_catalog_seed_rows(path: Path) -> list[dict[str, Any]]:
     config = json.loads(Path(path).read_text(encoding="utf-8"))
     source_title = str(config.get("source_title") or "")

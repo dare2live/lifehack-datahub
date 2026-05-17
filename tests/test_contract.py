@@ -177,6 +177,7 @@ from datahub.parsers.scs_position_workbook import (
 )
 from datahub.parsers.digital_occupation_catalog import (
     build_broad_occupation_catalog_seed_rows,
+    merge_occupation_catalog_csvs,
     parse_digital_occupation_catalog_html,
     write_digital_occupation_catalog_csv,
 )
@@ -5292,6 +5293,53 @@ def test_build_broad_occupation_catalog_seed_rows(tmp_path: Path):
     )
     assert result["rows"] == 1
     assert result["quality_report"]["errors"] == []
+
+
+def test_merge_occupation_catalog_csvs_rejects_duplicate_codes(tmp_path: Path):
+    first = tmp_path / "first.csv"
+    second = tmp_path / "second.csv"
+    write_digital_occupation_catalog_csv(first, [{
+        "occupation_code": "2-02-30-09",
+        "occupation_name": "数据分析处理工程技术人员",
+        "occupation_family": "专业技术人员",
+        "occupation_level": 4,
+        "tdx_l2": "T1205",
+        "tdx_l2_name": "软件服务",
+        "major_keywords_json": "[]",
+        "skill_keywords_json": "[]",
+        "source_title": "source A",
+        "source_url": "https://example.com/a",
+        "evidence_quote": "职业编码 2-02-30-09，职业名称 数据分析处理工程技术人员",
+        "source_date": "2022-10-28",
+        "availability_date": "2022-10-28",
+        "built_at": "2026-05-18T00:00:00",
+    }])
+    write_digital_occupation_catalog_csv(second, [{
+        "occupation_code": "2-07-10-03",
+        "occupation_name": "心理咨询师",
+        "occupation_family": "专业技术人员",
+        "occupation_level": 4,
+        "tdx_l2": "T1301",
+        "tdx_l2_name": "综合类",
+        "major_keywords_json": "[]",
+        "skill_keywords_json": "[]",
+        "source_title": "source B",
+        "source_url": "https://example.com/b",
+        "evidence_quote": "职业编码 2-07-10-03，职业名称 心理咨询师",
+        "source_date": "2022-07-25",
+        "availability_date": "2026-05-18",
+        "built_at": "2026-05-18T00:00:00",
+    }])
+
+    merged = merge_occupation_catalog_csvs([first, second])
+    assert [row["occupation_code"] for row in merged] == ["2-02-30-09", "2-07-10-03"]
+
+    try:
+        merge_occupation_catalog_csvs([first, first])
+    except ValueError as exc:
+        assert "duplicate occupation_code" in str(exc)
+    else:
+        raise AssertionError("duplicate occupation_code should be rejected")
 
 
 def test_audit_career_source_plan_reports_progress_and_errors(tmp_path: Path):
