@@ -1,0 +1,315 @@
+"""Audit operational coverage for Liaoning admission schools in the core DB."""
+from __future__ import annotations
+
+import json
+from datetime import datetime
+from pathlib import Path
+from typing import Any
+
+import duckdb
+
+
+DEFAULT_CORE_DB = Path("/Users/dp/Documents/M/lifehack/backend/data/university.db")
+ADMISSION_TABLE = "fa_dim_ln_admission_plan"
+
+COVERAGE_AREAS = [
+    {
+        "key": "identity",
+        "label": "school identity bridge",
+        "tables": ["fa_bridge_school_identity"],
+        "threshold": 1.0,
+        "p0_if_below_threshold": True,
+    },
+    {
+        "key": "profile",
+        "label": "school profile",
+        "tables": ["fa_dim_school_profile"],
+        "threshold": 1.0,
+        "p0_if_below_threshold": True,
+    },
+    {
+        "key": "outcome",
+        "label": "school outcome evidence",
+        "tables": ["fa_fact_school_outcome"],
+        "threshold": 1.0,
+        "p0_if_below_threshold": True,
+    },
+    {
+        "key": "location",
+        "label": "school location",
+        "tables": ["fa_dim_school_location"],
+        "threshold": 1.0,
+        "p0_if_below_threshold": True,
+    },
+    {
+        "key": "campus",
+        "label": "campus living score",
+        "tables": ["fa_mart_campus_living_score"],
+        "threshold": 1.0,
+        "p0_if_below_threshold": True,
+    },
+    {
+        "key": "city_industry",
+        "label": "school-city-industry fit",
+        "tables": ["fa_mart_school_city_industry_fit"],
+        "threshold": 1.0,
+        "p0_if_below_threshold": True,
+    },
+]
+
+SCHOOL_CODE_COLUMNS = (
+    "school_code",
+    "local_school_code",
+    "core_school_code",
+    "tdx_school_code",
+    "school_id",
+)
+SCHOOL_NAME_COLUMNS = ("school_name", "core_school_name", "name")
+ADMISSION_SCHOOL_CODE_COLUMNS = ("school_code", "tdx_school_code", "core_school_code", "school_id")
+ADMISSION_SCHOOL_NAME_COLUMNS = ("school_name", "core_school_name", "name")
+
+
+def audit_operational_coverage(
+    *,
+    core_db: Path = DEFAULT_CORE_DB,
+    report_path: Path | None = None,
+    sample_limit: int = 20,
+) -> dict[str, Any]:
+    """Read the core DB in read-only mode and report school-level operational coverage."""
+    core_db = Path(core_db)
+    report: dict[str, Any] = {
+        "built_at": datetime.utcnow().replace(microsecond=0).isoformat(),
+        "core_db": str(core_db),
+        "admission_table": ADMISSION_TABLE,
+        "coverage_areas": [],
+        "p0_blockers": [],
+        "warnings": [],
+        "summary": {},
+        "notes": (
+            "Read-only operational coverage audit. It reads the core DB with duckdb read_only=True, "
+            "does not collect sources, build packages, import core, or modify staging/export artifacts."
+        ),
+    }
+
+    if not core_db.exists():
+        report["p0_blockers"].append({
+            "code": "CORE_DB_MISSING",
+            "severity": "P0",
+            "message": f"core DB not found: {core_db}",
+        })
+        _write_report(report_path, report)
+        return report
+
+    con = duckdb.connect(str(core_db), read_only=True)
+    try:
+        tables = _table_columns(con)
+        if ADMISSION_TABLE not in tables:
+            report["p0_blockers"].append({
+                "code": "ADMISSION_TABLE_MISSING",
+                "severity": "P0",
+                "message": f"{ADMISSION_TABLE} is missing; cannot define Liaoning admission-school universe",
+            })
+            _write_report(report_path, report)
+            return report
+
+        admission_schools = _load_admission_schools(con, tables[ADMISSION_TABLE])
+        total_schools = len(admission_schools)
+        if total_schools == 0:
+            report["p0_blockers"].append({
+                "code": "ADMISSION_SCHOOL_UNIVERSE_EMPTY",
+                "severity": "P0",
+                "message": f"{ADMISSION_TABLE} has no school rows to audit",
+            })
+
+        admission_codes = {row["school_code"] for row in admission_schools if row["school_code"]}
+        for area in COVERAGE_AREAS:
+            area_report = _coverage_for_area(
+                con=con,
+                tables=tables,
+                area=area,
+                admission_schools=admission_schools,
+                admission_codes=admission_codes,
+                sample_limit=sample_limit,
+            )
+            report["coverage_areas"].append(area_report)
+            if area_report["blocker"]:
+                report["p0_blockers"].append(area_report["blocker"])
+
+        report["summary"] = {
+            "liaoning_admission_school_count": total_schools,
+            "p0_blocker_count": len(report["p0_blockers"]),
+            "covered_area_count": sum(1 for row in report["coverage_areas"] if row["coverage_rate"] >= row["threshold"]),
+            "audited_area_count": len(report["coverage_areas"]),
+        }
+    finally:
+        con.close()
+
+    _write_report(report_path, report)
+    return report
+
+
+def _table_columns(con: duckdb.DuckDBPyConnection) -> dict[str, set[str]]:
+    rows = con.execute(
+        """
+        select table_name, column_name
+        from information_schema.columns
+        where table_schema = 'main'
+        order by table_name, ordinal_position
+        """
+    ).fetchall()
+    tables: dict[str, set[str]] = {}
+    for table_name, column_name in rows:
+        tables.setdefault(str(table_name), set()).add(str(column_name))
+    return tables
+
+
+def _load_admission_schools(con: duckdb.DuckDBPyConnection, columns: set[str]) -> list[dict[str, str]]:
+    code_col = _first_column(columns, ADMISSION_SCHOOL_CODE_COLUMNS)
+    if not code_col:
+        raise ValueError(f"{ADMISSION_TABLE} must contain one of: {', '.join(ADMISSION_SCHOOL_CODE_COLUMNS)}")
+    name_col = _first_column(columns, ADMISSION_SCHOOL_NAME_COLUMNS)
+    name_expr = _quoted(name_col) if name_col else "''"
+    sql = f"""
+        select distinct
+            cast({_quoted(code_col)} as varchar) as school_code,
+            cast({name_expr} as varchar) as school_name
+        from {_quoted(ADMISSION_TABLE)}
+        where {_quoted(code_col)} is not null and trim(cast({_quoted(code_col)} as varchar)) <> ''
+        order by school_code
+    """
+    return [
+        {"school_code": str(code or "").strip(), "school_name": str(name or "").strip()}
+        for code, name in con.execute(sql).fetchall()
+    ]
+
+
+def _coverage_for_area(
+    *,
+    con: duckdb.DuckDBPyConnection,
+    tables: dict[str, set[str]],
+    area: dict[str, Any],
+    admission_schools: list[dict[str, str]],
+    admission_codes: set[str],
+    sample_limit: int,
+) -> dict[str, Any]:
+    total = len(admission_schools)
+    available_table = next((table for table in area["tables"] if table in tables), None)
+    row: dict[str, Any] = {
+        "key": area["key"],
+        "label": area["label"],
+        "candidate_tables": area["tables"],
+        "table": available_table,
+        "threshold": area["threshold"],
+        "total_school_count": total,
+        "covered_school_count": 0,
+        "missing_school_count": total,
+        "coverage_rate": 0.0,
+        "missing_samples": admission_schools[:sample_limit],
+        "status": "missing_table",
+        "blocker": None,
+    }
+    if total == 0:
+        row["status"] = "no_admission_schools"
+        return row
+    if not available_table:
+        row["blocker"] = {
+            "code": f"{area['key'].upper()}_TABLE_MISSING",
+            "severity": "P0",
+            "message": f"No table found for {area['label']}: {', '.join(area['tables'])}",
+            "area": area["key"],
+        }
+        return row
+
+    covered_codes = _covered_admission_codes(con, tables, available_table)
+    if not covered_codes:
+        row["status"] = "missing_school_code_column"
+        row["blocker"] = {
+            "code": f"{area['key'].upper()}_SCHOOL_CODE_COLUMN_MISSING",
+            "severity": "P0",
+            "message": f"{available_table} has no supported school-code column or bridgeable national-school code",
+            "area": area["key"],
+            "table": available_table,
+        }
+        return row
+
+    covered = admission_codes & covered_codes
+    missing = [school for school in admission_schools if school["school_code"] not in covered]
+    row.update({
+        "covered_school_count": len(covered),
+        "missing_school_count": len(missing),
+        "coverage_rate": round(len(covered) / total, 6),
+        "missing_samples": missing[:sample_limit],
+        "status": "pass" if len(covered) / total >= area["threshold"] else "below_threshold",
+    })
+    if area["p0_if_below_threshold"] and row["status"] == "below_threshold":
+        row["blocker"] = {
+            "code": f"{area['key'].upper()}_COVERAGE_BELOW_THRESHOLD",
+            "severity": "P0",
+            "message": (
+                f"{area['label']} coverage is {row['covered_school_count']}/{total} "
+                f"({row['coverage_rate']:.2%}), below required {area['threshold']:.0%}"
+            ),
+            "area": area["key"],
+            "table": available_table,
+            "missing_school_count": len(missing),
+            "missing_samples": missing[:sample_limit],
+        }
+    return row
+
+
+def _covered_admission_codes(
+    con: duckdb.DuckDBPyConnection,
+    tables: dict[str, set[str]],
+    table: str,
+) -> set[str]:
+    columns = tables[table]
+    local_col = _first_column(columns, SCHOOL_CODE_COLUMNS)
+    if local_col:
+        return _load_school_codes(con, table, local_col)
+
+    national_col = _first_column(columns, ("national_school_code",))
+    bridge_columns = tables.get("fa_bridge_school_identity", set())
+    if (
+        national_col
+        and "fa_bridge_school_identity" in tables
+        and "local_school_code" in bridge_columns
+        and "national_school_code" in bridge_columns
+    ):
+        sql = f"""
+            select distinct cast(b.local_school_code as varchar) as school_code
+            from {_quoted("fa_bridge_school_identity")} b
+            join {_quoted(table)} t
+              on cast(b.national_school_code as varchar) = cast(t.{_quoted(national_col)} as varchar)
+            where b.local_school_code is not null
+              and trim(cast(b.local_school_code as varchar)) <> ''
+        """
+        return {str(row[0]).strip() for row in con.execute(sql).fetchall() if str(row[0]).strip()}
+
+    return set()
+
+
+def _load_school_codes(con: duckdb.DuckDBPyConnection, table: str, column: str) -> set[str]:
+    sql = f"""
+        select distinct cast({_quoted(column)} as varchar) as school_code
+        from {_quoted(table)}
+        where {_quoted(column)} is not null and trim(cast({_quoted(column)} as varchar)) <> ''
+    """
+    return {str(row[0]).strip() for row in con.execute(sql).fetchall() if str(row[0]).strip()}
+
+
+def _first_column(columns: set[str], candidates: tuple[str, ...]) -> str | None:
+    for candidate in candidates:
+        if candidate in columns:
+            return candidate
+    return None
+
+
+def _quoted(identifier: str) -> str:
+    return '"' + identifier.replace('"', '""') + '"'
+
+
+def _write_report(report_path: Path | None, report: dict[str, Any]) -> None:
+    if not report_path:
+        return
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    report_path.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

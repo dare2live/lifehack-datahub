@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import os
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -14,6 +15,9 @@ from datahub.validators.package_validator import validate_manifest
 PASS_STATUSES = {"ok", "pass", "passed", "ready", "success", "succeeded"}
 BLOCKED_STATUSES = {"blocked", "error", "failed", "fail", "not_ready"}
 PENDING_STATUSES = {"needs_review", "pending", "todo", "waiting_for_readiness"}
+FORMAL_RELEASE_MODE = "formal"
+NON_FORMAL_RELEASE_MODES = {"smoke", "unsafe"}
+RELEASE_MODE_ENV = "LIFEHACK_RELEASE_BUNDLE_MODE"
 
 
 def build_release_bundle(
@@ -28,11 +32,13 @@ def build_release_bundle(
     review_statuses: dict[str, str] | list[str] | None = None,
     dry_run_reports: dict[str, Path] | list[str] | None = None,
     dry_run_statuses: dict[str, str] | list[str] | None = None,
+    release_mode: str | None = None,
 ) -> dict[str, Any]:
     """Summarize data packages and gate evidence into a release bundle JSON."""
     if not package_dirs:
         raise ValueError("at least one package_dir is required")
 
+    release_mode = _normalize_release_mode(release_mode)
     load_mode_map = _normalize_string_map(load_modes, "load_modes")
     readiness_report_map = _normalize_path_map(readiness_reports, "readiness_reports")
     readiness_status_map = _normalize_string_map(readiness_statuses, "readiness_statuses")
@@ -54,6 +60,7 @@ def build_release_bundle(
             review_statuses=review_status_map,
             dry_run_reports=dry_run_report_map,
             dry_run_statuses=dry_run_status_map,
+            release_mode=release_mode,
         )
         packages.append(package)
         for blocker in package["blockers"]:
@@ -62,9 +69,22 @@ def build_release_bundle(
                 **blocker,
             })
 
+    if release_mode in NON_FORMAL_RELEASE_MODES:
+        bundle_blockers.append({
+            "code": "non_formal_release_mode",
+            "details": {
+                "release_mode": release_mode,
+                "formal_core_import_allowed": False,
+                "notes": "Manual gate statuses are allowed only for smoke/unsafe bundles; do not import into core formally.",
+            },
+        })
+
     bundle = {
         "bundle_id": bundle_id or f"release_bundle_{datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')}",
         "built_at": datetime.utcnow().isoformat(),
+        "release_mode": release_mode,
+        "formal_core_import_allowed": release_mode == FORMAL_RELEASE_MODE,
+        "manual_status_policy": _manual_status_policy(release_mode),
         "package_count": len(packages),
         "ready_for_core_import": not bundle_blockers,
         "blockers": bundle_blockers,
@@ -81,6 +101,8 @@ def build_release_bundle(
         "output": str(output),
         "package_count": len(packages),
         "ready_for_core_import": bundle["ready_for_core_import"],
+        "release_mode": release_mode,
+        "formal_core_import_allowed": bundle["formal_core_import_allowed"],
         "blockers": bundle_blockers,
     }
 
@@ -96,6 +118,7 @@ def _summarize_package(
     review_statuses: dict[str, str],
     dry_run_reports: dict[str, Path],
     dry_run_statuses: dict[str, str],
+    release_mode: str,
 ) -> dict[str, Any]:
     package_dir = package_dir.resolve()
     manifest_path = package_dir / "manifest.json"
@@ -132,6 +155,7 @@ def _summarize_package(
         readiness=readiness,
         review=review,
         dry_run=dry_run,
+        release_mode=release_mode,
     )
     return {
         "import_order": import_order,
@@ -270,12 +294,16 @@ def _review_entry(
             "source": "quality_report.readiness",
             "decision_counts": decision_counts,
             "notes": "Derived from reviewed reconciliation package quality_report.",
+            "evidence_kind": "quality_report",
+            "formal_core_import_evidence": True,
         }
     return {
         "status": "not_provided",
         "source": None,
         "decision_counts": None,
         "notes": "No review/reconciliation report or explicit review status was provided.",
+        "evidence_kind": "missing",
+        "formal_core_import_evidence": False,
     }
 
 
@@ -299,6 +327,8 @@ def _dry_run_entry(
             "sha256": file_sha256(report_path) if report_path.exists() else None,
             "errors": errors,
             "summary": _report_summary(report),
+            "evidence_kind": "explicit_status_override" if explicit_status else "report",
+            "formal_core_import_evidence": not explicit_status,
         }
     if explicit_status:
         return {
@@ -307,6 +337,8 @@ def _dry_run_entry(
             "sha256": None,
             "errors": [],
             "summary": {"status": explicit_status},
+            "evidence_kind": "explicit_status",
+            "formal_core_import_evidence": False,
         }
     return {
         "status": "not_provided",
@@ -314,6 +346,8 @@ def _dry_run_entry(
         "sha256": None,
         "errors": [],
         "summary": None,
+        "evidence_kind": "missing",
+        "formal_core_import_evidence": False,
     }
 
 
@@ -340,6 +374,8 @@ def _gate_entry(
             "sha256": file_sha256(report_path) if report_path.exists() else None,
             "errors": errors,
             "summary": _report_summary(report),
+            "evidence_kind": "explicit_status_override" if explicit_status else "report",
+            "formal_core_import_evidence": not explicit_status,
         }
     if explicit_status:
         return {
@@ -348,6 +384,8 @@ def _gate_entry(
             "sha256": None,
             "errors": [],
             "summary": {"status": explicit_status},
+            "evidence_kind": "explicit_status",
+            "formal_core_import_evidence": False,
         }
     if default_report is not None:
         return {
@@ -356,6 +394,8 @@ def _gate_entry(
             "sha256": None,
             "errors": [],
             "summary": _report_summary(default_report),
+            "evidence_kind": "quality_report",
+            "formal_core_import_evidence": True,
         }
     return {
         "status": missing_status,
@@ -364,6 +404,8 @@ def _gate_entry(
         "errors": [],
         "summary": None,
         "notes": missing_note,
+        "evidence_kind": "missing",
+        "formal_core_import_evidence": False,
     }
 
 
@@ -424,6 +466,24 @@ def _normalize_status(status: str) -> str:
     return "unknown"
 
 
+def _normalize_release_mode(release_mode: str | None) -> str:
+    normalized = (release_mode or os.environ.get(RELEASE_MODE_ENV) or FORMAL_RELEASE_MODE).strip().lower()
+    if normalized == FORMAL_RELEASE_MODE or normalized in NON_FORMAL_RELEASE_MODES:
+        return normalized
+    raise ValueError("release_mode must be one of: formal, smoke, unsafe")
+
+
+def _manual_status_policy(release_mode: str) -> dict[str, Any]:
+    return {
+        "manual_pass_status_allowed": release_mode in NON_FORMAL_RELEASE_MODES,
+        "manual_pass_status_suitable_for_formal_core_import": False,
+        "notes": (
+            "Formal bundles require report or quality-report evidence for passed gates. "
+            "Smoke/unsafe bundles may record manual passed statuses, but are blocked from formal core import."
+        ),
+    }
+
+
 def _package_blockers(
     *,
     validation: dict[str, Any],
@@ -432,6 +492,7 @@ def _package_blockers(
     readiness: dict[str, Any],
     review: dict[str, Any],
     dry_run: dict[str, Any],
+    release_mode: str,
 ) -> list[dict[str, Any]]:
     blockers: list[dict[str, Any]] = []
     validation_errors = validation.get("errors") or []
@@ -450,6 +511,26 @@ def _package_blockers(
         blockers.append({"code": "review_reconciliation_not_passed", "details": review})
     if dry_run.get("status") != "passed":
         blockers.append({"code": "core_importer_dry_run_not_passed", "details": dry_run})
+    manual_pass_fields = {
+        "readiness": readiness,
+        "review_reconciliation": review,
+        "core_importer_dry_run": dry_run,
+    }
+    for field, entry in manual_pass_fields.items():
+        if (
+            release_mode == FORMAL_RELEASE_MODE
+            and entry.get("status") == "passed"
+            and not entry.get("formal_core_import_evidence", False)
+        ):
+            blockers.append({
+                "code": "manual_pass_status_not_allowed",
+                "details": {
+                    "field": field,
+                    "evidence_kind": entry.get("evidence_kind"),
+                    "status": entry.get("status"),
+                    "notes": "Manual passed statuses are not accepted as formal release evidence.",
+                },
+            })
     return blockers
 
 

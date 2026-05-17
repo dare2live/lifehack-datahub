@@ -337,3 +337,24 @@ No data should reach recommendation inputs unless it has:
 - lineage in the final fact or mart table
 
 This is stricter than ordinary scraping, but it is necessary because the product is making education and career decisions for families.
+
+## 辽宁运营覆盖审计
+
+`audit-operational-coverage` 是只读审计命令，用 core 本地主库里的 `fa_dim_ln_admission_plan` 去重学校作为辽宁招生学校全集，检查以下运营证据表是否覆盖这些学校：
+
+- `identity`: `fa_bridge_school_identity`
+- `profile`: `fa_dim_school_profile`
+- `outcome`: `fa_fact_school_outcome`
+- `location`: `fa_dim_school_location`
+- `campus`: `fa_mart_campus_living_score`
+- `city_industry`: `fa_mart_school_city_industry_fit`
+
+示例：
+
+```bash
+python3 -m datahub.cli audit-operational-coverage \
+  --core-db /Users/dp/Documents/M/lifehack/backend/data/university.db \
+  --report staging/audits/ln_operational_coverage.json
+```
+
+命令使用 DuckDB `read_only=True` 连接 core DB，不采集来源、不构建包、不导入 core、不修改 staging/exports 大产物。报告输出每个覆盖域的覆盖学校数、缺口学校样例、覆盖率和 P0 blockers；存在 P0 blockers 时 CLI 返回非零状态。

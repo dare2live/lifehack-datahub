@@ -57,9 +57,26 @@ bundle 中每个 package 固定包含：
 - `review_reconciliation`
 - `core_importer_dry_run`
 
-`--package-dir` 的顺序就是建议导入顺序。`--load-mode` 支持 `package_id:table=mode`、`package_id=mode`、`table=mode` 或 `*=mode`。`--readiness-report`、`--review-report`、`--dry-run-report` 使用 `package_id=path`；如果已有外部系统记录但没有 JSON 文件，可以用 `--readiness-status`、`--review-status`、`--dry-run-status` 写入显式状态。
+`--package-dir` 的顺序就是建议导入顺序。`--load-mode` 支持 `package_id:table=mode`、`package_id=mode`、`table=mode` 或 `*=mode`。`--readiness-report`、`--review-report`、`--dry-run-report` 使用 `package_id=path`。
 
-bundle 只有在 manifest/quality 校验无错误、load mode 明确、readiness 通过、review/reconciliation 通过或明确不需要、core importer dry-run 通过时，才会输出 `ready_for_core_import=true`。任何 `todo`、`needs_review`、`blocked`、quality `errors` 或缺失 dry-run 证据都会成为 blocker。
+正式运营 bundle 默认是 `formal` 模式，不接受 `--readiness-status ...=passed`、`--review-status ...=passed`、`--dry-run-status ...=passed` 这类手工 passed 作为通过证据；即使状态被写入 package gate，也会产生 `manual_pass_status_not_allowed` blocker。正式交付必须提供 JSON report 或 package quality report 中可追溯的通过证据。`--review-status ...=not_required` 仍可表达该包确实不需要 review/reconciliation。
+
+只有显式 smoke/unsafe 演练才允许手工 passed 状态。现有 CLI 可通过环境变量进入非正式模式：
+
+```bash
+LIFEHACK_RELEASE_BUNDLE_MODE=smoke python3 scripts/build_package.py build-release-bundle \
+  --package-dir exports/sample_package \
+  --output releases/sample_smoke_bundle.json \
+  --bundle-id sample_smoke_bundle \
+  --load-mode sample_package=upsert_or_replace_package \
+  --readiness-status sample_package=passed \
+  --review-status sample_package=passed \
+  --dry-run-status sample_package=passed
+```
+
+smoke/unsafe bundle 会在顶层写入 `release_mode`、`formal_core_import_allowed=false` 和 `manual_status_policy`，并追加 `non_formal_release_mode` blocker；它可以用于流程演练和接口 smoke，但不适合 core 正式导入。
+
+bundle 只有在 manifest/quality 校验无错误、load mode 明确、readiness 通过、review/reconciliation 通过或明确不需要、core importer dry-run 通过，且没有手工 passed 或非正式模式 blocker 时，才会输出 `ready_for_core_import=true`。任何 `todo`、`needs_review`、`blocked`、quality `errors`、缺失 dry-run 证据、正式模式手工 passed 或 smoke/unsafe bundle 都会成为 blocker。
 
 ## 表命名
 

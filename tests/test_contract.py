@@ -450,6 +450,81 @@ def test_build_release_bundle_blocks_missing_formal_handoff_evidence(tmp_path: P
     assert "core_importer_dry_run_not_passed" in blocker_codes
 
 
+def test_build_release_bundle_rejects_manual_pass_statuses_in_formal_mode(tmp_path: Path):
+    package_dir = tmp_path / "pkg-manual-formal"
+    package_dir.mkdir()
+    table_path = package_dir / "fa_test.csv"
+    table_path.write_text("id\n1\n", encoding="utf-8")
+    (package_dir / "quality_report.json").write_text('{"errors":[],"warnings":[]}\n', encoding="utf-8")
+    (package_dir / "manifest.json").write_text(json.dumps({
+        "package_id": "pkg-manual-formal",
+        "built_at": "now",
+        "tables": [{"name": "fa_test", "file": "fa_test.csv"}],
+        "files": ["fa_test.csv"],
+        "hashes": {"fa_test.csv": hashlib.sha256(table_path.read_bytes()).hexdigest()},
+        "quality_report": "quality_report.json",
+    }), encoding="utf-8")
+
+    result = build_release_bundle(
+        package_dirs=[package_dir],
+        output=tmp_path / "release_bundle.json",
+        load_modes={"pkg-manual-formal": "upsert_or_replace_package"},
+        readiness_statuses={"pkg-manual-formal": "passed"},
+        review_statuses={"pkg-manual-formal": "passed"},
+        dry_run_statuses={"pkg-manual-formal": "passed"},
+    )
+
+    bundle = json.loads((tmp_path / "release_bundle.json").read_text(encoding="utf-8"))
+    blocker_codes = [blocker["code"] for blocker in result["blockers"]]
+    package = bundle["packages"][0]
+    assert result["ready_for_core_import"] is False
+    assert bundle["release_mode"] == "formal"
+    assert bundle["manual_status_policy"]["manual_pass_status_allowed"] is False
+    assert blocker_codes.count("manual_pass_status_not_allowed") == 3
+    assert package["readiness"]["formal_core_import_evidence"] is False
+    assert package["review_reconciliation"]["formal_core_import_evidence"] is False
+    assert package["core_importer_dry_run"]["formal_core_import_evidence"] is False
+
+
+def test_build_release_bundle_allows_manual_pass_statuses_only_for_smoke_bundle(tmp_path: Path):
+    package_dir = tmp_path / "pkg-manual-smoke"
+    package_dir.mkdir()
+    table_path = package_dir / "fa_test.csv"
+    table_path.write_text("id\n1\n", encoding="utf-8")
+    (package_dir / "quality_report.json").write_text('{"errors":[],"warnings":[]}\n', encoding="utf-8")
+    (package_dir / "manifest.json").write_text(json.dumps({
+        "package_id": "pkg-manual-smoke",
+        "built_at": "now",
+        "tables": [{"name": "fa_test", "file": "fa_test.csv"}],
+        "files": ["fa_test.csv"],
+        "hashes": {"fa_test.csv": hashlib.sha256(table_path.read_bytes()).hexdigest()},
+        "quality_report": "quality_report.json",
+    }), encoding="utf-8")
+
+    result = build_release_bundle(
+        package_dirs=[package_dir],
+        output=tmp_path / "release_bundle.json",
+        load_modes={"pkg-manual-smoke": "upsert_or_replace_package"},
+        readiness_statuses={"pkg-manual-smoke": "passed"},
+        review_statuses={"pkg-manual-smoke": "passed"},
+        dry_run_statuses={"pkg-manual-smoke": "passed"},
+        release_mode="smoke",
+    )
+
+    bundle = json.loads((tmp_path / "release_bundle.json").read_text(encoding="utf-8"))
+    blocker_codes = [blocker["code"] for blocker in result["blockers"]]
+    package = bundle["packages"][0]
+    assert result["ready_for_core_import"] is False
+    assert result["formal_core_import_allowed"] is False
+    assert bundle["release_mode"] == "smoke"
+    assert bundle["manual_status_policy"]["manual_pass_status_allowed"] is True
+    assert "manual_pass_status_not_allowed" not in blocker_codes
+    assert "non_formal_release_mode" in blocker_codes
+    assert package["readiness"]["status"] == "passed"
+    assert package["review_reconciliation"]["status"] == "passed"
+    assert package["core_importer_dry_run"]["status"] == "passed"
+
+
 def test_config_json_files_do_not_have_duplicate_keys(tmp_path: Path):
     duplicate_paths = []
     for path in sorted(Path("config").glob("*.json")):

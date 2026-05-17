@@ -55,6 +55,7 @@ from .builders.outcome_collection_seed_merge import (
 from .builders.outcome_candidate_merge import merge_outcome_report_candidates
 from .builders.outcome_collection_audit import audit_outcome_collection_plan
 from .builders.outcome_collection_package import build_outcome_packages_from_collection_plan
+from .builders.operational_coverage_audit import audit_operational_coverage
 from .builders.major_mapping_review import build_major_mapping_review_package
 from .builders.local_package import build_local_package
 from .builders.release_bundle import build_release_bundle
@@ -1064,6 +1065,18 @@ def main() -> int:
         help="Audit configured projection-score and score-distribution source coverage by year",
     )
     audit_score_source_coverage_parser.add_argument("--report", type=Path)
+
+    audit_operational_coverage_parser = sub.add_parser(
+        "audit-operational-coverage",
+        help="Audit Liaoning admission-school coverage across core operational evidence tables",
+    )
+    audit_operational_coverage_parser.add_argument(
+        "--core-db",
+        type=Path,
+        default=Path("/Users/dp/Documents/M/lifehack/backend/data/university.db"),
+    )
+    audit_operational_coverage_parser.add_argument("--report", type=Path)
+    audit_operational_coverage_parser.add_argument("--sample-limit", type=int, default=20)
 
     prefill_distribution_review = sub.add_parser(
         "prefill-ln-score-distribution-review-suggestions",
@@ -2098,6 +2111,14 @@ def main() -> int:
         report = audit_score_source_coverage(report_path=args.report)
         print(json.dumps(report, ensure_ascii=False, indent=2))
         return 0
+    if args.cmd == "audit-operational-coverage":
+        report = audit_operational_coverage(
+            core_db=args.core_db,
+            report_path=args.report,
+            sample_limit=args.sample_limit,
+        )
+        print(json.dumps(report, ensure_ascii=False, indent=2))
+        return 0 if not report["p0_blockers"] else 1
     if args.cmd == "prefill-ln-score-distribution-review-suggestions":
         rows, report = prefill_score_distribution_review_suggestions(args.review_csv)
         write_review_task_csv(args.output, rows)
