@@ -99,20 +99,20 @@
     {
       "key": "broad_occupation_catalog",
       "label": "Broad occupation catalog for Holland and career bridge",
-      "classification": "required_unavailable",
+      "classification": "required_available",
       "business_importance": "P0",
-      "availability": "missing_for_social_and_conventional_coverage",
-      "use_depth": "current_catalog_is_digital_occupation_only",
-      "normal_operation_requirement": "Holland consulting-ready requires approved occupation mappings across R/I/A/S/E/C; current 73-row digital occupation catalog lacks high-confidence social-service occupations such as education, nursing, counseling and public health."
+      "availability": "minimum_core_contract_available_after_digital_social_merge",
+      "use_depth": "supports_holland_core_contract_but_needs_broader_consulting_depth",
+      "normal_operation_requirement": "Holland consulting-ready requires approved occupation mappings across R/I/A/S/E/C. The current merged 76-row catalog covers the minimum core contract after adding social-service seeds, but still needs broader education, nursing, counseling, public-health and generalist-role depth for high-quality consulting."
     },
     {
       "key": "holland_career_bridge",
       "label": "Holland to career bridge",
-      "classification": "required_unavailable",
+      "classification": "required_available",
       "business_importance": "P0",
-      "availability": "approved_count_met_but_riasec_s_missing",
-      "use_depth": "filtered_until_approved",
-      "normal_operation_requirement": "Only approved mappings may appear as formal career suggestions; consulting-ready requires at least 18 approved mappings and coverage across R/I/A/S/E/C."
+      "availability": "core_contract_ready_with_approved_riasec_coverage",
+      "use_depth": "approved_bridge_available_but_question_bank_still_blocks_consulting_ready",
+      "normal_operation_requirement": "Only approved mappings may appear as formal career suggestions. The current bridge has at least 18 approved mappings and approved coverage across R/I/A/S/E/C; remaining Holland consulting-ready blockers are question-bank size, option count and consistency-rule count rather than the occupation bridge."
     },
     {
       "key": "city_macro_context",
