@@ -385,6 +385,19 @@
     },
     {
       "domain": "school",
+      "entity_code": "4473",
+      "entity_name": "辽宁轻工职业学院",
+      "metric_year": 2024,
+      "report_scope": "employment_quality_report",
+      "candidate_report_title": "辽宁轻工职业学院2024届毕业生就业质量年度报告",
+      "candidate_report_url": "https://xxgk.lnli.edu.cn/__local/6/E6/E7/FB08DF8BB4222666B7BDB7563CA_4F975581_FE939.pdf",
+      "candidate_file_name": "辽宁轻工职业学院2024届毕业生就业质量年度报告.pdf",
+      "candidate_source_date": "2025-10-20",
+      "availability_date": "2025-10-20",
+      "evidence_note": "辽宁轻工职业学院信息公开网教学质量信息栏目列出《辽宁轻工职业学院2024届毕业生就业质量年度报告》，发布时间 2025-10-20；官方 PDF 附件 URL 为 xxgk.lnli.edu.cn/__local/6/E6/E7/FB08DF8BB4222666B7BDB7563CA_4F975581_FE939.pdf。"
+    },
+    {
+      "domain": "school",
       "entity_code": "1500",
       "entity_name": "辽宁省交通高等专科学校",
       "metric_year": 2024,
@@ -460,6 +473,19 @@
       "candidate_source_date": "2025-02-16",
       "availability_date": "2025-02-16",
       "evidence_note": "辽宁医药职业学院官网校内新闻页面发布《辽宁医药职业学院高等职业教育质量报告（2024年度）》，时间 2025-02-16；官方 PDF 直链为 lnvcm.edu.cn/__local/F/E9/30/EDA09E825AF0EC3F2C4F3E9279F_A5412DCD_EDBE2C.pdf。"
+    },
+    {
+      "domain": "school",
+      "entity_code": "4240",
+      "entity_name": "辽宁现代服务职业技术学院",
+      "metric_year": 2024,
+      "report_scope": "employment_quality_report",
+      "candidate_report_title": "辽宁现代服务职业技术学院职业教育质量年报（2024年度）",
+      "candidate_report_url": "https://www.lnxdfwxy.edu.cn/info/1149/10565.htm",
+      "candidate_file_name": "14240-辽宁现代服务职业技术学院职业教育质量年报（2024年度）.pdf",
+      "candidate_source_date": "2025-02-15",
+      "availability_date": "2025-02-15",
+      "evidence_note": "辽宁现代服务职业技术学院官网信息公开页发布《辽宁现代服务职业技术学院职业教育质量年报（2024年度）.pdf》，时间 2025-02-15，页面列出官方 PDF 附件 14240-辽宁现代服务职业技术学院职业教育质量年报（2024年度）.pdf。"
     },
     {
       "domain": "school",
