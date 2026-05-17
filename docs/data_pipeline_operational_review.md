@@ -37,6 +37,7 @@ Tools can be modular. Scheduling, state, error handling, lineage, evidence gates
 
 - Codegraph identified `datahub/cli.py` as the largest remaining orchestration hotspot after the update and operational command split.
 - Outcome evidence commands are now isolated in `datahub/commands/outcome.py`. The split moved command registration and dispatch only; builders, parsers, connectors, package contracts, and output semantics remain unchanged.
+- Career evidence commands are now isolated in `datahub/commands/career.py`, covering career source plans, review batches, shortage pages, SCS resource/workbook parsing, career signal packages, career score packages, and civil-service-derived major outcome packages.
 - This establishes the repeatable boundary for future CLI reductions: split one command domain at a time, preserve existing command names and arguments, and validate with command help plus the full DataHub test suite.
 
 ### Data Contracts And Import

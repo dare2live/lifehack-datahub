@@ -15,21 +15,6 @@ from .builders.admission_plan_reconciliation_batch import (
     merge_admission_plan_reconciliation_review_batch,
 )
 from .builders.admission_plan_reconciliation_delete_plan import build_admission_plan_delete_plan_from_reconciliation_plan
-from .builders.career_score import build_career_score_package
-from .builders.career_civil_service_signal_plan import build_civil_service_signal_plan
-from .builders.career_source_audit import audit_career_source_plan
-from .builders.career_source_coverage import audit_career_source_coverage
-from .builders.career_source_batch import (
-    build_career_source_review_batch,
-    merge_career_source_review_batch,
-)
-from .builders.career_source_package import build_career_signal_package_from_source_plan
-from .builders.career_source_plan import build_career_source_plan
-from .builders.career_source_seed_merge import (
-    apply_career_source_review_seeds,
-    audit_career_source_review_seeds,
-)
-from .builders.career_shortage_page import apply_career_shortage_page_to_plan
 from .builders.city_context_collection_audit import audit_city_context_collection_plan
 from .builders.city_context_collection_batch import (
     build_city_context_review_batch,
@@ -43,7 +28,6 @@ from .builders.city_development_score import build_city_development_score_packag
 from .builders.city_listed_company_signal import build_city_listed_company_signal_package
 from .builders.entity_normalization_registry import build_entity_normalization_registry_package
 from .builders.major_city_employment_fit import build_major_city_employment_fit_package
-from .builders.major_outcome_civil_service import build_major_outcome_from_civil_service_package
 from .builders.major_mapping_review import build_major_mapping_review_package
 from .builders.local_package import build_local_package
 from .builders.release_bundle import build_release_bundle
@@ -88,7 +72,6 @@ from .connectors.macos_vision_ocr import ocr_page_images
 from .connectors.page_images import download_page_images
 from .connectors.registry import discover_assets, list_source_keys
 from .connectors.remote_files import download_remote_assets
-from .connectors.scs_resources import download_scs_resources
 from .connectors.source_candidates import probe_source_candidates
 from .parsers.ln_projection_score import parse_ln_projection_score_files
 from .parsers.ln_application_workbook import (
@@ -111,15 +94,8 @@ from .parsers.ln_score_distribution_grid_images import (
 from .parsers.ln_score_distribution import parse_ln_score_distribution_pdf
 from .parsers.moe_major_catalog import parse_moe_major_catalog_pdf
 from .parsers.moe_school_profile import parse_moe_school_profile_xls
-from .parsers.scs_position_workbook import (
-    parse_scs_position_workbook,
-    write_scs_position_csv,
-)
-from .parsers.digital_occupation_catalog import (
-    parse_digital_occupation_catalog_file,
-    write_digital_occupation_catalog_csv,
-)
 from .source_audit import audit_sources
+from .commands.career import handle_career_command, register_career_commands
 from .commands.operational import handle_operational_command, register_operational_commands
 from .commands.outcome import handle_outcome_command, register_outcome_commands
 from .commands.update import handle_update_command, register_update_commands
@@ -486,118 +462,7 @@ def main() -> int:
     build_policy_history.add_argument("--source-version")
 
     register_outcome_commands(sub)
-
-    build_career_source_plan_parser = sub.add_parser(
-        "build-career-source-plan",
-        help="Build a career data collection task plan from config",
-    )
-    build_career_source_plan_parser.add_argument("--output-dir", required=True, type=Path)
-    build_career_source_plan_parser.add_argument("--source-key", action="append", dest="source_keys")
-    build_career_source_plan_parser.add_argument("--metric-year", type=int)
-    build_career_source_plan_parser.add_argument("--city")
-    build_career_source_plan_parser.add_argument("--occupation-input", type=Path)
-    build_career_source_plan_parser.add_argument("--core-db", type=Path)
-    build_career_source_plan_parser.add_argument("--occupation-limit", type=int)
-
-    download_scs_resources_parser = sub.add_parser(
-        "download-scs-resources",
-        help="Download configured official State Civil Service resource attachments into raw storage",
-    )
-    download_scs_resources_parser.add_argument("--source-key", default="career_civil_service_posts")
-    download_scs_resources_parser.add_argument("--output-root", required=True, type=Path)
-    download_scs_resources_parser.add_argument("--timeout", type=int, default=60)
-
-    audit_career_source_coverage_parser = sub.add_parser(
-        "audit-career-source-coverage",
-        help="Audit configured career source and metric coverage",
-    )
-    audit_career_source_coverage_parser.add_argument("--report", type=Path)
-
-    audit_career_source_plan_parser = sub.add_parser(
-        "audit-career-source-plan",
-        help="Audit career source plan progress and evidence readiness",
-    )
-    audit_career_source_plan_parser.add_argument("--plan-csv", required=True, type=Path)
-    audit_career_source_plan_parser.add_argument("--report", type=Path)
-
-    build_career_source_batch_parser = sub.add_parser(
-        "build-career-source-review-batch",
-        help="Build a small editable CSV batch of pending career source tasks",
-    )
-    build_career_source_batch_parser.add_argument("--plan-csv", required=True, type=Path)
-    build_career_source_batch_parser.add_argument("--output-dir", required=True, type=Path)
-    build_career_source_batch_parser.add_argument("--source-key", action="append", dest="source_keys")
-    build_career_source_batch_parser.add_argument("--limit-per-source", type=int)
-
-    merge_career_source_batch_parser = sub.add_parser(
-        "merge-career-source-review-batch",
-        help="Merge edited career source batch rows back into a full career source plan",
-    )
-    merge_career_source_batch_parser.add_argument("--plan-csv", required=True, type=Path)
-    merge_career_source_batch_parser.add_argument("--batch-csv", required=True, type=Path)
-    merge_career_source_batch_parser.add_argument("--output", required=True, type=Path)
-    merge_career_source_batch_parser.add_argument("--report", type=Path)
-
-    audit_career_source_review_seeds_parser = sub.add_parser(
-        "audit-career-source-review-seeds",
-        help="Audit configured career source review seeds",
-    )
-    audit_career_source_review_seeds_parser.add_argument("--report", type=Path)
-
-    apply_career_source_review_seeds_parser = sub.add_parser(
-        "apply-career-source-review-seeds",
-        help="Apply configured career source review seeds to a full career source plan",
-    )
-    apply_career_source_review_seeds_parser.add_argument("--plan-csv", required=True, type=Path)
-    apply_career_source_review_seeds_parser.add_argument("--output", required=True, type=Path)
-    apply_career_source_review_seeds_parser.add_argument("--report", type=Path)
-    apply_career_source_review_seeds_parser.add_argument("--overwrite", action="store_true")
-
-    apply_career_shortage_page_parser = sub.add_parser(
-        "apply-career-shortage-page",
-        help="Apply public labor-market shortage ranking HTML to a career source plan",
-    )
-    apply_career_shortage_page_parser.add_argument("--plan-csv", required=True, type=Path)
-    apply_career_shortage_page_parser.add_argument("--html-file", required=True, type=Path)
-    apply_career_shortage_page_parser.add_argument("--output", required=True, type=Path)
-    apply_career_shortage_page_parser.add_argument("--source-title", required=True)
-    apply_career_shortage_page_parser.add_argument("--source-url", required=True)
-    apply_career_shortage_page_parser.add_argument("--source-date", required=True)
-    apply_career_shortage_page_parser.add_argument("--availability-date", required=True)
-    apply_career_shortage_page_parser.add_argument("--status", default="in_progress")
-    apply_career_shortage_page_parser.add_argument("--metric-key", default="shortage_rank")
-    apply_career_shortage_page_parser.add_argument("--report", type=Path)
-
-    build_career_signal_from_plan = sub.add_parser(
-        "build-career-signal-from-source-plan",
-        help="Build fa_fact_career_signal package from complete career source plan rows",
-    )
-    build_career_signal_from_plan.add_argument("--plan-csv", required=True, type=Path)
-    build_career_signal_from_plan.add_argument("--output-root", required=True, type=Path)
-    build_career_signal_from_plan.add_argument("--source-key", action="append", dest="source_keys")
-    build_career_signal_from_plan.add_argument("--package-id")
-    build_career_signal_from_plan.add_argument("--source-version")
-
-    build_civil_service_signal_plan_parser = sub.add_parser(
-        "build-civil-service-signal-plan",
-        help="Build reviewable career signal rows from parsed official civil-service positions",
-    )
-    build_civil_service_signal_plan_parser.add_argument("--positions-csv", required=True, type=Path)
-    build_civil_service_signal_plan_parser.add_argument("--output-dir", required=True, type=Path)
-    build_civil_service_signal_plan_parser.add_argument("--occupation-input", type=Path)
-    build_civil_service_signal_plan_parser.add_argument("--core-db", type=Path)
-    build_civil_service_signal_plan_parser.add_argument("--metric-year", type=int)
-    build_civil_service_signal_plan_parser.add_argument("--city")
-
-    build_career_score = sub.add_parser(
-        "build-career-score",
-        help="Build fa_mart_career_score from cleaned fa_fact_career_signal rows",
-    )
-    build_career_score.add_argument("--signal-input", required=True, type=Path)
-    build_career_score.add_argument("--output-root", required=True, type=Path)
-    build_career_score.add_argument("--package-id")
-    build_career_score.add_argument("--source-version")
-    build_career_score.add_argument("--sheet")
+    register_career_commands(sub)
 
     build_major_city_employment_fit = sub.add_parser(
         "build-major-city-employment-fit",
@@ -644,19 +509,6 @@ def main() -> int:
     build_school_city_industry_fit.add_argument("--employment-sheet")
     build_school_city_industry_fit.add_argument("--zone-sheet")
     build_school_city_industry_fit.add_argument("--location-sheet")
-
-    build_major_outcome_civil_service = sub.add_parser(
-        "build-major-outcome-from-civil-service",
-        help="Build fa_fact_major_outcome civil-service fit rows from official position rows",
-    )
-    build_major_outcome_civil_service.add_argument("--positions-csv", required=True, type=Path)
-    build_major_outcome_civil_service.add_argument("--output-root", required=True, type=Path)
-    build_major_outcome_civil_service.add_argument("--core-db", type=Path)
-    build_major_outcome_civil_service.add_argument("--major-input", type=Path)
-    build_major_outcome_civil_service.add_argument("--package-id")
-    build_major_outcome_civil_service.add_argument("--source-version")
-    build_major_outcome_civil_service.add_argument("--metric-year", type=int)
-    build_major_outcome_civil_service.add_argument("--sheet")
 
     build_city_development_score = sub.add_parser(
         "build-city-development-score",
@@ -898,29 +750,6 @@ def main() -> int:
     parse_school.add_argument("--output", required=True, type=Path)
     parse_school.add_argument("--source-date", required=True)
     parse_school.add_argument("--availability-date", required=True)
-
-    parse_digital_occupation = sub.add_parser(
-        "parse-digital-occupation-catalog",
-        help="Parse ChinaJob digital occupation HTML table to cleaned career occupation CSV",
-    )
-    parse_digital_occupation.add_argument("--input", required=True, type=Path)
-    parse_digital_occupation.add_argument("--output", required=True, type=Path)
-    parse_digital_occupation.add_argument("--source-title", required=True)
-    parse_digital_occupation.add_argument("--source-url", required=True)
-    parse_digital_occupation.add_argument("--source-date", required=True)
-    parse_digital_occupation.add_argument("--availability-date", required=True)
-
-    parse_scs_positions = sub.add_parser(
-        "parse-scs-position-workbook",
-        help="Parse official State Civil Service position workbook ZIP/XLS into reviewable CSV rows",
-    )
-    parse_scs_positions.add_argument("--input", required=True, type=Path)
-    parse_scs_positions.add_argument("--output", required=True, type=Path)
-    parse_scs_positions.add_argument("--source-title", required=True)
-    parse_scs_positions.add_argument("--source-url", required=True)
-    parse_scs_positions.add_argument("--source-date", required=True)
-    parse_scs_positions.add_argument("--availability-date", required=True)
-    parse_scs_positions.add_argument("--source-key", default="career_civil_service_posts")
 
     args = parser.parse_args()
     if args.cmd == "validate":
@@ -1304,116 +1133,9 @@ def main() -> int:
     outcome_exit = handle_outcome_command(args)
     if outcome_exit is not None:
         return outcome_exit
-    if args.cmd == "build-career-source-plan":
-        result = build_career_source_plan(
-            output_dir=args.output_dir,
-            source_keys=args.source_keys,
-            metric_year=args.metric_year,
-            city=args.city,
-            occupation_input=args.occupation_input,
-            core_db=args.core_db,
-            occupation_limit=args.occupation_limit,
-        )
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-        return 0
-    if args.cmd == "download-scs-resources":
-        result = download_scs_resources(
-            source_key=args.source_key,
-            output_root=args.output_root,
-            timeout=args.timeout,
-        )
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-        return 0
-    if args.cmd == "audit-career-source-coverage":
-        report = audit_career_source_coverage(report_path=args.report)
-        print(json.dumps(report, ensure_ascii=False, indent=2))
-        return 0 if not report["uncovered_metrics"] and not report["warnings"] else 1
-    if args.cmd == "audit-career-source-plan":
-        report = audit_career_source_plan(args.plan_csv)
-        if args.report:
-            args.report.parent.mkdir(parents=True, exist_ok=True)
-            args.report.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-        print(json.dumps(report, ensure_ascii=False, indent=2))
-        return 0
-    if args.cmd == "build-career-source-review-batch":
-        result = build_career_source_review_batch(
-            plan_csv=args.plan_csv,
-            output_dir=args.output_dir,
-            source_keys=args.source_keys,
-            limit_per_source=args.limit_per_source,
-        )
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-        return 0
-    if args.cmd == "merge-career-source-review-batch":
-        report = merge_career_source_review_batch(
-            plan_csv=args.plan_csv,
-            batch_csv=args.batch_csv,
-            output=args.output,
-        )
-        if args.report:
-            args.report.parent.mkdir(parents=True, exist_ok=True)
-            args.report.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-        print(json.dumps(report, ensure_ascii=False, indent=2))
-        return 0
-    if args.cmd == "audit-career-source-review-seeds":
-        report = audit_career_source_review_seeds(report_path=args.report)
-        print(json.dumps(report, ensure_ascii=False, indent=2))
-        return 0
-    if args.cmd == "apply-career-source-review-seeds":
-        report = apply_career_source_review_seeds(
-            plan_csv=args.plan_csv,
-            output=args.output,
-            report_path=args.report,
-            overwrite=args.overwrite,
-        )
-        print(json.dumps(report, ensure_ascii=False, indent=2))
-        return 0
-    if args.cmd == "apply-career-shortage-page":
-        report = apply_career_shortage_page_to_plan(
-            plan_csv=args.plan_csv,
-            html_file=args.html_file,
-            output=args.output,
-            source_title=args.source_title,
-            source_url=args.source_url,
-            source_date=args.source_date,
-            availability_date=args.availability_date,
-            status=args.status,
-            metric_key=args.metric_key,
-            report_path=args.report,
-        )
-        print(json.dumps(report, ensure_ascii=False, indent=2))
-        return 0
-    if args.cmd == "build-career-signal-from-source-plan":
-        result = build_career_signal_package_from_source_plan(
-            plan_csv=args.plan_csv,
-            output_root=args.output_root,
-            source_keys=args.source_keys,
-            package_id=args.package_id,
-            source_version=args.source_version,
-        )
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-        return 0
-    if args.cmd == "build-civil-service-signal-plan":
-        result = build_civil_service_signal_plan(
-            positions_csv=args.positions_csv,
-            output_dir=args.output_dir,
-            occupation_input=args.occupation_input,
-            core_db=args.core_db,
-            metric_year=args.metric_year,
-            city=args.city,
-        )
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-        return 0
-    if args.cmd == "build-career-score":
-        result = build_career_score_package(
-            signal_input=args.signal_input,
-            output_root=args.output_root,
-            package_id=args.package_id,
-            source_version=args.source_version,
-            sheet=args.sheet,
-        )
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-        return 0
+    career_exit = handle_career_command(args)
+    if career_exit is not None:
+        return career_exit
     if args.cmd == "build-major-city-employment-fit":
         result = build_major_city_employment_fit_package(
             role_input=args.role_input,
@@ -1457,19 +1179,6 @@ def main() -> int:
             employment_sheet=args.employment_sheet,
             zone_sheet=args.zone_sheet,
             location_sheet=args.location_sheet,
-        )
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-        return 0
-    if args.cmd == "build-major-outcome-from-civil-service":
-        result = build_major_outcome_from_civil_service_package(
-            positions_csv=args.positions_csv,
-            output_root=args.output_root,
-            core_db=args.core_db,
-            major_input=args.major_input,
-            package_id=args.package_id,
-            source_version=args.source_version,
-            metric_year=args.metric_year,
-            sheet=args.sheet,
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
@@ -1774,29 +1483,6 @@ def main() -> int:
             writer = csv.DictWriter(f, fieldnames=schema["columns"], extrasaction="ignore")
             writer.writeheader()
             writer.writerows(rows)
-        print(json.dumps({"output": str(args.output), "rows": len(rows)}, ensure_ascii=False, indent=2))
-        return 0
-    if args.cmd == "parse-digital-occupation-catalog":
-        rows = parse_digital_occupation_catalog_file(
-            args.input,
-            source_title=args.source_title,
-            source_url=args.source_url,
-            source_date=args.source_date,
-            availability_date=args.availability_date,
-        )
-        write_digital_occupation_catalog_csv(args.output, rows)
-        print(json.dumps({"output": str(args.output), "rows": len(rows)}, ensure_ascii=False, indent=2))
-        return 0
-    if args.cmd == "parse-scs-position-workbook":
-        rows = parse_scs_position_workbook(
-            input_path=args.input,
-            source_title=args.source_title,
-            source_url=args.source_url,
-            source_date=args.source_date,
-            availability_date=args.availability_date,
-            source_key=args.source_key,
-        )
-        write_scs_position_csv(args.output, rows)
         print(json.dumps({"output": str(args.output), "rows": len(rows)}, ensure_ascii=False, indent=2))
         return 0
     return 1
