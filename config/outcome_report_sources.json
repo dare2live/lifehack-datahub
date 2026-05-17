@@ -252,6 +252,45 @@
       "candidate_source_date": "2024-12-05",
       "availability_date": "2024-12-05",
       "evidence_note": "山东工商学院信息公开网教学质量信息页面发布，页面 https://xxgk.sdtbu.edu.cn/info/1017/2642.htm 列出发布时间和 PDF 附件；candidate_report_url 使用该页附件直链。"
+    },
+    {
+      "domain": "school",
+      "entity_code": "4535",
+      "entity_name": "浙江音乐学院",
+      "metric_year": 2024,
+      "report_scope": "undergraduate_teaching_quality_report",
+      "candidate_report_title": "浙江音乐学院2023-2024学年本科教学质量报告",
+      "candidate_report_url": "https://xxgk.zjcm.edu.cn/jxzlxx/bkjxzlbg/202412/42866.html",
+      "candidate_file_name": "浙江音乐学院2023-2024学年本科教学质量报告.pdf",
+      "candidate_source_date": "2024-12-04",
+      "availability_date": "2024-12-04",
+      "evidence_note": "浙江音乐学院信息公开网本科教学质量报告列表和详情页发布，详情页列出发布时间和 PDF 附件；附件直链为 https://xxgk.zjcm.edu.cn/attachment/20241209/e72fe454b7534e0a810e126518123260.pdf?n=%E6%B5%99%E6%B1%9F%E9%9F%B3%E4%B9%90%E5%AD%A6%E9%99%A22023-2024%E5%AD%A6%E5%B9%B4%E6%9C%AC%E7%A7%91%E6%95%99%E5%AD%A6%E8%B4%A8%E9%87%8F%E6%8A%A5%E5%91%8A。"
+    },
+    {
+      "domain": "school",
+      "entity_code": "4560",
+      "entity_name": "哈尔滨音乐学院",
+      "metric_year": 2024,
+      "report_scope": "undergraduate_teaching_quality_report",
+      "candidate_report_title": "哈尔滨音乐学院2023-2024本科教学质量年报",
+      "candidate_report_url": "https://www.hrbcm.edu.cn/info/1092/12009.htm",
+      "candidate_file_name": "哈尔滨音乐学院2023-2024学年本科教学质量报告.pdf",
+      "candidate_source_date": "2024-12-19",
+      "availability_date": "2024-12-19",
+      "evidence_note": "哈尔滨音乐学院官网信息公开教学质量信息页面发布，页面列出发布时间和 PDF 下载链接。"
+    },
+    {
+      "domain": "school",
+      "entity_code": "4560",
+      "entity_name": "哈尔滨音乐学院",
+      "metric_year": 2024,
+      "report_scope": "employment_quality_report",
+      "candidate_report_title": "哈尔滨音乐学院2024届毕业生就业质量报告",
+      "candidate_report_url": "https://www.hrbcm.edu.cn/info/1092/13279.htm",
+      "candidate_file_name": "哈尔滨音乐学院2024届毕业生就业质量报告.pdf",
+      "candidate_source_date": "2025-10-31",
+      "availability_date": "2025-10-31",
+      "evidence_note": "哈尔滨音乐学院官网信息公开教学质量信息页面发布，页面列出发布时间和 PDF 下载链接。"
     }
   ]
 }

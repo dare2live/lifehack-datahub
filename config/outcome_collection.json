@@ -167,7 +167,7 @@
       "entity_code_column": "school_code",
       "entity_name_column": "school_name",
       "filters": {
-        "batch": ["本科批"],
+        "batch": ["本科批", "专科批", "艺术类", "提前批", "体育类"],
         "subject_cat": ["物理类", "历史类"]
       },
       "metrics": ["postgrad_rate", "employment_rate", "keep_research_rate", "civil_service_rate"],
