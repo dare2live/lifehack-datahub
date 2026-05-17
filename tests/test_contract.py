@@ -72,6 +72,7 @@ from datahub.builders.outcome_candidate_merge import merge_outcome_report_candid
 from datahub.builders.outcome_collection_package import build_outcome_packages_from_collection_plan
 from datahub.builders.major_mapping_review import build_major_mapping_review_package
 from datahub.builders.local_package import build_local_package
+from datahub.builders.operational_gap_report import build_operational_gap_report
 from datahub.builders.release_bundle import build_release_bundle
 from datahub.builders.outcome_collection_plan import PLAN_COLUMNS as OUTCOME_PLAN_COLUMNS, build_outcome_collection_plan
 from datahub.builders.outcome_report_intake_merge import merge_outcome_report_intake_results
@@ -10454,6 +10455,63 @@ def test_merge_outcome_report_candidates_requires_approved_status(tmp_path: Path
     assert "merged_from_report_candidate" in merged_rows[0]["notes"]
     assert merged_rows[1]["status"] == "todo"
     assert merged_rows[1]["metric_value"] == ""
+
+
+def test_build_operational_gap_report_summarizes_existing_artifacts(tmp_path: Path):
+    coverage = tmp_path / "coverage.json"
+    coverage.write_text(json.dumps({
+        "total_school_count": 2,
+        "p0_blockers": [{"code": "SCHOOL_OUTCOME_NOT_OPERATIONAL"}],
+        "coverage_areas": [{
+            "key": "outcome",
+            "label": "School outcome",
+            "covered_school_count": 1,
+            "total_school_count": 2,
+            "coverage_rate": 0.5,
+            "status": "below_threshold",
+        }],
+    }), encoding="utf-8")
+    portfolio = tmp_path / "portfolio.json"
+    portfolio.write_text(json.dumps({
+        "category_counts": {"required_unavailable": 1},
+        "p0_blockers": [{"code": "LN_SCORE_HISTORY_NOT_OPERATIONAL"}],
+    }), encoding="utf-8")
+    outcome = tmp_path / "outcome.json"
+    outcome.write_text(json.dumps({
+        "rows": 800,
+        "progress": {"complete_rows": 12, "pending_rows": 788, "blocked_rows": 0},
+        "errors": [],
+        "warnings": [],
+    }), encoding="utf-8")
+    amap = tmp_path / "amap.json"
+    amap.write_text(json.dumps({
+        "ready_for_fetch": False,
+        "key_present": False,
+        "row_counts": {"input_rows": 1424, "requestable_rows": 1424},
+        "errors": ["Amap Web API key missing; set AMAP_WEB_SERVICE_KEY"],
+    }), encoding="utf-8")
+    score = tmp_path / "score.json"
+    score.write_text(json.dumps({
+        "progress": {"ready_rows": 3391, "pending_rows": 21087},
+        "status_counts": {"reviewed": 3391, "todo": 21087},
+    }), encoding="utf-8")
+
+    report = build_operational_gap_report(
+        coverage_report_path=coverage,
+        portfolio_report_path=portfolio,
+        outcome_audit_path=outcome,
+        amap_readiness_path=amap,
+        score_readiness_paths={"2023_2024": score},
+        report_path=tmp_path / "gap.json",
+        markdown_path=tmp_path / "gap.md",
+    )
+
+    assert report["summary"]["ready_for_normal_operation"] is False
+    assert report["summary"]["p0_blocker_count"] == 5
+    assert (tmp_path / "gap.json").exists()
+    markdown = (tmp_path / "gap.md").read_text(encoding="utf-8")
+    assert "outcome_pending_rows" in markdown
+    assert "score_reconciliation_pending_rows" in markdown
 
 
 def test_merge_outcome_report_candidates_requires_metric_scope(tmp_path: Path):
