@@ -162,6 +162,26 @@
       "review_note": "review plan 中唯一候选为西南大学 4150010635，suggestion_method=base_name_contains_profile 且 suggestion_count=1；identity 可归并西南大学，校区位置和城市产业证据按荣昌校区单独复核。"
     },
     {
+      "seed_id": "sid-9027-bnu-zhuhai",
+      "local_school_code": "9027",
+      "local_school_name": "北京师范大学(珠海校区)",
+      "review_status": "approved",
+      "reviewed_national_school_code": "4111010027",
+      "reviewer": "datahub_seed_review",
+      "reviewed_at": "2026-05-18",
+      "review_note": "北京师范大学 2024 年本科招生章程明确北京师范大学（北京校区）与北京师范大学（珠海校区）分别填报、分别录取；identity 归并到北京师范大学 4111010027，校区位置、培养类型和城市产业证据必须按珠海校区单独复核。"
+    },
+    {
+      "seed_id": "sid-9614-uestc-shahe",
+      "local_school_code": "9614",
+      "local_school_name": "电子科技大学(沙河校区)",
+      "review_status": "approved",
+      "reviewed_national_school_code": "4151010614",
+      "reviewer": "datahub_seed_review",
+      "reviewed_at": "2026-05-18",
+      "review_note": "电子科技大学本科招生章程明确电子科技大学与电子科技大学（沙河校区）分别招生，毕业证书和学位证书学校名称为电子科技大学；identity 归并到电子科技大学 4151010614，校区位置、专业出口和中外合作口径必须单独复核。"
+    },
+    {
       "seed_id": "sid-j002-ndut",
       "local_school_code": "J002",
       "local_school_name": "国防科技大学",
