@@ -13,7 +13,7 @@ from datetime import datetime
 from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any
-from urllib.parse import quote, unquote, urljoin, urlparse, urlsplit, urlunsplit
+from urllib.parse import parse_qs, quote, unquote, urljoin, urlparse, urlsplit, urlunsplit
 from urllib.request import Request, urlopen
 
 from datahub.builders.outcome_report_intake_plan import PLAN_COLUMNS
@@ -284,7 +284,7 @@ def _find_attachment_url(page_url: str, body: bytes, content_type: str, file_nam
     parser = _LinkParser()
     parser.feed(text)
     links = [
-        (urljoin(page_url, href), label)
+        (_direct_report_url_from_viewer_url(urljoin(page_url, href)), label)
         for href, label in parser.links
         if href and not href.strip().startswith("#")
     ]
@@ -335,6 +335,17 @@ def _vsb_pdf_iframe_urls(page_url: str, text: str) -> list[str]:
         if candidate:
             urls.append(urljoin(page_url, candidate))
     return urls
+
+
+def _direct_report_url_from_viewer_url(url: str) -> str:
+    parsed = urlparse(url)
+    values = parse_qs(parsed.query).get("fileUrl") or parse_qs(parsed.query).get("fileurl")
+    if not values:
+        return url
+    candidate = unquote(str(values[0] or "").strip())
+    if urlparse(candidate).scheme in {"http", "https"} and Path(urlparse(candidate).path).suffix.lower() in REPORT_EXTENSIONS:
+        return candidate
+    return url
 
 
 def _extract_report_from_archive(body: bytes, file_name: str, file_url: str) -> tuple[bytes, str]:

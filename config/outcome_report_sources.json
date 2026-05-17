@@ -837,6 +837,19 @@
       "candidate_source_date": "2024-11-01",
       "availability_date": "2024-11-01",
       "evidence_note": "沈阳药科大学官方信息公开/质量报告 PDF 直链可访问，HTTP 200 且返回 application/pdf；报告封面日期为 2024 年 11 月，后续仍需 intake/extraction 与人工复核后才能进入 collection verified。"
+    },
+    {
+      "domain": "school",
+      "entity_code": "0224",
+      "entity_name": "东北农业大学",
+      "metric_year": 2024,
+      "report_scope": "employment_quality_report",
+      "candidate_report_title": "东北农业大学2024届毕业生就业质量年度报告",
+      "candidate_report_url": "https://neau.bysjy.com.cn/detail/news?id=1119250&menu_id=&type_id=6522",
+      "candidate_file_name": "东北农业大学2024届毕业生就业质量年度报告.pdf",
+      "candidate_source_date": "2025-03-01",
+      "availability_date": "2025-03-01",
+      "evidence_note": "东北农业大学就业平台发布 2024 届毕业生就业质量年度报告，页面说明报告以截至 2024-09-01 的 2024 届毕业生就业状况数据为依据；后续仍需 intake/extraction 与人工复核后才能进入 collection verified。"
     }
   ]
 }

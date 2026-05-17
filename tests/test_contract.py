@@ -9942,6 +9942,85 @@ def test_download_outcome_report_intake_assets_flags_embedded_report_images(tmp_
     assert rows[0]["recommended_action"] == "ocr_or_manual_transcription"
 
 
+def test_download_outcome_report_intake_assets_extracts_viewer_file_url(tmp_path: Path, monkeypatch):
+    intake_csv = tmp_path / "outcome_report_intake_plan.csv"
+    target_pdf = tmp_path / "raw" / "outcome_report" / "2024" / "neau.pdf"
+    row = {
+        "domain": "school",
+        "entity_code": "0224",
+        "entity_name": "东北农业大学",
+        "metric_year": "2024",
+        "report_scope": "employment_quality_report",
+        "candidate_report_title": "东北农业大学2024届毕业生就业质量年度报告",
+        "candidate_report_url": "https://neau.bysjy.com.cn/detail/news?id=1119250",
+        "candidate_file_name": "东北农业大学2024届毕业生就业质量年度报告.pdf",
+        "candidate_source_date": "2025-03-01",
+        "availability_date": "2025-03-01",
+        "suggested_local_report_path": str(target_pdf),
+        "local_report_path": "",
+        "intake_status": "ready_for_intake",
+        "block_reason": "",
+        "source_status": "candidate_found",
+        "notes": "",
+    }
+    with intake_csv.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=list(row))
+        writer.writeheader()
+        writer.writerow(row)
+
+    class FakeHeaders:
+        def __init__(self, content_type: str):
+            self._content_type = content_type
+
+        def get(self, name: str, default=None):
+            return self._content_type if name == "Content-Type" else default
+
+    class FakeResponse:
+        def __init__(self, url: str, body: bytes, content_type: str):
+            self._url = url
+            self._body = body
+            self.headers = FakeHeaders(content_type)
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def read(self):
+            return self._body
+
+        def geturl(self):
+            return self._url
+
+    def fake_urlopen(request, timeout=60):
+        url = request.full_url
+        if "detail/news" in url:
+            html = (
+                '<html><body><a href="http://js.bysjy.com.cn/default/quality_report/pdf.html?'
+                'fileUrl=https%3A%2F%2Fo.bysjy.com.cn%2Fdocument%2F1735538975-4651.pdf">'
+                "东北农业大学2024届毕业生就业质量年度报告</a></body></html>"
+            )
+            return FakeResponse(url, html.encode("utf-8"), "text/html; charset=utf-8")
+        if url == "https://o.bysjy.com.cn/document/1735538975-4651.pdf":
+            return FakeResponse(url, b"%PDF-1.4 neau fixture", "application/pdf")
+        raise AssertionError(url)
+
+    monkeypatch.setattr("datahub.connectors.outcome_report_download.urlopen", fake_urlopen)
+
+    output = tmp_path / "downloaded.csv"
+    report = download_outcome_report_intake_assets(
+        intake_csv=intake_csv,
+        output=output,
+    )
+
+    assert report["downloaded_rows"] == 1
+    assert target_pdf.read_bytes() == b"%PDF-1.4 neau fixture"
+    with output.open(encoding="utf-8", newline="") as f:
+        rows = list(csv.DictReader(f))
+    assert rows[0]["download_url"] == "https://o.bysjy.com.cn/document/1735538975-4651.pdf"
+
+
 def test_download_outcome_report_intake_assets_summarizes_failure_reasons(tmp_path: Path, monkeypatch):
     intake_csv = tmp_path / "outcome_report_intake_plan.csv"
     row = {
