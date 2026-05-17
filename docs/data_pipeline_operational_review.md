@@ -35,6 +35,7 @@ Tools can be modular. Scheduling, state, error handling, lineage, evidence gates
 - `build-school-identity-review-plan` can now consume `identity_missing_schools.csv` from the operational audit through `--priority-missing-csv`. The real local review plan now aligns to the 72-code operational identity gap, carries plan-row/major/batch/subject priority fields, and currently has 20 suggested MOE-profile candidates.
 - `audit-school-identity-review-plan` is the read-only gate before rebuilding `fa_bridge_school_identity` from a review plan. It reports approved/blocking rows, duplicate local codes, approved rows without reviewed national codes, and returns non-zero until every row is approved and package-ready.
 - `build-school-identity-review-batch` and `merge-school-identity-review-batch` now provide the controlled manual-review loop for the 72 identity/profile gaps. Reviewers work on priority-ordered batch CSVs; only review fields can be merged back into the full plan; the existing audit gate remains the final blocker before any identity package rebuild.
+- `audit-school-identity-review-seeds` and `apply-school-identity-review-seeds` now let approved identity decisions move from ignored local batches into a git-tracked seed file. Seeds are audited for duplicate local school codes, legal review statuses, dates, and approved rows without reviewed national school codes before they can update a plan.
 
 ### CLI Coupling Reduction
 

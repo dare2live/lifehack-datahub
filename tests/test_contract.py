@@ -136,6 +136,10 @@ from datahub.builders.school_identity_review_batch import (
     merge_school_identity_review_batch,
 )
 from datahub.builders.school_identity_review_plan import build_school_identity_review_plan
+from datahub.builders.school_identity_review_seed_merge import (
+    apply_school_identity_review_seeds,
+    audit_school_identity_review_seeds,
+)
 from datahub.builders.school_location_geocode_audit import audit_school_location_geocode_input
 from datahub.builders.school_location_from_amap import build_school_location_package_from_amap_geocode
 from datahub.builders.school_location_geocode_plan import build_school_location_geocode_input_plan
@@ -11428,6 +11432,74 @@ def test_merge_school_identity_review_batch_updates_only_review_fields(tmp_path:
     assert merged_rows["9001"]["reviewer"] == "reviewer-a"
     assert merged_rows["9002"]["review_status"] == "todo"
     assert json.loads((tmp_path / "merge_report.json").read_text(encoding="utf-8"))["updated_rows"] == 1
+
+
+def test_school_identity_review_seeds_audit_and_apply(tmp_path: Path):
+    plan = tmp_path / "school_identity_review_plan.csv"
+    rows = [
+        _school_identity_review_row("9001", "北京大学医学部", priority_rank="1", review_status="todo"),
+        _school_identity_review_row("9002", "第二学校", priority_rank="2", review_status="todo"),
+    ]
+    _write_school_identity_review_plan(plan, rows)
+    seeds = tmp_path / "school_identity_review_seeds.json"
+    seeds.write_text(json.dumps({
+        "version": "fixture",
+        "seeds": [
+            {
+                "seed_id": "sid-9001",
+                "local_school_code": "9001",
+                "local_school_name": "北京大学医学部",
+                "review_status": "approved",
+                "reviewed_national_school_code": "4111010001",
+                "reviewer": "reviewer-a",
+                "reviewed_at": "2026-05-18",
+                "review_note": "official MOE profile confirms identity",
+            }
+        ],
+    }, ensure_ascii=False), encoding="utf-8")
+
+    audit = audit_school_identity_review_seeds(seeds_path=seeds)
+    assert audit["errors"] == []
+    assert audit["status_counts"] == {"approved": 1}
+
+    report = apply_school_identity_review_seeds(
+        plan_csv=plan,
+        output=tmp_path / "seeded_plan.csv",
+        seeds_path=seeds,
+        report_path=tmp_path / "seed_report.json",
+    )
+
+    assert report["matched_rows"] == 1
+    assert report["updated_rows"] == 1
+    with (tmp_path / "seeded_plan.csv").open(encoding="utf-8", newline="") as f:
+        seeded_rows = {row["local_school_code"]: row for row in csv.DictReader(f)}
+    assert seeded_rows["9001"]["review_status"] == "approved"
+    assert seeded_rows["9001"]["reviewed_national_school_code"] == "4111010001"
+    assert "seed_review=official MOE profile confirms identity" in seeded_rows["9001"]["notes"]
+    assert seeded_rows["9002"]["review_status"] == "todo"
+    assert json.loads((tmp_path / "seed_report.json").read_text(encoding="utf-8"))["updated_rows"] == 1
+
+
+def test_school_identity_review_seeds_reject_approved_without_reviewed_code(tmp_path: Path):
+    seeds = tmp_path / "bad_school_identity_review_seeds.json"
+    seeds.write_text(json.dumps({
+        "version": "fixture",
+        "seeds": [
+            {
+                "seed_id": "sid-9001",
+                "local_school_code": "9001",
+                "local_school_name": "北京大学医学部",
+                "review_status": "approved",
+                "reviewer": "reviewer-a",
+                "reviewed_at": "2026-05-18",
+                "review_note": "missing reviewed code",
+            }
+        ],
+    }, ensure_ascii=False), encoding="utf-8")
+
+    audit = audit_school_identity_review_seeds(seeds_path=seeds)
+
+    assert any("approved missing reviewed_national_school_code" in error for error in audit["errors"])
 
 
 def _school_identity_review_row(

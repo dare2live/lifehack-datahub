@@ -130,6 +130,11 @@ def load_school_identity_review() -> dict[str, Any]:
     return load_json_config(path)
 
 
+def load_school_identity_review_seeds() -> dict[str, Any]:
+    path = CONFIG_DIR / "school_identity_review_seeds.json"
+    return load_json_config(path)
+
+
 def get_table_schema(table_name: str) -> dict[str, Any]:
     data = load_source_schemas()
     tables = data.get("tables", {})

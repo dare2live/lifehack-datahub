@@ -13,6 +13,10 @@ from datahub.builders.school_identity_review_batch import (
     merge_school_identity_review_batch,
 )
 from datahub.builders.school_identity_review_plan import build_school_identity_review_plan
+from datahub.builders.school_identity_review_seed_merge import (
+    apply_school_identity_review_seeds,
+    audit_school_identity_review_seeds,
+)
 from datahub.builders.school_location_from_amap import build_school_location_package_from_amap_geocode
 from datahub.builders.school_location_geocode_audit import audit_school_location_geocode_input
 from datahub.builders.school_location_geocode_plan import build_school_location_geocode_input_plan
@@ -26,6 +30,8 @@ COMMANDS = {
     "audit-school-identity-review-plan",
     "build-school-identity-review-batch",
     "merge-school-identity-review-batch",
+    "audit-school-identity-review-seeds",
+    "apply-school-identity-review-seeds",
     "build-school-location-geocode-input",
     "audit-school-location-geocode-input",
     "build-school-location-from-amap-geocode",
@@ -84,6 +90,23 @@ def register_school_commands(sub) -> None:
     merge_school_identity_batch.add_argument("--batch-csv", required=True, type=Path)
     merge_school_identity_batch.add_argument("--output", required=True, type=Path)
     merge_school_identity_batch.add_argument("--report", type=Path)
+
+    audit_school_identity_seeds = sub.add_parser(
+        "audit-school-identity-review-seeds",
+        help="Audit curated school identity review seeds before applying them to a review plan",
+    )
+    audit_school_identity_seeds.add_argument("--seeds", type=Path)
+    audit_school_identity_seeds.add_argument("--report", type=Path)
+
+    apply_school_identity_seeds = sub.add_parser(
+        "apply-school-identity-review-seeds",
+        help="Apply curated school identity review seeds to a full review plan",
+    )
+    apply_school_identity_seeds.add_argument("--plan-csv", required=True, type=Path)
+    apply_school_identity_seeds.add_argument("--output", required=True, type=Path)
+    apply_school_identity_seeds.add_argument("--seeds", type=Path)
+    apply_school_identity_seeds.add_argument("--report", type=Path)
+    apply_school_identity_seeds.add_argument("--overwrite", action="store_true")
 
     build_school_location_geocode_input = sub.add_parser(
         "build-school-location-geocode-input",
@@ -174,6 +197,23 @@ def handle_school_command(args: Namespace) -> int | None:
             batch_csv=args.batch_csv,
             output_csv=args.output,
             report_path=args.report,
+        )
+        _print_json(report)
+        return 0
+    if args.cmd == "audit-school-identity-review-seeds":
+        report = audit_school_identity_review_seeds(
+            seeds_path=args.seeds,
+            report_path=args.report,
+        )
+        _print_json(report)
+        return 0 if not report["errors"] else 1
+    if args.cmd == "apply-school-identity-review-seeds":
+        report = apply_school_identity_review_seeds(
+            plan_csv=args.plan_csv,
+            output=args.output,
+            seeds_path=args.seeds,
+            report_path=args.report,
+            overwrite=args.overwrite,
         )
         _print_json(report)
         return 0
