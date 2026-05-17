@@ -26,6 +26,41 @@ DataHub 向 core 发布的是不可变数据包。
 - `warnings`
 - `errors`
 
+## release bundle / package set
+
+正式交付给 core 的不是散落的单包命令，而是 release bundle 清单。DataHub 侧使用 `build-release-bundle` 汇总已经生成的数据包、readiness/review 证据和 core importer dry-run 结果；该命令只写 bundle JSON，不导入 core，不执行删除。
+
+示例：
+
+```bash
+python3 scripts/build_package.py build-release-bundle \
+  --package-dir exports/2026_ln_application_workbook_plan_intake \
+  --package-dir exports/ln_outcome_school_2024_seeded_v12_school \
+  --output releases/core_handoff_2026-05-17.json \
+  --bundle-id core_handoff_2026-05-17 \
+  --load-mode fa_dim_ln_admission_plan=upsert_or_replace_package \
+  --load-mode fa_fact_school_outcome=upsert_or_replace_package \
+  --review-status ln_outcome_school_2024_seeded_v12_school=not_required \
+  --dry-run-report 2026_ln_application_workbook_plan_intake=audits/plan_import_dry_run.json \
+  --dry-run-report ln_outcome_school_2024_seeded_v12_school=audits/outcome_import_dry_run.json
+```
+
+bundle 中每个 package 固定包含：
+
+- `package_id`
+- 目标表与 `load_mode`
+- `manifest.path` 与 `manifest.sha256`
+- `quality_report.path`、`quality_report.sha256`、错误/警告摘要
+- `source_lineage`
+- `import_order`
+- `readiness`
+- `review_reconciliation`
+- `core_importer_dry_run`
+
+`--package-dir` 的顺序就是建议导入顺序。`--load-mode` 支持 `package_id:table=mode`、`package_id=mode`、`table=mode` 或 `*=mode`。`--readiness-report`、`--review-report`、`--dry-run-report` 使用 `package_id=path`；如果已有外部系统记录但没有 JSON 文件，可以用 `--readiness-status`、`--review-status`、`--dry-run-status` 写入显式状态。
+
+bundle 只有在 manifest/quality 校验无错误、load mode 明确、readiness 通过、review/reconciliation 通过或明确不需要、core importer dry-run 通过时，才会输出 `ready_for_core_import=true`。任何 `todo`、`needs_review`、`blocked`、quality `errors` 或缺失 dry-run 证据都会成为 blocker。
+
 ## 表命名
 
 所有 core 可导入表必须使用 `fa_` 前缀。

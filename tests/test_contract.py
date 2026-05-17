@@ -72,6 +72,7 @@ from datahub.builders.outcome_candidate_merge import merge_outcome_report_candid
 from datahub.builders.outcome_collection_package import build_outcome_packages_from_collection_plan
 from datahub.builders.major_mapping_review import build_major_mapping_review_package
 from datahub.builders.local_package import build_local_package
+from datahub.builders.release_bundle import build_release_bundle
 from datahub.builders.outcome_collection_plan import PLAN_COLUMNS as OUTCOME_PLAN_COLUMNS, build_outcome_collection_plan
 from datahub.builders.outcome_report_intake_merge import merge_outcome_report_intake_results
 from datahub.builders.outcome_report_intake_plan import build_outcome_report_intake_plan
@@ -360,6 +361,93 @@ def test_manifest_rejects_invalid_table_entries(tmp_path: Path):
     assert any("invalid manifest table entry" in err for err in report["errors"])
     assert any("file is not listed in manifest.files" in err for err in report["errors"])
     assert any("invalid table name" in err for err in report["errors"])
+
+
+def test_build_release_bundle_summarizes_core_handoff_fields(tmp_path: Path):
+    package_dir = tmp_path / "pkg-release"
+    package_dir.mkdir()
+    table_path = package_dir / "fa_test.csv"
+    table_path.write_text("id\n1\n", encoding="utf-8")
+    quality = {
+        "row_counts": {"fa_test": 1},
+        "warnings": [],
+        "errors": [],
+        "decision_counts": {"use_package_row": 1},
+        "readiness": {
+            "progress": {
+                "pending_rows": 0,
+                "blocked_rows": 0,
+                "blocking_decision_rows": 0,
+                "unknown_status_rows": 0,
+            }
+        },
+    }
+    (package_dir / "quality_report.json").write_text(json.dumps(quality), encoding="utf-8")
+    manifest = {
+        "package_id": "pkg-release",
+        "built_at": "now",
+        "tables": [{"name": "fa_test", "file": "fa_test.csv"}],
+        "files": ["fa_test.csv"],
+        "hashes": {"fa_test.csv": hashlib.sha256(table_path.read_bytes()).hexdigest()},
+        "quality_report": "quality_report.json",
+        "source_lineage": {"source_kind": "reviewed_reconciliation_plan", "plan_csv": "review.csv"},
+    }
+    manifest_path = package_dir / "manifest.json"
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+    dry_run_report = tmp_path / "pkg-release-dry-run.json"
+    dry_run_report.write_text('{"status":"passed","dry_run":true,"errors":[]}\n', encoding="utf-8")
+
+    result = build_release_bundle(
+        package_dirs=[package_dir],
+        output=tmp_path / "release_bundle.json",
+        bundle_id="release-fixture",
+        load_modes={"pkg-release": "upsert_or_replace_package"},
+        dry_run_reports={"pkg-release": dry_run_report},
+    )
+
+    bundle = json.loads((tmp_path / "release_bundle.json").read_text(encoding="utf-8"))
+    package = bundle["packages"][0]
+    assert result["ready_for_core_import"] is True
+    assert bundle["bundle_id"] == "release-fixture"
+    assert package["package_id"] == "pkg-release"
+    assert package["target_tables"] == [
+        {"name": "fa_test", "file": "fa_test.csv", "load_mode": "upsert_or_replace_package"}
+    ]
+    assert package["manifest"]["path"].endswith("manifest.json")
+    assert package["manifest"]["sha256"] == hashlib.sha256(manifest_path.read_bytes()).hexdigest()
+    assert package["quality_report"]["error_count"] == 0
+    assert package["source_lineage"]["source_kind"] == "reviewed_reconciliation_plan"
+    assert package["readiness"]["status"] == "passed"
+    assert package["review_reconciliation"]["status"] == "passed"
+    assert package["core_importer_dry_run"]["status"] == "passed"
+
+
+def test_build_release_bundle_blocks_missing_formal_handoff_evidence(tmp_path: Path):
+    package_dir = tmp_path / "pkg-missing-evidence"
+    package_dir.mkdir()
+    table_path = package_dir / "fa_test.csv"
+    table_path.write_text("id\n1\n", encoding="utf-8")
+    (package_dir / "quality_report.json").write_text('{"errors":[],"warnings":[]}\n', encoding="utf-8")
+    (package_dir / "manifest.json").write_text(json.dumps({
+        "package_id": "pkg-missing-evidence",
+        "built_at": "now",
+        "tables": [{"name": "fa_test", "file": "fa_test.csv"}],
+        "files": ["fa_test.csv"],
+        "hashes": {"fa_test.csv": hashlib.sha256(table_path.read_bytes()).hexdigest()},
+        "quality_report": "quality_report.json",
+    }), encoding="utf-8")
+
+    result = build_release_bundle(
+        package_dirs=[package_dir],
+        output=tmp_path / "release_bundle.json",
+    )
+
+    blocker_codes = {blocker["code"] for blocker in result["blockers"]}
+    assert result["ready_for_core_import"] is False
+    assert "load_mode_missing" in blocker_codes
+    assert "readiness_not_passed" in blocker_codes
+    assert "review_reconciliation_not_passed" in blocker_codes
+    assert "core_importer_dry_run_not_passed" in blocker_codes
 
 
 def test_config_json_files_do_not_have_duplicate_keys(tmp_path: Path):

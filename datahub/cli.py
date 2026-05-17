@@ -57,6 +57,7 @@ from .builders.outcome_collection_audit import audit_outcome_collection_plan
 from .builders.outcome_collection_package import build_outcome_packages_from_collection_plan
 from .builders.major_mapping_review import build_major_mapping_review_package
 from .builders.local_package import build_local_package
+from .builders.release_bundle import build_release_bundle
 from .builders.outcome_collection_plan import build_outcome_collection_plan
 from .builders.outcome_report_intake_merge import merge_outcome_report_intake_results
 from .builders.outcome_report_intake_plan import build_outcome_report_intake_plan
@@ -172,6 +173,21 @@ def main() -> int:
     build_local.add_argument("--source-version")
     build_local.add_argument("--sheet")
     build_local.add_argument("--intake-manifest", type=Path)
+
+    build_release = sub.add_parser(
+        "build-release-bundle",
+        help="Build a package-set release bundle manifest for formal core handoff",
+    )
+    build_release.add_argument("--package-dir", required=True, action="append", dest="package_dirs", type=Path)
+    build_release.add_argument("--output", required=True, type=Path)
+    build_release.add_argument("--bundle-id")
+    build_release.add_argument("--load-mode", action="append", dest="load_modes", default=[])
+    build_release.add_argument("--readiness-report", action="append", dest="readiness_reports", default=[])
+    build_release.add_argument("--readiness-status", action="append", dest="readiness_statuses", default=[])
+    build_release.add_argument("--review-report", action="append", dest="review_reports", default=[])
+    build_release.add_argument("--review-status", action="append", dest="review_statuses", default=[])
+    build_release.add_argument("--dry-run-report", action="append", dest="dry_run_reports", default=[])
+    build_release.add_argument("--dry-run-status", action="append", dest="dry_run_statuses", default=[])
 
     discover = sub.add_parser("discover", help="Discover local raw assets for a configured source")
     discover.add_argument("--source-key")
@@ -1131,6 +1147,21 @@ def main() -> int:
             source_version=args.source_version,
             sheet=args.sheet,
             intake_manifest=args.intake_manifest,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+    if args.cmd == "build-release-bundle":
+        result = build_release_bundle(
+            package_dirs=args.package_dirs,
+            output=args.output,
+            bundle_id=args.bundle_id,
+            load_modes=args.load_modes,
+            readiness_reports=args.readiness_reports,
+            readiness_statuses=args.readiness_statuses,
+            review_reports=args.review_reports,
+            review_statuses=args.review_statuses,
+            dry_run_reports=args.dry_run_reports,
+            dry_run_statuses=args.dry_run_statuses,
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
