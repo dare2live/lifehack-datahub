@@ -70,6 +70,7 @@ from datahub.builders.outcome_collection_seed_merge import (
 )
 from datahub.builders.outcome_candidate_merge import merge_outcome_report_candidates
 from datahub.builders.outcome_collection_package import build_outcome_packages_from_collection_plan
+from datahub.builders.outcome_collection_verified_inherit import inherit_verified_outcome_collection_rows
 from datahub.builders.major_mapping_review import build_major_mapping_review_package
 from datahub.builders.local_package import build_local_package
 from datahub.builders.operational_gap_report import build_operational_gap_report
@@ -9347,6 +9348,57 @@ def test_outcome_report_source_review_batch_merge_is_surgical(tmp_path: Path):
     assert school_row["candidate_report_url"] == "https://example.edu/lnu2025.pdf"
     assert school_row["local_report_path"] == "/tmp/lnu2025.pdf"
     assert any(row["domain"] == "major" and row["status"] == "todo" for row in merged_rows)
+
+
+def test_inherit_verified_outcome_collection_rows_reuses_matching_task_keys(tmp_path: Path):
+    rebuilt_plan = tmp_path / "rebuilt_outcome_collection_plan.csv"
+    rebuilt_rows = [
+        _outcome_plan_row("school", "1001", "A大学", "employment_rate", status="todo", priority_rank="1"),
+        _outcome_plan_row("school", "1002", "B大学", "employment_rate", status="todo", priority_rank="2"),
+    ]
+    for row in rebuilt_rows:
+        row["metric_year"] = "2024"
+    _write_outcome_plan(rebuilt_plan, rebuilt_rows)
+
+    verified_plan = tmp_path / "verified_outcome_collection_plan.csv"
+    verified_rows = [
+        _outcome_plan_row("school", "1001", "A大学", "employment_rate", status="verified", priority_rank="9"),
+        _outcome_plan_row("school", "9999", "旧学校", "employment_rate", status="verified", priority_rank="10"),
+    ]
+    for row in verified_rows:
+        row["metric_year"] = "2024"
+        row["metric_value"] = "0.91"
+        row["source_title"] = "就业质量报告"
+        row["source_url"] = "https://example.edu/report.pdf"
+        row["evidence_quote"] = "毕业去向落实率为91%。"
+        row["metric_scope"] = "2024届毕业生毕业去向落实率"
+        row["source_date"] = "2025-01-01"
+        row["availability_date"] = "2025-01-01"
+        row["built_at"] = "2026-01-01T00:00:00"
+        row["notes"] = "approved fixture"
+    _write_outcome_plan(verified_plan, verified_rows)
+
+    output = tmp_path / "rebuilt_outcome_collection_plan.inherited.csv"
+    report = inherit_verified_outcome_collection_rows(
+        plan_csv=rebuilt_plan,
+        verified_plan_csv=verified_plan,
+        output=output,
+        report_path=tmp_path / "inherit_report.json",
+    )
+
+    assert report["reusable_verified_rows"] == 2
+    assert report["inherited_rows"] == 1
+    assert report["unmatched_verified_rows"] == 1
+    assert report["status_counts"] == {"todo": 1, "verified": 1}
+    with output.open(encoding="utf-8", newline="") as f:
+        rows = list(csv.DictReader(f))
+    inherited = next(row for row in rows if row["entity_code"] == "1001")
+    untouched = next(row for row in rows if row["entity_code"] == "1002")
+    assert inherited["status"] == "verified"
+    assert inherited["metric_value"] == "0.91"
+    assert inherited["evidence_quote"] == "毕业去向落实率为91%。"
+    assert untouched["status"] == "todo"
+    assert (tmp_path / "inherit_report.json").exists()
 
 
 def test_apply_outcome_report_source_seeds_updates_matching_pending_rows(tmp_path: Path):

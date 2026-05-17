@@ -13,6 +13,7 @@ from datahub.builders.outcome_collection_batch import (
 )
 from datahub.builders.outcome_collection_package import build_outcome_packages_from_collection_plan
 from datahub.builders.outcome_collection_plan import build_outcome_collection_plan
+from datahub.builders.outcome_collection_verified_inherit import inherit_verified_outcome_collection_rows
 from datahub.builders.outcome_collection_seed_merge import (
     apply_outcome_collection_review_seeds,
     audit_outcome_collection_review_seeds,
@@ -46,6 +47,7 @@ COMMANDS = {
     "audit-outcome-collection-plan",
     "build-outcome-collection-batch",
     "merge-outcome-collection-batch",
+    "inherit-outcome-collection-verified",
     "audit-outcome-collection-review-seeds",
     "apply-outcome-collection-review-seeds",
     "merge-outcome-report-candidates",
@@ -105,6 +107,16 @@ def register_outcome_commands(sub) -> None:
     merge_outcome_collection_batch_parser.add_argument("--batch-csv", required=True, type=Path)
     merge_outcome_collection_batch_parser.add_argument("--output", required=True, type=Path)
     merge_outcome_collection_batch_parser.add_argument("--report", type=Path)
+
+    inherit_outcome_collection_verified_parser = sub.add_parser(
+        "inherit-outcome-collection-verified",
+        help="Inherit verified collection rows into a rebuilt outcome collection plan",
+    )
+    inherit_outcome_collection_verified_parser.add_argument("--plan-csv", required=True, type=Path)
+    inherit_outcome_collection_verified_parser.add_argument("--verified-plan-csv", required=True, type=Path)
+    inherit_outcome_collection_verified_parser.add_argument("--output", required=True, type=Path)
+    inherit_outcome_collection_verified_parser.add_argument("--report", type=Path)
+    inherit_outcome_collection_verified_parser.add_argument("--status", action="append", dest="statuses")
 
     audit_outcome_collection_review_seeds_parser = sub.add_parser(
         "audit-outcome-collection-review-seeds",
@@ -299,6 +311,16 @@ def handle_outcome_command(args: Namespace) -> int | None:
             output=args.output,
         )
         _write_report(args.report, report)
+        _print_json(report)
+        return 0
+    if args.cmd == "inherit-outcome-collection-verified":
+        report = inherit_verified_outcome_collection_rows(
+            plan_csv=args.plan_csv,
+            verified_plan_csv=args.verified_plan_csv,
+            output=args.output,
+            report_path=args.report,
+            statuses=args.statuses,
+        )
         _print_json(report)
         return 0
     if args.cmd == "audit-outcome-collection-review-seeds":
