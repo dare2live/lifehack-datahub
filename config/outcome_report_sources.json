@@ -824,6 +824,19 @@
       "candidate_source_date": "2024-12-05",
       "availability_date": "2024-12-05",
       "evidence_note": "大连医科大学教师教学发展中心官网发布《大连医科大学2023-2024学年本科教学质量报告》，页面发布时间 2024-12-05，并列出官方 PDF 附件；后续仍需 intake/extraction 与人工复核后才能进入 collection verified。"
+    },
+    {
+      "domain": "school",
+      "entity_code": "0163",
+      "entity_name": "沈阳药科大学",
+      "metric_year": 2024,
+      "report_scope": "undergraduate_teaching_quality_report",
+      "candidate_report_title": "沈阳药科大学2023-2024学年本科教学质量报告",
+      "candidate_report_url": "https://pgad.syphu.edu.cn/__local/C/31/12/6A19CCF0BCF5DFC987DC5F80236_0B3583BC_127FA3.pdf",
+      "candidate_file_name": "沈阳药科大学2023-2024学年本科教学质量报告.pdf",
+      "candidate_source_date": "2024-11-01",
+      "availability_date": "2024-11-01",
+      "evidence_note": "沈阳药科大学官方信息公开/质量报告 PDF 直链可访问，HTTP 200 且返回 application/pdf；报告封面日期为 2024 年 11 月，后续仍需 intake/extraction 与人工复核后才能进入 collection verified。"
     }
   ]
 }
