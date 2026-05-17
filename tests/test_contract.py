@@ -150,7 +150,10 @@ from datahub.connectors.amap_web_api import fetch_amap_web_api
 from datahub.connectors.amap_web_api_readiness import audit_amap_web_api_readiness
 from datahub.connectors.manual_files import intake_manual_assets
 from datahub.connectors.macos_vision_ocr import ocr_page_images
-from datahub.connectors.outcome_report_download import download_outcome_report_intake_assets
+from datahub.connectors.outcome_report_download import (
+    build_outcome_report_manual_intake_queue,
+    download_outcome_report_intake_assets,
+)
 from datahub.connectors.remote_files import download_remote_assets
 from datahub.connectors.scs_resources import download_scs_resources
 from datahub.connectors.registry import discover_assets
@@ -9762,6 +9765,83 @@ def test_download_outcome_report_intake_assets_classifies_ssl_eof_failures(tmp_p
     assert report["downloaded_rows"] == 0
     assert report["failed_rows"] == 1
     assert report["failure_reason_counts"] == {"ssl handshake failed; manual intake required": 1}
+
+
+def test_build_outcome_report_manual_intake_queue_classifies_failed_downloads(tmp_path: Path):
+    intake_results_csv = tmp_path / "outcome_report_intake_results.csv"
+    rows = [
+        {
+            "domain": "school",
+            "entity_code": "0728",
+            "entity_name": "西安音乐学院",
+            "metric_year": "2024",
+            "report_scope": "undergraduate_teaching_quality_report",
+            "candidate_report_title": "西安音乐学院2023-2024学年本科教学质量报告",
+            "candidate_report_url": "https://example.edu/xian.pdf",
+            "candidate_file_name": "西安音乐学院2023-2024学年本科教学质量报告.pdf",
+            "download_status": "failed",
+            "download_error": "<urlopen error EOF occurred in violation of protocol (_ssl.c:1129)>",
+        },
+        {
+            "domain": "school",
+            "entity_code": "0157",
+            "entity_name": "沈阳农业大学",
+            "metric_year": "2024",
+            "report_scope": "undergraduate_teaching_quality_report",
+            "candidate_report_title": "沈阳农业大学2023-2024学年本科教学质量报告",
+            "candidate_report_url": "https://example.edu/syau.htm",
+            "candidate_file_name": "沈阳农业大学2023-2024学年本科教学质量报告.pdf",
+            "download_status": "failed",
+            "download_error": "attachment requires captcha or manual intake: https://example.edu/download",
+        },
+        {
+            "domain": "school",
+            "entity_code": "1258",
+            "entity_name": "大连大学",
+            "metric_year": "2024",
+            "report_scope": "undergraduate_teaching_quality_report",
+            "candidate_report_title": "大连大学2023-2024学年本科教学质量报告",
+            "candidate_report_url": "https://example.edu/dlu.htm",
+            "candidate_file_name": "大连大学2023-2024学年本科教学质量报告.pdf",
+            "download_status": "failed",
+            "download_error": "report rendered as PDF page images; OCR or manual intake required",
+        },
+        {
+            "domain": "school",
+            "entity_code": "4535",
+            "entity_name": "浙江音乐学院",
+            "metric_year": "2024",
+            "report_scope": "undergraduate_teaching_quality_report",
+            "candidate_report_title": "浙江音乐学院2023-2024学年本科教学质量报告",
+            "candidate_report_url": "https://example.edu/zjcm.htm",
+            "candidate_file_name": "浙江音乐学院2023-2024学年本科教学质量报告.pdf",
+            "download_status": "downloaded",
+            "download_error": "",
+        },
+    ]
+    with intake_results_csv.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=list(rows[0]))
+        writer.writeheader()
+        writer.writerows(rows)
+
+    output = tmp_path / "manual_intake_queue.csv"
+    report = build_outcome_report_manual_intake_queue(
+        intake_results_csv=intake_results_csv,
+        output=output,
+    )
+
+    assert report["rows"] == 3
+    assert report["reason_counts"] == {
+        "captcha_required": 1,
+        "image_pdf_ocr_required": 1,
+        "ssl_handshake_failed": 1,
+    }
+    with output.open(encoding="utf-8", newline="") as f:
+        output_rows = list(csv.DictReader(f))
+    assert [row["entity_code"] for row in output_rows] == ["0728", "0157", "1258"]
+    assert output_rows[0]["recommended_action"] == "manual_download_or_downloader_tls_fallback"
+    assert output_rows[1]["recommended_action"] == "manual_browser_download"
+    assert output_rows[2]["recommended_action"] == "ocr_or_manual_transcription"
 
 
 def test_download_outcome_report_intake_assets_sends_referer_for_direct_attachment(tmp_path: Path, monkeypatch):

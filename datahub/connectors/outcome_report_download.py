@@ -28,6 +28,19 @@ DOWNLOAD_COLUMNS = [
     "download_sha256",
     "download_error",
 ]
+MANUAL_INTAKE_COLUMNS = [
+    "domain",
+    "entity_code",
+    "entity_name",
+    "metric_year",
+    "report_scope",
+    "candidate_report_title",
+    "candidate_report_url",
+    "candidate_file_name",
+    "failure_reason",
+    "recommended_action",
+    "download_error",
+]
 
 FILE_EXTENSIONS = (".pdf", ".ofd", ".doc", ".docx", ".zip")
 REPORT_EXTENSIONS = (".pdf", ".ofd", ".doc", ".docx")
@@ -101,6 +114,53 @@ def download_outcome_report_intake_assets(
     return {**report, "report": str(report_path)}
 
 
+def build_outcome_report_manual_intake_queue(
+    *,
+    intake_results_csv: Path,
+    output: Path,
+    report: Path | None = None,
+) -> dict[str, Any]:
+    rows = []
+    reason_counts: Counter[str] = Counter()
+    action_counts: Counter[str] = Counter()
+    for row in _read_csv(intake_results_csv):
+        if str(row.get("download_status") or "") != "failed":
+            continue
+        failure_reason, recommended_action = _manual_intake_classification(str(row.get("download_error") or ""))
+        output_row = {
+            "domain": str(row.get("domain") or ""),
+            "entity_code": str(row.get("entity_code") or ""),
+            "entity_name": str(row.get("entity_name") or ""),
+            "metric_year": str(row.get("metric_year") or ""),
+            "report_scope": str(row.get("report_scope") or ""),
+            "candidate_report_title": str(row.get("candidate_report_title") or ""),
+            "candidate_report_url": str(row.get("candidate_report_url") or ""),
+            "candidate_file_name": str(row.get("candidate_file_name") or ""),
+            "failure_reason": failure_reason,
+            "recommended_action": recommended_action,
+            "download_error": str(row.get("download_error") or ""),
+        }
+        rows.append(output_row)
+        reason_counts[failure_reason] += 1
+        action_counts[recommended_action] += 1
+
+    output.parent.mkdir(parents=True, exist_ok=True)
+    _write_csv(output, rows, fieldnames=MANUAL_INTAKE_COLUMNS)
+    payload = {
+        "built_at": datetime.utcnow().replace(microsecond=0).isoformat(),
+        "input": str(intake_results_csv),
+        "output": str(output),
+        "rows": len(rows),
+        "reason_counts": dict(sorted(reason_counts.items())),
+        "action_counts": dict(sorted(action_counts.items())),
+        "notes": "Manual intake queue only. It does not download reports, parse PDFs, review candidates, build packages, or write core.",
+    }
+    report_path = report or output.with_suffix(".json")
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    report_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return {**payload, "report": str(report_path)}
+
+
 def _failure_reason(exc: Exception) -> str:
     message = str(exc).strip()
     if not message:
@@ -109,6 +169,17 @@ def _failure_reason(exc: Exception) -> str:
     if "ssl" in lower and ("eof occurred" in lower or "handshake" in lower or "ssl_error" in lower):
         return "ssl handshake failed; manual intake required"
     return message.split(":", 1)[0].strip()
+
+
+def _manual_intake_classification(download_error: str) -> tuple[str, str]:
+    lower = download_error.lower()
+    if "ssl" in lower and ("eof occurred" in lower or "handshake" in lower or "ssl_error" in lower):
+        return "ssl_handshake_failed", "manual_download_or_downloader_tls_fallback"
+    if "captcha" in lower or "验证码" in download_error:
+        return "captcha_required", "manual_browser_download"
+    if "pdf page images" in lower or "ocr" in lower:
+        return "image_pdf_ocr_required", "ocr_or_manual_transcription"
+    return "download_failed", "manual_review"
 
 
 def _intake_config(config: dict[str, Any]) -> dict[str, Any]:
@@ -329,9 +400,9 @@ def _read_csv(path: Path) -> list[dict[str, str]]:
         return list(csv.DictReader(f))
 
 
-def _write_csv(path: Path, rows: list[dict[str, str]]) -> None:
+def _write_csv(path: Path, rows: list[dict[str, str]], fieldnames: list[str] | None = None) -> None:
     with path.open("w", encoding="utf-8", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=DOWNLOAD_COLUMNS, extrasaction="ignore")
+        writer = csv.DictWriter(f, fieldnames=fieldnames or DOWNLOAD_COLUMNS, extrasaction="ignore")
         writer.writeheader()
         writer.writerows(rows)
 

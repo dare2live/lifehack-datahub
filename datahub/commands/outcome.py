@@ -31,7 +31,10 @@ from datahub.builders.outcome_report_source_seed_merge import (
     apply_outcome_report_source_seeds,
     audit_outcome_report_source_seeds,
 )
-from datahub.connectors.outcome_report_download import download_outcome_report_intake_assets
+from datahub.connectors.outcome_report_download import (
+    build_outcome_report_manual_intake_queue,
+    download_outcome_report_intake_assets,
+)
 from datahub.parsers.outcome_report import (
     extract_outcome_metric_candidates_from_report,
     write_outcome_metric_candidate_csv,
@@ -54,6 +57,7 @@ COMMANDS = {
     "apply-outcome-report-source-seeds",
     "build-outcome-report-intake-plan",
     "download-outcome-report-intake-assets",
+    "build-outcome-report-manual-intake-queue",
     "merge-outcome-report-intake-results",
     "build-outcome-report-extraction-plan",
     "run-outcome-report-extraction-plan",
@@ -195,6 +199,14 @@ def register_outcome_commands(sub) -> None:
         action="store_true",
         help="Return success when some intake rows fail, while still writing failure details to the output CSV/report.",
     )
+
+    build_outcome_report_manual_intake = sub.add_parser(
+        "build-outcome-report-manual-intake-queue",
+        help="Build a manual intake queue from failed outcome report download results",
+    )
+    build_outcome_report_manual_intake.add_argument("--intake-results-csv", required=True, type=Path)
+    build_outcome_report_manual_intake.add_argument("--output", required=True, type=Path)
+    build_outcome_report_manual_intake.add_argument("--report", type=Path)
 
     merge_outcome_report_intake = sub.add_parser(
         "merge-outcome-report-intake-results",
@@ -372,6 +384,14 @@ def handle_outcome_command(args: Namespace) -> int | None:
         )
         _print_json(result)
         return 0 if args.allow_failures or result["failed_rows"] == 0 else 1
+    if args.cmd == "build-outcome-report-manual-intake-queue":
+        result = build_outcome_report_manual_intake_queue(
+            intake_results_csv=args.intake_results_csv,
+            output=args.output,
+            report=args.report,
+        )
+        _print_json(result)
+        return 0
     if args.cmd == "merge-outcome-report-intake-results":
         report = merge_outcome_report_intake_results(
             report_source_csv=args.report_source_csv,
