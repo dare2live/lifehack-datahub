@@ -10507,7 +10507,8 @@ def test_build_operational_gap_report_summarizes_existing_artifacts(tmp_path: Pa
     )
 
     assert report["summary"]["ready_for_normal_operation"] is False
-    assert report["summary"]["p0_blocker_count"] == 5
+    assert report["summary"]["p0_blocker_signal_count"] == 5
+    assert report["summary"]["unique_p0_blocker_count"] == 5
     assert (tmp_path / "gap.json").exists()
     markdown = (tmp_path / "gap.md").read_text(encoding="utf-8")
     assert "outcome_pending_rows" in markdown

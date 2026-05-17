@@ -46,8 +46,13 @@ def build_operational_gap_report(
         "notes": "Gap report only. It reads existing audit artifacts and does not collect data, build packages, import core, or change readiness state.",
     }
     report["p0_blockers"] = _blockers(report)
+    unique_codes = sorted({str(blocker.get("code") or "") for blocker in report["p0_blockers"] if blocker.get("code")})
+    unique_domains = sorted({str(blocker.get("domain") or "") for blocker in report["p0_blockers"] if blocker.get("domain")})
     report["summary"] = {
-        "p0_blocker_count": len(report["p0_blockers"]),
+        "p0_blocker_signal_count": len(report["p0_blockers"]),
+        "unique_p0_blocker_count": len(unique_codes),
+        "unique_p0_blocker_codes": unique_codes,
+        "unique_p0_blocker_domains": unique_domains,
         "ready_for_normal_operation": len(report["p0_blockers"]) == 0,
     }
     if report_path:
@@ -153,7 +158,8 @@ def _markdown(report: dict[str, Any]) -> str:
         "",
         f"- built_at: `{report['built_at']}`",
         f"- ready_for_normal_operation: `{report['summary']['ready_for_normal_operation']}`",
-        f"- p0_blocker_count: `{report['summary']['p0_blocker_count']}`",
+        f"- p0_blocker_signal_count: `{report['summary']['p0_blocker_signal_count']}`",
+        f"- unique_p0_blocker_count: `{report['summary']['unique_p0_blocker_count']}`",
         "",
         "## P0 blockers",
     ]
