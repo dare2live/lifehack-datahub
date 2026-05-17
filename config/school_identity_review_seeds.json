@@ -188,7 +188,7 @@
       "review_status": "needs_research",
       "reviewer": "datahub_seed_review",
       "reviewed_at": "2026-05-18",
-      "review_note": "军事院校未在当前 MOE school profile 中形成可用候选，需单独建立受控军校 profile 来源后再批准。"
+      "review_note": "军委直属招生军校；J/JV 代码只能作为辽宁本地招生计划代码保留，不得当 canonical school_code。需建立 military supplemental profile 后映射到中国人民解放军国防科技大学身份。证据：https://www.81.cn/jx_208569/jdt_208570/16391959.html"
     },
     {
       "seed_id": "sid-j005-army-branches",
@@ -233,7 +233,7 @@
       "review_status": "needs_research",
       "reviewer": "datahub_seed_review",
       "reviewed_at": "2026-05-18",
-      "review_note": "军事院校名称和 profile 来源需要专项核验；当前不得自动归并到旧信息工程大学或其他相近名称。"
+      "review_note": "网络空间部队信息工程大学需建立 military supplemental profile；不得自动归并到旧战略支援部队信息工程大学，也不得与信息支援部队工程大学合并。证据：https://www.81.cn/jx_208569/jdt_208570/16391959.html"
     },
     {
       "seed_id": "sid-j036-joint-logistics",
@@ -242,7 +242,7 @@
       "review_status": "needs_research",
       "reviewer": "datahub_seed_review",
       "reviewed_at": "2026-05-18",
-      "review_note": "军事院校未在当前 MOE school profile 中形成可用候选，需单独建立受控军校 profile 来源后再批准。"
+      "review_note": "联勤保障部队工程大学为 2025 新组建军队院校，需建立 military supplemental profile；J/JV 本地代码保留为招生计划代码。证据：https://www.mod.gov.cn/gfbw/xwfyr/jt/16386255.html"
     },
     {
       "seed_id": "sid-j017-navy-medical",
@@ -273,13 +273,14 @@
       "reviewed_national_school_code": "4154010693"
     },
     {
-      "seed_id": "sid-6401-uic",
+      "seed_id": "sid-6401-bnbu-uic",
       "local_school_code": "6401",
       "local_school_name": "北师香港浸会大学",
-      "review_status": "needs_research",
+      "review_status": "approved",
       "reviewer": "datahub_seed_review",
       "reviewed_at": "2026-05-18",
-      "review_note": "当前 profile 表未检索到对应中外合作办学机构，需补受控 profile 来源后再批准。"
+      "review_note": "本地招生简称“北师香港浸会大学”对应当前 MOE profile 中北京师范大学-香港浸会大学联合国际学院 national_school_code=4144016401；学校官网披露该校由北京师范大学与香港浸会大学于2005年创立并坐落珠海。招生展示可用简称，但 identity 必须保留 canonical profile 名称。证据：https://www.bnbu.edu.cn/about_us/overview/introducing.htm",
+      "reviewed_national_school_code": "4144016401"
     },
     {
       "seed_id": "sid-8127-imust-baotou-normal",
@@ -325,7 +326,7 @@
       "review_status": "needs_research",
       "reviewer": "datahub_seed_review",
       "reviewed_at": "2026-05-18",
-      "review_note": "军事院校或军检/专项招生代码当前没有可用 MOE profile 候选；需建立受控军校 profile 来源，区分普通招生代码与军检/专项代码后再批准。"
+      "review_note": "信息支援部队工程大学为 2025 新组建军队院校，需建立 military supplemental profile；不得与网络空间部队信息工程大学合并。证据：https://www.mod.gov.cn/gfbw/xwfyr/jt/16386255.html"
     },
     {
       "seed_id": "sid-j006-needs-research",
@@ -536,13 +537,14 @@
       "review_note": "军事院校或军检/专项招生代码当前没有可用 MOE profile 候选；需建立受控军校 profile 来源，区分普通招生代码与军检/专项代码后再批准。"
     },
     {
-      "seed_id": "sid-6412-needs-research",
+      "seed_id": "sid-6412-hkust-gz",
       "local_school_code": "6412",
       "local_school_name": "香港科技大学",
-      "review_status": "needs_research",
+      "review_status": "approved",
       "reviewer": "datahub_seed_review",
       "reviewed_at": "2026-05-18",
-      "review_note": "当前 profile 候选为香港科技大学（广州）4144016412，但本地招生名称为香港科技大学，缺少“广州”限定；需确认辽宁招生口径是香港本部还是广州校区/内地合作办学后再批准。"
+      "review_note": "本地招生名称“香港科技大学”在辽宁本科普通批语境下对应香港科技大学（广州）招生口径，当前 MOE profile 中香港科技大学（广州）national_school_code=4144016412；学校官网本科招生页指向香港科技大学（广州）本科招生体系，校区地址为广州南沙。后续展示应使用“香港科技大学（广州）”避免与香港本部混淆。证据：https://www.hkust-gz.edu.cn/zh/admissions/",
+      "reviewed_national_school_code": "4144016412"
     },
     {
       "seed_id": "sid-j021-needs-research",
