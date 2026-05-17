@@ -1,0 +1,40 @@
+{
+  "version": "2026-05-18",
+  "notes": "Small reviewed seed set for broad occupation catalog coverage. These rows address Holland RIASEC S coverage at catalog level only; Holland occupation RIASEC approval remains a separate gate.",
+  "source_title": "国家职业分类大典（2022年版）社会工作专业人员相关公示材料",
+  "source_url": "https://www.xinhuishexie.com/h-nd-125.html",
+  "source_date": "2022-07-25",
+  "availability_date": "2026-05-18",
+  "seeds": [
+    {
+      "occupation_code": "2-07-10-01",
+      "occupation_name": "社会工作者",
+      "occupation_family": "专业技术人员",
+      "tdx_l2": "T1301",
+      "tdx_l2_name": "综合类",
+      "major_keywords_json": "[\"社会工作\", \"社会学\", \"公共事业管理\"]",
+      "skill_keywords_json": "[\"个案服务\", \"社会服务\", \"社区服务\"]",
+      "evidence_quote": "本小类包括下列职业：2-07-10-01社会工作者；2-07-10-02社会组织专业人员；2-07-10-03心理咨询师"
+    },
+    {
+      "occupation_code": "2-07-10-02",
+      "occupation_name": "社会组织专业人员",
+      "occupation_family": "专业技术人员",
+      "tdx_l2": "T1301",
+      "tdx_l2_name": "综合类",
+      "major_keywords_json": "[\"社会工作\", \"公共事业管理\", \"社会学\"]",
+      "skill_keywords_json": "[\"组织服务\", \"项目协调\", \"公益服务\"]",
+      "evidence_quote": "本小类包括下列职业：2-07-10-01社会工作者；2-07-10-02社会组织专业人员；2-07-10-03心理咨询师"
+    },
+    {
+      "occupation_code": "2-07-10-03",
+      "occupation_name": "心理咨询师",
+      "occupation_family": "专业技术人员",
+      "tdx_l2": "T1301",
+      "tdx_l2_name": "综合类",
+      "major_keywords_json": "[\"心理学\", \"应用心理学\", \"社会工作\"]",
+      "skill_keywords_json": "[\"心理咨询\", \"心理评估\", \"助人服务\"]",
+      "evidence_quote": "本小类包括下列职业：2-07-10-01社会工作者；2-07-10-02社会组织专业人员；2-07-10-03心理咨询师"
+    }
+  ]
+}

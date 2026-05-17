@@ -176,6 +176,7 @@ from datahub.parsers.scs_position_workbook import (
     write_scs_position_csv,
 )
 from datahub.parsers.digital_occupation_catalog import (
+    build_broad_occupation_catalog_seed_rows,
     parse_digital_occupation_catalog_html,
     write_digital_occupation_catalog_csv,
 )
@@ -5245,6 +5246,52 @@ def test_parse_digital_occupation_catalog_html_builds_catalog_package(tmp_path: 
     assert result["rows"] == 2
     assert result["quality_report"]["errors"] == []
     assert validate_manifest(package_dir / "manifest.json")["errors"] == []
+
+
+def test_build_broad_occupation_catalog_seed_rows(tmp_path: Path):
+    seeds = tmp_path / "broad_occupation_seeds.json"
+    seeds.write_text(
+        json.dumps({
+            "source_title": "国家职业分类大典（2022年版）社会工作专业人员相关公示材料",
+            "source_url": "https://example.com/occupation",
+            "source_date": "2022-07-25",
+            "availability_date": "2026-05-18",
+            "seeds": [
+                {
+                    "occupation_code": "2-07-10-03",
+                    "occupation_name": "心理咨询师",
+                    "occupation_family": "专业技术人员",
+                    "tdx_l2": "T1301",
+                    "tdx_l2_name": "综合类",
+                    "major_keywords_json": "[\"心理学\"]",
+                    "skill_keywords_json": "[\"心理咨询\"]",
+                    "evidence_quote": "本小类包括下列职业：2-07-10-03心理咨询师",
+                }
+            ],
+        }, ensure_ascii=False),
+        encoding="utf-8",
+    )
+
+    rows = build_broad_occupation_catalog_seed_rows(seeds)
+
+    assert rows[0]["occupation_code"] == "2-07-10-03"
+    assert rows[0]["occupation_name"] == "心理咨询师"
+    assert rows[0]["occupation_family"] == "专业技术人员"
+    assert rows[0]["occupation_level"] == 4
+    assert rows[0]["major_keywords_json"] == "[\"心理学\"]"
+
+    cleaned = tmp_path / "broad_occupation_catalog.csv"
+    write_digital_occupation_catalog_csv(cleaned, rows)
+    result = build_local_package(
+        source_key="career_occupation_catalog",
+        table_name="fa_dim_career_occupation",
+        input_path=cleaned,
+        output_root=tmp_path / "exports",
+        package_id="broad-occupation-catalog-test",
+        source_version="fixture-broad-occupation",
+    )
+    assert result["rows"] == 1
+    assert result["quality_report"]["errors"] == []
 
 
 def test_audit_career_source_plan_reports_progress_and_errors(tmp_path: Path):

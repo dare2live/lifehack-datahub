@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import csv
+import json
 import re
 from datetime import datetime
 from html.parser import HTMLParser
@@ -103,6 +104,48 @@ def write_digital_occupation_catalog_csv(path: Path, rows: list[dict[str, Any]])
         writer = csv.DictWriter(f, fieldnames=CATALOG_COLUMNS, extrasaction="ignore")
         writer.writeheader()
         writer.writerows(rows)
+
+
+def build_broad_occupation_catalog_seed_rows(path: Path) -> list[dict[str, Any]]:
+    config = json.loads(Path(path).read_text(encoding="utf-8"))
+    source_title = str(config.get("source_title") or "")
+    source_url = str(config.get("source_url") or "")
+    source_date = str(config.get("source_date") or "")
+    availability_date = str(config.get("availability_date") or "")
+    if not source_title or not source_url or not source_date or not availability_date:
+        raise ValueError("broad occupation seed config requires source_title/source_url/source_date/availability_date")
+    built_at = datetime.utcnow().replace(microsecond=0).isoformat()
+    rows: list[dict[str, Any]] = []
+    seen_codes: set[str] = set()
+    for index, seed in enumerate(config.get("seeds", [])):
+        code = str(seed.get("occupation_code") or "").strip()
+        name = str(seed.get("occupation_name") or "").strip()
+        if not OCCUPATION_CODE_RE.match(code):
+            raise ValueError(f"seeds[{index}] has invalid occupation_code: {code}")
+        if not name:
+            raise ValueError(f"seeds[{index}] missing occupation_name")
+        if code in seen_codes:
+            raise ValueError(f"duplicate occupation_code in broad occupation seeds: {code}")
+        seen_codes.add(code)
+        rows.append({
+            "occupation_code": code,
+            "occupation_name": name,
+            "occupation_family": str(seed.get("occupation_family") or _family_by_prefix().get(code.split("-", 1)[0], "")),
+            "occupation_level": _occupation_level(code),
+            "tdx_l2": str(seed.get("tdx_l2") or ""),
+            "tdx_l2_name": str(seed.get("tdx_l2_name") or ""),
+            "major_keywords_json": str(seed.get("major_keywords_json") or "[]"),
+            "skill_keywords_json": str(seed.get("skill_keywords_json") or "[]"),
+            "source_title": source_title,
+            "source_url": source_url,
+            "evidence_quote": str(seed.get("evidence_quote") or f"职业编码 {code}，职业名称 {name}"),
+            "source_date": source_date,
+            "availability_date": availability_date,
+            "built_at": built_at,
+        })
+    if not rows:
+        raise ValueError("broad occupation seed config has no seeds")
+    return rows
 
 
 def _family_by_prefix() -> dict[str, str]:

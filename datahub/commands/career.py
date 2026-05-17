@@ -23,6 +23,7 @@ from datahub.builders.career_source_seed_merge import (
 from datahub.builders.major_outcome_civil_service import build_major_outcome_from_civil_service_package
 from datahub.connectors.scs_resources import download_scs_resources
 from datahub.parsers.digital_occupation_catalog import (
+    build_broad_occupation_catalog_seed_rows,
     parse_digital_occupation_catalog_file,
     write_digital_occupation_catalog_csv,
 )
@@ -46,6 +47,7 @@ COMMANDS = {
     "build-civil-service-signal-plan",
     "build-career-score",
     "build-major-outcome-from-civil-service",
+    "build-broad-occupation-catalog",
     "parse-digital-occupation-catalog",
     "parse-scs-position-workbook",
 }
@@ -187,6 +189,13 @@ def register_career_commands(sub) -> None:
     parse_digital_occupation.add_argument("--source-url", required=True)
     parse_digital_occupation.add_argument("--source-date", required=True)
     parse_digital_occupation.add_argument("--availability-date", required=True)
+
+    build_broad_occupation = sub.add_parser(
+        "build-broad-occupation-catalog",
+        help="Build a small reviewed broad occupation catalog CSV from configured seeds",
+    )
+    build_broad_occupation.add_argument("--seeds", required=True, type=Path)
+    build_broad_occupation.add_argument("--output", required=True, type=Path)
 
     parse_scs_positions = sub.add_parser(
         "parse-scs-position-workbook",
@@ -332,6 +341,11 @@ def handle_career_command(args: Namespace) -> int | None:
             source_date=args.source_date,
             availability_date=args.availability_date,
         )
+        write_digital_occupation_catalog_csv(args.output, rows)
+        _print_json({"output": str(args.output), "rows": len(rows)})
+        return 0
+    if args.cmd == "build-broad-occupation-catalog":
+        rows = build_broad_occupation_catalog_seed_rows(args.seeds)
         write_digital_occupation_catalog_csv(args.output, rows)
         _print_json({"output": str(args.output), "rows": len(rows)})
         return 0
