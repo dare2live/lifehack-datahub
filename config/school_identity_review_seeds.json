@@ -1,4 +1,192 @@
 {
   "version": "1",
-  "seeds": []
+  "seeds": [
+    {
+      "seed_id": "sid-0054-huabei-electric-beijing",
+      "local_school_code": "0054",
+      "local_school_name": "华北电力大学(北京)",
+      "review_status": "approved",
+      "reviewed_national_school_code": "4111010054",
+      "reviewer": "datahub_seed_review",
+      "reviewed_at": "2026-05-18",
+      "review_note": "本地招生名称为华北电力大学北京校区口径，当前 MOE profile 中对应华北电力大学 national_school_code=4111010054；校区定位后续不得直接使用 profile 城市替代招生地区。"
+    },
+    {
+      "seed_id": "sid-0079-huabei-electric-baoding",
+      "local_school_code": "0079",
+      "local_school_name": "华北电力大学(保定)",
+      "review_status": "approved",
+      "reviewed_national_school_code": "4111010054",
+      "reviewer": "datahub_seed_review",
+      "reviewed_at": "2026-05-18",
+      "review_note": "保定校区属于华北电力大学同一学校身份，identity 归并到 4111010054；location/campus 证据必须保留保定校区口径，不能用北京 profile 城市替代。"
+    },
+    {
+      "seed_id": "sid-9414-cupk-campus",
+      "local_school_code": "9414",
+      "local_school_name": "中国石油大学(北京)克拉玛依校区",
+      "review_status": "approved",
+      "reviewed_national_school_code": "4111011414",
+      "reviewer": "datahub_seed_review",
+      "reviewed_at": "2026-05-18",
+      "review_note": "本地招生名称指向中国石油大学(北京)克拉玛依校区，学校身份归并到中国石油大学（北京）4111011414；校区位置后续必须按克拉玛依校区单独复核。"
+    },
+    {
+      "seed_id": "sid-9145-neu-qinhuangdao",
+      "local_school_code": "9145",
+      "local_school_name": "东北大学秦皇岛分校",
+      "review_status": "approved",
+      "reviewed_national_school_code": "4121010145",
+      "reviewer": "datahub_seed_review",
+      "reviewed_at": "2026-05-18",
+      "review_note": "本地招生名称为东北大学秦皇岛分校，学校身份归并到东北大学 4121010145；校区生活和城市产业证据必须按秦皇岛分校另行处理。"
+    },
+    {
+      "seed_id": "sid-9001-pku-health-science",
+      "local_school_code": "9001",
+      "local_school_name": "北京大学医学部",
+      "review_status": "approved",
+      "reviewed_national_school_code": "4111010001",
+      "reviewer": "datahub_seed_review",
+      "reviewed_at": "2026-05-18",
+      "review_note": "北京大学医学部属于北京大学医学教育校区口径，学校身份归并到北京大学 4111010001；专业出口和校区生活需保留医学部口径。"
+    },
+    {
+      "seed_id": "sid-9141-dlut-panjin",
+      "local_school_code": "9141",
+      "local_school_name": "大连理工大学(盘锦校区)",
+      "review_status": "approved",
+      "reviewed_national_school_code": "4121010141",
+      "reviewer": "datahub_seed_review",
+      "reviewed_at": "2026-05-18",
+      "review_note": "盘锦校区属于大连理工大学同一学校身份，identity 归并到 4121010141；校区位置、生活成本和城市产业证据必须按盘锦校区单独复核。"
+    },
+    {
+      "seed_id": "sid-9422-sdu-weihai",
+      "local_school_code": "9422",
+      "local_school_name": "山东大学威海分校",
+      "review_status": "approved",
+      "reviewed_national_school_code": "4137010422",
+      "reviewer": "datahub_seed_review",
+      "reviewed_at": "2026-05-18",
+      "review_note": "山东大学威海分校招生口径归并到山东大学 4137010422；校区位置和城市产业证据必须按威海校区单独复核。"
+    },
+    {
+      "seed_id": "sid-j002-ndut",
+      "local_school_code": "J002",
+      "local_school_name": "国防科技大学",
+      "review_status": "needs_research",
+      "reviewer": "datahub_seed_review",
+      "reviewed_at": "2026-05-18",
+      "review_note": "军事院校未在当前 MOE school profile 中形成可用候选，需单独建立受控军校 profile 来源后再批准。"
+    },
+    {
+      "seed_id": "sid-j005-army-branches",
+      "local_school_code": "J005",
+      "local_school_name": "陆军兵种大学",
+      "review_status": "needs_research",
+      "reviewer": "datahub_seed_review",
+      "reviewed_at": "2026-05-18",
+      "review_note": "军事院校未在当前 MOE school profile 中形成可用候选，需单独建立受控军校 profile 来源后再批准。"
+    },
+    {
+      "seed_id": "sid-j004-army-engineering",
+      "local_school_code": "J004",
+      "local_school_name": "陆军工程大学",
+      "review_status": "needs_research",
+      "reviewer": "datahub_seed_review",
+      "reviewed_at": "2026-05-18",
+      "review_note": "军事院校未在当前 MOE school profile 中形成可用候选，需单独建立受控军校 profile 来源后再批准。"
+    },
+    {
+      "seed_id": "sid-j013-navy-engineering",
+      "local_school_code": "J013",
+      "local_school_name": "海军工程大学",
+      "review_status": "needs_research",
+      "reviewer": "datahub_seed_review",
+      "reviewed_at": "2026-05-18",
+      "review_note": "军事院校未在当前 MOE school profile 中形成可用候选，需单独建立受控军校 profile 来源后再批准。"
+    },
+    {
+      "seed_id": "sid-j022-air-force-engineering",
+      "local_school_code": "J022",
+      "local_school_name": "空军工程大学",
+      "review_status": "needs_research",
+      "reviewer": "datahub_seed_review",
+      "reviewed_at": "2026-05-18",
+      "review_note": "军事院校未在当前 MOE school profile 中形成可用候选，需单独建立受控军校 profile 来源后再批准。"
+    },
+    {
+      "seed_id": "sid-j034-cyberspace-force",
+      "local_school_code": "J034",
+      "local_school_name": "网络空间部队信息工程大学",
+      "review_status": "needs_research",
+      "reviewer": "datahub_seed_review",
+      "reviewed_at": "2026-05-18",
+      "review_note": "军事院校名称和 profile 来源需要专项核验；当前不得自动归并到旧信息工程大学或其他相近名称。"
+    },
+    {
+      "seed_id": "sid-j036-joint-logistics",
+      "local_school_code": "J036",
+      "local_school_name": "联勤保障部队工程大学",
+      "review_status": "needs_research",
+      "reviewer": "datahub_seed_review",
+      "reviewed_at": "2026-05-18",
+      "review_note": "军事院校未在当前 MOE school profile 中形成可用候选，需单独建立受控军校 profile 来源后再批准。"
+    },
+    {
+      "seed_id": "sid-j017-navy-medical",
+      "local_school_code": "J017",
+      "local_school_name": "海军军医大学",
+      "review_status": "needs_research",
+      "reviewer": "datahub_seed_review",
+      "reviewed_at": "2026-05-18",
+      "review_note": "军事医学类院校需单独确认 national profile 和招生身份，不得因名称相近自动合并。"
+    },
+    {
+      "seed_id": "sid-j014-navy-dalian",
+      "local_school_code": "J014",
+      "local_school_name": "海军大连舰艇学院",
+      "review_status": "needs_research",
+      "reviewer": "datahub_seed_review",
+      "reviewed_at": "2026-05-18",
+      "review_note": "军事院校未在当前 MOE school profile 中形成可用候选，需单独建立受控军校 profile 来源后再批准。"
+    },
+    {
+      "seed_id": "sid-0693-xizang-agriculture",
+      "local_school_code": "0693",
+      "local_school_name": "西藏农牧学院",
+      "review_status": "needs_research",
+      "reviewer": "datahub_seed_review",
+      "reviewed_at": "2026-05-18",
+      "review_note": "当前 profile 表未检索到西藏农牧学院，需确认学校画像来源是否漏收后再批准。"
+    },
+    {
+      "seed_id": "sid-6401-uic",
+      "local_school_code": "6401",
+      "local_school_name": "北师香港浸会大学",
+      "review_status": "needs_research",
+      "reviewer": "datahub_seed_review",
+      "reviewed_at": "2026-05-18",
+      "review_note": "当前 profile 表未检索到对应中外合作办学机构，需补受控 profile 来源后再批准。"
+    },
+    {
+      "seed_id": "sid-8127-imust-baotou-normal",
+      "local_school_code": "8127",
+      "local_school_name": "内蒙古科技大学包头师范学院",
+      "review_status": "needs_research",
+      "reviewer": "datahub_seed_review",
+      "reviewed_at": "2026-05-18",
+      "review_note": "名称包含二级学院/校区口径，当前候选为内蒙古科技大学本部；需确认招生身份和 profile 口径后再批准。"
+    },
+    {
+      "seed_id": "sid-j038-armed-police-engineering",
+      "local_school_code": "J038",
+      "local_school_name": "武警工程大学",
+      "review_status": "needs_research",
+      "reviewer": "datahub_seed_review",
+      "reviewed_at": "2026-05-18",
+      "review_note": "军事院校未在当前 MOE school profile 中形成可用候选，需单独建立受控军校 profile 来源后再批准。"
+    }
+  ]
 }
