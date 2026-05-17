@@ -8811,6 +8811,60 @@ def test_build_outcome_collection_plan_from_core_admission_plan(tmp_path: Path):
     assert manifest["metric_year"] == 2024
 
 
+def test_build_outcome_collection_plan_can_skip_covered_school_outcomes(tmp_path: Path):
+    db = tmp_path / "core.duckdb"
+    con = duckdb.connect(str(db))
+    try:
+        con.execute("""
+            CREATE TABLE fa_dim_ln_admission_plan (
+                school_code VARCHAR,
+                school_name VARCHAR,
+                major_full VARCHAR,
+                batch VARCHAR,
+                subject_cat VARCHAR
+            )
+        """)
+        con.execute("""
+            CREATE TABLE fa_fact_school_outcome (
+                school_code VARCHAR,
+                metric_key VARCHAR,
+                metric_year INTEGER
+            )
+        """)
+        con.execute("""
+            INSERT INTO fa_dim_ln_admission_plan VALUES
+                ('0140', '辽宁大学', '法学', '本科批', '历史类'),
+                ('0140', '辽宁大学', '汉语言文学', '本科批', '历史类'),
+                ('0183', '吉林大学', '计算机类', '本科批', '物理类'),
+                ('0300', '东北大学', '自动化', '本科批', '物理类')
+        """)
+        con.execute("""
+            INSERT INTO fa_fact_school_outcome VALUES
+                ('0140', 'employment_rate', 2024),
+                ('0300', 'employment_rate', 2023)
+        """)
+    finally:
+        con.close()
+
+    result = build_outcome_collection_plan(
+        core_db=db,
+        output_dir=tmp_path / "collection_missing",
+        domains=["school"],
+        school_limit=10,
+        metric_year=2024,
+        missing_school_outcome_only=True,
+    )
+
+    with Path(result["csv"]).open(encoding="utf-8", newline="") as f:
+        rows = list(csv.DictReader(f))
+    entity_codes = {row["entity_code"] for row in rows}
+    assert "0140" not in entity_codes
+    assert entity_codes == {"0183", "0300"}
+    manifest = json.loads(Path(result["manifest"]).read_text(encoding="utf-8"))
+    assert manifest["missing_school_outcome_only"] is True
+    assert manifest["coverage_year"] == 2024
+
+
 def test_extract_outcome_report_candidates_from_lines(tmp_path: Path):
     rows = extract_outcome_metric_candidates_from_lines(
         [

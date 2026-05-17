@@ -45,6 +45,9 @@ def build_outcome_collection_plan(
     school_limit: int | None = None,
     major_limit: int | None = None,
     metric_year: int | None = None,
+    missing_school_outcome_only: bool = False,
+    school_outcome_table: str = "fa_fact_school_outcome",
+    coverage_year: int | None = None,
 ) -> dict[str, Any]:
     config = load_outcome_collection()
     metrics_config = load_outcome_metrics()
@@ -55,7 +58,14 @@ def build_outcome_collection_plan(
     for domain in selected_domains:
         domain_config = _domain_config(config, domain)
         limit = _domain_limit(config, domain, school_limit, major_limit)
-        entities = _read_domain_entities(core_db, domain_config, limit)
+        entities = _read_domain_entities(
+            core_db,
+            domain_config,
+            limit,
+            missing_school_outcome_only=missing_school_outcome_only and domain == "school",
+            school_outcome_table=school_outcome_table,
+            coverage_year=coverage_year or metric_year,
+        )
         all_rows.extend(_build_rows(domain, domain_config, entities, metrics_config, config, metric_year))
 
     csv_path = output_dir / "outcome_collection_plan.csv"
@@ -67,6 +77,9 @@ def build_outcome_collection_plan(
         "config_version": config.get("version"),
         "domains": selected_domains,
         "metric_year": metric_year or config.get("defaults", {}).get("metric_year"),
+        "missing_school_outcome_only": missing_school_outcome_only,
+        "school_outcome_table": school_outcome_table if missing_school_outcome_only else None,
+        "coverage_year": coverage_year or metric_year,
         "rows": len(all_rows),
         "csv": str(csv_path),
         "notes": "Collection plan only. It is not a data package and must not be imported into core.",
@@ -106,11 +119,28 @@ def _domain_limit(
     return int(value)
 
 
-def _read_domain_entities(core_db: Path, domain_config: dict[str, Any], limit: int) -> list[dict[str, Any]]:
+def _read_domain_entities(
+    core_db: Path,
+    domain_config: dict[str, Any],
+    limit: int,
+    *,
+    missing_school_outcome_only: bool,
+    school_outcome_table: str,
+    coverage_year: int | None,
+) -> list[dict[str, Any]]:
     table = domain_config["source_table"]
     code_col = domain_config["entity_code_column"]
     name_col = domain_config["entity_name_column"]
     filters, params = _filter_sql(domain_config.get("filters") or {})
+    missing_filter = ""
+    if missing_school_outcome_only:
+        missing_filter = _missing_school_outcome_filter(
+            con_path=core_db,
+            code_col=code_col,
+            school_outcome_table=school_outcome_table,
+            coverage_year=coverage_year,
+            params=params,
+        )
     params.append(limit)
     con = duckdb.connect(str(core_db), read_only=True)
     try:
@@ -124,6 +154,7 @@ def _read_domain_entities(core_db: Path, domain_config: dict[str, Any], limit: i
             WHERE {code_col} IS NOT NULL
               AND {name_col} IS NOT NULL
               {filters}
+              {missing_filter}
             GROUP BY 1, 2
             ORDER BY plan_rows DESC, entity_name ASC
             LIMIT ?
@@ -141,6 +172,42 @@ def _read_domain_entities(core_db: Path, domain_config: dict[str, Any], limit: i
         }
         for index, row in enumerate(rows, start=1)
     ]
+
+
+def _missing_school_outcome_filter(
+    *,
+    con_path: Path,
+    code_col: str,
+    school_outcome_table: str,
+    coverage_year: int | None,
+    params: list[Any],
+) -> str:
+    con = duckdb.connect(str(con_path), read_only=True)
+    try:
+        table_exists = con.execute(
+            """
+            SELECT COUNT(*)
+            FROM information_schema.tables
+            WHERE table_name = ?
+            """,
+            [school_outcome_table],
+        ).fetchone()[0]
+    finally:
+        con.close()
+    if not table_exists:
+        return ""
+    if coverage_year is not None:
+        params.append(int(coverage_year))
+        year_filter = "AND CAST(metric_year AS INTEGER) = ?"
+    else:
+        year_filter = ""
+    return f"""
+              AND CAST({code_col} AS VARCHAR) NOT IN (
+                SELECT DISTINCT CAST(school_code AS VARCHAR)
+                FROM {school_outcome_table}
+                WHERE school_code IS NOT NULL
+                  {year_filter}
+              )"""
 
 
 def _filter_sql(filters: dict[str, Any]) -> tuple[str, list[Any]]:

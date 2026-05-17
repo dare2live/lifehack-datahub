@@ -73,6 +73,9 @@ def register_outcome_commands(sub) -> None:
     build_outcome_collection.add_argument("--school-limit", type=int)
     build_outcome_collection.add_argument("--major-limit", type=int)
     build_outcome_collection.add_argument("--metric-year", type=int)
+    build_outcome_collection.add_argument("--missing-school-outcome-only", action="store_true")
+    build_outcome_collection.add_argument("--school-outcome-table", default="fa_fact_school_outcome")
+    build_outcome_collection.add_argument("--coverage-year", type=int)
 
     audit_outcome_collection = sub.add_parser(
         "audit-outcome-collection-plan",
@@ -257,6 +260,9 @@ def handle_outcome_command(args: Namespace) -> int | None:
             school_limit=args.school_limit,
             major_limit=args.major_limit,
             metric_year=args.metric_year,
+            missing_school_outcome_only=args.missing_school_outcome_only,
+            school_outcome_table=args.school_outcome_table,
+            coverage_year=args.coverage_year,
         )
         _print_json(result)
         return 0

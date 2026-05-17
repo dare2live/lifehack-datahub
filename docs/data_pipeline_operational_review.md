@@ -36,6 +36,7 @@ Tools can be modular. Scheduling, state, error handling, lineage, evidence gates
 - `audit-school-identity-review-plan` is the read-only gate before rebuilding `fa_bridge_school_identity` from a review plan. It reports approved/blocking rows, duplicate local codes, approved rows without reviewed national codes, and returns non-zero until every row is approved and package-ready.
 - `build-school-identity-review-batch` and `merge-school-identity-review-batch` now provide the controlled manual-review loop for the 72 identity/profile gaps. Reviewers work on priority-ordered batch CSVs; only review fields can be merged back into the full plan; the existing audit gate remains the final blocker before any identity package rebuild.
 - `audit-school-identity-review-seeds` and `apply-school-identity-review-seeds` now let approved identity decisions move from ignored local batches into a git-tracked seed file. Seeds are audited for duplicate local school codes, legal review statuses, dates, and approved rows without reviewed national school codes before they can update a plan.
+- `build-outcome-collection-plan --missing-school-outcome-only` now generates the school outcome collection queue from currently uncovered schools instead of only the largest admission-plan schools. It excludes schools already present in `fa_fact_school_outcome` for the requested coverage year, so report-source discovery and review batches can focus on the 1,578 missing-school P0 gap.
 
 ### CLI Coupling Reduction
 
