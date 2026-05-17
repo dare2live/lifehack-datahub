@@ -811,6 +811,19 @@
       "candidate_source_date": "2024-12-30",
       "availability_date": "2024-12-30",
       "evidence_note": "鲁迅美术学院官网专题专栏页面发布 2024 届毕业生就业质量年度报告，来源为招生就业处，页面发布时间 2024-12-30，并列出 PDF 附件；后续仍需 intake/extraction 与人工复核后才能进入 collection verified。"
+    },
+    {
+      "domain": "school",
+      "entity_code": "0161",
+      "entity_name": "大连医科大学",
+      "metric_year": 2024,
+      "report_scope": "undergraduate_teaching_quality_report",
+      "candidate_report_title": "大连医科大学2023-2024学年本科教学质量报告",
+      "candidate_report_url": "https://ime.dmu.edu.cn/info/1031/3055.htm",
+      "candidate_file_name": "大连医科大学2023-2024学年本科教学质量报告.pdf",
+      "candidate_source_date": "2024-12-05",
+      "availability_date": "2024-12-05",
+      "evidence_note": "大连医科大学教师教学发展中心官网发布《大连医科大学2023-2024学年本科教学质量报告》，页面发布时间 2024-12-05，并列出官方 PDF 附件；后续仍需 intake/extraction 与人工复核后才能进入 collection verified。"
     }
   ]
 }
