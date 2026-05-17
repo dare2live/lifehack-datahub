@@ -27,10 +27,20 @@ def build_outcome_packages_from_collection_plan(
     source_version: str | None = None,
     source_date: str | None = None,
     availability_date: str | None = None,
+    allow_partial: bool = False,
 ) -> dict[str, Any]:
     audit = audit_outcome_collection_plan(plan_csv)
     if audit["errors"]:
         raise ValueError("; ".join(audit["errors"]))
+    progress = audit.get("progress", {})
+    pending_rows = int(progress.get("pending_rows") or 0)
+    blocked_rows = int(progress.get("blocked_rows") or 0)
+    if not allow_partial and (pending_rows or blocked_rows):
+        raise ValueError(
+            "outcome collection plan is not ready for full package build: "
+            f"pending_rows={pending_rows}, blocked_rows={blocked_rows}; "
+            "pass allow_partial=True only for explicitly labeled canary/partial packages"
+        )
 
     config = load_outcome_collection()
     complete_statuses = set(str(item) for item in config["audit"]["complete_statuses"])
@@ -70,6 +80,7 @@ def build_outcome_packages_from_collection_plan(
             domain=domain,
             rows=domain_rows,
             audit=audit,
+            allow_partial=allow_partial,
         )
         package_results.append(_build_domain_package(
             rows=domain_rows,
@@ -88,6 +99,8 @@ def build_outcome_packages_from_collection_plan(
         "domains": selected_domains,
         "packages": package_results,
         "audit": audit,
+        "allow_partial": allow_partial,
+        "is_partial": bool(pending_rows or blocked_rows),
         "notes": "Built only verified/complete outcome rows. Import packages through core importer.",
     }
 
@@ -169,6 +182,7 @@ def _source_lineage(
     domain: str,
     rows: list[dict[str, Any]],
     audit: dict[str, Any],
+    allow_partial: bool,
 ) -> dict[str, Any]:
     source_urls = sorted({str(row.get("source_url") or "").strip() for row in rows if row.get("source_url")})
     source_titles = sorted({str(row.get("source_title") or "").strip() for row in rows if row.get("source_title")})
@@ -189,6 +203,9 @@ def _source_lineage(
         "row_count": len(rows),
         "metric_keys": sorted({str(row.get("metric_key") or "") for row in rows if row.get("metric_key")}),
         "status_counts": audit.get("status_counts", {}),
+        "progress": audit.get("progress", {}),
+        "allow_partial": allow_partial,
+        "is_partial": bool((audit.get("progress") or {}).get("pending_rows") or (audit.get("progress") or {}).get("blocked_rows")),
         "evidence_urls": source_urls,
         "source_titles": source_titles,
         "source_dates": source_dates,

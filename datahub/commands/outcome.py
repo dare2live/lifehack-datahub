@@ -255,6 +255,11 @@ def register_outcome_commands(sub) -> None:
     build_outcome_from_collection.add_argument("--source-version")
     build_outcome_from_collection.add_argument("--source-date")
     build_outcome_from_collection.add_argument("--availability-date")
+    build_outcome_from_collection.add_argument(
+        "--allow-partial",
+        action="store_true",
+        help="Allow canary/partial package builds when collection rows are still pending; formal release bundles must still block import.",
+    )
 
     extract_outcome_candidates = sub.add_parser(
         "extract-outcome-report-candidates",
@@ -447,6 +452,7 @@ def handle_outcome_command(args: Namespace) -> int | None:
             source_version=args.source_version,
             source_date=args.source_date,
             availability_date=args.availability_date,
+            allow_partial=args.allow_partial,
         )
         _print_json(result)
         return 0

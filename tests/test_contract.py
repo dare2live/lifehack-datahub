@@ -11201,10 +11201,18 @@ def test_build_outcome_packages_from_verified_collection_plan(tmp_path: Path):
             "notes": "",
         })
 
+    with pytest.raises(ValueError, match="pending_rows=1"):
+        build_outcome_packages_from_collection_plan(
+            plan_csv=plan,
+            output_root=tmp_path / "exports_blocked",
+            package_id="pkg-outcome-collection",
+        )
+
     result = build_outcome_packages_from_collection_plan(
         plan_csv=plan,
         output_root=tmp_path / "exports",
         package_id="pkg-outcome-collection",
+        allow_partial=True,
     )
 
     packages = {package["table"]: package for package in result["packages"]}
@@ -11216,6 +11224,8 @@ def test_build_outcome_packages_from_verified_collection_plan(tmp_path: Path):
     manifest = json.loads((school_package / "manifest.json").read_text(encoding="utf-8"))
     assert manifest["source_lineage"]["source_kind"] == "verified_outcome_collection_plan"
     assert manifest["source_lineage"]["collection_plan"] == str(plan)
+    assert manifest["source_lineage"]["allow_partial"] is True
+    assert manifest["source_lineage"]["is_partial"] is True
     assert manifest["source_lineage"]["evidence_urls"] == ["https://example.edu/report.pdf"]
     assert packages["fa_fact_school_outcome"]["source_lineage"]["target_table"] == "fa_fact_school_outcome"
     with (school_package / "fa_fact_school_outcome.csv").open(encoding="utf-8", newline="") as f:
