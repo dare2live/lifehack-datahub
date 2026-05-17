@@ -97,13 +97,22 @@
       "normal_operation_requirement": "Should distinguish direct professional roles, generalist roles, public-sector paths and postgrad paths."
     },
     {
+      "key": "broad_occupation_catalog",
+      "label": "Broad occupation catalog for Holland and career bridge",
+      "classification": "required_unavailable",
+      "business_importance": "P0",
+      "availability": "missing_for_social_and_conventional_coverage",
+      "use_depth": "current_catalog_is_digital_occupation_only",
+      "normal_operation_requirement": "Holland consulting-ready requires approved occupation mappings across R/I/A/S/E/C; current 73-row digital occupation catalog lacks high-confidence social-service occupations such as education, nursing, counseling and public health."
+    },
+    {
       "key": "holland_career_bridge",
       "label": "Holland to career bridge",
-      "classification": "not_for_formal_recommendation",
-      "business_importance": "P1",
-      "availability": "needs_review_only",
+      "classification": "required_unavailable",
+      "business_importance": "P0",
+      "availability": "approved_count_met_but_riasec_s_missing",
       "use_depth": "filtered_until_approved",
-      "normal_operation_requirement": "Only approved mappings may appear as formal career suggestions."
+      "normal_operation_requirement": "Only approved mappings may appear as formal career suggestions; consulting-ready requires at least 18 approved mappings and coverage across R/I/A/S/E/C."
     },
     {
       "key": "city_macro_context",
