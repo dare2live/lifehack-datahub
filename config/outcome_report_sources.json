@@ -268,6 +268,19 @@
     },
     {
       "domain": "school",
+      "entity_code": "0177",
+      "entity_name": "沈阳音乐学院",
+      "metric_year": 2024,
+      "report_scope": "employment_quality_report",
+      "candidate_report_title": "沈阳音乐学院2024届毕业生就业质量年度报告",
+      "candidate_report_url": "https://www.sycm.edu.cn/video/%E6%B2%88%E9%98%B3%E9%9F%B3%E4%B9%90%E5%AD%A6%E9%99%A22024%E5%B1%8A%E6%AF%95%E4%B8%9A%E7%94%9F%E5%B0%B1%E4%B8%9A%E8%B4%A8%E9%87%8F%E5%B9%B4%E5%BA%A6%E6%8A%A5%E5%91%8A.pdf",
+      "candidate_file_name": "沈阳音乐学院2024届毕业生就业质量年度报告.pdf",
+      "candidate_source_date": "2025-01-01",
+      "availability_date": "2025-01-01",
+      "evidence_note": "沈阳音乐学院官网 PDF 直链发布《沈阳音乐学院2024届毕业生就业质量年度报告》，报告说明统计截止日期为 2024-08-31；正文列出总体初次毕业去向落实率 87.57%、本科 87.24%、研究生 90.31%。"
+    },
+    {
+      "domain": "school",
       "entity_code": "1688",
       "entity_name": "山东工商学院",
       "metric_year": 2024,
@@ -291,6 +304,19 @@
       "candidate_source_date": "2024-12-04",
       "availability_date": "2024-12-04",
       "evidence_note": "浙江音乐学院信息公开网本科教学质量报告列表和详情页发布，详情页列出发布时间和 PDF 附件；附件直链为 https://xxgk.zjcm.edu.cn/attachment/20241209/e72fe454b7534e0a810e126518123260.pdf?n=%E6%B5%99%E6%B1%9F%E9%9F%B3%E4%B9%90%E5%AD%A6%E9%99%A22023-2024%E5%AD%A6%E5%B9%B4%E6%9C%AC%E7%A7%91%E6%95%99%E5%AD%A6%E8%B4%A8%E9%87%8F%E6%8A%A5%E5%91%8A。"
+    },
+    {
+      "domain": "school",
+      "entity_code": "4535",
+      "entity_name": "浙江音乐学院",
+      "metric_year": 2024,
+      "report_scope": "employment_quality_report",
+      "candidate_report_title": "2024届毕业生规模",
+      "candidate_report_url": "https://xxgk.zjcm.edu.cn/jxzlxx/bys/202411/41524.html",
+      "candidate_file_name": "浙江音乐学院2024届毕业生规模.html",
+      "candidate_source_date": "2024-09-05",
+      "availability_date": "2024-09-05",
+      "evidence_note": "浙江音乐学院信息公开网教学质量信息-毕业生页面发布 2024 届毕业生规模和去向数据，正文列出截至 2024-08-31 毕业去向落实率 96.22%、出国出境 15.28%、国内升学 14.17%。"
     },
     {
       "domain": "school",
