@@ -57,6 +57,14 @@ def assess_operational_data_portfolio(
                     "missing_school_count": area.get("missing_school_count"),
                     "missing_records_path": area.get("missing_records_path"),
                 })
+        elif item.get("business_importance") == "P0" and item.get("classification") == "required_unavailable":
+            p0_blockers.append({
+                "code": f"{str(item.get('key', '')).upper()}_NOT_OPERATIONAL",
+                "message": f"{item.get('label')} is required but classified as required_unavailable",
+                "coverage_area": area_key,
+                "availability": item.get("availability"),
+                "use_depth": item.get("use_depth"),
+            })
 
         bucket = item.get("classification")
         if bucket not in buckets:

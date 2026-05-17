@@ -23,6 +23,14 @@ def test_operational_data_portfolio_applies_coverage_blockers(tmp_path: Path):
                     "classification": "easy_but_underused",
                     "business_importance": "P1",
                 },
+                {
+                    "key": "broad_occupation_catalog",
+                    "label": "Broad occupation catalog",
+                    "classification": "required_unavailable",
+                    "business_importance": "P0",
+                    "availability": "missing_for_social_coverage",
+                    "use_depth": "too_narrow",
+                },
             ],
         }),
         encoding="utf-8",
@@ -53,9 +61,11 @@ def test_operational_data_portfolio_applies_coverage_blockers(tmp_path: Path):
     )
 
     assert report_path.exists()
-    assert report["summary"]["required_unavailable"] == 1
+    assert report["summary"]["required_unavailable"] == 2
     assert report["summary"]["easy_but_underused"] == 1
     item = report["buckets"]["required_unavailable"][0]
     assert item["key"] == "school_outcome"
     assert item["coverage"]["missing_records_path"] == "missing/outcome.csv"
     assert report["p0_blockers"][0]["code"] == "SCHOOL_OUTCOME_NOT_OPERATIONAL"
+    assert report["p0_blockers"][1]["code"] == "BROAD_OCCUPATION_CATALOG_NOT_OPERATIONAL"
+    assert report["p0_blockers"][1]["availability"] == "missing_for_social_coverage"
