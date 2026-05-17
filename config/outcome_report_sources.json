@@ -411,6 +411,19 @@
     },
     {
       "domain": "school",
+      "entity_code": "3957",
+      "entity_name": "辽宁传媒学院",
+      "metric_year": 2024,
+      "report_scope": "employment_quality_report",
+      "candidate_report_title": "辽宁传媒学院-2024年-毕业生就业质量年度报告",
+      "candidate_report_url": "https://www.lncu.edu.cn/26758.html",
+      "candidate_file_name": "辽宁传媒学院-2024年-毕业生就业质量年度报告.pdf",
+      "candidate_source_date": "2024-04-16",
+      "availability_date": "2024-04-16",
+      "evidence_note": "辽宁传媒学院官网页面发布 2024 年毕业生就业质量年度报告，页面显示发布日期 2024-04-16 并列出官方 PDF 附件；PDF 直链为 https://www.lncu.edu.cn/wp-content/uploads/2025/12/%E8%BE%BD%E5%AE%81%E4%BC%A0%E5%AA%92%E5%AD%A6%E9%99%A2-2024%E5%B9%B4-%E6%AF%95%E4%B8%9A%E7%94%9F%E5%B0%B1%E4%B8%9A%E8%B4%A8%E9%87%8F%E5%B9%B4%E5%BA%A6%E6%8A%A5%E5%91%8A-1.pdf，本机 urllib 验证为 application/pdf。"
+    },
+    {
+      "domain": "school",
       "entity_code": "0728",
       "entity_name": "西安音乐学院",
       "metric_year": 2024,
