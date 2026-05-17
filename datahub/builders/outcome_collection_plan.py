@@ -159,7 +159,7 @@ def _read_domain_entities(
     try:
         rows = con.execute(
             f"""
-            WITH grouped AS (
+            WITH name_grouped AS (
             SELECT
               CAST({code_col} AS VARCHAR) AS entity_code,
               CAST({name_col} AS VARCHAR) AS entity_name,
@@ -170,6 +170,20 @@ def _read_domain_entities(
               {filters}
               {missing_filter}
             GROUP BY 1, 2
+            ),
+            grouped AS (
+              SELECT
+                entity_code,
+                (
+                  SELECT entity_name
+                  FROM name_grouped AS candidates
+                  WHERE candidates.entity_code = name_grouped.entity_code
+                  ORDER BY candidates.plan_rows DESC, candidates.entity_name ASC
+                  LIMIT 1
+                ) AS entity_name,
+                SUM(plan_rows) AS plan_rows
+              FROM name_grouped
+              GROUP BY entity_code
             ),
             ranked AS (
               SELECT

@@ -9044,6 +9044,46 @@ def test_build_outcome_collection_plan_includes_seeded_missing_schools_beyond_li
     assert {row["priority_rank"] for row in rows if row["entity_code"] == "0177"} == {"3"}
 
 
+def test_build_outcome_collection_plan_collapses_duplicate_school_codes(tmp_path: Path):
+    db = tmp_path / "core.duckdb"
+    con = duckdb.connect(str(db))
+    try:
+        con.execute("""
+            CREATE TABLE fa_dim_ln_admission_plan (
+                school_code VARCHAR,
+                school_name VARCHAR,
+                major_full VARCHAR,
+                batch VARCHAR,
+                subject_cat VARCHAR
+            )
+        """)
+        con.execute("""
+            INSERT INTO fa_dim_ln_admission_plan VALUES
+                ('6407', '香港中文大学(深圳)', '计算机类', '本科批', '物理类'),
+                ('6407', '香港中文大学(深圳)', '金融学', '本科批', '物理类'),
+                ('6407', '香港中文大学', '经济学', '本科批', '历史类'),
+                ('0140', '辽宁大学', '法学', '本科批', '历史类')
+        """)
+    finally:
+        con.close()
+
+    result = build_outcome_collection_plan(
+        core_db=db,
+        output_dir=tmp_path / "collection_duplicate_school_codes",
+        domains=["school"],
+        school_limit=10,
+        metric_year=2024,
+    )
+
+    with Path(result["csv"]).open(encoding="utf-8", newline="") as f:
+        rows = list(csv.DictReader(f))
+    keys = [(row["domain"], row["entity_code"], row["metric_key"], row["metric_year"]) for row in rows]
+    assert len(keys) == len(set(keys))
+    assert {row["entity_code"] for row in rows} == {"6407", "0140"}
+    assert {row["entity_name"] for row in rows if row["entity_code"] == "6407"} == {"香港中文大学(深圳)"}
+    assert {row["plan_rows"] for row in rows if row["entity_code"] == "6407"} == {"3"}
+
+
 def test_extract_outcome_report_candidates_from_lines(tmp_path: Path):
     rows = extract_outcome_metric_candidates_from_lines(
         [
