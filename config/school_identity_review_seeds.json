@@ -297,6 +297,375 @@
       "reviewer": "datahub_seed_review",
       "reviewed_at": "2026-05-18",
       "review_note": "军事院校未在当前 MOE school profile 中形成可用候选，需单独建立受控军校 profile 来源后再批准。"
+    },
+    {
+      "seed_id": "sid-j031-needs-research",
+      "local_school_code": "J031",
+      "local_school_name": "火箭军工程大学",
+      "review_status": "needs_research",
+      "reviewer": "datahub_seed_review",
+      "reviewed_at": "2026-05-18",
+      "review_note": "军事院校或军检/专项招生代码当前没有可用 MOE profile 候选；需建立受控军校 profile 来源，区分普通招生代码与军检/专项代码后再批准。"
+    },
+    {
+      "seed_id": "sid-j016-needs-research",
+      "local_school_code": "J016",
+      "local_school_name": "海军航空大学",
+      "review_status": "needs_research",
+      "reviewer": "datahub_seed_review",
+      "reviewed_at": "2026-05-18",
+      "review_note": "军事院校或军检/专项招生代码当前没有可用 MOE profile 候选；需建立受控军校 profile 来源，区分普通招生代码与军检/专项代码后再批准。"
+    },
+    {
+      "seed_id": "sid-j035-needs-research",
+      "local_school_code": "J035",
+      "local_school_name": "信息支援部队工程大学",
+      "review_status": "needs_research",
+      "reviewer": "datahub_seed_review",
+      "reviewed_at": "2026-05-18",
+      "review_note": "军事院校或军检/专项招生代码当前没有可用 MOE profile 候选；需建立受控军校 profile 来源，区分普通招生代码与军检/专项代码后再批准。"
+    },
+    {
+      "seed_id": "sid-j006-needs-research",
+      "local_school_code": "J006",
+      "local_school_name": "陆军步兵学院",
+      "review_status": "needs_research",
+      "reviewer": "datahub_seed_review",
+      "reviewed_at": "2026-05-18",
+      "review_note": "军事院校或军检/专项招生代码当前没有可用 MOE profile 候选；需建立受控军校 profile 来源，区分普通招生代码与军检/专项代码后再批准。"
+    },
+    {
+      "seed_id": "sid-j039-needs-research",
+      "local_school_code": "J039",
+      "local_school_name": "武警警官学院",
+      "review_status": "needs_research",
+      "reviewer": "datahub_seed_review",
+      "reviewed_at": "2026-05-18",
+      "review_note": "军事院校或军检/专项招生代码当前没有可用 MOE profile 候选；需建立受控军校 profile 来源，区分普通招生代码与军检/专项代码后再批准。"
+    },
+    {
+      "seed_id": "sid-j033-needs-research",
+      "local_school_code": "J033",
+      "local_school_name": "军事航天部队航天工程大学",
+      "review_status": "needs_research",
+      "reviewer": "datahub_seed_review",
+      "reviewed_at": "2026-05-18",
+      "review_note": "军事院校或军检/专项招生代码当前没有可用 MOE profile 候选；需建立受控军校 profile 来源，区分普通招生代码与军检/专项代码后再批准。"
+    },
+    {
+      "seed_id": "sid-jv34-needs-research",
+      "local_school_code": "JV34",
+      "local_school_name": "网络空间部队信息工程大学",
+      "review_status": "needs_research",
+      "reviewer": "datahub_seed_review",
+      "reviewed_at": "2026-05-18",
+      "review_note": "军事院校或军检/专项招生代码当前没有可用 MOE profile 候选；需建立受控军校 profile 来源，区分普通招生代码与军检/专项代码后再批准。"
+    },
+    {
+      "seed_id": "sid-x002-needs-research",
+      "local_school_code": "X002",
+      "local_school_name": "香港中文大学",
+      "review_status": "needs_research",
+      "reviewer": "datahub_seed_review",
+      "reviewed_at": "2026-05-18",
+      "review_note": "当前 profile 候选为香港中文大学（深圳）4144016407，但本地招生名称为香港中文大学，缺少“深圳”限定；需确认辽宁招生口径是香港本部还是深圳校区/内地合作办学后再批准。"
+    },
+    {
+      "seed_id": "sid-j015-needs-research",
+      "local_school_code": "J015",
+      "local_school_name": "海军潜艇学院",
+      "review_status": "needs_research",
+      "reviewer": "datahub_seed_review",
+      "reviewed_at": "2026-05-18",
+      "review_note": "军事院校或军检/专项招生代码当前没有可用 MOE profile 候选；需建立受控军校 profile 来源，区分普通招生代码与军检/专项代码后再批准。"
+    },
+    {
+      "seed_id": "sid-jv02-needs-research",
+      "local_school_code": "JV02",
+      "local_school_name": "国防科技大学",
+      "review_status": "needs_research",
+      "reviewer": "datahub_seed_review",
+      "reviewed_at": "2026-05-18",
+      "review_note": "军事院校或军检/专项招生代码当前没有可用 MOE profile 候选；需建立受控军校 profile 来源，区分普通招生代码与军检/专项代码后再批准。"
+    },
+    {
+      "seed_id": "sid-6407-needs-research",
+      "local_school_code": "6407",
+      "local_school_name": "香港中文大学",
+      "review_status": "needs_research",
+      "reviewer": "datahub_seed_review",
+      "reviewed_at": "2026-05-18",
+      "review_note": "当前 profile 候选为香港中文大学（深圳）4144016407，但本地招生名称为香港中文大学，缺少“深圳”限定；需确认辽宁招生口径是香港本部还是深圳校区/内地合作办学后再批准。"
+    },
+    {
+      "seed_id": "sid-j027-needs-research",
+      "local_school_code": "J027",
+      "local_school_name": "空军军医大学",
+      "review_status": "needs_research",
+      "reviewer": "datahub_seed_review",
+      "reviewed_at": "2026-05-18",
+      "review_note": "军事院校或军检/专项招生代码当前没有可用 MOE profile 候选；需建立受控军校 profile 来源，区分普通招生代码与军检/专项代码后再批准。"
+    },
+    {
+      "seed_id": "sid-jv13-needs-research",
+      "local_school_code": "JV13",
+      "local_school_name": "海军工程大学",
+      "review_status": "needs_research",
+      "reviewer": "datahub_seed_review",
+      "reviewed_at": "2026-05-18",
+      "review_note": "军事院校或军检/专项招生代码当前没有可用 MOE profile 候选；需建立受控军校 profile 来源，区分普通招生代码与军检/专项代码后再批准。"
+    },
+    {
+      "seed_id": "sid-jv36-needs-research",
+      "local_school_code": "JV36",
+      "local_school_name": "联勤保障部队工程大学",
+      "review_status": "needs_research",
+      "reviewer": "datahub_seed_review",
+      "reviewed_at": "2026-05-18",
+      "review_note": "军事院校或军检/专项招生代码当前没有可用 MOE profile 候选；需建立受控军校 profile 来源，区分普通招生代码与军检/专项代码后再批准。"
+    },
+    {
+      "seed_id": "sid-9127-needs-research",
+      "local_school_code": "9127",
+      "local_school_name": "内蒙古科技大学包头医学院",
+      "review_status": "needs_research",
+      "reviewer": "datahub_seed_review",
+      "reviewed_at": "2026-05-18",
+      "review_note": "当前唯一候选为内蒙古科技大学 4115010127，但内蒙古科技大学包头医学院官方招生章程显示学校标准代码为 19127、颁发学历证书学校名称为内蒙古科技大学（包头医学院）；当前 MOE profile 未收录 19127，不能错误归并到 10127，需补受控 profile 来源后再批准。来源：https://www.btmc.edu.cn/zsxxw/info/1263/2313.htm"
+    },
+    {
+      "seed_id": "sid-j010-needs-research",
+      "local_school_code": "J010",
+      "local_school_name": "陆军防化学院",
+      "review_status": "needs_research",
+      "reviewer": "datahub_seed_review",
+      "reviewed_at": "2026-05-18",
+      "review_note": "军事院校或军检/专项招生代码当前没有可用 MOE profile 候选；需建立受控军校 profile 来源，区分普通招生代码与军检/专项代码后再批准。"
+    },
+    {
+      "seed_id": "sid-j011-needs-research",
+      "local_school_code": "J011",
+      "local_school_name": "陆军军医大学",
+      "review_status": "needs_research",
+      "reviewer": "datahub_seed_review",
+      "reviewed_at": "2026-05-18",
+      "review_note": "军事院校或军检/专项招生代码当前没有可用 MOE profile 候选；需建立受控军校 profile 来源，区分普通招生代码与军检/专项代码后再批准。"
+    },
+    {
+      "seed_id": "sid-j023-needs-research",
+      "local_school_code": "J023",
+      "local_school_name": "空军预警学院",
+      "review_status": "needs_research",
+      "reviewer": "datahub_seed_review",
+      "reviewed_at": "2026-05-18",
+      "review_note": "军事院校或军检/专项招生代码当前没有可用 MOE profile 候选；需建立受控军校 profile 来源，区分普通招生代码与军检/专项代码后再批准。"
+    },
+    {
+      "seed_id": "sid-x006-needs-research",
+      "local_school_code": "X006",
+      "local_school_name": "香港城市大学",
+      "review_status": "needs_research",
+      "reviewer": "datahub_seed_review",
+      "reviewed_at": "2026-05-18",
+      "review_note": "当前 profile 候选为香港城市大学（东莞）4144014851，但本地招生名称为香港城市大学，缺少“东莞”限定；需确认辽宁招生口径是香港本部还是东莞校区/内地合作办学后再批准。"
+    },
+    {
+      "seed_id": "sid-x012-needs-research",
+      "local_school_code": "X012",
+      "local_school_name": "香港珠海学院",
+      "review_status": "needs_research",
+      "reviewer": "datahub_seed_review",
+      "reviewed_at": "2026-05-18",
+      "review_note": "港澳高校/合作办学口径当前没有可用 profile 候选；需补受控 profile 来源并确认招生身份后再批准。"
+    },
+    {
+      "seed_id": "sid-jv04-needs-research",
+      "local_school_code": "JV04",
+      "local_school_name": "陆军工程大学",
+      "review_status": "needs_research",
+      "reviewer": "datahub_seed_review",
+      "reviewed_at": "2026-05-18",
+      "review_note": "军事院校或军检/专项招生代码当前没有可用 MOE profile 候选；需建立受控军校 profile 来源，区分普通招生代码与军检/专项代码后再批准。"
+    },
+    {
+      "seed_id": "sid-jv14-needs-research",
+      "local_school_code": "JV14",
+      "local_school_name": "海军大连舰艇学院",
+      "review_status": "needs_research",
+      "reviewer": "datahub_seed_review",
+      "reviewed_at": "2026-05-18",
+      "review_note": "军事院校或军检/专项招生代码当前没有可用 MOE profile 候选；需建立受控军校 profile 来源，区分普通招生代码与军检/专项代码后再批准。"
+    },
+    {
+      "seed_id": "sid-jv16-needs-research",
+      "local_school_code": "JV16",
+      "local_school_name": "海军航空大学",
+      "review_status": "needs_research",
+      "reviewer": "datahub_seed_review",
+      "reviewed_at": "2026-05-18",
+      "review_note": "军事院校或军检/专项招生代码当前没有可用 MOE profile 候选；需建立受控军校 profile 来源，区分普通招生代码与军检/专项代码后再批准。"
+    },
+    {
+      "seed_id": "sid-jv31-needs-research",
+      "local_school_code": "JV31",
+      "local_school_name": "火箭军工程大学",
+      "review_status": "needs_research",
+      "reviewer": "datahub_seed_review",
+      "reviewed_at": "2026-05-18",
+      "review_note": "军事院校或军检/专项招生代码当前没有可用 MOE profile 候选；需建立受控军校 profile 来源，区分普通招生代码与军检/专项代码后再批准。"
+    },
+    {
+      "seed_id": "sid-jv33-needs-research",
+      "local_school_code": "JV33",
+      "local_school_name": "军事航天部队航天工程大学",
+      "review_status": "needs_research",
+      "reviewer": "datahub_seed_review",
+      "reviewed_at": "2026-05-18",
+      "review_note": "军事院校或军检/专项招生代码当前没有可用 MOE profile 候选；需建立受控军校 profile 来源，区分普通招生代码与军检/专项代码后再批准。"
+    },
+    {
+      "seed_id": "sid-jv35-needs-research",
+      "local_school_code": "JV35",
+      "local_school_name": "信息支援部队工程大学",
+      "review_status": "needs_research",
+      "reviewer": "datahub_seed_review",
+      "reviewed_at": "2026-05-18",
+      "review_note": "军事院校或军检/专项招生代码当前没有可用 MOE profile 候选；需建立受控军校 profile 来源，区分普通招生代码与军检/专项代码后再批准。"
+    },
+    {
+      "seed_id": "sid-6412-needs-research",
+      "local_school_code": "6412",
+      "local_school_name": "香港科技大学",
+      "review_status": "needs_research",
+      "reviewer": "datahub_seed_review",
+      "reviewed_at": "2026-05-18",
+      "review_note": "当前 profile 候选为香港科技大学（广州）4144016412，但本地招生名称为香港科技大学，缺少“广州”限定；需确认辽宁招生口径是香港本部还是广州校区/内地合作办学后再批准。"
+    },
+    {
+      "seed_id": "sid-j021-needs-research",
+      "local_school_code": "J021",
+      "local_school_name": "空军航空大学",
+      "review_status": "needs_research",
+      "reviewer": "datahub_seed_review",
+      "reviewed_at": "2026-05-18",
+      "review_note": "军事院校或军检/专项招生代码当前没有可用 MOE profile 候选；需建立受控军校 profile 来源，区分普通招生代码与军检/专项代码后再批准。"
+    },
+    {
+      "seed_id": "sid-jv17-needs-research",
+      "local_school_code": "JV17",
+      "local_school_name": "海军军医大学",
+      "review_status": "needs_research",
+      "reviewer": "datahub_seed_review",
+      "reviewed_at": "2026-05-18",
+      "review_note": "军事院校或军检/专项招生代码当前没有可用 MOE profile 候选；需建立受控军校 profile 来源，区分普通招生代码与军检/专项代码后再批准。"
+    },
+    {
+      "seed_id": "sid-jv38-needs-research",
+      "local_school_code": "JV38",
+      "local_school_name": "武警工程大学",
+      "review_status": "needs_research",
+      "reviewer": "datahub_seed_review",
+      "reviewed_at": "2026-05-18",
+      "review_note": "军事院校或军检/专项招生代码当前没有可用 MOE profile 候选；需建立受控军校 profile 来源，区分普通招生代码与军检/专项代码后再批准。"
+    },
+    {
+      "seed_id": "sid-jv10-needs-research",
+      "local_school_code": "JV10",
+      "local_school_name": "陆军防化学院",
+      "review_status": "needs_research",
+      "reviewer": "datahub_seed_review",
+      "reviewed_at": "2026-05-18",
+      "review_note": "军事院校或军检/专项招生代码当前没有可用 MOE profile 候选；需建立受控军校 profile 来源，区分普通招生代码与军检/专项代码后再批准。"
+    },
+    {
+      "seed_id": "sid-jv11-needs-research",
+      "local_school_code": "JV11",
+      "local_school_name": "陆军军医大学",
+      "review_status": "needs_research",
+      "reviewer": "datahub_seed_review",
+      "reviewed_at": "2026-05-18",
+      "review_note": "军事院校或军检/专项招生代码当前没有可用 MOE profile 候选；需建立受控军校 profile 来源，区分普通招生代码与军检/专项代码后再批准。"
+    },
+    {
+      "seed_id": "sid-jv21-needs-research",
+      "local_school_code": "JV21",
+      "local_school_name": "空军航空大学",
+      "review_status": "needs_research",
+      "reviewer": "datahub_seed_review",
+      "reviewed_at": "2026-05-18",
+      "review_note": "军事院校或军检/专项招生代码当前没有可用 MOE profile 候选；需建立受控军校 profile 来源，区分普通招生代码与军检/专项代码后再批准。"
+    },
+    {
+      "seed_id": "sid-jv22-needs-research",
+      "local_school_code": "JV22",
+      "local_school_name": "空军工程大学",
+      "review_status": "needs_research",
+      "reviewer": "datahub_seed_review",
+      "reviewed_at": "2026-05-18",
+      "review_note": "军事院校或军检/专项招生代码当前没有可用 MOE profile 候选；需建立受控军校 profile 来源，区分普通招生代码与军检/专项代码后再批准。"
+    },
+    {
+      "seed_id": "sid-jv23-needs-research",
+      "local_school_code": "JV23",
+      "local_school_name": "空军预警学院",
+      "review_status": "needs_research",
+      "reviewer": "datahub_seed_review",
+      "reviewed_at": "2026-05-18",
+      "review_note": "军事院校或军检/专项招生代码当前没有可用 MOE profile 候选；需建立受控军校 profile 来源，区分普通招生代码与军检/专项代码后再批准。"
+    },
+    {
+      "seed_id": "sid-jv27-needs-research",
+      "local_school_code": "JV27",
+      "local_school_name": "空军军医大学",
+      "review_status": "needs_research",
+      "reviewer": "datahub_seed_review",
+      "reviewed_at": "2026-05-18",
+      "review_note": "军事院校或军检/专项招生代码当前没有可用 MOE profile 候选；需建立受控军校 profile 来源，区分普通招生代码与军检/专项代码后再批准。"
+    },
+    {
+      "seed_id": "sid-jx16-needs-research",
+      "local_school_code": "JX16",
+      "local_school_name": "海军航空大学",
+      "review_status": "needs_research",
+      "reviewer": "datahub_seed_review",
+      "reviewed_at": "2026-05-18",
+      "review_note": "军事院校或军检/专项招生代码当前没有可用 MOE profile 候选；需建立受控军校 profile 来源，区分普通招生代码与军检/专项代码后再批准。"
+    },
+    {
+      "seed_id": "sid-jx21-needs-research",
+      "local_school_code": "JX21",
+      "local_school_name": "空军航空大学",
+      "review_status": "needs_research",
+      "reviewer": "datahub_seed_review",
+      "reviewed_at": "2026-05-18",
+      "review_note": "军事院校或军检/专项招生代码当前没有可用 MOE profile 候选；需建立受控军校 profile 来源，区分普通招生代码与军检/专项代码后再批准。"
+    },
+    {
+      "seed_id": "sid-jy16-needs-research",
+      "local_school_code": "JY16",
+      "local_school_name": "海军航空大学",
+      "review_status": "needs_research",
+      "reviewer": "datahub_seed_review",
+      "reviewed_at": "2026-05-18",
+      "review_note": "军事院校或军检/专项招生代码当前没有可用 MOE profile 候选；需建立受控军校 profile 来源，区分普通招生代码与军检/专项代码后再批准。"
+    },
+    {
+      "seed_id": "sid-jy21-needs-research",
+      "local_school_code": "JY21",
+      "local_school_name": "空军航空大学",
+      "review_status": "needs_research",
+      "reviewer": "datahub_seed_review",
+      "reviewed_at": "2026-05-18",
+      "review_note": "军事院校或军检/专项招生代码当前没有可用 MOE profile 候选；需建立受控军校 profile 来源，区分普通招生代码与军检/专项代码后再批准。"
+    },
+    {
+      "seed_id": "sid-jz21-needs-research",
+      "local_school_code": "JZ21",
+      "local_school_name": "空军航空大学",
+      "review_status": "needs_research",
+      "reviewer": "datahub_seed_review",
+      "reviewed_at": "2026-05-18",
+      "review_note": "军事院校或军检/专项招生代码当前没有可用 MOE profile 候选；需建立受控军校 profile 来源，区分普通招生代码与军检/专项代码后再批准。"
     }
   ]
 }
