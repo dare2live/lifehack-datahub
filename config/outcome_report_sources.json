@@ -577,6 +577,19 @@
       "candidate_source_date": "2024-12-05",
       "availability_date": "2024-12-05",
       "evidence_note": "辽宁工业大学官网发布《辽宁工业大学2023-2024学年本科教学质量报告》，页面日期 2024-12-05，正文说明附件为辽宁工业大学2023—2024学年本科教学质量报告并列出 PDF 附件。"
+    },
+    {
+      "domain": "school",
+      "entity_code": "3599",
+      "entity_name": "大连艺术学院",
+      "metric_year": 2024,
+      "report_scope": "undergraduate_teaching_quality_report",
+      "candidate_report_title": "大连艺术学院2023-2024学年本科教学质量报告",
+      "candidate_report_url": "https://jwc.dac.edu.cn/detail/292_03525b2163f5b89e3c0a24cac8a64316.html",
+      "candidate_file_name": "大连艺术学院2023-2024学年本科教学质量报告.pdf",
+      "candidate_source_date": "2024-12-01",
+      "availability_date": "2024-12-01",
+      "evidence_note": "大连艺术学院教务处页面发布《大连艺术学院2023-2024学年本科教学质量报告》相关内容，页面说明学校按辽宁省教育厅通知完成报告并于 2024 年 12 月报送辽宁省教育厅高教处。"
     }
   ]
 }
