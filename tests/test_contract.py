@@ -9724,6 +9724,46 @@ def test_download_outcome_report_intake_assets_summarizes_failure_reasons(tmp_pa
     assert report["failure_reason_counts"] == {"attachment requires captcha or manual intake": 1}
 
 
+def test_download_outcome_report_intake_assets_classifies_ssl_eof_failures(tmp_path: Path, monkeypatch):
+    intake_csv = tmp_path / "outcome_report_intake_plan.csv"
+    row = {
+        "domain": "school",
+        "entity_code": "0728",
+        "entity_name": "西安音乐学院",
+        "metric_year": "2024",
+        "report_scope": "undergraduate_teaching_quality_report",
+        "candidate_report_title": "西安音乐学院2023-2024学年本科教学质量报告",
+        "candidate_report_url": "https://example.edu/report.pdf",
+        "candidate_file_name": "西安音乐学院2023-2024学年本科教学质量报告.pdf",
+        "candidate_source_date": "2024-12-31",
+        "availability_date": "2024-12-31",
+        "suggested_local_report_path": str(tmp_path / "report.pdf"),
+        "local_report_path": "",
+        "intake_status": "ready_for_intake",
+        "block_reason": "",
+        "source_status": "candidate_found",
+        "notes": "",
+    }
+    with intake_csv.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=list(row))
+        writer.writeheader()
+        writer.writerow(row)
+
+    def fake_urlopen(request, timeout=60):
+        raise OSError("EOF occurred in violation of protocol (_ssl.c:1129)")
+
+    monkeypatch.setattr("datahub.connectors.outcome_report_download.urlopen", fake_urlopen)
+
+    report = download_outcome_report_intake_assets(
+        intake_csv=intake_csv,
+        output=tmp_path / "downloaded.csv",
+    )
+
+    assert report["downloaded_rows"] == 0
+    assert report["failed_rows"] == 1
+    assert report["failure_reason_counts"] == {"ssl handshake failed; manual intake required": 1}
+
+
 def test_download_outcome_report_intake_assets_sends_referer_for_direct_attachment(tmp_path: Path, monkeypatch):
     intake_csv = tmp_path / "outcome_report_intake_plan.csv"
     row = {

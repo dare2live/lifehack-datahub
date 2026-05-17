@@ -105,6 +105,9 @@ def _failure_reason(exc: Exception) -> str:
     message = str(exc).strip()
     if not message:
         return exc.__class__.__name__
+    lower = message.lower()
+    if "ssl" in lower and ("eof occurred" in lower or "handshake" in lower or "ssl_error" in lower):
+        return "ssl handshake failed; manual intake required"
     return message.split(":", 1)[0].strip()
 
 
