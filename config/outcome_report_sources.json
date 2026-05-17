@@ -291,6 +291,19 @@
       "candidate_source_date": "2025-10-31",
       "availability_date": "2025-10-31",
       "evidence_note": "哈尔滨音乐学院官网信息公开教学质量信息页面发布，页面列出发布时间和 PDF 下载链接。"
+    },
+    {
+      "domain": "school",
+      "entity_code": "0728",
+      "entity_name": "西安音乐学院",
+      "metric_year": 2024,
+      "report_scope": "undergraduate_teaching_quality_report",
+      "candidate_report_title": "西安音乐学院2023-2024学年本科教学质量报告",
+      "candidate_report_url": "https://jiaowu.xacom.edu.cn/_upload/article/files/93/07/1e7263cf47f1bb1403a361b3c95a/b307e251-5b98-4801-a5a9-57c6ce34c9c4.pdf",
+      "candidate_file_name": "西安音乐学院2023-2024学年本科教学质量报告.pdf",
+      "candidate_source_date": "2024-12-31",
+      "availability_date": "2024-12-31",
+      "evidence_note": "西安音乐学院教务处教学质量报告列表发布 2023-2024 学年本科教学质量报告，列表页显示日期 2024-12-31；candidate_report_url 使用官方 PDF 直链。"
     }
   ]
 }
