@@ -85,6 +85,19 @@
     },
     {
       "domain": "school",
+      "entity_code": "0162",
+      "entity_name": "辽宁中医药大学",
+      "metric_year": 2024,
+      "report_scope": "undergraduate_teaching_quality_report",
+      "candidate_report_title": "辽宁中医药大学2023-2024学年本科教学质量报告",
+      "candidate_report_url": "https://xxgk.lnutcm.edu.cn/__local/9/B4/71/7473BB61DA8815993F2E184F6DD_A42474DF_7B767C.pdf",
+      "candidate_file_name": "辽宁中医药大学2023-2024学年本科教学质量报告.pdf",
+      "candidate_source_date": "2024-12-06",
+      "availability_date": "2024-12-06",
+      "evidence_note": "辽宁中医药大学信息公开站官方 PDF 发布 2023-2024 学年本科教学质量报告，搜索索引可确认封面与目录；后续 intake/extraction 只批准学校总体口径 outcome 指标。"
+    },
+    {
+      "domain": "school",
       "entity_code": "1035",
       "entity_name": "沈阳大学",
       "metric_year": 2024,
