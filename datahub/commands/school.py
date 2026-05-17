@@ -7,6 +7,7 @@ from argparse import Namespace
 from pathlib import Path
 
 from datahub.builders.school_identity import build_school_identity_package
+from datahub.builders.school_identity_review_audit import audit_school_identity_review_plan
 from datahub.builders.school_identity_review_plan import build_school_identity_review_plan
 from datahub.builders.school_location_from_amap import build_school_location_package_from_amap_geocode
 from datahub.builders.school_location_geocode_audit import audit_school_location_geocode_input
@@ -18,6 +19,7 @@ from datahub.parsers.moe_school_profile import parse_moe_school_profile_xls
 COMMANDS = {
     "build-school-identity",
     "build-school-identity-review-plan",
+    "audit-school-identity-review-plan",
     "build-school-location-geocode-input",
     "audit-school-location-geocode-input",
     "build-school-location-from-amap-geocode",
@@ -50,6 +52,14 @@ def register_school_commands(sub) -> None:
     build_school_identity_review.add_argument("--priority-missing-csv", type=Path)
     build_school_identity_review.add_argument("--source-date")
     build_school_identity_review.add_argument("--availability-date")
+
+    audit_school_identity_review = sub.add_parser(
+        "audit-school-identity-review-plan",
+        help="Audit school identity review plan readiness before building an identity package",
+    )
+    audit_school_identity_review.add_argument("--plan-csv", required=True, type=Path)
+    audit_school_identity_review.add_argument("--report", type=Path)
+    audit_school_identity_review.add_argument("--approved-status", action="append", dest="approved_statuses")
 
     build_school_location_geocode_input = sub.add_parser(
         "build-school-location-geocode-input",
@@ -117,6 +127,14 @@ def handle_school_command(args: Namespace) -> int | None:
         )
         _print_json(result)
         return 0
+    if args.cmd == "audit-school-identity-review-plan":
+        report = audit_school_identity_review_plan(
+            plan_csv=args.plan_csv,
+            report_path=args.report,
+            approved_statuses=args.approved_statuses,
+        )
+        _print_json(report)
+        return 0 if report["ready"]["ready_for_identity_package"] else 1
     if args.cmd == "build-school-location-geocode-input":
         result = build_school_location_geocode_input_plan(
             core_db=args.core_db,

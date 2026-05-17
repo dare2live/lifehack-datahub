@@ -130,6 +130,7 @@ from datahub.config import (
     load_source_schemas,
 )
 from datahub.builders.school_identity import build_school_identity_package
+from datahub.builders.school_identity_review_audit import audit_school_identity_review_plan
 from datahub.builders.school_identity_review_plan import build_school_identity_review_plan
 from datahub.builders.school_location_geocode_audit import audit_school_location_geocode_input
 from datahub.builders.school_location_from_amap import build_school_location_package_from_amap_geocode
@@ -11312,6 +11313,60 @@ def test_build_school_identity_review_plan_suggests_base_school(tmp_path: Path):
         bridge_rows = list(csv.DictReader(f))
     assert bridge_rows[0]["local_school_code"] == "9001"
     assert bridge_rows[0]["match_method"] == "reviewed_identity_mapping"
+
+
+def test_audit_school_identity_review_plan_blocks_until_approved(tmp_path: Path):
+    plan = tmp_path / "school_identity_review_plan.csv"
+    rows = [
+        {
+            "priority_rank": "1",
+            "priority_score": "109",
+            "local_school_code": "9001",
+            "local_school_name": "北京大学医学部",
+            "plan_row_count": "10",
+            "major_count": "9",
+            "batches": "本科批",
+            "subject_cats": "历史类|物理类",
+            "reason": "unmatched",
+            "candidate_count": "0",
+            "suggested_national_school_code": "4111010001",
+            "suggested_school_name": "北京大学",
+            "suggested_province": "北京市",
+            "suggested_city": "北京市",
+            "suggestion_method": "base_name_contains_profile",
+            "suggestion_count": "1",
+            "review_status": "todo",
+            "reviewed_national_school_code": "",
+            "reviewer": "",
+            "reviewed_at": "",
+            "source_date": "2026-05-13",
+            "availability_date": "2026-05-13",
+            "built_at": "2026-05-13T00:00:00",
+            "notes": "",
+        }
+    ]
+    with plan.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=list(rows[0]))
+        writer.writeheader()
+        writer.writerows(rows)
+
+    report = audit_school_identity_review_plan(plan_csv=plan)
+
+    assert report["rows"] == 1
+    assert report["blocking_rows"] == 1
+    assert report["ready"]["ready_for_identity_package"] is False
+
+    rows[0]["review_status"] = "approved"
+    rows[0]["reviewed_national_school_code"] = "4111010001"
+    with plan.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=list(rows[0]))
+        writer.writeheader()
+        writer.writerows(rows)
+    approved_report = audit_school_identity_review_plan(plan_csv=plan, report_path=tmp_path / "audit.json")
+
+    assert approved_report["approved_rows"] == 1
+    assert approved_report["ready"]["ready_for_identity_package"] is True
+    assert json.loads((tmp_path / "audit.json").read_text(encoding="utf-8"))["ready"]["ready_for_identity_package"] is True
 
 
 def test_build_score_history_snapshot_filters_incomplete_rows(tmp_path: Path):
