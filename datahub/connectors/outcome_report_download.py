@@ -13,7 +13,7 @@ from datetime import datetime
 from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any
-from urllib.parse import unquote, urljoin, urlparse
+from urllib.parse import quote, unquote, urljoin, urlparse, urlsplit, urlunsplit
 from urllib.request import Request, urlopen
 
 from datahub.builders.outcome_report_intake_plan import PLAN_COLUMNS
@@ -153,14 +153,23 @@ def _download_row(row: dict[str, Any], *, timeout: int) -> dict[str, Any]:
 def _open(url: str, *, timeout: int, referer: str | None = None) -> dict[str, Any]:
     headers = {"User-Agent": USER_AGENT}
     if referer:
-        headers["Referer"] = referer
-    request = Request(url, headers=headers)
+        headers["Referer"] = _iri_to_uri(referer)
+    request = Request(_iri_to_uri(url), headers=headers)
     with urlopen(request, timeout=timeout) as response:
         return {
             "url": response.geturl(),
             "content_type": str(response.headers.get("Content-Type") or ""),
             "body": response.read(),
         }
+
+
+def _iri_to_uri(url: str) -> str:
+    parts = urlsplit(url)
+    netloc = parts.netloc.encode("idna").decode("ascii")
+    path = quote(unquote(parts.path), safe="/%")
+    query = quote(unquote(parts.query), safe="=&?/:;+,%")
+    fragment = quote(unquote(parts.fragment), safe="=&?/:;+,%")
+    return urlunsplit((parts.scheme, netloc, path, query, fragment))
 
 
 def _looks_like_file_response(url: str, content_type: str, body: bytes) -> bool:

@@ -8968,6 +8968,78 @@ def test_build_outcome_collection_plan_can_skip_covered_school_outcomes(tmp_path
     assert manifest["coverage_year"] == 2024
 
 
+def test_build_outcome_collection_plan_includes_seeded_missing_schools_beyond_limit(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    db = tmp_path / "core.duckdb"
+    con = duckdb.connect(str(db))
+    try:
+        con.execute("""
+            CREATE TABLE fa_dim_ln_admission_plan (
+                school_code VARCHAR,
+                school_name VARCHAR,
+                major_full VARCHAR,
+                batch VARCHAR,
+                subject_cat VARCHAR
+            )
+        """)
+        con.execute("""
+            CREATE TABLE fa_fact_school_outcome (
+                school_code VARCHAR,
+                metric_key VARCHAR,
+                metric_year INTEGER
+            )
+        """)
+        con.execute("""
+            INSERT INTO fa_dim_ln_admission_plan VALUES
+                ('0001', '高频学校', '法学', '本科批', '历史类'),
+                ('0001', '高频学校', '汉语言文学', '本科批', '历史类'),
+                ('0002', '中频学校', '计算机类', '本科批', '物理类'),
+                ('0177', '沈阳音乐学院', '音乐表演', '本科批', '历史类')
+        """)
+    finally:
+        con.close()
+
+    monkeypatch.setattr(
+        "datahub.builders.outcome_collection_plan.load_outcome_report_sources",
+        lambda: {
+            "seeds": [
+                {
+                    "domain": "school",
+                    "entity_code": "0177",
+                    "entity_name": "沈阳音乐学院",
+                    "metric_year": 2024,
+                    "report_scope": "undergraduate_teaching_quality_report",
+                },
+                {
+                    "domain": "school",
+                    "entity_code": "0002",
+                    "entity_name": "中频学校",
+                    "metric_year": 2024,
+                    "report_scope": "undergraduate_teaching_quality_report",
+                    "seed_status": "rejected",
+                },
+            ]
+        },
+    )
+
+    result = build_outcome_collection_plan(
+        core_db=db,
+        output_dir=tmp_path / "collection_seeded_missing",
+        domains=["school"],
+        school_limit=1,
+        metric_year=2024,
+        missing_school_outcome_only=True,
+    )
+
+    with Path(result["csv"]).open(encoding="utf-8", newline="") as f:
+        rows = list(csv.DictReader(f))
+    entity_codes = {row["entity_code"] for row in rows}
+    assert entity_codes == {"0001", "0177"}
+    assert {row["priority_rank"] for row in rows if row["entity_code"] == "0177"} == {"3"}
+
+
 def test_extract_outcome_report_candidates_from_lines(tmp_path: Path):
     rows = extract_outcome_metric_candidates_from_lines(
         [
@@ -9715,6 +9787,72 @@ def test_download_outcome_report_intake_assets_sends_referer_for_direct_attachme
 
     assert report["downloaded_rows"] == 1
     assert seen_headers["Referer"] == row["candidate_report_url"]
+
+
+def test_download_outcome_report_intake_assets_percent_encodes_chinese_direct_url(tmp_path: Path, monkeypatch):
+    intake_csv = tmp_path / "outcome_report_intake_plan.csv"
+    row = {
+        "domain": "school",
+        "entity_code": "0177",
+        "entity_name": "沈阳音乐学院",
+        "metric_year": "2024",
+        "report_scope": "undergraduate_teaching_quality_report",
+        "candidate_report_title": "沈阳音乐学院2023-2024学年本科教学质量报告",
+        "candidate_report_url": "https://example.edu/video/沈阳音乐学院2023-2024学年本科教学质量报告.pdf",
+        "candidate_file_name": "沈阳音乐学院2023-2024学年本科教学质量报告.pdf",
+        "candidate_source_date": "2024-12-05",
+        "availability_date": "2024-12-05",
+        "suggested_local_report_path": str(tmp_path / "sycm.pdf"),
+        "local_report_path": "",
+        "intake_status": "ready_for_intake",
+        "block_reason": "",
+        "source_status": "candidate_found",
+        "notes": "",
+    }
+    with intake_csv.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=list(row))
+        writer.writeheader()
+        writer.writerow(row)
+
+    class FakeHeaders:
+        def get(self, name: str, default=None):
+            return "application/pdf" if name == "Content-Type" else default
+
+    class FakeResponse:
+        headers = FakeHeaders()
+
+        def __init__(self, url: str):
+            self._url = url
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def read(self):
+            return b"%PDF-1.7\nsycm fixture"
+
+        def geturl(self):
+            return self._url
+
+    seen = {}
+
+    def fake_urlopen(request, timeout=60):
+        seen["url"] = request.full_url
+        seen["referer"] = request.headers["Referer"]
+        assert "%E6%B2%88%E9%98%B3%E9%9F%B3%E4%B9%90%E5%AD%A6%E9%99%A2" in request.full_url
+        return FakeResponse(request.full_url)
+
+    monkeypatch.setattr("datahub.connectors.outcome_report_download.urlopen", fake_urlopen)
+
+    report = download_outcome_report_intake_assets(
+        intake_csv=intake_csv,
+        output=tmp_path / "downloaded.csv",
+    )
+
+    assert report["downloaded_rows"] == 1
+    assert seen["url"] == seen["referer"]
 
 
 def test_cli_download_outcome_report_intake_assets_can_allow_partial_failures(tmp_path: Path, monkeypatch):

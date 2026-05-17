@@ -9,7 +9,7 @@ from typing import Any
 
 import duckdb
 
-from datahub.config import load_outcome_collection, load_outcome_metrics
+from datahub.config import load_outcome_collection, load_outcome_metrics, load_outcome_report_sources
 
 
 PLAN_COLUMNS = [
@@ -58,13 +58,20 @@ def build_outcome_collection_plan(
     for domain in selected_domains:
         domain_config = _domain_config(config, domain)
         limit = _domain_limit(config, domain, school_limit, major_limit)
+        target_metric_year = metric_year or config.get("defaults", {}).get("metric_year")
+        seeded_entity_codes = (
+            _seeded_entity_codes_for_domain(domain=domain, metric_year=target_metric_year)
+            if missing_school_outcome_only and domain == "school"
+            else []
+        )
         entities = _read_domain_entities(
             core_db,
             domain_config,
             limit,
             missing_school_outcome_only=missing_school_outcome_only and domain == "school",
             school_outcome_table=school_outcome_table,
-            coverage_year=coverage_year or metric_year,
+            coverage_year=coverage_year or target_metric_year,
+            seeded_entity_codes=seeded_entity_codes,
         )
         all_rows.extend(_build_rows(domain, domain_config, entities, metrics_config, config, metric_year))
 
@@ -127,6 +134,7 @@ def _read_domain_entities(
     missing_school_outcome_only: bool,
     school_outcome_table: str,
     coverage_year: int | None,
+    seeded_entity_codes: list[str],
 ) -> list[dict[str, Any]]:
     table = domain_config["source_table"]
     code_col = domain_config["entity_code_column"]
@@ -141,11 +149,17 @@ def _read_domain_entities(
             coverage_year=coverage_year,
             params=params,
         )
+    seed_filter = ""
+    if seeded_entity_codes:
+        placeholders = ", ".join(["?"] * len(seeded_entity_codes))
+        seed_filter = f"OR entity_code IN ({placeholders})"
     params.append(limit)
+    params.extend(seeded_entity_codes)
     con = duckdb.connect(str(core_db), read_only=True)
     try:
         rows = con.execute(
             f"""
+            WITH grouped AS (
             SELECT
               CAST({code_col} AS VARCHAR) AS entity_code,
               CAST({name_col} AS VARCHAR) AS entity_name,
@@ -156,8 +170,20 @@ def _read_domain_entities(
               {filters}
               {missing_filter}
             GROUP BY 1, 2
-            ORDER BY plan_rows DESC, entity_name ASC
-            LIMIT ?
+            ),
+            ranked AS (
+              SELECT
+                entity_code,
+                entity_name,
+                plan_rows,
+                ROW_NUMBER() OVER (ORDER BY plan_rows DESC, entity_name ASC) AS priority_rank
+              FROM grouped
+            )
+            SELECT entity_code, entity_name, plan_rows, priority_rank
+            FROM ranked
+            WHERE priority_rank <= ?
+              {seed_filter}
+            ORDER BY priority_rank ASC
             """,
             params,
         ).fetchall()
@@ -168,10 +194,34 @@ def _read_domain_entities(
             "entity_code": row[0],
             "entity_name": row[1],
             "plan_rows": int(row[2]),
-            "priority_rank": index,
+            "priority_rank": int(row[3]),
         }
-        for index, row in enumerate(rows, start=1)
+        for row in rows
     ]
+
+
+def _seeded_entity_codes_for_domain(*, domain: str, metric_year: int | str | None) -> list[str]:
+    try:
+        seeds = load_outcome_report_sources().get("seeds") or []
+    except FileNotFoundError:
+        return []
+    target_year = str(metric_year or "").strip()
+    codes = []
+    seen = set()
+    for seed in seeds:
+        if not isinstance(seed, dict):
+            continue
+        if str(seed.get("domain") or "").strip() != domain:
+            continue
+        if str(seed.get("seed_status") or "").strip() == "rejected":
+            continue
+        if target_year and str(seed.get("metric_year") or "").strip() != target_year:
+            continue
+        code = str(seed.get("entity_code") or "").strip()
+        if code and code not in seen:
+            seen.add(code)
+            codes.append(code)
+    return codes
 
 
 def _missing_school_outcome_filter(
