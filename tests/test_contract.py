@@ -9740,6 +9740,82 @@ def test_download_outcome_report_intake_assets_extracts_cloud_zip_attachment(tmp
     assert rows[0]["download_sha256"] == hashlib.sha256(pdf_body).hexdigest()
 
 
+def test_download_outcome_report_intake_assets_follows_vsb_pdf_iframe(tmp_path: Path, monkeypatch):
+    intake_csv = tmp_path / "outcome_report_intake_plan.csv"
+    target_pdf = tmp_path / "raw" / "outcome_report" / "2024" / "maple.pdf"
+    row = {
+        "domain": "school",
+        "entity_code": "3961",
+        "entity_name": "大连枫叶职业技术学院",
+        "metric_year": "2024",
+        "report_scope": "employment_quality_report",
+        "candidate_report_title": "大连枫叶职业技术学院2024年质量年报",
+        "candidate_report_url": "https://example.edu/info/1044/5895.htm",
+        "candidate_file_name": "大连枫叶职业技术学院2024年质量年报.pdf",
+        "candidate_source_date": "2025-02-16",
+        "availability_date": "2025-02-16",
+        "suggested_local_report_path": str(target_pdf),
+        "local_report_path": "",
+        "intake_status": "ready_for_intake",
+        "block_reason": "",
+        "source_status": "candidate_found",
+        "notes": "",
+    }
+    with intake_csv.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=list(row))
+        writer.writeheader()
+        writer.writerow(row)
+
+    class FakeHeaders:
+        def __init__(self, content_type: str):
+            self._content_type = content_type
+
+        def get(self, name: str, default=None):
+            return self._content_type if name == "Content-Type" else default
+
+    class FakeResponse:
+        def __init__(self, url: str, body: bytes, content_type: str):
+            self._url = url
+            self._body = body
+            self.headers = FakeHeaders(content_type)
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def read(self):
+            return self._body
+
+        def geturl(self):
+            return self._url
+
+    def fake_urlopen(request, timeout=60):
+        url = request.full_url
+        if url.endswith("/info/1044/5895.htm"):
+            html = '<script>showVsbpdfIframe("/__local/A/D6/21/maple.pdf","100%","600","0","",vsb_pdf_image_data);</script>'
+            return FakeResponse(url, html.encode("utf-8"), "text/html; charset=utf-8")
+        if url.endswith("/__local/A/D6/21/maple.pdf"):
+            return FakeResponse(url, b"%PDF-1.4 maple fixture", "application/pdf")
+        raise AssertionError(url)
+
+    monkeypatch.setattr("datahub.connectors.outcome_report_download.urlopen", fake_urlopen)
+
+    output = tmp_path / "outcome_report_intake_plan.downloaded.csv"
+    report = download_outcome_report_intake_assets(
+        intake_csv=intake_csv,
+        output=output,
+    )
+
+    assert report["downloaded_rows"] == 1
+    assert report["failed_rows"] == 0
+    assert target_pdf.read_bytes() == b"%PDF-1.4 maple fixture"
+    with output.open(encoding="utf-8", newline="") as f:
+        rows = list(csv.DictReader(f))
+    assert rows[0]["download_url"] == "https://example.edu/__local/A/D6/21/maple.pdf"
+
+
 def test_download_outcome_report_intake_assets_summarizes_failure_reasons(tmp_path: Path, monkeypatch):
     intake_csv = tmp_path / "outcome_report_intake_plan.csv"
     row = {

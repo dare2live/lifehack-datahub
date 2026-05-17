@@ -46,6 +46,7 @@ FILE_EXTENSIONS = (".pdf", ".ofd", ".doc", ".docx", ".zip")
 REPORT_EXTENSIONS = (".pdf", ".ofd", ".doc", ".docx")
 USER_AGENT = "Mozilla/5.0"
 CLOUD_IFRAME_NAME_RE = re.compile(r"name=\\\\\"([^\\\\\"]+)\\\\\"|name=\\\"([^\\\"]+)\\\"|name=\"([^\"]+)\"")
+VSB_PDF_IFRAME_RE = re.compile(r"showVsbpdfIframe\(\s*['\"]([^'\"]+\.pdf(?:\?[^'\"]*)?)['\"]", re.IGNORECASE)
 
 
 def download_outcome_report_intake_assets(
@@ -293,6 +294,11 @@ def _find_attachment_url(page_url: str, body: bytes, content_type: str, file_nam
             reverse=True,
         )
     if not scored:
+        scored = sorted(
+            ((score, href) for href in _vsb_pdf_iframe_urls(page_url, text) if (score := _link_score(href, href, file_name)) > 0),
+            reverse=True,
+        )
+    if not scored:
         reason = _embedded_report_page_reason(text)
         raise ValueError(f"{reason}: {page_url}")
     return scored[0][1]
@@ -315,6 +321,15 @@ def _cloud_attachment_urls(page_url: str, text: str) -> list[str]:
             candidate = str(attachment.get(key) or "").strip()
             if candidate:
                 urls.append(urljoin(page_url, candidate))
+    return urls
+
+
+def _vsb_pdf_iframe_urls(page_url: str, text: str) -> list[str]:
+    urls = []
+    for match in VSB_PDF_IFRAME_RE.finditer(text):
+        candidate = str(match.group(1) or "").strip()
+        if candidate:
+            urls.append(urljoin(page_url, candidate))
     return urls
 
 
