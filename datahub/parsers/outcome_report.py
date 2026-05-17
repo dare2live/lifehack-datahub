@@ -8,7 +8,10 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Any, Iterable
 
-from pypdf import PdfReader
+try:
+    from pypdf import PdfReader
+except Exception:
+    PdfReader = None
 
 from datahub.config import load_outcome_metrics
 
@@ -57,6 +60,7 @@ def extract_outcome_metric_candidates_from_pdf(
     availability_date: str,
 ) -> list[dict[str, Any]]:
     _require_pdf_file(path)
+    _require_pdf_reader()
     reader = PdfReader(str(path))
     page_lines: list[tuple[int, str]] = []
     for page_index, page in enumerate(reader.pages, start=1):
@@ -209,6 +213,11 @@ def _require_pdf_file(path: Path) -> None:
         raise ValueError(f"outcome report is HTML, not PDF: {path}")
     if not header.startswith(b"%PDF"):
         raise ValueError(f"outcome report has invalid PDF header: {path}")
+
+
+def _require_pdf_reader() -> None:
+    if PdfReader is None:
+        raise RuntimeError("pypdf is required for PDF report parsing. Install dependencies with: pip install pypdf")
 
 
 def _require_ofd_file(path: Path) -> None:

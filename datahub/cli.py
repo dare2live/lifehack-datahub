@@ -154,6 +154,7 @@ from .parsers.outcome_report import (
     write_outcome_metric_candidate_csv,
 )
 from .source_audit import audit_sources
+from .orchestrator import audit_update, replay_update, run_update, run_update_batch, status_update
 from .validators.package_validator import validate_manifest
 
 
@@ -959,6 +960,55 @@ def main() -> int:
     build_data_update_batch_plan_parser.add_argument("--source-key", action="append", dest="source_keys")
     build_data_update_batch_plan_parser.add_argument("--no-include-dependencies", action="store_true")
     build_data_update_batch_plan_parser.add_argument("--update-run-id")
+
+    run_update_parser = sub.add_parser(
+        "run",
+        help="Run update governance controls and persist fa_meta_* artifacts for selected sources",
+    )
+    run_update_parser.add_argument("--output-root", required=True, type=Path)
+    run_update_parser.add_argument("--source-key", action="append", dest="source_keys")
+    run_update_parser.add_argument("--no-include-dependencies", action="store_true")
+    run_update_parser.add_argument("--update-run-id")
+    run_update_parser.add_argument("--source-date")
+    run_update_parser.add_argument("--availability-date")
+
+    run_update_batch_parser = sub.add_parser(
+        "run-batch",
+        help="Run one planned batch key/order from the generated batch plan",
+    )
+    run_update_batch_parser.add_argument("--output-root", required=True, type=Path)
+    run_update_batch_parser.add_argument("--batch-key")
+    run_update_batch_parser.add_argument("--batch-order", type=int)
+    run_update_batch_parser.add_argument("--source-key", action="append", dest="source_keys")
+    run_update_batch_parser.add_argument("--no-include-dependencies", action="store_true")
+    run_update_batch_parser.add_argument("--update-run-id")
+    run_update_batch_parser.add_argument("--source-date")
+    run_update_batch_parser.add_argument("--availability-date")
+
+    status_update_parser = sub.add_parser(
+        "status",
+        help="Read latest or specified update run status from output-root metadata",
+    )
+    status_update_parser.add_argument("--output-root", required=True, type=Path)
+    status_update_parser.add_argument("--run-id")
+
+    replay_update_parser = sub.add_parser(
+        "replay",
+        help="Replay a previous run id with optional source filtering",
+    )
+    replay_update_parser.add_argument("--from-run-id", required=True)
+    replay_update_parser.add_argument("--output-root", required=True, type=Path)
+    replay_update_parser.add_argument("--source-key", action="append", dest="source_keys")
+    replay_update_parser.add_argument("--update-run-id")
+    replay_update_parser.add_argument("--source-date")
+    replay_update_parser.add_argument("--availability-date")
+
+    audit_update_parser = sub.add_parser(
+        "audit",
+        help="Run update policy audit or audit artifacts for a completed run",
+    )
+    audit_update_parser.add_argument("--output-root", required=True, type=Path)
+    audit_update_parser.add_argument("--run-id")
 
     sub.add_parser(
         "audit-data-update-policy",
@@ -1969,6 +2019,52 @@ def main() -> int:
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
+    if args.cmd == "run":
+        result = run_update(
+            output_root=args.output_root,
+            source_keys=args.source_keys,
+            include_dependencies=not args.no_include_dependencies,
+            update_run_id=args.update_run_id,
+            source_date=args.source_date,
+            availability_date=args.availability_date,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0 if not result.get("errors") else 1
+    if args.cmd == "run-batch":
+        if not any([args.batch_key, args.batch_order, args.source_keys]):
+            print(json.dumps({"errors": ["one of --batch-key, --batch-order, --source-key is required"]}, ensure_ascii=False, indent=2))
+            return 1
+        result = run_update_batch(
+            output_root=args.output_root,
+            batch_key=args.batch_key,
+            batch_order=args.batch_order,
+            source_keys=args.source_keys,
+            include_dependencies=not args.no_include_dependencies,
+            update_run_id=args.update_run_id,
+            source_date=args.source_date,
+            availability_date=args.availability_date,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0 if not result.get("errors") else 1
+    if args.cmd == "status":
+        result = status_update(output_root=args.output_root, run_id=args.run_id)
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0 if result.get("status") in {"ok", "warning"} else 1
+    if args.cmd == "replay":
+        result = replay_update(
+            output_root=args.output_root,
+            from_run_id=args.from_run_id,
+            source_keys=args.source_keys,
+            update_run_id=args.update_run_id,
+            source_date=args.source_date,
+            availability_date=args.availability_date,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0 if not result.get("errors") else 1
+    if args.cmd == "audit":
+        result = audit_update(output_root=args.output_root, run_id=args.run_id)
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0 if result.get("status") != "error" else 1
     if args.cmd == "audit-data-update-policy":
         report = audit_data_update_policy()
         print(json.dumps(report, ensure_ascii=False, indent=2))

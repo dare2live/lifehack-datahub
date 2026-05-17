@@ -212,6 +212,30 @@ python3 scripts/build_package.py build-data-update-batch-plan \
   --output-dir staging/update_plans/city_development_batches
 ```
 
+完成计划编排后，用治理 runbook 命令把 plan/readiness/batch 三类产物统一落地为
+`fa_meta_update_run/_step/_source_health` 运行元数据（本地用于 status/audit 与回放）：
+
+```bash
+python3 scripts/build_package.py run \
+  --output-root staging/update_runs \
+  --source-key city_development_score
+
+python3 scripts/build_package.py run-batch \
+  --output-root staging/update_runs \
+  --batch-key 01_001_serial_career_signal
+
+python3 scripts/build_package.py status \
+  --output-root staging/update_runs
+
+python3 scripts/build_package.py audit \
+  --output-root staging/update_runs \
+  --run-id dh_update_20260515T...
+
+python3 scripts/build_package.py replay \
+  --from-run-id dh_update_20260515T... \
+  --output-root staging/update_runs
+```
+
 运行原则：`remote_file` 先验证 URL/hash/文件类型/source_date；`web_api` 先验证 endpoint、业务状态、响应 schema、配额和密钥不落盘；`manual_file` 先做受控 intake；`collection_plan` 先补齐证据 URL、摘录、日期、指标注册和值域；`derived_mart` 必须有上游 package lineage、评分档案、原因码和非空输出。任何阻断项未解决时，只能停留在 raw、候选、复核或 staging，不能发布标准包，也不能导入 core。
 
 增量不是“直接改旧表”。DataHub 用 `state_management` 统一管理 snapshot_id、content_hash、partition state、supersede 和 delete policy：远程文件 hash 变化先生成新 raw snapshot 和差异报告；分区数据只替换命中分区；快照类数据只追加；非标网页/OCR/PDF/招聘和租售信息先进入候选与小批复核；删除已有 core 行必须由 reconciliation plan 产出 delete plan，且 core 侧先 dry-run。来源健康状态统一记录为 `healthy/degraded/unavailable/stale_source/schema_changed/hash_changed/quota_limited/manual_review_pending`，失败源只阻断依赖它的下游，保留上一次可用数据包。

@@ -2,6 +2,7 @@
 __pycache__/
 *.py[cod]
 .pytest_cache/
+.codegraph/
 .venv/
 
 # Data files stay local unless explicitly published as sanitized fixtures.

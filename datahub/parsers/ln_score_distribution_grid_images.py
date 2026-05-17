@@ -11,8 +11,14 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-import numpy as np
-from PIL import Image, ImageEnhance, ImageOps
+try:
+    import numpy as np
+except Exception:
+    np = None
+try:
+    from PIL import Image, ImageEnhance, ImageOps
+except Exception:
+    Image = ImageEnhance = ImageOps = None
 
 from datahub.config import get_table_schema, load_sources
 from datahub.connectors.macos_vision_ocr import SCRIPT_PATH
@@ -48,6 +54,7 @@ def parse_score_distribution_grid_images(
     work_dir: Path,
     swiftc: str = "swiftc",
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    _require_image_dependencies()
     config = _load_grid_config(source_key)
     work_dir.mkdir(parents=True, exist_ok=True)
     row_images = _build_row_images(image_paths, work_dir=work_dir, config=config)
@@ -140,6 +147,7 @@ def _load_grid_config(source_key: str) -> dict[str, Any]:
 
 
 def _build_row_images(image_paths: list[Path], *, work_dir: Path, config: dict[str, Any]) -> list[GridRowImage]:
+    _require_image_dependencies()
     row_images: list[GridRowImage] = []
     for image_path in image_paths:
         image = Image.open(image_path).convert("L")
@@ -161,6 +169,7 @@ def _build_row_images(image_paths: list[Path], *, work_dir: Path, config: dict[s
 
 
 def _detect_horizontal_lines(block: Image.Image, config: dict[str, Any]) -> list[int]:
+    _require_image_dependencies()
     array = np.array(block)
     black = array < config["line_black_threshold"]
     line_score = black.mean(axis=1)
@@ -188,6 +197,7 @@ def _row_intervals(lines: list[int], height: int, config: dict[str, Any]) -> lis
 
 
 def _prepare_row_image(block: Image.Image, y0: int, y1: int, config: dict[str, Any]) -> Image.Image | None:
+    _require_image_dependencies()
     padding = config["row_padding_px"]
     row = block.crop((0, max(0, y0 + padding), block.width, min(block.height, y1 - padding)))
     if row.height < 6 or row.width < 30:
@@ -196,6 +206,13 @@ def _prepare_row_image(block: Image.Image, y0: int, y1: int, config: dict[str, A
     row = ImageEnhance.Contrast(row).enhance(config["contrast"])
     scale = config["upscale"]
     return row.resize((row.width * scale, row.height * scale))
+
+
+def _require_image_dependencies() -> None:
+    if np is None or Image is None or ImageEnhance is None or ImageOps is None:
+        raise RuntimeError(
+            "image dependencies are missing. Install dependencies with: pip install numpy pillow"
+        )
 
 
 def _run_row_ocr(row_images: list[GridRowImage], *, config: dict[str, Any], swiftc: str) -> list[dict[str, Any]]:
