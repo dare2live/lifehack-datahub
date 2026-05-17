@@ -12680,6 +12680,8 @@ def test_build_school_location_geocode_input_plan(tmp_path: Path):
             ('99999', '测试学院', '辽宁大连', '本科批'),
             ('66666', '待审核学院', '辽宁沈阳', '本科批'),
             ('88888', '未匹配学院', '辽宁鞍山', '专科批'),
+            ('6407', '香港中文大学(深圳)', '广东深圳市', '本科批'),
+            ('6407', '香港中文大学', '广东深圳市', '艺术类本科批'),
             ('77777', '过滤学院', '辽宁沈阳', '艺术类')
         """)
     finally:
@@ -12716,6 +12718,12 @@ def test_build_school_location_geocode_input_plan(tmp_path: Path):
             "province": "辽宁省",
             "city": "沈阳市",
         })
+        writer.writerow({
+            "national_school_code": "4144016407",
+            "school_name": "香港中文大学(深圳)",
+            "province": "广东省",
+            "city": "深圳市",
+        })
 
     identity_csv = tmp_path / "school_identity.csv"
     with identity_csv.open("w", encoding="utf-8", newline="") as f:
@@ -12723,6 +12731,7 @@ def test_build_school_location_geocode_input_plan(tmp_path: Path):
         writer.writeheader()
         writer.writerow({"local_school_code": "99999", "national_school_code": "4121099999", "review_status": "approved"})
         writer.writerow({"local_school_code": "9145", "national_school_code": "4121010145", "review_status": "approved"})
+        writer.writerow({"local_school_code": "6407", "national_school_code": "4144016407", "review_status": "approved"})
         writer.writerow({"local_school_code": "66666", "national_school_code": "4121066666", "review_status": "needs_review"})
 
     result = build_school_location_geocode_input_plan(
@@ -12733,12 +12742,12 @@ def test_build_school_location_geocode_input_plan(tmp_path: Path):
         source_date="2026-05-13",
     )
 
-    assert result["rows"] == 6
-    assert result["ready_rows"] == 4
-    assert result["blocked_rows"] == 2
+    assert result["rows"] == 9
+    assert result["ready_rows"] == 6
+    assert result["blocked_rows"] == 3
     with Path(result["amap_input_csv"]).open(encoding="utf-8", newline="") as f:
         input_rows = list(csv.DictReader(f))
-    assert {row["national_school_code"] for row in input_rows} == {"4121010145", "4121099999", "4122010183"}
+    assert {row["national_school_code"] for row in input_rows} == {"4121010145", "4121099999", "4122010183", "4144016407"}
     assert any(row["geocode_query"] == "沈阳市东北大学" for row in input_rows)
     assert any(row["city"] == "大连市" and row["local_school_code"] == "99999" for row in input_rows)
     branch = next(row for row in input_rows if row["local_school_code"] == "9145")
@@ -12748,13 +12757,18 @@ def test_build_school_location_geocode_input_plan(tmp_path: Path):
     jlu = next(row for row in input_rows if row["local_school_code"] == "10183")
     assert jlu["city"] == "长春市"
     assert jlu["geocode_query"] == "长春市吉林大学"
+    hk_rows = [row for row in input_rows if row["local_school_code"] == "6407"]
+    assert len(hk_rows) == 2
+    assert len({row["campus_key"] for row in hk_rows}) == 2
+    assert all(row["campus_key"].startswith("ln_6407_") for row in hk_rows)
     with Path(result["plan_csv"]).open(encoding="utf-8", newline="") as f:
         plan_rows = list(csv.DictReader(f))
     blocked = [row for row in plan_rows if row["request_status"] == "blocked"]
-    assert len(blocked) == 2
+    assert len(blocked) == 3
     assert {row["local_school_code"]: row["blocking_reason"] for row in blocked} == {
         "66666": "identity_not_approved;missing_national_school_code",
         "88888": "missing_national_school_code",
+        "77777": "missing_national_school_code",
     }
     manifest = json.loads(Path(result["manifest"]).read_text(encoding="utf-8"))
     assert manifest["source_key"] == "school_location_geocode"
@@ -12766,9 +12780,9 @@ def test_build_school_location_geocode_input_plan(tmp_path: Path):
         output=tmp_path / "staging" / "audit.json",
     )
     assert audit["errors"] == []
-    assert audit["row_counts"]["ready_rows"] == 4
+    assert audit["row_counts"]["ready_rows"] == 6
     assert audit["primary_key_checks"]["duplicate_count"] == 0
-    assert audit["warnings"][0]["count"] == 2
+    assert audit["warnings"][0]["count"] == 3
 
     duplicate_input = tmp_path / "duplicate_input.csv"
     duplicate_input.write_text(

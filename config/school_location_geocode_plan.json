@@ -7,9 +7,7 @@
     "school_name_column": "school_name",
     "region_column": "region",
     "batch_column": "batch",
-    "filters": {
-      "batch": ["本科批", "专科批"]
-    },
+    "filters": {},
     "order": ["plan_rows DESC", "school_name ASC"]
   },
   "defaults": {

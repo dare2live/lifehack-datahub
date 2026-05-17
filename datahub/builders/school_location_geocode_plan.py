@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import csv
+import hashlib
 import json
 from datetime import date, datetime
 from pathlib import Path
@@ -88,6 +89,7 @@ def build_school_location_geocode_input_plan(
         )
         for local in local_schools
     ]
+    _deduplicate_campus_keys(rows)
     ready_rows = [row for row in rows if row["request_status"] == config["defaults"]["ready_status"]]
 
     plan_csv = output_dir / "school_location_geocode_plan.csv"
@@ -293,6 +295,28 @@ def _build_plan_row(
         "built_at": built_at,
         "notes": "",
     }
+
+
+def _deduplicate_campus_keys(rows: list[dict[str, Any]]) -> None:
+    counts: dict[tuple[str, str], int] = {}
+    for row in rows:
+        key = (str(row.get("national_school_code") or ""), str(row.get("campus_key") or ""))
+        if key[0] and key[1]:
+            counts[key] = counts.get(key, 0) + 1
+    duplicate_keys = {key for key, count in counts.items() if count > 1}
+    if not duplicate_keys:
+        return
+    for row in rows:
+        key = (str(row.get("national_school_code") or ""), str(row.get("campus_key") or ""))
+        if key not in duplicate_keys:
+            continue
+        suffix_source = "|".join([
+            str(row.get("local_school_code") or ""),
+            str(row.get("school_name") or ""),
+            str(row.get("geocode_query") or ""),
+        ])
+        suffix = hashlib.md5(suffix_source.encode("utf-8")).hexdigest()[:8]
+        row["campus_key"] = f"{row.get('campus_key')}_{suffix}"
 
 
 def _match_profile(
