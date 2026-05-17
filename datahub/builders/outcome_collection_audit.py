@@ -115,7 +115,7 @@ def _validate_row(
         errors.append(f"row {index} metric_unit mismatch for {domain}.{metric_key}: {row['metric_unit']} != {metric.get('unit')}")
 
     if status not in audit_config["known_statuses"]:
-        warnings.append(f"row {index} uses unknown collection status: {status}")
+        errors.append(f"row {index} uses unknown collection status: {status}")
 
     _validate_search_queries(index, row.get("search_queries"), errors)
     for column in audit_config["required_evidence_columns"]:

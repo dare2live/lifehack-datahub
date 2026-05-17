@@ -10573,15 +10573,36 @@ def test_audit_outcome_collection_plan_reports_progress_and_errors(tmp_path: Pat
             "denominator": "",
             "notes": "",
         })
+        writer.writerow({
+            "domain": "school",
+            "entity_code": "10145",
+            "entity_name": "东北大学",
+            "priority_rank": "1",
+            "plan_rows": "120",
+            "metric_key": "employment_rate",
+            "metric_label": "毕业去向落实率",
+            "metric_unit": "ratio",
+            "metric_year": "2025",
+            "search_queries": json.dumps(["东北大学 2025 就业质量报告"], ensure_ascii=False),
+            "status": "typo_done",
+            "metric_value": "",
+            "source_title": "",
+            "source_url": "",
+            "evidence_quote": "",
+            "metric_scope": "",
+            "denominator": "",
+            "notes": "",
+        })
 
     report = audit_outcome_collection_plan(plan)
 
-    assert report["rows"] == 2
+    assert report["rows"] == 3
     assert report["progress"]["complete_rows"] == 2
     assert report["evidence_counts"]["rows_with_source_url"] == 1
     assert any("unregistered outcome metric" in error for error in report["errors"])
     assert any("search_queries is not valid JSON" in error for error in report["errors"])
     assert any("complete status missing evidence" in error for error in report["errors"])
+    assert any("unknown collection status" in error for error in report["errors"])
 
 
 def test_build_outcome_collection_batch_limits_pending_rows(tmp_path: Path):
