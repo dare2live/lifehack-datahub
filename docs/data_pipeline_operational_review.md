@@ -39,6 +39,7 @@ Tools can be modular. Scheduling, state, error handling, lineage, evidence gates
 - `build-outcome-collection-plan --missing-school-outcome-only` now generates the school outcome collection queue from currently uncovered schools instead of only the largest admission-plan schools. It excludes schools already present in `fa_fact_school_outcome` for the requested coverage year, so report-source discovery and review batches can focus on the 1,578 missing-school P0 gap.
 - `audit-amap-web-api-readiness` now checks Amap source config, `key_env`, input CSV existence, requestable row counts, and operation endpoints without sending requests. This makes school location, campus POI, and city geocode fetches fail at a readiness gate when the local API key is absent instead of failing mid-run.
 - `build-region-profile-from-amap-district` now converts Amap district raw JSONL into a standard `fa_dim_region_profile` package. City context target generation currently blocks without this upstream adcode table; once district raw is fetched, the parser can publish province/city/district rows with parent adcodes and GCJ-02 centers.
+- Outcome report-source seeds now carry local `entity_code` for school seeds, and the seed audit warns when a school seed falls back to name-only matching. This reduces same-name/alias risk before report intake, candidate extraction, and outcome package publication.
 
 ### CLI Coupling Reduction
 

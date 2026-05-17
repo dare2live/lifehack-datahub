@@ -9055,7 +9055,7 @@ def test_build_outcome_report_source_plan_keeps_seeded_scope_beyond_limit(tmp_pa
     plan = tmp_path / "outcome_collection_plan.csv"
     first = _outcome_plan_row("school", "90001", "非种子学校", "employment_rate", status="todo", priority_rank="1")
     first["metric_year"] = "2024"
-    seeded = _outcome_plan_row("school", "90002", "大连工业大学", "employment_rate", status="todo", priority_rank="2")
+    seeded = _outcome_plan_row("school", "0152", "大连工业大学", "employment_rate", status="todo", priority_rank="2")
     seeded["metric_year"] = "2024"
     _write_outcome_plan(plan, [first, seeded])
 
@@ -9224,6 +9224,8 @@ def test_audit_outcome_report_source_seeds_validates_config(tmp_path: Path):
     assert report["errors"] == []
     assert report["seed_count"] >= 7
     assert report["applied_status"] == "candidate_found"
+    assert not any("school seed missing entity_code" in warning for warning in report["warnings"])
+    assert all(row["entity_code"] for row in report["seed_rows"] if row["domain"] == "school")
     assert any(row["entity_name"] == "辽宁大学" for row in report["seed_rows"])
     assert any(row["entity_name"] == "吉林大学" and row["metric_year"] == 2024 for row in report["seed_rows"])
     assert any(row["entity_name"] == "沈阳师范大学" and row["metric_year"] == 2024 for row in report["seed_rows"])

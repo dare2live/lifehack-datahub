@@ -7,6 +7,7 @@
   "seeds": [
     {
       "domain": "school",
+      "entity_code": "0140",
       "entity_name": "辽宁大学",
       "metric_year": 2022,
       "report_scope": "employment_quality_report",
@@ -19,6 +20,7 @@
     },
     {
       "domain": "school",
+      "entity_code": "0142",
       "entity_name": "沈阳工业大学",
       "metric_year": 2024,
       "report_scope": "undergraduate_teaching_quality_report",
@@ -31,6 +33,7 @@
     },
     {
       "domain": "school",
+      "entity_code": "0140",
       "entity_name": "辽宁大学",
       "metric_year": 2024,
       "report_scope": "undergraduate_teaching_quality_report",
@@ -43,6 +46,7 @@
     },
     {
       "domain": "school",
+      "entity_code": "0183",
       "entity_name": "吉林大学",
       "metric_year": 2024,
       "report_scope": "undergraduate_teaching_quality_report",
@@ -55,6 +59,7 @@
     },
     {
       "domain": "school",
+      "entity_code": "0147",
       "entity_name": "辽宁工程技术大学",
       "metric_year": 2024,
       "report_scope": "undergraduate_teaching_quality_report",
@@ -67,6 +72,7 @@
     },
     {
       "domain": "school",
+      "entity_code": "0157",
       "entity_name": "沈阳农业大学",
       "metric_year": 2024,
       "report_scope": "undergraduate_teaching_quality_report",
@@ -79,6 +85,7 @@
     },
     {
       "domain": "school",
+      "entity_code": "1035",
       "entity_name": "沈阳大学",
       "metric_year": 2024,
       "report_scope": "undergraduate_teaching_quality_report",
@@ -91,6 +98,7 @@
     },
     {
       "domain": "school",
+      "entity_code": "0190",
       "entity_name": "长春工业大学",
       "metric_year": 2024,
       "report_scope": "employment_quality_report",
@@ -103,6 +111,7 @@
     },
     {
       "domain": "school",
+      "entity_code": "0166",
       "entity_name": "沈阳师范大学",
       "metric_year": 2024,
       "report_scope": "undergraduate_teaching_quality_report",
@@ -115,6 +124,7 @@
     },
     {
       "domain": "school",
+      "entity_code": "0173",
       "entity_name": "东北财经大学",
       "metric_year": 2024,
       "report_scope": "undergraduate_teaching_quality_report",
@@ -127,6 +137,7 @@
     },
     {
       "domain": "school",
+      "entity_code": "0150",
       "entity_name": "大连交通大学",
       "metric_year": 2024,
       "report_scope": "undergraduate_teaching_quality_report",
@@ -139,6 +150,7 @@
     },
     {
       "domain": "school",
+      "entity_code": "0172",
       "entity_name": "大连外国语大学",
       "metric_year": 2024,
       "report_scope": "undergraduate_teaching_quality_report",
@@ -151,6 +163,7 @@
     },
     {
       "domain": "school",
+      "entity_code": "0165",
       "entity_name": "辽宁师范大学",
       "metric_year": 2024,
       "report_scope": "undergraduate_teaching_quality_report",
@@ -163,6 +176,7 @@
     },
     {
       "domain": "school",
+      "entity_code": "0167",
       "entity_name": "渤海大学",
       "metric_year": 2024,
       "report_scope": "undergraduate_teaching_quality_report",
@@ -175,6 +189,7 @@
     },
     {
       "domain": "school",
+      "entity_code": "1258",
       "entity_name": "大连大学",
       "metric_year": 2024,
       "report_scope": "undergraduate_teaching_quality_report",
@@ -187,6 +202,7 @@
     },
     {
       "domain": "school",
+      "entity_code": "0152",
       "entity_name": "大连工业大学",
       "metric_year": 2024,
       "report_scope": "undergraduate_teaching_quality_report",
@@ -199,6 +215,7 @@
     },
     {
       "domain": "school",
+      "entity_code": "2026",
       "entity_name": "大连民族大学",
       "metric_year": 2024,
       "report_scope": "undergraduate_teaching_quality_report",

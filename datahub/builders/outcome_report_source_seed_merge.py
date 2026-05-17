@@ -62,6 +62,8 @@ def audit_outcome_report_source_seeds(*, report_path: Path | None = None) -> dic
             errors.append(f"seed {index} unknown domain: {domain}")
         if domain and report_scope and report_scope not in report_scopes_by_domain.get(domain, set()):
             errors.append(f"seed {index} report_scope is not configured for domain {domain}: {report_scope}")
+        if domain == "school" and not str(seed.get("entity_code") or "").strip():
+            warnings.append(f"seed {index} school seed missing entity_code")
         if _to_int(seed.get("metric_year")) is None:
             errors.append(f"seed {index} metric_year is not an integer")
         for date_field in ("candidate_source_date", "availability_date"):
@@ -79,6 +81,7 @@ def audit_outcome_report_source_seeds(*, report_path: Path | None = None) -> dic
         seed_rows.append({
             "seed_id": key,
             "domain": seed.get("domain", ""),
+            "entity_code": seed.get("entity_code", ""),
             "entity_name": seed.get("entity_name", ""),
             "metric_year": seed.get("metric_year", ""),
             "report_scope": seed.get("report_scope", ""),
