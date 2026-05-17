@@ -186,6 +186,7 @@ def main() -> int:
     build_school_identity_review.add_argument("--core-db", required=True, type=Path)
     build_school_identity_review.add_argument("--school-profile", required=True, type=Path)
     build_school_identity_review.add_argument("--output-dir", required=True, type=Path)
+    build_school_identity_review.add_argument("--priority-missing-csv", type=Path)
     build_school_identity_review.add_argument("--source-date")
     build_school_identity_review.add_argument("--availability-date")
 
@@ -590,6 +591,7 @@ def main() -> int:
             core_db=args.core_db,
             school_profile_csv=args.school_profile,
             output_dir=args.output_dir,
+            priority_missing_csv=args.priority_missing_csv,
             source_date=args.source_date,
             availability_date=args.availability_date,
         )

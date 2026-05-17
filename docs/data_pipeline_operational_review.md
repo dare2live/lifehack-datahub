@@ -32,6 +32,7 @@ Tools can be modular. Scheduling, state, error handling, lineage, evidence gates
 - Missing-school queues now include `priority_rank`, `priority_score`, `plan_row_count`, `major_count`, `batches`, and `subject_cats`. This makes the next data-completion pass executable by admissions importance instead of a flat alphabetical missing list.
 - Current real audit on the local core DB finds 1,590 Liaoning admission schools. Identity/profile cover 1,518 and miss 72; school outcome evidence covers 12 and misses 1,578; location, campus living, and school-city-industry fit tables are still absent from the core DB.
 - The top identity/profile gaps by admissions priority are 国防科技大学, 陆军兵种大学, 华北电力大学(北京), 陆军工程大学, and 华北电力大学(保定). The top outcome gaps are 沈阳音乐学院, 星海音乐学院, 沈阳师范大学, 辽宁生态工程职业学院, and 浙江音乐学院.
+- `build-school-identity-review-plan` can now consume `identity_missing_schools.csv` from the operational audit through `--priority-missing-csv`. The real local review plan now aligns to the 72-code operational identity gap, carries plan-row/major/batch/subject priority fields, and currently has 20 suggested MOE-profile candidates.
 
 ### CLI Coupling Reduction
 

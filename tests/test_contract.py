@@ -11180,7 +11180,8 @@ def test_build_school_identity_review_plan_suggests_base_school(tmp_path: Path):
         con.execute("""
             INSERT INTO fa_dim_ln_admission_plan VALUES
                 ('9001', '北京大学医学部'),
-                ('9999', '未知学院')
+                ('9999', '未知学院'),
+                ('8888', '另一个未知学院')
         """)
     finally:
         con.close()
@@ -11220,22 +11221,74 @@ def test_build_school_identity_review_plan_suggests_base_school(tmp_path: Path):
             "built_at": "2026-05-13T00:00:00",
         })
 
+    priority_missing = tmp_path / "identity_missing_schools.csv"
+    with priority_missing.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(
+            f,
+            fieldnames=[
+                "priority_rank",
+                "priority_score",
+                "school_code",
+                "school_name",
+                "plan_row_count",
+                "major_count",
+                "batches",
+                "subject_cats",
+                "coverage_area",
+                "review_status",
+                "notes",
+            ],
+        )
+        writer.writeheader()
+        writer.writerow({
+            "priority_rank": "1",
+            "priority_score": "109",
+            "school_code": "9001",
+            "school_name": "北京大学医学部",
+            "plan_row_count": "10",
+            "major_count": "9",
+            "batches": "本科批",
+            "subject_cats": "历史类|物理类",
+            "coverage_area": "identity",
+            "review_status": "todo",
+            "notes": "",
+        })
+        writer.writerow({
+            "priority_rank": "2",
+            "priority_score": "88",
+            "school_code": "8888",
+            "school_name": "另一个未知学院",
+            "plan_row_count": "8",
+            "major_count": "8",
+            "batches": "本科批",
+            "subject_cats": "物理类",
+            "coverage_area": "identity",
+            "review_status": "todo",
+            "notes": "",
+        })
+
     result = build_school_identity_review_plan(
         core_db=db,
         school_profile_csv=school_profile,
         output_dir=tmp_path / "review",
+        priority_missing_csv=priority_missing,
         source_date="2026-05-13",
     )
 
-    assert result["rows"] == 2
+    assert result["rows"] == 3
     assert result["suggested_rows"] == 1
     with Path(result["csv"]).open(encoding="utf-8", newline="") as f:
-        rows = {row["local_school_code"]: row for row in csv.DictReader(f)}
+        review_rows = list(csv.DictReader(f))
+    assert [row["local_school_code"] for row in review_rows[:2]] == ["9001", "8888"]
+    rows = {row["local_school_code"]: row for row in review_rows}
+    assert rows["9001"]["priority_rank"] == "1"
+    assert rows["9001"]["plan_row_count"] == "10"
     assert rows["9001"]["suggested_national_school_code"] == "4111010001"
     assert rows["9001"]["review_status"] == "todo"
     assert rows["9999"]["suggested_national_school_code"] == ""
     manifest = json.loads(Path(result["manifest"]).read_text(encoding="utf-8"))
     assert manifest["suggested_rows"] == 1
+    assert manifest["priority_rows"] == 2
 
     reviewed_rows = list(rows.values())
     rows["9001"]["review_status"] = "approved"
@@ -11254,7 +11307,7 @@ def test_build_school_identity_review_plan_suggests_base_school(tmp_path: Path):
         review_plan_csv=reviewed_plan,
     )
     assert package["rows"] == 1
-    assert package["unmatched_rows"] == 1
+    assert package["unmatched_rows"] == 2
     with (Path(package["package_dir"]) / "fa_bridge_school_identity.csv").open(encoding="utf-8", newline="") as f:
         bridge_rows = list(csv.DictReader(f))
     assert bridge_rows[0]["local_school_code"] == "9001"

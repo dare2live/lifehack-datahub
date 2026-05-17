@@ -18,8 +18,14 @@ from datahub.config import load_school_identity_review
 
 
 PLAN_COLUMNS = [
+    "priority_rank",
+    "priority_score",
     "local_school_code",
     "local_school_name",
+    "plan_row_count",
+    "major_count",
+    "batches",
+    "subject_cats",
     "reason",
     "candidate_count",
     "suggested_national_school_code",
@@ -44,6 +50,7 @@ def build_school_identity_review_plan(
     core_db: Path,
     school_profile_csv: Path,
     output_dir: Path,
+    priority_missing_csv: Path | None = None,
     source_date: str | None = None,
     availability_date: str | None = None,
 ) -> dict[str, Any]:
@@ -55,6 +62,7 @@ def build_school_identity_review_plan(
 
     local_schools = _read_local_schools(core_db)
     profiles = _read_school_profiles(school_profile_csv)
+    priority_by_code = _read_priority_missing(priority_missing_csv) if priority_missing_csv else {}
     _, unmatched = _match_schools(
         local_schools=local_schools,
         profiles=profiles,
@@ -67,12 +75,16 @@ def build_school_identity_review_plan(
             unmatched_row=row,
             profiles=profiles,
             config=config,
+            priority=priority_by_code.get(str(row.get("local_school_code") or "").strip(), {}),
             source_date=source_date,
             availability_date=availability_date,
             built_at=built_at,
         )
         for row in unmatched
     ]
+    rows = sorted(rows, key=_priority_sort_key)
+    if priority_by_code:
+        rows = _dedupe_by_local_code(rows)
     csv_path = output_dir / "school_identity_review_plan.csv"
     manifest_path = output_dir / "school_identity_review_plan.json"
     _write_csv(csv_path, rows)
@@ -82,10 +94,12 @@ def build_school_identity_review_plan(
         "config_version": config.get("version"),
         "core_db": str(core_db),
         "school_profile_csv": str(school_profile_csv),
+        "priority_missing_csv": str(priority_missing_csv) if priority_missing_csv else None,
         "source_date": source_date,
         "availability_date": availability_date,
         "rows": len(rows),
         "suggested_rows": suggested_rows,
+        "priority_rows": sum(1 for row in rows if row.get("priority_rank")),
         "csv": str(csv_path),
         "notes": "Review plan only. It is not a data package and must not be imported into core.",
     }
@@ -96,6 +110,7 @@ def build_school_identity_review_plan(
         "manifest": str(manifest_path),
         "rows": len(rows),
         "suggested_rows": suggested_rows,
+        "priority_rows": manifest["priority_rows"],
     }
 
 
@@ -104,6 +119,7 @@ def _review_row(
     unmatched_row: dict[str, Any],
     profiles: list[dict[str, str]],
     config: dict[str, Any],
+    priority: dict[str, str],
     source_date: str,
     availability_date: str,
     built_at: str,
@@ -111,8 +127,14 @@ def _review_row(
     suggestions = _suggest_profiles(unmatched_row["local_school_name"], profiles, config.get("suggestion") or {})
     suggestion = suggestions[0] if len(suggestions) == 1 else None
     return {
+        "priority_rank": priority.get("priority_rank", ""),
+        "priority_score": priority.get("priority_score", ""),
         "local_school_code": unmatched_row.get("local_school_code"),
         "local_school_name": unmatched_row.get("local_school_name"),
+        "plan_row_count": priority.get("plan_row_count", ""),
+        "major_count": priority.get("major_count", ""),
+        "batches": priority.get("batches", ""),
+        "subject_cats": priority.get("subject_cats", ""),
         "reason": unmatched_row.get("reason"),
         "candidate_count": unmatched_row.get("candidate_count", ""),
         "suggested_national_school_code": suggestion.get("national_school_code") if suggestion else "",
@@ -130,6 +152,56 @@ def _review_row(
         "built_at": built_at,
         "notes": "",
     }
+
+
+def _read_priority_missing(path: Path) -> dict[str, dict[str, str]]:
+    priority: dict[str, dict[str, str]] = {}
+    with Path(path).open("r", encoding="utf-8-sig", newline="") as f:
+        for row in csv.DictReader(f):
+            code = str(row.get("school_code") or row.get("local_school_code") or "").strip()
+            if not code:
+                continue
+            priority[code] = {
+                "priority_rank": str(row.get("priority_rank") or "").strip(),
+                "priority_score": str(row.get("priority_score") or "").strip(),
+                "plan_row_count": str(row.get("plan_row_count") or "").strip(),
+                "major_count": str(row.get("major_count") or "").strip(),
+                "batches": str(row.get("batches") or "").strip(),
+                "subject_cats": str(row.get("subject_cats") or "").strip(),
+                "school_name": str(row.get("school_name") or "").strip(),
+            }
+    return priority
+
+
+def _priority_sort_key(row: dict[str, Any]) -> tuple[int, int, str]:
+    priority_rank = _safe_int(row.get("priority_rank"))
+    priority_score = _safe_int(row.get("priority_score"))
+    return (
+        priority_rank if priority_rank is not None else 999_999,
+        -priority_score if priority_score is not None else 0,
+        str(row.get("local_school_code") or ""),
+    )
+
+
+def _safe_int(value: Any) -> int | None:
+    try:
+        text = str(value or "").strip()
+        return int(text) if text else None
+    except ValueError:
+        return None
+
+
+def _dedupe_by_local_code(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    deduped: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for row in rows:
+        code = str(row.get("local_school_code") or "").strip()
+        if code and code in seen:
+            continue
+        if code:
+            seen.add(code)
+        deduped.append(row)
+    return deduped
 
 
 def _suggest_profiles(
