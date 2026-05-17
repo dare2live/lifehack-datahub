@@ -9869,6 +9869,7 @@ def test_download_outcome_report_intake_assets_flags_embedded_report_images(tmp_
     def fake_urlopen(request, timeout=60):
         html = """
         <html><body>
+          <a href="/detail/292_image_report.html">大连艺术学院2023-2024学年本科教学质量报告</a>
           <img alt="大连艺术学院2023-2024学年本科教学质量报告-第1页" src="/image/page1.jpg">
           <img alt="大连艺术学院2023-2024学年本科教学质量报告-第2页" src="/image/page2.jpg">
           <img alt="大连艺术学院2023-2024学年本科教学质量报告-第3页" src="/image/page3.jpg">

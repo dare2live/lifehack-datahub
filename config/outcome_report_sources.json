@@ -798,6 +798,19 @@
       "candidate_source_date": "2024-12-01",
       "availability_date": "2024-12-01",
       "evidence_note": "沈阳航空航天大学计算机学院官网通知公告发布《2023-2024学年本科教学质量报告》，页面日期 2024-12-01，并列出官方 PDF 附件；后续若找到学校主站信息公开页，应替换为主站源。"
+    },
+    {
+      "domain": "school",
+      "entity_code": "0178",
+      "entity_name": "鲁迅美术学院",
+      "metric_year": 2024,
+      "report_scope": "employment_quality_report",
+      "candidate_report_title": "鲁迅美术学院2024届毕业生就业质量年度报告",
+      "candidate_report_url": "https://www.lumei.edu.cn/info/1192/6681.htm",
+      "candidate_file_name": "2024届毕业生就业质量年度报告.pdf",
+      "candidate_source_date": "2024-12-30",
+      "availability_date": "2024-12-30",
+      "evidence_note": "鲁迅美术学院官网专题专栏页面发布 2024 届毕业生就业质量年度报告，来源为招生就业处，页面发布时间 2024-12-30，并列出 PDF 附件；后续仍需 intake/extraction 与人工复核后才能进入 collection verified。"
     }
   ]
 }

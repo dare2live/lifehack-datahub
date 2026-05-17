@@ -272,6 +272,9 @@ def _html_block_reason(content_type: str, body: bytes) -> str:
     text = _decode_html(body, _charset_from_content_type(content_type))
     if "验证码" in text or "codeValue" in text:
         return "attachment requires captcha or manual intake"
+    embedded_reason = _embedded_report_page_reason(text)
+    if embedded_reason != "no matching report attachment found on page":
+        return embedded_reason
     return "attachment URL returned HTML instead of a report file"
 
 
