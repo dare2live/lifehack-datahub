@@ -17,6 +17,7 @@ from datahub.builders.city_context_target_cities import build_city_context_targe
 from datahub.builders.city_development_score import build_city_development_score_package
 from datahub.builders.city_listed_company_signal import build_city_listed_company_signal_package
 from datahub.builders.major_city_employment_fit import build_major_city_employment_fit_package
+from datahub.builders.region_profile_from_amap import build_region_profile_package_from_amap_district
 from datahub.builders.school_city_industry_fit import build_school_city_industry_fit_package
 
 
@@ -32,6 +33,7 @@ COMMANDS = {
     "build-city-context-review-batch",
     "merge-city-context-review-batch",
     "build-city-context-from-collection-plan",
+    "build-region-profile-from-amap-district",
 }
 
 
@@ -162,6 +164,16 @@ def register_city_commands(sub) -> None:
     build_city_context_from_plan.add_argument("--package-id")
     build_city_context_from_plan.add_argument("--source-version")
 
+    build_region_profile_from_amap = sub.add_parser(
+        "build-region-profile-from-amap-district",
+        help="Build fa_dim_region_profile package from fetch-amap-web-api district JSONL",
+    )
+    build_region_profile_from_amap.add_argument("--raw-jsonl", required=True, type=Path)
+    build_region_profile_from_amap.add_argument("--raw-manifest", type=Path)
+    build_region_profile_from_amap.add_argument("--output-root", required=True, type=Path)
+    build_region_profile_from_amap.add_argument("--package-id")
+    build_region_profile_from_amap.add_argument("--source-version")
+
 
 def handle_city_command(args: Namespace) -> int | None:
     if args.cmd not in COMMANDS:
@@ -286,6 +298,16 @@ def handle_city_command(args: Namespace) -> int | None:
             plan_csv=args.plan_csv,
             output_root=args.output_root,
             domains=args.domains,
+            package_id=args.package_id,
+            source_version=args.source_version,
+        )
+        _print_json(result)
+        return 0
+    if args.cmd == "build-region-profile-from-amap-district":
+        result = build_region_profile_package_from_amap_district(
+            raw_jsonl=args.raw_jsonl,
+            raw_manifest=args.raw_manifest,
+            output_root=args.output_root,
             package_id=args.package_id,
             source_version=args.source_version,
         )

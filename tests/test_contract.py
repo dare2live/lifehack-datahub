@@ -92,6 +92,7 @@ from datahub.builders.policy_tables import (
     build_policy_industry_map_package,
     build_policy_plan_history_package,
 )
+from datahub.builders.region_profile_from_amap import build_region_profile_package_from_amap_district
 from datahub.builders.score_history_from_projection import build_score_history_from_projection_package
 from datahub.builders.score_history_major_name_reference import (
     apply_score_history_major_name_reference_decisions,
@@ -12057,6 +12058,91 @@ def test_fetch_amap_web_api_district_uses_config_scope(tmp_path: Path, monkeypat
     assert result["request_count"] == 1
     assert manifest["request_params_without_key"][0]["keywords"] == "辽宁省"
     assert manifest["request_params_without_key"][0]["subdistrict"] == "3"
+
+
+def test_build_region_profile_package_from_amap_district(tmp_path: Path):
+    raw_dir = tmp_path / "raw" / "region_profile_geocode" / "2026-05-13"
+    raw_dir.mkdir(parents=True)
+    raw_jsonl = raw_dir / "amap_web_api_district.jsonl"
+    raw_manifest = raw_dir / "_amap_web_api_district.json"
+    raw_jsonl.write_text(
+        json.dumps({
+            "request_index": 1,
+            "operation": "district",
+            "endpoint": "https://restapi.amap.com/v3/config/district",
+            "params": {"keywords": "辽宁省", "subdistrict": "3"},
+            "source_row": None,
+            "raw_response_hash": "hash-region",
+            "response": {
+                "status": "1",
+                "districts": [
+                    {
+                        "name": "辽宁省",
+                        "adcode": "210000",
+                        "citycode": [],
+                        "center": "123.429096,41.796767",
+                        "level": "province",
+                        "districts": [
+                            {
+                                "name": "沈阳市",
+                                "adcode": "210100",
+                                "citycode": "024",
+                                "center": "123.431474,41.805698",
+                                "level": "city",
+                                "districts": [
+                                    {
+                                        "name": "和平区",
+                                        "adcode": "210102",
+                                        "citycode": "024",
+                                        "center": "123.395319,41.789766",
+                                        "level": "district",
+                                        "districts": [],
+                                    }
+                                ],
+                            }
+                        ],
+                    }
+                ],
+            },
+            "fetched_at": "2026-05-13T00:00:00",
+        }, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
+    raw_manifest.write_text(json.dumps({
+        "source_key": "region_profile_geocode",
+        "source_name": "城市与行政区基础信息",
+        "source_kind": "amap_web_api_district_profile",
+        "source_date": "2026-05-13",
+        "intake_at": "2026-05-13T00:00:00",
+        "acquired_by": "datahub.fetch_amap_web_api",
+        "official_distribution": "fixture district",
+        "evidence_urls": ["https://lbs.amap.com/api/webservice/guide/api/district"],
+        "target_tables": ["fa_dim_region_profile"],
+        "operation": "district",
+        "endpoint": "https://restapi.amap.com/v3/config/district",
+        "key_env": "AMAP_WEB_SERVICE_KEY",
+        "request_count": 1,
+        "request_params_without_key": [{"keywords": "辽宁省", "subdistrict": "3"}],
+        "files": [{"file_name": raw_jsonl.name, "path": str(raw_jsonl), "size_bytes": raw_jsonl.stat().st_size, "sha256": "fixture"}],
+    }, ensure_ascii=False), encoding="utf-8")
+
+    result = build_region_profile_package_from_amap_district(
+        raw_jsonl=raw_jsonl,
+        output_root=tmp_path / "exports",
+        package_id="pkg-region-profile-test",
+        source_version="fixture-region-profile",
+    )
+
+    package_dir = Path(result["package"]["package_dir"])
+    assert validate_manifest(package_dir / "manifest.json")["errors"] == []
+    assert result["rows"] == 3
+    with (package_dir / "fa_dim_region_profile.csv").open(encoding="utf-8", newline="") as f:
+        rows = {row["adcode"]: row for row in csv.DictReader(f)}
+    assert rows["210000"]["region_level"] == "province"
+    assert rows["210100"]["city"] == "沈阳市"
+    assert rows["210102"]["district"] == "和平区"
+    assert rows["210102"]["parent_adcode"] == "210100"
+    assert rows["210102"]["coordinate_system"] == "GCJ-02"
 
 
 def test_build_school_location_package_from_amap_geocode(tmp_path: Path, monkeypatch):
