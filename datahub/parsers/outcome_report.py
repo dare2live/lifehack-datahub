@@ -106,7 +106,36 @@ def extract_outcome_metric_candidates_from_report(
         return extract_outcome_metric_candidates_from_pdf(path, **kwargs)
     if suffix == ".ofd":
         return extract_outcome_metric_candidates_from_ofd(path, **kwargs)
+    if suffix == ".docx":
+        return extract_outcome_metric_candidates_from_docx(path, **kwargs)
     raise ValueError(f"unsupported report format: {suffix or '<none>'}")
+
+
+def extract_outcome_metric_candidates_from_docx(
+    path: Path,
+    *,
+    domain: str,
+    entity_code: str,
+    entity_name: str,
+    metric_year: int,
+    source_title: str,
+    source_url: str,
+    source_date: str,
+    availability_date: str,
+) -> list[dict[str, Any]]:
+    _require_docx_file(path)
+    page_lines = _extract_docx_page_lines(path)
+    return extract_outcome_metric_candidates_from_lines(
+        page_lines,
+        domain=domain,
+        entity_code=entity_code,
+        entity_name=entity_name,
+        metric_year=metric_year,
+        source_title=source_title,
+        source_url=source_url,
+        source_date=source_date,
+        availability_date=availability_date,
+    )
 
 
 def extract_outcome_metric_candidates_from_ofd(
@@ -229,6 +258,18 @@ def _require_ofd_file(path: Path) -> None:
         raise ValueError(f"outcome report has invalid OFD container: {path}")
 
 
+def _require_docx_file(path: Path) -> None:
+    header = _read_header(path)
+    lowered = header.lstrip().lower()
+    if lowered.startswith(b"<!doctype html") or lowered.startswith(b"<html"):
+        raise ValueError(f"outcome report is HTML, not DOCX: {path}")
+    if not zipfile.is_zipfile(path):
+        raise ValueError(f"outcome report has invalid DOCX container: {path}")
+    with zipfile.ZipFile(path) as zf:
+        if "word/document.xml" not in zf.namelist():
+            raise ValueError(f"outcome report DOCX is missing word/document.xml: {path}")
+
+
 def _read_header(path: Path) -> bytes:
     try:
         return path.read_bytes()[:256]
@@ -250,6 +291,25 @@ def _extract_ofd_page_lines(path: Path) -> list[tuple[int, str]]:
             for line in _group_ofd_text_objects(objects):
                 page_lines.append((page_number, line))
     return page_lines
+
+
+def _extract_docx_page_lines(path: Path) -> list[tuple[int, str]]:
+    with zipfile.ZipFile(path) as zf:
+        with zf.open("word/document.xml") as f:
+            root = ET.fromstring(f.read())
+    lines: list[tuple[int, str]] = []
+    for element in root.iter():
+        if _local_name(element.tag) != "p":
+            continue
+        text = "".join(
+            str(child.text or "")
+            for child in element.iter()
+            if _local_name(child.tag) == "t"
+        )
+        cleaned = _clean_line(text)
+        if cleaned:
+            lines.append((1, cleaned))
+    return lines
 
 
 def _extract_ofd_text_objects(content_xml: bytes) -> list[dict[str, Any]]:

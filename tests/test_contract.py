@@ -9137,6 +9137,38 @@ def test_extract_outcome_report_candidates_from_ofd(tmp_path: Path):
     assert "88.64%" in rows[0]["evidence_quote"]
 
 
+def test_extract_outcome_report_candidates_from_docx(tmp_path: Path):
+    path = tmp_path / "fuxin.docx"
+    with ZipFile(path, "w") as zf:
+        zf.writestr(
+            "word/document.xml",
+            """<?xml version="1.0" encoding="UTF-8"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:body>
+    <w:p><w:r><w:t>2024届毕业生毕业去向落实率为97.80%。</w:t></w:r></w:p>
+    <w:p><w:r><w:t>其中升学人数为77人，占比3.94%。</w:t></w:r></w:p>
+  </w:body>
+</w:document>
+""",
+        )
+
+    rows = extract_outcome_metric_candidates_from_report(
+        path,
+        domain="school",
+        entity_code="1250",
+        entity_name="阜新高等专科学校",
+        metric_year=2024,
+        source_title="阜新高等专科学校2024年大专毕业生就业质量报告",
+        source_url="https://www.fxgz.com.cn/showart/8804.html",
+        source_date="2025-12-06",
+        availability_date="2025-12-06",
+    )
+
+    assert any(row["metric_key"] == "employment_rate" and row["candidate_value"] == "0.978" for row in rows)
+    assert any(row["metric_key"] == "postgrad_rate" and row["candidate_value"] == "0.0394" for row in rows)
+    assert all(row["page_number"] == 1 for row in rows)
+
+
 def test_extract_outcome_report_candidates_rejects_html_disguised_as_pdf(tmp_path: Path):
     path = tmp_path / "report.pdf"
     path.write_text("<!DOCTYPE html><html><body>captcha</body></html>", encoding="utf-8")
@@ -10244,6 +10276,39 @@ def test_build_outcome_report_extraction_plan_defaults_to_downloaded_intake_stat
         "intake_status": "downloaded",
         "download_status": "downloaded",
         "local_report_path": str(local_pdf),
+    }]
+    with report_source_csv.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=rows[0].keys())
+        writer.writeheader()
+        writer.writerows(rows)
+
+    result = build_outcome_report_extraction_plan(
+        report_source_csv=report_source_csv,
+        output_dir=tmp_path / "extract",
+    )
+
+    assert result["rows"] == 1
+    assert result["ready_rows"] == 1
+
+
+def test_build_outcome_report_extraction_plan_accepts_docx(tmp_path: Path):
+    local_docx = tmp_path / "raw" / "fuxin.docx"
+    local_docx.parent.mkdir(parents=True)
+    with ZipFile(local_docx, "w") as zf:
+        zf.writestr("word/document.xml", "<w:document xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"/>")
+    report_source_csv = tmp_path / "outcome_report_intake_results.csv"
+    rows = [{
+        "domain": "school",
+        "entity_code": "1250",
+        "entity_name": "阜新高等专科学校",
+        "metric_year": "2024",
+        "report_scope": "employment_quality_report",
+        "candidate_report_title": "阜新高等专科学校2024年大专毕业生就业质量报告",
+        "candidate_report_url": "https://www.fxgz.com.cn/showart/8804.html",
+        "candidate_source_date": "2025-12-06",
+        "availability_date": "2025-12-06",
+        "intake_status": "downloaded",
+        "local_report_path": str(local_docx),
     }]
     with report_source_csv.open("w", encoding="utf-8", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=rows[0].keys())

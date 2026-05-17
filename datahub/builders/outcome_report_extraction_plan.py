@@ -4,6 +4,7 @@ from __future__ import annotations
 import csv
 import json
 import re
+import zipfile
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -164,6 +165,8 @@ def _file_signature_block_reason(path: Path) -> str:
         return "local_report_path_is_html"
     if path.suffix.lower() == ".pdf" and not header.startswith(b"%PDF"):
         return "invalid_pdf_header"
+    if path.suffix.lower() == ".docx" and not zipfile.is_zipfile(path):
+        return "invalid_docx_container"
     return ""
 
 
