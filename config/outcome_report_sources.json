@@ -668,6 +668,32 @@
       "candidate_source_date": "2024-12-17",
       "availability_date": "2024-12-17",
       "evidence_note": "中国传媒大学信息公开网发布《中国传媒大学2023—2024学年本科教学质量报告》，页面日期 2024-12-17。"
+    },
+    {
+      "domain": "school",
+      "entity_code": "0182",
+      "entity_name": "铁岭师范高等专科学校",
+      "metric_year": 2024,
+      "report_scope": "employment_quality_report",
+      "candidate_report_title": "铁岭师范高等专科学校2024年度高等职业教育质量报告",
+      "candidate_report_url": "https://www.tlsz.com.cn/__local/3/4A/52/9CC8A18375FD8A8CC99FC8FA811_EE52B6E7_902970.pdf",
+      "candidate_file_name": "铁岭师范高等专科学校2024年度高等职业教育质量报告.pdf",
+      "candidate_source_date": "2025-06-01",
+      "availability_date": "2025-06-01",
+      "evidence_note": "铁岭师范高等专科学校官网公开官方 PDF《2024年度高等职业教育质量报告》，可作为 2024 年学校出口候选来源；页面未稳定暴露发布日期，本轮按搜索索引抓取日期记录 availability。"
+    },
+    {
+      "domain": "school",
+      "entity_code": "0220",
+      "entity_name": "东北石油大学",
+      "metric_year": 2024,
+      "report_scope": "undergraduate_teaching_quality_report",
+      "candidate_report_title": "东北石油大学2023-2024学年本科教学质量报告",
+      "candidate_report_url": "https://jxzlzx.nepu.edu.cn/zljk/bkjxzlbg.htm",
+      "candidate_file_name": "东北石油大学2023-2024学年本科教学质量报告.pdf",
+      "candidate_source_date": "2024-12-24",
+      "availability_date": "2024-12-24",
+      "evidence_note": "东北石油大学教学质量监控与评估中心本科教学质量报告栏目列出《东北石油大学2023-2024学年本科教学质量报告》，页面日期 2024-12-24，搜索结果可见官方 PDF 附件。"
     }
   ]
 }
