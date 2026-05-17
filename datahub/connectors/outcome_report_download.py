@@ -47,6 +47,7 @@ REPORT_EXTENSIONS = (".pdf", ".ofd", ".doc", ".docx")
 USER_AGENT = "Mozilla/5.0"
 CLOUD_IFRAME_NAME_RE = re.compile(r"name=\\\\\"([^\\\\\"]+)\\\\\"|name=\\\"([^\\\"]+)\\\"|name=\"([^\"]+)\"")
 VSB_PDF_IFRAME_RE = re.compile(r"showVsbpdfIframe\(\s*['\"]([^'\"]+\.pdf(?:\?[^'\"]*)?)['\"]", re.IGNORECASE)
+REPORT_IMAGE_RE = re.compile(r"<img\b[^>]*(?:alt|src)=['\"][^'\"]*(?:报告|report)[^'\"]*['\"][^>]*>", re.IGNORECASE)
 
 
 def download_outcome_report_intake_assets(
@@ -178,7 +179,7 @@ def _manual_intake_classification(download_error: str) -> tuple[str, str]:
         return "ssl_handshake_failed", "manual_download_or_downloader_tls_fallback"
     if "captcha" in lower or "验证码" in download_error:
         return "captcha_required", "manual_browser_download"
-    if "pdf page images" in lower or "ocr" in lower:
+    if "pdf page images" in lower or "embedded report images" in lower or "ocr" in lower:
         return "image_pdf_ocr_required", "ocr_or_manual_transcription"
     return "download_failed", "manual_review"
 
@@ -362,6 +363,8 @@ def _extract_report_from_archive(body: bytes, file_name: str, file_url: str) -> 
 def _embedded_report_page_reason(text: str) -> str:
     if "vsb_pdf_image_data" in text:
         return "report rendered as PDF page images; OCR or manual intake required"
+    if len(REPORT_IMAGE_RE.findall(text)) >= 3:
+        return "report rendered as embedded report images; OCR or manual intake required"
     return "no matching report attachment found on page"
 
 

@@ -9816,6 +9816,91 @@ def test_download_outcome_report_intake_assets_follows_vsb_pdf_iframe(tmp_path: 
     assert rows[0]["download_url"] == "https://example.edu/__local/A/D6/21/maple.pdf"
 
 
+def test_download_outcome_report_intake_assets_flags_embedded_report_images(tmp_path: Path, monkeypatch):
+    intake_csv = tmp_path / "outcome_report_intake_plan.csv"
+    row = {
+        "domain": "school",
+        "entity_code": "3599",
+        "entity_name": "大连艺术学院",
+        "metric_year": "2024",
+        "report_scope": "undergraduate_teaching_quality_report",
+        "candidate_report_title": "大连艺术学院2023-2024学年本科教学质量报告",
+        "candidate_report_url": "https://example.edu/detail/292_image_report.html",
+        "candidate_file_name": "大连艺术学院2023-2024学年本科教学质量报告.pdf",
+        "candidate_source_date": "2024-12-05",
+        "availability_date": "2024-12-05",
+        "suggested_local_report_path": str(tmp_path / "report.pdf"),
+        "local_report_path": "",
+        "intake_status": "ready_for_intake",
+        "block_reason": "",
+        "source_status": "candidate_found",
+        "notes": "",
+    }
+    with intake_csv.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=list(row))
+        writer.writeheader()
+        writer.writerow(row)
+
+    class FakeHeaders:
+        def __init__(self, content_type: str):
+            self._content_type = content_type
+
+        def get(self, name: str, default=None):
+            return self._content_type if name == "Content-Type" else default
+
+    class FakeResponse:
+        def __init__(self, url: str, body: bytes, content_type: str):
+            self._url = url
+            self._body = body
+            self.headers = FakeHeaders(content_type)
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def read(self):
+            return self._body
+
+        def geturl(self):
+            return self._url
+
+    def fake_urlopen(request, timeout=60):
+        html = """
+        <html><body>
+          <img alt="大连艺术学院2023-2024学年本科教学质量报告-第1页" src="/image/page1.jpg">
+          <img alt="大连艺术学院2023-2024学年本科教学质量报告-第2页" src="/image/page2.jpg">
+          <img alt="大连艺术学院2023-2024学年本科教学质量报告-第3页" src="/image/page3.jpg">
+        </body></html>
+        """
+        return FakeResponse(request.full_url, html.encode("utf-8"), "text/html; charset=utf-8")
+
+    monkeypatch.setattr("datahub.connectors.outcome_report_download.urlopen", fake_urlopen)
+
+    output = tmp_path / "downloaded.csv"
+    report = download_outcome_report_intake_assets(
+        intake_csv=intake_csv,
+        output=output,
+    )
+
+    assert report["downloaded_rows"] == 0
+    assert report["failed_rows"] == 1
+    assert report["failure_reason_counts"] == {
+        "report rendered as embedded report images; OCR or manual intake required": 1
+    }
+
+    manual_queue = tmp_path / "manual_intake_queue.csv"
+    manual_report = build_outcome_report_manual_intake_queue(
+        intake_results_csv=output,
+        output=manual_queue,
+    )
+    assert manual_report["reason_counts"] == {"image_pdf_ocr_required": 1}
+    with manual_queue.open(encoding="utf-8", newline="") as f:
+        rows = list(csv.DictReader(f))
+    assert rows[0]["recommended_action"] == "ocr_or_manual_transcription"
+
+
 def test_download_outcome_report_intake_assets_summarizes_failure_reasons(tmp_path: Path, monkeypatch):
     intake_csv = tmp_path / "outcome_report_intake_plan.csv"
     row = {
