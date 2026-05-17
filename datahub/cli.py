@@ -55,8 +55,6 @@ from .builders.outcome_collection_seed_merge import (
 from .builders.outcome_candidate_merge import merge_outcome_report_candidates
 from .builders.outcome_collection_audit import audit_outcome_collection_plan
 from .builders.outcome_collection_package import build_outcome_packages_from_collection_plan
-from .builders.operational_data_portfolio import assess_operational_data_portfolio
-from .builders.operational_coverage_audit import audit_operational_coverage
 from .builders.major_mapping_review import build_major_mapping_review_package
 from .builders.local_package import build_local_package
 from .builders.release_bundle import build_release_bundle
@@ -153,6 +151,7 @@ from .parsers.outcome_report import (
     write_outcome_metric_candidate_csv,
 )
 from .source_audit import audit_sources
+from .commands.operational import handle_operational_command, register_operational_commands
 from .commands.update import handle_update_command, register_update_commands
 from .validators.package_validator import validate_manifest
 
@@ -1066,31 +1065,7 @@ def main() -> int:
         help="Audit configured projection-score and score-distribution source coverage by year",
     )
     audit_score_source_coverage_parser.add_argument("--report", type=Path)
-
-    audit_operational_coverage_parser = sub.add_parser(
-        "audit-operational-coverage",
-        help="Audit Liaoning admission-school coverage across core operational evidence tables",
-    )
-    audit_operational_coverage_parser.add_argument(
-        "--core-db",
-        type=Path,
-        default=Path("/Users/dp/Documents/M/lifehack/backend/data/university.db"),
-    )
-    audit_operational_coverage_parser.add_argument("--report", type=Path)
-    audit_operational_coverage_parser.add_argument("--missing-dir", type=Path)
-    audit_operational_coverage_parser.add_argument("--sample-limit", type=int, default=20)
-
-    assess_operational_data_parser = sub.add_parser(
-        "assess-operational-data-portfolio",
-        help="Classify operational data domains by necessity, availability, coverage and use depth",
-    )
-    assess_operational_data_parser.add_argument(
-        "--config",
-        type=Path,
-        default=Path("config/operational_data_portfolio.json"),
-    )
-    assess_operational_data_parser.add_argument("--coverage-report", type=Path)
-    assess_operational_data_parser.add_argument("--report", type=Path)
+    register_operational_commands(sub)
 
     prefill_distribution_review = sub.add_parser(
         "prefill-ln-score-distribution-review-suggestions",
@@ -1970,6 +1945,9 @@ def main() -> int:
     update_exit = handle_update_command(args)
     if update_exit is not None:
         return update_exit
+    operational_exit = handle_operational_command(args)
+    if operational_exit is not None:
+        return operational_exit
     if args.cmd == "build-entity-normalization-registry":
         result = build_entity_normalization_registry_package(
             output_root=args.output_root,
@@ -2125,23 +2103,6 @@ def main() -> int:
         report = audit_score_source_coverage(report_path=args.report)
         print(json.dumps(report, ensure_ascii=False, indent=2))
         return 0
-    if args.cmd == "audit-operational-coverage":
-        report = audit_operational_coverage(
-            core_db=args.core_db,
-            report_path=args.report,
-            missing_dir=args.missing_dir,
-            sample_limit=args.sample_limit,
-        )
-        print(json.dumps(report, ensure_ascii=False, indent=2))
-        return 0 if not report["p0_blockers"] else 1
-    if args.cmd == "assess-operational-data-portfolio":
-        report = assess_operational_data_portfolio(
-            config_path=args.config,
-            coverage_report_path=args.coverage_report,
-            report_path=args.report,
-        )
-        print(json.dumps(report, ensure_ascii=False, indent=2))
-        return 0 if not report["p0_blockers"] else 1
     if args.cmd == "prefill-ln-score-distribution-review-suggestions":
         rows, report = prefill_score_distribution_review_suggestions(args.review_csv)
         write_review_task_csv(args.output, rows)
