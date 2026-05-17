@@ -33,6 +33,12 @@ Tools can be modular. Scheduling, state, error handling, lineage, evidence gates
 - Current real audit on the local core DB finds 1,590 Liaoning admission schools. Identity/profile cover 1,518 and miss 72; school outcome evidence covers 12 and misses 1,578; location, campus living, and school-city-industry fit tables are still absent from the core DB.
 - The top identity/profile gaps by admissions priority are 国防科技大学, 陆军兵种大学, 华北电力大学(北京), 陆军工程大学, and 华北电力大学(保定). The top outcome gaps are 沈阳音乐学院, 星海音乐学院, 沈阳师范大学, 辽宁生态工程职业学院, and 浙江音乐学院.
 
+### CLI Coupling Reduction
+
+- Codegraph identified `datahub/cli.py` as the largest remaining orchestration hotspot after the update and operational command split.
+- Outcome evidence commands are now isolated in `datahub/commands/outcome.py`. The split moved command registration and dispatch only; builders, parsers, connectors, package contracts, and output semantics remain unchanged.
+- This establishes the repeatable boundary for future CLI reductions: split one command domain at a time, preserve existing command names and arguments, and validate with command help plus the full DataHub test suite.
+
 ### Data Contracts And Import
 
 - Standard data packages now carry `manifest.json`, `quality_report.json`, table files, source lineage, hashes, row counts, and schema checks.

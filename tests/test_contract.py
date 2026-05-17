@@ -9479,6 +9479,7 @@ def test_download_outcome_report_intake_assets_summarizes_failure_reasons(tmp_pa
 
 def test_cli_download_outcome_report_intake_assets_can_allow_partial_failures(tmp_path: Path, monkeypatch):
     from datahub import cli
+    from datahub.commands import outcome
 
     def fake_download(**kwargs):
         return {
@@ -9489,7 +9490,7 @@ def test_cli_download_outcome_report_intake_assets_can_allow_partial_failures(tm
             "failed_rows": 1,
         }
 
-    monkeypatch.setattr(cli, "download_outcome_report_intake_assets", fake_download)
+    monkeypatch.setattr(outcome, "download_outcome_report_intake_assets", fake_download)
     base_argv = [
         "lifehack-datahub",
         "download-outcome-report-intake-assets",
