@@ -359,6 +359,19 @@
     },
     {
       "domain": "school",
+      "entity_code": "2898",
+      "entity_name": "辽宁机电职业技术学院",
+      "metric_year": 2024,
+      "report_scope": "employment_quality_report",
+      "candidate_report_title": "辽宁机电职业技术学院高等职业教育质量报告（2024年度）",
+      "candidate_report_url": "https://www.lnmec.edu.cn/tzgg/31.htm",
+      "candidate_file_name": "辽宁机电职业技术学院高等职业教育质量报告（2024年度）.pdf",
+      "candidate_source_date": "2025-02-14",
+      "availability_date": "2025-02-14",
+      "evidence_note": "辽宁机电职业技术学院官网通知公告列表显示 2025-02-14《辽宁机电职业技术学院高等职业教育质量报告（2024年度）》，说明详情请查看附件；当前只登记官方列表页线索，后续需 manual intake 获取详情页或附件。"
+    },
+    {
+      "domain": "school",
       "entity_code": "2594",
       "entity_name": "沈阳职业技术学院",
       "metric_year": 2024,
