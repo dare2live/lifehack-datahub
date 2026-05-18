@@ -14,6 +14,7 @@ from datahub.builders.outcome_collection_batch import (
 )
 from datahub.builders.outcome_collection_package import build_outcome_packages_from_collection_plan
 from datahub.builders.outcome_collection_plan import build_outcome_collection_plan
+from datahub.builders.outcome_collection_progress_report import build_outcome_collection_progress_report
 from datahub.builders.outcome_collection_verified_inherit import inherit_verified_outcome_collection_rows
 from datahub.builders.outcome_collection_seed_merge import (
     apply_outcome_collection_review_seeds,
@@ -53,6 +54,7 @@ from datahub.parsers.outcome_report import (
 COMMANDS = {
     "build-outcome-collection-plan",
     "audit-outcome-collection-plan",
+    "build-outcome-collection-progress-report",
     "audit-outcome-collection-core-coverage",
     "build-outcome-collection-batch",
     "merge-outcome-collection-batch",
@@ -105,6 +107,15 @@ def register_outcome_commands(sub) -> None:
     )
     audit_outcome_collection.add_argument("--plan-csv", required=True, type=Path)
     audit_outcome_collection.add_argument("--report", type=Path)
+
+    build_outcome_collection_progress = sub.add_parser(
+        "build-outcome-collection-progress-report",
+        help="Build an operator-facing outcome progress report with per-metric coverage and top missing tasks",
+    )
+    build_outcome_collection_progress.add_argument("--plan-csv", required=True, type=Path)
+    build_outcome_collection_progress.add_argument("--report", required=True, type=Path)
+    build_outcome_collection_progress.add_argument("--top-limit", type=int, default=50)
+    build_outcome_collection_progress.add_argument("--metric-key", action="append", dest="metric_keys")
 
     audit_outcome_collection_core = sub.add_parser(
         "audit-outcome-collection-core-coverage",
@@ -405,6 +416,15 @@ def handle_outcome_command(args: Namespace) -> int | None:
         )
         _print_json(report)
         return 0 if report["ready_for_full_universe_review"] else 1
+    if args.cmd == "build-outcome-collection-progress-report":
+        report = build_outcome_collection_progress_report(
+            plan_csv=args.plan_csv,
+            report_path=args.report,
+            top_limit=args.top_limit,
+            metric_keys=args.metric_keys,
+        )
+        _print_json(report)
+        return 0 if not report["errors"] else 1
     if args.cmd == "build-outcome-collection-batch":
         result = build_outcome_collection_batch(
             plan_csv=args.plan_csv,
