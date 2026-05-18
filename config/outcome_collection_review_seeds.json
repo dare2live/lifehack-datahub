@@ -3746,6 +3746,35 @@
       "reviewer": "codex",
       "reviewed_at": "2026-05-18",
       "review_note": "高考100学校概览页在就业前景摘要中直接给出 95% 就业率；按项目规则作为带口径限制的有效 employment_rate 入库。"
+    },
+    {
+      "seed_id": "syzt_2024_school_postgrad_rate",
+      "domain": "school",
+      "entity_code": "2594",
+      "entity_name": "沈阳职业技术学院",
+      "source_index": 4,
+      "priority_rank": 140,
+      "metric_key": "postgrad_rate",
+      "metric_label": "深造率",
+      "metric_unit": "ratio",
+      "metric_year": 2024,
+      "search_queries": [
+        "沈阳职业技术学院 2024 就业质量报告",
+        "沈阳职业技术学院 2024 毕业生就业质量报告 深造率",
+        "沈阳职业技术学院 2024 本科教学质量报告 深造率"
+      ],
+      "status": "verified",
+      "metric_value": 0.1474,
+      "source_title": "沈阳职业技术学院高等职业教育质量报告（2024年度）",
+      "source_url": "https://www.vtcsy.edu.cn/__local/8/1C/5A/C1B34E07C9D7A642294E58FBF55_EBEE7E3C_66AE6E.pdf",
+      "evidence_quote": "国内升学 626 人，出国升学 4 人，升学率 14.74%。",
+      "metric_scope": "2024 届毕业生升学率（国内升学+出国升学）",
+      "denominator": "",
+      "source_date": "2025-01-01",
+      "availability_date": "2025-01-01",
+      "reviewer": "codex",
+      "reviewed_at": "2026-05-18",
+      "review_note": "Official 2024 quality report gives 626 domestic and 4 overseas continuations, directly stating 14.74% postgrad_rate; record as a broad continuing-study ratio."
     }
   ]
 }
