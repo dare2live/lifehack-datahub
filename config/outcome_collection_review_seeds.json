@@ -1560,6 +1560,44 @@
       "reviewer": "codex",
       "reviewed_at": "2026-05-18",
       "review_note": "Promoted from current v66 reviewed full-universe collection plan so manually reviewed staging rows are reproducible from git-tracked seeds."
+    },
+    {
+      "seed_id": "lngc_2024_school_employment_rate",
+      "domain": "school",
+      "entity_code": "4106",
+      "entity_name": "辽宁地质工程职业学院",
+      "metric_key": "employment_rate",
+      "metric_year": 2024,
+      "status": "verified",
+      "metric_value": 0.9414,
+      "source_title": "辽宁地质工程职业学院高等职业教育质量报告（2024年度）",
+      "source_url": "https://www.lngc.edu.cn/info/1018/1006.htm",
+      "evidence_quote": "3.5.1.2 毕业生毕业去向落实率 截至 2024 年 12 月 31 日，辽宁地质工程职业学院 2024 届毕业生总体毕业去 向落实率 94.14%，留辽落实率 83.65%，困难毕业生就业率 96%。协议和合同就业",
+      "metric_scope": "2024届，毕业生总体，毕业去向落实率，截至2024年12月31日",
+      "source_date": "2025-02-14",
+      "availability_date": "2025-02-14",
+      "reviewer": "codex",
+      "reviewed_at": "2026-05-18",
+      "review_note": "人工复核：候选值 94.14% 对应学校 2024 届毕业生总体毕业去向落实率；同句后续留辽落实率为另一指标，不作为本条 metric_value。"
+    },
+    {
+      "seed_id": "lngc_2024_school_postgrad_rate",
+      "domain": "school",
+      "entity_code": "4106",
+      "entity_name": "辽宁地质工程职业学院",
+      "metric_key": "postgrad_rate",
+      "metric_year": 2024,
+      "status": "verified",
+      "metric_value": 0.0515,
+      "source_title": "辽宁地质工程职业学院高等职业教育质量报告（2024年度）",
+      "source_url": "https://www.lngc.edu.cn/info/1018/1006.htm",
+      "evidence_quote": "193 人，占比 9.2%，应征义务兵 48 人，占比 2.29%），国内升学 108 人，占比 5.15%，",
+      "metric_scope": "2024届，毕业生总体，国内升学",
+      "source_date": "2025-02-14",
+      "availability_date": "2025-02-14",
+      "reviewer": "codex",
+      "reviewed_at": "2026-05-18",
+      "review_note": "人工复核：国内升学 108 人，占比 5.15%，作为学校 2024 届毕业生总体国内升学率候选。"
     }
   ]
 }

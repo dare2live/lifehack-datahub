@@ -253,8 +253,10 @@ def _infer_metric_scope(evidence_quote: str) -> str:
     elif "毕业生" in quote:
         scope_parts.append("毕业生总体")
 
-    if "辽宁省内" in quote or "在辽就业" in quote or "辽宁省就业" in quote:
+    if "辽宁省内" in quote or "在辽就业" in quote or "辽宁省就业" in quote or "留辽" in quote:
         scope_parts.append("辽宁省内去向，不是学校总体就业率或本科总体口径")
+    if "专业对口" in quote:
+        scope_parts.append("专业对口口径，不是学校总体就业率或本科总体口径")
     if "专业毕业生" in quote or re.search(r"[\u4e00-\u9fa5]{2,24}专业[^。；;]{0,12}就业率", quote):
         scope_parts.append("专业口径，不是学校总体就业率或本科总体口径")
     if "男生" in quote or "女生" in quote or "男/女" in quote:
@@ -263,8 +265,12 @@ def _infer_metric_scope(evidence_quote: str) -> str:
         scope_parts.append("培养类型分组，不是学校总体就业率或本科总体口径")
     if "学位点" in quote:
         scope_parts.append("学位点口径，不是学校总体就业率或本科总体口径")
-    if re.search(r"(比例|率)[^。；;]{0,8}(上升|增长|提高|下降|降低)", quote):
+    if re.search(r"((比例|率)[^。；;]{0,12}|较\s*去年[^。；;]{0,6})(上升|增长|提高|提升|下降|降低)", quote):
         scope_parts.append("变化幅度，不是学校总体就业率或本科总体口径")
+    if "国内升学" in quote:
+        scope_parts.append("国内升学")
+    elif "升学" in quote:
+        scope_parts.append("升学")
     if "初次" in quote:
         scope_parts.append("初次毕业去向")
     elif "毕业去向落实率" in quote:
