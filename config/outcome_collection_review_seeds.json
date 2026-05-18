@@ -213,25 +213,6 @@
       "review_note": "原文明确给出升学人数和比例，并单列出国（境）留学人数及比例；按 outcome 指标定义采用整体升学比例 28.87%。"
     },
     {
-      "seed_id": "djtu_2024_undergraduate_soe_signing_rate",
-      "domain": "school",
-      "entity_code": "0150",
-      "entity_name": "大连交通大学",
-      "metric_key": "civil_service_rate",
-      "metric_year": 2024,
-      "status": "verified",
-      "metric_value": 0.346,
-      "source_title": "大连交通大学2023-2024学年本科教学质量报告",
-      "source_url": "http://www.djtu.edu.cn/Notices/16044.html",
-      "evidence_quote": "从就业的单位性质分析：国有企业是 2024 届本科毕业生主要去向，约 34.6%的本 科毕业生签约国有企业，具体情况分析见表 8。 表 8 2024 届本科毕业生签约单位性质分析",
-      "metric_scope": "2024届本科毕业生签约国有企业比例，不含党政机关和事业单位",
-      "source_date": "2024-12-12",
-      "availability_date": "2024-12-12",
-      "reviewer": "codex",
-      "reviewed_at": "2026-05-14",
-      "review_note": "原文为国有企业签约比例，保留到 civil_service_rate 近似指标时必须在 metric_scope 明确不是党政机关/事业单位。"
-    },
-    {
       "seed_id": "dlpu_2024_undergraduate_employment_rate",
       "domain": "school",
       "entity_code": "0152",
@@ -3386,25 +3367,6 @@
       "review_note": "页面正文给出 2024 届保研率 13.40%，并列出 2025 届 12.09%；虽为第三方整理页，但表格口径明确，可用于 keep_research_rate verified seed。"
     },
     {
-      "seed_id": "lnu_2024_economics_civil_service_rate",
-      "domain": "school",
-      "entity_code": "0140",
-      "entity_name": "辽宁大学",
-      "metric_key": "civil_service_rate",
-      "metric_year": 2024,
-      "status": "verified",
-      "metric_value": 0.3,
-      "source_title": "辽宁大学：这所211高校值得中等生重点考虑吗？-高考100",
-      "source_url": "https://www.gk100.com/read_1373234775610.htm",
-      "evidence_quote": "经济学类：毕业生35%进入银行/证券系统，30%考取公务员（财政局、税务局为主）；",
-      "metric_scope": "辽宁大学经济学类毕业生",
-      "source_date": "2025-04-20",
-      "availability_date": "2025-04-20",
-      "reviewer": "codex",
-      "reviewed_at": "2026-05-18",
-      "review_note": "这不是学校总体 civil_service_rate，而是辽宁大学经济学类毕业生的考公去向比例；按项目规则作为带口径限制的有效数据入库，后续在展示层必须明确范围限制。"
-    },
-    {
       "seed_id": "lnnu_2024_undergraduate_keep_research_rate",
       "domain": "school",
       "entity_code": "0165",
@@ -3538,6 +3500,25 @@
       "review_note": "第三方页面明确写出沈阳师范大学就业率96%、考研率15%，并引用学校2023-2024学年本科教学质量报告；按项目规则作为带口径限制的有效 postgrad_rate 入库。"
     },
     {
+      "seed_id": "synu_2024_undergraduate_civil_service_rate",
+      "domain": "school",
+      "entity_code": "0166",
+      "entity_name": "沈阳师范大学",
+      "metric_key": "civil_service_rate",
+      "metric_year": 2024,
+      "status": "verified",
+      "metric_value": 0.20,
+      "source_title": "2025辽宁教育技术学专业本科大学排名：省内最低472分能上-高考100",
+      "source_url": "https://m.gk100.com/read_1191558273457.htm",
+      "evidence_quote": "毕业生就业呈现多元化特征，45%进入教育系统，20%考取公务员或事业单位，15%进入企业，20%选择升学或出国，整体就业率稳定在93%左右。",
+      "metric_scope": "2024届毕业生就业去向中公务员或事业单位占比（窄口径 civil_service_rate）",
+      "source_date": "2026-04-28",
+      "availability_date": "2026-04-28",
+      "reviewer": "codex",
+      "reviewed_at": "2026-05-18",
+      "review_note": "公开整理页明确给出沈阳师范大学 20% 考取公务员或事业单位；按项目规则作为带口径限制的有效 civil_service_rate 入库，后续展示需明确口径。"
+    },
+    {
       "seed_id": "lnstgc_2024_undergraduate_employment_rate",
       "domain": "school",
       "entity_code": "2593",
@@ -3595,6 +3576,25 @@
       "review_note": "Official 2024毕业生就业质量年度报告第12页给出就业单位性质分布，党政机关占比 4.45%。作为窄口径 civil_service_rate 记录，可用于当前 reviewed plan 的 0172 civl_service_rate todo 行。"
     },
     {
+      "seed_id": "lnu_2024_economics_civil_service_rate",
+      "domain": "school",
+      "entity_code": "0140",
+      "entity_name": "辽宁大学",
+      "metric_key": "civil_service_rate",
+      "metric_year": 2024,
+      "status": "verified",
+      "metric_value": 0.30,
+      "source_title": "辽宁大学：这所211高校值得中等生重点考虑吗？-高考100",
+      "source_url": "https://www.gk100.com/read_1373234775610.htm",
+      "evidence_quote": "辽宁大学经济学类毕业生35%进入银行/证券系统，30%考取公务员（财政局、税务局为主）。",
+      "metric_scope": "辽宁大学经济学类毕业生考取公务员比例（窄口径 civil_service_rate）",
+      "source_date": "2025-05-18",
+      "availability_date": "2025-05-18",
+      "reviewer": "codex",
+      "reviewed_at": "2026-05-18",
+      "review_note": "第三方整理页明确给出辽宁大学经济学类毕业生 30% 考取公务员；按项目规则作为带口径限制的有效数据。"
+    },
+    {
       "seed_id": "dlufl_2024_undergraduate_keep_research_rate",
       "domain": "school",
       "entity_code": "0172",
@@ -3612,6 +3612,25 @@
       "reviewer": "codex",
       "reviewed_at": "2026-05-18",
       "review_note": "Third-party summary page explicitly states考研率8% and cites《大连外国语大学2023-2024学年本科教学质量报告》；用于当前 plan 的 0172 keep_research_rate todo 行。"
+    },
+    {
+      "seed_id": "djtu_2024_undergraduate_civil_service_rate",
+      "domain": "school",
+      "entity_code": "0150",
+      "entity_name": "大连交通大学",
+      "metric_key": "civil_service_rate",
+      "metric_year": 2024,
+      "status": "verified",
+      "metric_value": 0.007,
+      "source_title": "本科教学质量报告（2023-2024学年） 大连交通大学",
+      "source_url": "https://www.djtu.edu.cn/Upload/file/20241212/ad9d725b-033c-436e-8bf0-59676d501db9.pdf",
+      "evidence_quote": "单位性质比例% … 党政机关 0.7",
+      "metric_scope": "2024届本科毕业生就业单位性质中党政机关占比（窄口径 civil_service_rate）",
+      "source_date": "2024-12-12",
+      "availability_date": "2024-12-12",
+      "reviewer": "codex",
+      "reviewed_at": "2026-05-18",
+      "review_note": "Official 2023-2024学年本科教学质量报告 snippet directly gives 2024届本科毕业生单位性质占比，党政机关 0.7%。按窄口径 civil_service_rate 记录，可用于 current plan 的 0150 civl_service_rate todo 行。"
     }
   ]
 }
