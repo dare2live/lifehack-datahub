@@ -3365,6 +3365,25 @@
       "reviewer": "codex",
       "reviewed_at": "2026-05-18",
       "review_note": "第三方文章直接援引大连理工大学 2024 届推免生资格名单公示，明确给出 23.06% 保研率；作为带口径限制的 keep_research_rate verified seed 入库。"
+    },
+    {
+      "seed_id": "neu_2024_undergraduate_keep_research_rate",
+      "domain": "school",
+      "entity_code": "0128",
+      "entity_name": "东北大学",
+      "metric_key": "keep_research_rate",
+      "metric_year": 2024,
+      "status": "verified",
+      "metric_value": 0.201,
+      "source_title": "东北大学2024保研率是多少-知趣百科",
+      "source_url": "https://baike.songhaifeng.com/1/20250211/302405.html",
+      "evidence_quote": "东北大学在2024年的保研比例达到了20.1%。",
+      "metric_scope": "2024届保研率",
+      "source_date": "2025-02-11",
+      "availability_date": "2025-02-11",
+      "reviewer": "codex",
+      "reviewed_at": "2026-05-18",
+      "review_note": "第三方百科页摘要直接给出东北大学 2024 年保研比例 20.1%；虽非学校官方页，但口径明晰且可作为带范围限制的 keep_research_rate verified seed。"
     }
   ]
 }
