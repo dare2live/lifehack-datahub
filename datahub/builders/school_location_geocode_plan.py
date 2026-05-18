@@ -99,6 +99,12 @@ def build_school_location_geocode_input_plan(
     ]
     _deduplicate_campus_keys(rows)
     ready_rows = [row for row in rows if row["request_status"] == config["defaults"]["ready_status"]]
+    distinct_local_school_count = len({
+        str(row.get("local_school_code") or "").strip()
+        for row in rows
+        if str(row.get("local_school_code") or "").strip()
+    })
+    duplicate_local_school_codes = _duplicate_local_school_codes(rows)
 
     plan_csv = output_dir / "school_location_geocode_plan.csv"
     input_csv = output_dir / "amap_geocode_input.csv"
@@ -115,6 +121,8 @@ def build_school_location_geocode_input_plan(
         "source_date": source_date,
         "availability_date": availability_date,
         "rows": len(rows),
+        "distinct_local_school_count": distinct_local_school_count,
+        "duplicate_local_school_codes": duplicate_local_school_codes,
         "ready_rows": len(ready_rows),
         "blocked_rows": len(rows) - len(ready_rows),
         "plan_csv": str(plan_csv),
@@ -133,6 +141,8 @@ def build_school_location_geocode_input_plan(
         "amap_input_csv": str(input_csv),
         "manifest": str(manifest_path),
         "rows": len(rows),
+        "distinct_local_school_count": distinct_local_school_count,
+        "duplicate_local_school_codes": duplicate_local_school_codes,
         "ready_rows": len(ready_rows),
         "blocked_rows": len(rows) - len(ready_rows),
     }
@@ -414,6 +424,24 @@ def _deduplicate_campus_keys(rows: list[dict[str, Any]]) -> None:
         ])
         suffix = hashlib.md5(suffix_source.encode("utf-8")).hexdigest()[:8]
         row["campus_key"] = f"{row.get('campus_key')}_{suffix}"
+
+
+def _duplicate_local_school_codes(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    grouped: dict[str, set[str]] = {}
+    for row in rows:
+        local_code = str(row.get("local_school_code") or "").strip()
+        school_name = str(row.get("school_name") or "").strip()
+        if local_code:
+            grouped.setdefault(local_code, set()).add(school_name)
+    return [
+        {
+            "local_school_code": local_code,
+            "request_rows": sum(1 for row in rows if str(row.get("local_school_code") or "").strip() == local_code),
+            "school_names": sorted(name for name in names if name),
+        }
+        for local_code, names in sorted(grouped.items())
+        if len(names) > 1
+    ]
 
 
 def _match_profile(

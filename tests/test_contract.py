@@ -13394,6 +13394,12 @@ def test_build_school_location_geocode_input_plan(tmp_path: Path):
     )
 
     assert result["rows"] == 9
+    assert result["distinct_local_school_count"] == 8
+    assert result["duplicate_local_school_codes"] == [{
+        "local_school_code": "6407",
+        "request_rows": 2,
+        "school_names": ["香港中文大学", "香港中文大学(深圳)"],
+    }]
     assert result["ready_rows"] == 6
     assert result["blocked_rows"] == 3
     with Path(result["amap_input_csv"]).open(encoding="utf-8", newline="") as f:
@@ -13423,6 +13429,7 @@ def test_build_school_location_geocode_input_plan(tmp_path: Path):
     }
     manifest = json.loads(Path(result["manifest"]).read_text(encoding="utf-8"))
     assert manifest["source_key"] == "school_location_geocode"
+    assert manifest["distinct_local_school_count"] == 8
     assert "--address-column geocode_query" in manifest["fetch_command_hint"]
 
     audit = audit_school_location_geocode_input(
@@ -13500,6 +13507,7 @@ def test_build_school_location_geocode_input_plan_uses_core_identity_profile(tmp
     )
 
     assert result["rows"] == 2
+    assert result["distinct_local_school_count"] == 2
     assert result["ready_rows"] == 2
     assert result["blocked_rows"] == 0
     with Path(result["amap_input_csv"]).open(encoding="utf-8", newline="") as f:
