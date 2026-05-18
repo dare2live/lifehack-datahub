@@ -34,6 +34,7 @@ from datahub.builders.outcome_report_source_seed_merge import (
 )
 from datahub.builders.outcome_scoped_stock_review import build_scoped_outcome_stock_review
 from datahub.builders.outcome_scoped_stock_review_batch import build_scoped_outcome_stock_review_batch
+from datahub.builders.outcome_scoped_stock_review_export import export_approved_scoped_stock_review_candidates
 from datahub.connectors.outcome_report_download import (
     build_outcome_report_manual_intake_queue,
     download_outcome_report_intake_assets,
@@ -69,6 +70,7 @@ COMMANDS = {
     "extract-outcome-report-candidates",
     "build-outcome-scoped-stock-review",
     "build-outcome-scoped-stock-review-batch",
+    "export-outcome-scoped-stock-approved-candidates",
 }
 
 
@@ -164,6 +166,15 @@ def register_outcome_commands(sub) -> None:
     scoped_stock_review_batch.add_argument("--limit", type=int, default=100)
     scoped_stock_review_batch.add_argument("--review-class", action="append", dest="review_class")
     scoped_stock_review_batch.add_argument("--metric-key", action="append", dest="metric_key")
+
+    scoped_stock_review_export = sub.add_parser(
+        "export-outcome-scoped-stock-approved-candidates",
+        help="Export manually approved scoped stock-review batch rows as standard outcome candidate CSV",
+    )
+    scoped_stock_review_export.add_argument("--batch-csv", required=True, type=Path)
+    scoped_stock_review_export.add_argument("--output", required=True, type=Path)
+    scoped_stock_review_export.add_argument("--report", type=Path)
+    scoped_stock_review_export.add_argument("--approved-status", action="append", dest="approved_statuses")
 
     build_outcome_report_sources = sub.add_parser(
         "build-outcome-report-source-plan",
@@ -389,6 +400,15 @@ def handle_outcome_command(args: Namespace) -> int | None:
             limit=args.limit,
             review_class=args.review_class,
             metric_key=args.metric_key,
+        )
+        _print_json(report)
+        return 0
+    if args.cmd == "export-outcome-scoped-stock-approved-candidates":
+        report = export_approved_scoped_stock_review_candidates(
+            batch_csv=args.batch_csv,
+            output=args.output,
+            report_path=args.report,
+            approved_statuses=args.approved_statuses,
         )
         _print_json(report)
         return 0

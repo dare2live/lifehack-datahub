@@ -92,6 +92,7 @@ from datahub.builders.outcome_report_source_seed_merge import (
 )
 from datahub.builders.outcome_scoped_stock_review import build_scoped_outcome_stock_review
 from datahub.builders.outcome_scoped_stock_review_batch import build_scoped_outcome_stock_review_batch
+from datahub.builders.outcome_scoped_stock_review_export import export_approved_scoped_stock_review_candidates
 from datahub.builders.policy_tables import (
     build_policy_industry_map_package,
     build_policy_plan_history_package,
@@ -11404,6 +11405,62 @@ def test_merge_outcome_report_candidates_requires_metric_scope(tmp_path: Path):
             candidate_csv=candidates,
             output=output,
         )
+
+
+def test_export_approved_scoped_stock_review_candidates_requires_manual_approval(tmp_path: Path):
+    batch = tmp_path / "scoped_stock_review_batch.csv"
+    with batch.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=[*CANDIDATE_COLUMNS, "scoped_review_class", "matched_scope_terms", "recommended_action"])
+        writer.writeheader()
+        base = {column: "" for column in writer.fieldnames}
+        writer.writerow({
+            **base,
+            "domain": "school",
+            "entity_code": "0162",
+            "entity_name": "辽宁中医药大学",
+            "metric_key": "employment_rate",
+            "metric_label": "毕业去向落实率",
+            "metric_unit": "ratio",
+            "metric_year": "2024",
+            "candidate_value": "0.85",
+            "candidate_text_value": "85%以上",
+            "source_title": "辽宁中医药大学2023-2024学年本科教学质量报告",
+            "source_url": "https://example.edu/lnutcm.pdf",
+            "evidence_quote": "辽宁省内毕业去向落实率85%以上。",
+            "metric_scope": "liaoning_province_in_province_destination_rate_not_school_overall",
+            "source_date": "2024-12-31",
+            "availability_date": "2024-12-31",
+            "review_status": "approved",
+            "notes": "非学校总体就业率、非本科总体就业率。",
+            "scoped_review_class": "scoped_official_candidate",
+        })
+        writer.writerow({
+            **base,
+            "domain": "school",
+            "entity_code": "0163",
+            "entity_name": "待复核学校",
+            "metric_key": "employment_rate",
+            "metric_year": "2024",
+            "candidate_value": "0.90",
+            "review_status": "needs_review",
+            "scoped_review_class": "scoped_official_candidate",
+        })
+
+    output = tmp_path / "approved_candidates.csv"
+    report = export_approved_scoped_stock_review_candidates(
+        batch_csv=batch,
+        output=output,
+        report_path=tmp_path / "approved_candidates.json",
+    )
+
+    assert report["approved_rows"] == 1
+    with output.open(encoding="utf-8", newline="") as f:
+        rows = list(csv.DictReader(f))
+    assert list(rows[0]) == CANDIDATE_COLUMNS
+    assert len(rows) == 1
+    assert rows[0]["entity_code"] == "0162"
+    assert rows[0]["review_status"] == "approved"
+    assert rows[0]["metric_scope"] == "liaoning_province_in_province_destination_rate_not_school_overall"
 
 
 def test_build_scoped_outcome_stock_review_flags_official_scoped_candidates(tmp_path: Path):
