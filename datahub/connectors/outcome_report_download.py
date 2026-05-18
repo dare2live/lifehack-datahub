@@ -166,6 +166,67 @@ def build_outcome_report_manual_intake_queue(
     return {**payload, "report": str(report_path)}
 
 
+def aggregate_outcome_report_manual_intake_queues(
+    *,
+    queue_csvs: list[Path],
+    output: Path,
+    report: Path | None = None,
+) -> dict[str, Any]:
+    rows_by_key: dict[tuple[str, str, str, str, str], dict[str, Any]] = {}
+    duplicate_rows = 0
+    source_files: Counter[str] = Counter()
+    for queue_csv in queue_csvs:
+        for row in _read_csv(queue_csv):
+            key = (
+                str(row.get("domain") or ""),
+                str(row.get("entity_code") or ""),
+                str(row.get("metric_year") or ""),
+                str(row.get("report_scope") or ""),
+                str(row.get("candidate_report_url") or ""),
+            )
+            source_files[str(queue_csv)] += 1
+            if key in rows_by_key:
+                duplicate_rows += 1
+                rows_by_key[key]["source_queue_count"] = str(int(rows_by_key[key]["source_queue_count"]) + 1)
+                continue
+            rows_by_key[key] = {
+                **{column: str(row.get(column) or "") for column in MANUAL_INTAKE_COLUMNS},
+                "source_queue_count": "1",
+                "source_queue_sample": str(queue_csv),
+            }
+
+    rows = sorted(
+        rows_by_key.values(),
+        key=lambda item: (
+            item.get("recommended_action", ""),
+            item.get("failure_reason", ""),
+            item.get("entity_code", ""),
+            item.get("report_scope", ""),
+        ),
+    )
+    reason_counts = Counter(row["failure_reason"] for row in rows)
+    action_counts = Counter(row["recommended_action"] for row in rows)
+    fieldnames = [*MANUAL_INTAKE_COLUMNS, "source_queue_count", "source_queue_sample"]
+    output.parent.mkdir(parents=True, exist_ok=True)
+    _write_csv(output, rows, fieldnames=fieldnames)
+    payload = {
+        "built_at": datetime.utcnow().replace(microsecond=0).isoformat(),
+        "inputs": [str(path) for path in queue_csvs],
+        "input_file_count": len(queue_csvs),
+        "input_rows": sum(source_files.values()),
+        "duplicate_rows": duplicate_rows,
+        "output": str(output),
+        "rows": len(rows),
+        "reason_counts": dict(sorted(reason_counts.items())),
+        "action_counts": dict(sorted(action_counts.items())),
+        "notes": "Aggregated manual intake queue only. It does not download reports, parse PDFs, review candidates, build packages, or write core.",
+    }
+    report_path = report or output.with_suffix(".json")
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    report_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return {**payload, "report": str(report_path)}
+
+
 def _failure_reason(exc: Exception) -> str:
     message = str(exc).strip()
     if not message:

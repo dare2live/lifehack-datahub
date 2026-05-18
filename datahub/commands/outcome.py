@@ -39,6 +39,7 @@ from datahub.builders.outcome_scoped_stock_review_export import export_approved_
 from datahub.builders.outcome_scoped_stock_review_workspace import build_scoped_outcome_stock_review_workspace
 from datahub.builders.outcome_scoped_stock_review_workspace_audit import audit_scoped_outcome_stock_review_workspace
 from datahub.connectors.outcome_report_download import (
+    aggregate_outcome_report_manual_intake_queues,
     build_outcome_report_manual_intake_queue,
     download_outcome_report_intake_assets,
 )
@@ -67,6 +68,7 @@ COMMANDS = {
     "build-outcome-report-intake-plan",
     "download-outcome-report-intake-assets",
     "build-outcome-report-manual-intake-queue",
+    "aggregate-outcome-report-manual-intake-queues",
     "merge-outcome-report-intake-results",
     "build-outcome-report-extraction-plan",
     "run-outcome-report-extraction-plan",
@@ -282,6 +284,14 @@ def register_outcome_commands(sub) -> None:
     build_outcome_report_manual_intake.add_argument("--intake-results-csv", required=True, type=Path)
     build_outcome_report_manual_intake.add_argument("--output", required=True, type=Path)
     build_outcome_report_manual_intake.add_argument("--report", type=Path)
+
+    aggregate_outcome_report_manual_intake = sub.add_parser(
+        "aggregate-outcome-report-manual-intake-queues",
+        help="Aggregate and deduplicate manual intake queues from multiple outcome report runs",
+    )
+    aggregate_outcome_report_manual_intake.add_argument("--queue-csv", required=True, action="append", type=Path)
+    aggregate_outcome_report_manual_intake.add_argument("--output", required=True, type=Path)
+    aggregate_outcome_report_manual_intake.add_argument("--report", type=Path)
 
     merge_outcome_report_intake = sub.add_parser(
         "merge-outcome-report-intake-results",
@@ -528,6 +538,14 @@ def handle_outcome_command(args: Namespace) -> int | None:
     if args.cmd == "build-outcome-report-manual-intake-queue":
         result = build_outcome_report_manual_intake_queue(
             intake_results_csv=args.intake_results_csv,
+            output=args.output,
+            report=args.report,
+        )
+        _print_json(result)
+        return 0
+    if args.cmd == "aggregate-outcome-report-manual-intake-queues":
+        result = aggregate_outcome_report_manual_intake_queues(
+            queue_csvs=args.queue_csv,
             output=args.output,
             report=args.report,
         )

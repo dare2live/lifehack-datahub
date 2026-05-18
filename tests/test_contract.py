@@ -164,6 +164,8 @@ from datahub.connectors.amap_web_api_readiness import audit_amap_web_api_readine
 from datahub.connectors.manual_files import intake_manual_assets
 from datahub.connectors.macos_vision_ocr import ocr_page_images
 from datahub.connectors.outcome_report_download import (
+    MANUAL_INTAKE_COLUMNS,
+    aggregate_outcome_report_manual_intake_queues,
     build_outcome_report_manual_intake_queue,
     download_outcome_report_intake_assets,
 )
@@ -10370,6 +10372,60 @@ def test_build_outcome_report_manual_intake_queue_classifies_failed_downloads(tm
     assert output_rows[0]["recommended_action"] == "manual_download_or_downloader_tls_fallback"
     assert output_rows[1]["recommended_action"] == "manual_browser_download"
     assert output_rows[2]["recommended_action"] == "ocr_or_manual_transcription"
+
+
+def test_aggregate_outcome_report_manual_intake_queues_deduplicates_sources(tmp_path: Path):
+    queue_a = tmp_path / "manual_a.csv"
+    queue_b = tmp_path / "manual_b.csv"
+    rows = [
+        {
+            "domain": "school",
+            "entity_code": "0157",
+            "entity_name": "沈阳农业大学",
+            "metric_year": "2024",
+            "report_scope": "undergraduate_teaching_quality_report",
+            "candidate_report_title": "沈阳农业大学2023-2024学年本科教学质量报告",
+            "candidate_report_url": "https://example.edu/syau.htm",
+            "candidate_file_name": "沈阳农业大学2023-2024学年本科教学质量报告.pdf",
+            "failure_reason": "captcha_required",
+            "recommended_action": "manual_browser_download",
+            "download_error": "attachment requires captcha or manual intake",
+        },
+        {
+            "domain": "school",
+            "entity_code": "0728",
+            "entity_name": "西安音乐学院",
+            "metric_year": "2024",
+            "report_scope": "employment_quality_report",
+            "candidate_report_title": "西安音乐学院2024届毕业生就业质量监测报告",
+            "candidate_report_url": "https://example.edu/xacom.htm",
+            "candidate_file_name": "西安音乐学院2024届毕业生就业质量监测报告.pdf",
+            "failure_reason": "ssl_handshake_failed",
+            "recommended_action": "manual_download_or_downloader_tls_fallback",
+            "download_error": "ssl handshake failed; manual intake required",
+        },
+    ]
+    for path, path_rows in [(queue_a, rows), (queue_b, [rows[0]])]:
+        with path.open("w", encoding="utf-8", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=MANUAL_INTAKE_COLUMNS)
+            writer.writeheader()
+            writer.writerows(path_rows)
+
+    output = tmp_path / "aggregated_manual_queue.csv"
+    report = aggregate_outcome_report_manual_intake_queues(
+        queue_csvs=[queue_a, queue_b],
+        output=output,
+    )
+
+    assert report["input_rows"] == 3
+    assert report["duplicate_rows"] == 1
+    assert report["rows"] == 2
+    assert report["reason_counts"] == {"captcha_required": 1, "ssl_handshake_failed": 1}
+    with output.open(encoding="utf-8", newline="") as f:
+        output_rows = list(csv.DictReader(f))
+    syau = next(row for row in output_rows if row["entity_code"] == "0157")
+    assert syau["source_queue_count"] == "2"
+    assert syau["source_queue_sample"].endswith("manual_a.csv")
 
 
 def test_download_outcome_report_intake_assets_sends_referer_for_direct_attachment(tmp_path: Path, monkeypatch):
