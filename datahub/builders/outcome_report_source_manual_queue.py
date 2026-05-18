@@ -43,7 +43,10 @@ def build_outcome_report_source_manual_intake_queue(
     seeds = data.get("seeds") or []
     if not isinstance(seeds, list):
         raise ValueError("outcome report sources JSON must contain a list field: seeds")
-    resolved_source_urls = _resolved_source_urls(collection_review_seeds_json) if exclude_resolved_sources else set()
+    resolved_sources = _resolved_sources(collection_review_seeds_json) if exclude_resolved_sources else {
+        "urls": set(),
+        "report_keys": set(),
+    }
 
     output_rows: list[dict[str, str]] = []
     reason_counts: Counter[str] = Counter()
@@ -53,7 +56,8 @@ def build_outcome_report_source_manual_intake_queue(
         if not isinstance(seed, dict):
             continue
         source_url = _text(seed.get("candidate_report_url"))
-        if _normalized_url(source_url) in resolved_source_urls:
+        source_key = _report_key(seed)
+        if _normalized_url(source_url) in resolved_sources["urls"] or source_key in resolved_sources["report_keys"]:
             resolved_source_rows += 1
             continue
         note = _text(seed.get("evidence_note"))
@@ -102,11 +106,12 @@ def build_outcome_report_source_manual_intake_queue(
     return result
 
 
-def _resolved_source_urls(collection_review_seeds_json: Path | None) -> set[str]:
+def _resolved_sources(collection_review_seeds_json: Path | None) -> dict[str, set[str]]:
     if not collection_review_seeds_json or not collection_review_seeds_json.exists():
-        return set()
+        return {"urls": set(), "report_keys": set()}
     data = json.loads(collection_review_seeds_json.read_text(encoding="utf-8"))
     urls: set[str] = set()
+    report_keys: set[str] = set()
     for seed in data.get("seeds") or []:
         if not isinstance(seed, dict):
             continue
@@ -115,7 +120,15 @@ def _resolved_source_urls(collection_review_seeds_json: Path | None) -> set[str]
         url = _normalized_url(_text(seed.get("source_url")))
         if url:
             urls.add(url)
-    return urls
+        key = _report_key({
+            "domain": seed.get("domain"),
+            "entity_code": seed.get("entity_code"),
+            "metric_year": seed.get("metric_year"),
+            "candidate_report_title": seed.get("source_title"),
+        })
+        if key:
+            report_keys.add(key)
+    return {"urls": urls, "report_keys": report_keys}
 
 
 def _normalized_url(value: str) -> str:
@@ -127,6 +140,20 @@ def _normalized_url(value: str) -> str:
         netloc = netloc[4:]
     path = parsed.path.rstrip("/")
     return urlunsplit((parsed.scheme.lower(), netloc, path, parsed.query, ""))
+
+
+def _report_key(row: dict[str, Any]) -> str:
+    domain = _text(row.get("domain")) or "school"
+    entity_code = _text(row.get("entity_code"))
+    metric_year = _text(row.get("metric_year"))
+    title = _normalized_title(_text(row.get("candidate_report_title")))
+    if not entity_code or not metric_year or not title:
+        return ""
+    return "|".join([domain, entity_code, metric_year, title])
+
+
+def _normalized_title(value: str) -> str:
+    return "".join(value.split()).replace("（", "(").replace("）", ")").lower()
 
 
 def _classify_manual_signal(note: str) -> tuple[str, str]:
