@@ -3384,6 +3384,25 @@
       "reviewer": "codex",
       "reviewed_at": "2026-05-18",
       "review_note": "第三方百科页摘要直接给出东北大学 2024 年保研比例 20.1%；虽非学校官方页，但口径明晰且可作为带范围限制的 keep_research_rate verified seed。"
+    },
+    {
+      "seed_id": "dlpu_2024_undergraduate_keep_research_rate",
+      "domain": "school",
+      "entity_code": "0152",
+      "entity_name": "大连工业大学",
+      "metric_key": "keep_research_rate",
+      "metric_year": 2024,
+      "status": "verified",
+      "metric_value": 0.043,
+      "source_title": "大连工业大学保研可以去哪个学校？去向/保研率/条件一览！-高顿去保研",
+      "source_url": "https://www.gaodun.com/baoyan/1748480.html",
+      "evidence_quote": "全校整体：约4%～5%（2024届官方数据为4.3%）",
+      "metric_scope": "2024届保研率",
+      "source_date": "2026-01-21",
+      "availability_date": "2026-01-21",
+      "reviewer": "codex",
+      "reviewed_at": "2026-05-18",
+      "review_note": "页面直接给出 2024 届官方数据为 4.3%，适合作为带口径限制的 keep_research_rate verified seed，用于继续抬升辽宁学校 outcome 覆盖。"
     }
   ]
 }
