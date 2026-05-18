@@ -10375,6 +10375,49 @@ def test_download_outcome_report_intake_assets_retries_certificate_failures_with
     assert rows[0]["download_tls_fallback"] == "true"
 
 
+def test_download_outcome_report_intake_assets_marks_failed_tls_fallback(tmp_path: Path, monkeypatch):
+    intake_csv = tmp_path / "outcome_report_intake_plan.csv"
+    row = {
+        "domain": "school",
+        "entity_code": "0728",
+        "entity_name": "西安音乐学院",
+        "metric_year": "2024",
+        "report_scope": "employment_quality_report",
+        "candidate_report_title": "西安音乐学院2024届毕业生就业质量监测报告",
+        "candidate_report_url": "https://example.edu/report.pdf",
+        "candidate_file_name": "西安音乐学院2024届毕业生就业质量监测报告.pdf",
+        "candidate_source_date": "2025-01-17",
+        "availability_date": "2025-01-17",
+        "suggested_local_report_path": str(tmp_path / "report.pdf"),
+        "local_report_path": "",
+        "intake_status": "ready_for_intake",
+        "block_reason": "",
+        "source_status": "candidate_found",
+        "notes": "",
+    }
+    with intake_csv.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=list(row))
+        writer.writeheader()
+        writer.writerow(row)
+
+    def fake_urlopen(request, timeout=60, context=None):
+        raise OSError("EOF occurred in violation of protocol (_ssl.c:1129)")
+
+    monkeypatch.setattr("datahub.connectors.outcome_report_download.urlopen", fake_urlopen)
+
+    output = tmp_path / "downloaded.csv"
+    report = download_outcome_report_intake_assets(
+        intake_csv=intake_csv,
+        output=output,
+    )
+
+    assert report["downloaded_rows"] == 0
+    assert report["failed_rows"] == 1
+    with output.open(encoding="utf-8", newline="") as f:
+        rows = list(csv.DictReader(f))
+    assert rows[0]["download_tls_fallback"] == "failed"
+
+
 def test_build_outcome_report_manual_intake_queue_classifies_failed_downloads(tmp_path: Path):
     intake_results_csv = tmp_path / "outcome_report_intake_results.csv"
     rows = [

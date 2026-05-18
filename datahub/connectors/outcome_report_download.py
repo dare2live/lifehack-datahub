@@ -98,7 +98,7 @@ def download_outcome_report_intake_assets(
             failure_reason = _failure_reason(exc)
             result_row.update({
                 "download_status": "failed",
-                "download_tls_fallback": "",
+                "download_tls_fallback": "failed" if getattr(exc, "tls_fallback_attempted", False) else "",
                 "download_error": str(exc),
             })
             failed_rows += 1
@@ -289,7 +289,7 @@ def _download_row(row: dict[str, Any], *, timeout: int) -> dict[str, Any]:
         try:
             downloaded = _download_row_once(row, timeout=timeout, insecure_tls=True)
         except Exception as fallback_exc:
-            raise fallback_exc from exc
+            raise TLSFallbackDownloadError(fallback_exc) from exc
         downloaded["tls_fallback"] = True
         return downloaded
 
@@ -369,6 +369,13 @@ def _is_tls_error_text(lower_message: str) -> bool:
         "wrong version number",
     ]
     return any(token in lower_message for token in tls_tokens)
+
+
+class TLSFallbackDownloadError(RuntimeError):
+    tls_fallback_attempted = True
+
+    def __init__(self, fallback_exc: Exception) -> None:
+        super().__init__(str(fallback_exc))
 
 
 def _iri_to_uri(url: str) -> str:
