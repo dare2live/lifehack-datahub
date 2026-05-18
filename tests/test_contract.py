@@ -11373,7 +11373,7 @@ def test_build_operational_gap_report_summarizes_existing_artifacts(tmp_path: Pa
     }), encoding="utf-8")
     portfolio = tmp_path / "portfolio.json"
     portfolio.write_text(json.dumps({
-        "category_counts": {"required_unavailable": 1},
+        "summary": {"required_unavailable": 1},
         "p0_blockers": [{"code": "LN_SCORE_HISTORY_NOT_OPERATIONAL"}],
     }), encoding="utf-8")
     outcome = tmp_path / "outcome.json"
@@ -11417,6 +11417,7 @@ def test_build_operational_gap_report_summarizes_existing_artifacts(tmp_path: Pa
     assert report["summary"]["ready_for_normal_operation"] is False
     assert report["summary"]["p0_blocker_signal_count"] == 6
     assert report["summary"]["unique_p0_blocker_count"] == 6
+    assert report["portfolio"]["category_counts"] == {"required_unavailable": 1}
     assert report["readiness"]["campus_living"]["row_counts"] == {"location_rows": 0, "poi_rows": 0}
     assert (tmp_path / "gap.json").exists()
     markdown = (tmp_path / "gap.md").read_text(encoding="utf-8")

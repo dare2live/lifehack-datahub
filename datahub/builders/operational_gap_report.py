@@ -102,7 +102,7 @@ def _coverage_summary(report: dict[str, Any]) -> dict[str, Any]:
 
 def _portfolio_summary(report: dict[str, Any]) -> dict[str, Any]:
     return {
-        "category_counts": report.get("category_counts") or {},
+        "category_counts": report.get("category_counts") or report.get("summary") or {},
         "p0_blockers": report.get("p0_blockers") or [],
     }
 
