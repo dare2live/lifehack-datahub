@@ -3346,6 +3346,25 @@
       "reviewer": "codex",
       "reviewed_at": "2026-05-18",
       "review_note": "摘要明确给出 2024 届本科毕业生总体保研率约为 13%；虽为第三方整理页，但口径清晰，且与学校类型高度匹配，可作为带范围限制的 keep_research_rate verified seed。"
+    },
+    {
+      "seed_id": "dlut_2024_undergraduate_keep_research_rate",
+      "domain": "school",
+      "entity_code": "0141",
+      "entity_name": "大连理工大学",
+      "metric_key": "keep_research_rate",
+      "metric_year": 2024,
+      "status": "verified",
+      "metric_value": 0.2306,
+      "source_title": "PK“C9”！大连理工大学升学怎么样？过半学生都能上岸！-搜狐",
+      "source_url": "https://www.sohu.com/a/760727337_121716563",
+      "evidence_quote": "根据大连理工大学2024届推免生资格名单公示，全校共有1440名同学获得2024届推免资格，保研率达到了23.06%",
+      "metric_scope": "2024届推免保研率",
+      "source_date": "2024-05-18",
+      "availability_date": "2024-05-18",
+      "reviewer": "codex",
+      "reviewed_at": "2026-05-18",
+      "review_note": "第三方文章直接援引大连理工大学 2024 届推免生资格名单公示，明确给出 23.06% 保研率；作为带口径限制的 keep_research_rate verified seed 入库。"
     }
   ]
 }
