@@ -7,7 +7,8 @@ from collections import Counter
 from datetime import datetime
 from pathlib import Path
 from typing import Any
-from urllib.parse import urlsplit, urlunsplit
+
+from datahub.builders.outcome_review_contract import normalized_source_url, report_identity_key
 
 
 MANUAL_INTAKE_COLUMNS = [
@@ -56,8 +57,8 @@ def build_outcome_report_source_manual_intake_queue(
         if not isinstance(seed, dict):
             continue
         source_url = _text(seed.get("candidate_report_url"))
-        source_key = _report_key(seed)
-        if _normalized_url(source_url) in resolved_sources["urls"] or source_key in resolved_sources["report_keys"]:
+        source_key = report_identity_key(seed)
+        if normalized_source_url(source_url) in resolved_sources["urls"] or source_key in resolved_sources["report_keys"]:
             resolved_source_rows += 1
             continue
         note = _text(seed.get("evidence_note"))
@@ -117,10 +118,10 @@ def _resolved_sources(collection_review_seeds_json: Path | None) -> dict[str, se
             continue
         if _text(seed.get("status")) != "verified":
             continue
-        url = _normalized_url(_text(seed.get("source_url")))
+        url = normalized_source_url(_text(seed.get("source_url")))
         if url:
             urls.add(url)
-        key = _report_key({
+        key = report_identity_key({
             "domain": seed.get("domain"),
             "entity_code": seed.get("entity_code"),
             "metric_year": seed.get("metric_year"),
@@ -129,31 +130,6 @@ def _resolved_sources(collection_review_seeds_json: Path | None) -> dict[str, se
         if key:
             report_keys.add(key)
     return {"urls": urls, "report_keys": report_keys}
-
-
-def _normalized_url(value: str) -> str:
-    if not value:
-        return ""
-    parsed = urlsplit(value.strip())
-    netloc = parsed.netloc.lower()
-    if netloc.startswith("www."):
-        netloc = netloc[4:]
-    path = parsed.path.rstrip("/")
-    return urlunsplit((parsed.scheme.lower(), netloc, path, parsed.query, ""))
-
-
-def _report_key(row: dict[str, Any]) -> str:
-    domain = _text(row.get("domain")) or "school"
-    entity_code = _text(row.get("entity_code"))
-    metric_year = _text(row.get("metric_year"))
-    title = _normalized_title(_text(row.get("candidate_report_title")))
-    if not entity_code or not metric_year or not title:
-        return ""
-    return "|".join([domain, entity_code, metric_year, title])
-
-
-def _normalized_title(value: str) -> str:
-    return "".join(value.split()).replace("（", "(").replace("）", ")").lower()
 
 
 def _classify_manual_signal(note: str) -> tuple[str, str]:
