@@ -2170,25 +2170,6 @@
       "review_note": "恢复去重时误删的既有 verified seed：报告只确认学校具备推免资格，未给出 2024 届保研人数或比例，因此只登记升学率。"
     },
     {
-      "seed_id": "lnstzy_2024_school_employment_rate",
-      "domain": "school",
-      "entity_code": "2593",
-      "entity_name": "辽宁生态工程职业学院",
-      "metric_key": "employment_rate",
-      "metric_year": 2024,
-      "status": "verified",
-      "metric_value": 0.8674,
-      "source_title": "2024年就业质量报告",
-      "source_url": "https://jycyb.lnstzy.cn/info/1064/1468.htm",
-      "evidence_quote": "截止到2024 年8 月31 日， 学院2024 届毕业生初次去向落实率为 86.74％。",
-      "metric_scope": "2024届毕业生，初次去向落实率，截至2024年8月31日；官方页面正文为详见附件，附件需人工下载核验",
-      "source_date": "2025-01-10",
-      "availability_date": "2025-01-10",
-      "reviewer": "codex",
-      "reviewed_at": "2026-05-18",
-      "review_note": "并行 agent 只读核验：官方就业创业网页面及附件可提取就业率；不使用第三方摘要。"
-    },
-    {
       "seed_id": "lnstzy_2024_school_postgrad_rate",
       "domain": "school",
       "entity_code": "2593",
@@ -3500,25 +3481,6 @@
       "review_note": "页面直接给出 2024 届官方数据为 4.3%，适合作为带口径限制的 keep_research_rate verified seed，用于继续抬升辽宁学校 outcome 覆盖。"
     },
     {
-      "seed_id": "jzmu_2024_undergraduate_employment_rate",
-      "domain": "school",
-      "entity_code": "0160",
-      "entity_name": "锦州医科大学",
-      "metric_key": "employment_rate",
-      "metric_year": 2024,
-      "status": "verified",
-      "metric_value": 0.881,
-      "source_title": "锦州医科大学2023-2024 学年本科教学质量报告",
-      "source_url": "https://cat.jzmu.edu.cn/__local/3/34/DB/5A5894FD68AAA86546962266C77_3F10AE04_119903.pdf",
-      "evidence_quote": "2024 届本科毕业生初次就业率88.10%。",
-      "metric_scope": "2024届本科毕业生初次就业率",
-      "source_date": "2024-12-02",
-      "availability_date": "2024-12-02",
-      "reviewer": "codex",
-      "reviewed_at": "2026-05-18",
-      "review_note": "学校本科教学质量报告 PDF 直接给出 2024 届本科毕业生初次就业率 88.10%，可作为标准 school employment_rate verified seed。"
-    },
-    {
       "seed_id": "lnnuhh_2024_undergraduate_postgrad_rate",
       "domain": "school",
       "entity_code": "3215",
@@ -3574,6 +3536,25 @@
       "reviewer": "codex",
       "reviewed_at": "2026-05-18",
       "review_note": "第三方页面明确写出沈阳师范大学就业率96%、考研率15%，并引用学校2023-2024学年本科教学质量报告；按项目规则作为带口径限制的有效 postgrad_rate 入库。"
+    },
+    {
+      "seed_id": "lnstgc_2024_undergraduate_employment_rate",
+      "domain": "school",
+      "entity_code": "2593",
+      "entity_name": "辽宁生态工程职业学院",
+      "metric_key": "employment_rate",
+      "metric_year": 2024,
+      "status": "verified",
+      "metric_value": 0.8674,
+      "source_title": "辽宁生态工程职业学院2024届毕业生就业质量年度报告",
+      "source_url": "https://o.bysjy.com.cn/new_govern/yxqqnn0600000129/2025/doc/1747123222-2316.pdf",
+      "evidence_quote": "截止到2024年8月31日，学院2024届毕业生初次去向落实率为86.74％。",
+      "metric_scope": "2024届毕业生初次去向落实率",
+      "source_date": "2024-12-31",
+      "availability_date": "2025-05-13",
+      "reviewer": "codex",
+      "reviewed_at": "2026-05-18",
+      "review_note": "官方就业质量年度报告正文第6页直接给出学院2024届毕业生初次去向落实率 86.74%，可作为学校级 employment_rate verified seed。"
     }
   ]
 }
