@@ -255,7 +255,7 @@ def _infer_metric_scope(evidence_quote: str) -> str:
 
     if "辽宁省内" in quote or "在辽就业" in quote or "辽宁省就业" in quote or "留辽" in quote:
         scope_parts.append("辽宁省内去向，不是学校总体就业率或本科总体口径")
-    if "专业对口" in quote:
+    if "专业对口" in quote or "对口就业率" in quote:
         scope_parts.append("专业对口口径，不是学校总体就业率或本科总体口径")
     if "专业毕业生" in quote or re.search(r"[\u4e00-\u9fa5]{2,24}专业[^。；;]{0,12}就业率", quote):
         scope_parts.append("专业口径，不是学校总体就业率或本科总体口径")

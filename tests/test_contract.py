@@ -9180,6 +9180,7 @@ def test_extract_outcome_report_candidates_from_lines(tmp_path: Path):
             (19, "2024届毕业生专业对口就业率为 83.3%，留辽就业率为 83.46%。"),
             (20, "2024年总体毕业生去向落实率比去年稍有提升，留辽落实率较去年提升 5.2%。"),
             (21, "2024届本科毕业生初次就业率达到全省就业率平均值，其中出国（境）留学510人，国内升学298人，升学占比23.58%。"),
+            (22, "2024年，学校毕业生对口就业率为 78.92%。"),
         ],
         domain="school",
         entity_code="0142",
@@ -9206,6 +9207,7 @@ def test_extract_outcome_report_candidates_from_lines(tmp_path: Path):
     assert any(row["candidate_value"] == "0.0293" and "变化幅度" in row["metric_scope"] for row in rows)
     assert any(row["candidate_value"] == "0.8754" and "\x00" not in row["evidence_quote"] for row in rows)
     assert any(row["candidate_value"] == "0.833" and "专业对口口径" in row["metric_scope"] for row in rows)
+    assert any(row["candidate_value"] == "0.7892" and "专业对口口径" in row["metric_scope"] for row in rows)
     assert any(row["candidate_value"] == "0.8346" and "辽宁省内去向" in row["metric_scope"] for row in rows)
     assert any(row["candidate_value"] == "0.052" and "变化幅度" in row["metric_scope"] for row in rows)
     assert any("截至 2024 年 8 月 31 日" in row["metric_scope"] for row in rows)
