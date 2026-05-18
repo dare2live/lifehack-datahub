@@ -238,6 +238,9 @@ def write_outcome_metric_candidate_csv(path: Path, rows: list[dict[str, Any]]) -
 def _infer_metric_scope(evidence_quote: str) -> str:
     quote = evidence_quote.strip()
     scope_parts: list[str] = []
+    cohort_match = re.search(r"([0-9０-９]{4})\s*届", quote)
+    if cohort_match:
+        scope_parts.append(f"{cohort_match.group(1)}届")
     if "本科应届毕业生" in quote:
         scope_parts.append("本科应届毕业生")
     elif "本科毕业生" in quote:

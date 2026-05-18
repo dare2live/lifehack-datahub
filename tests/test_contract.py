@@ -9173,6 +9173,7 @@ def test_extract_outcome_report_candidates_from_lines(tmp_path: Path):
     assert any(row["match_alias"] == "推荐免试" for row in rows)
     assert any(row["candidate_value"] == "0.9236" and "本科毕业生" in row["metric_scope"] for row in rows)
     assert any(row["candidate_value"] == "0.8582" and "本科应届毕业生" in row["metric_scope"] for row in rows)
+    assert any(row["candidate_value"] == "0.8864" and "2024届" in row["metric_scope"] for row in rows)
     assert any(row["candidate_value"] == "0.8376" and "性别分组" in row["metric_scope"] for row in rows)
     assert any("截至 2024 年 8 月 31 日" in row["metric_scope"] for row in rows)
     assert not any(row["metric_key"] == "keep_research_rate" and row["candidate_value"] == "0.3757" for row in rows)
