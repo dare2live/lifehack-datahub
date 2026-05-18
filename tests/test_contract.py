@@ -11006,6 +11006,76 @@ def test_run_outcome_report_extraction_plan_writes_candidate_csv(tmp_path: Path,
     assert (tmp_path / "extract_report.json").exists()
 
 
+def test_run_outcome_report_extraction_plan_flags_zero_candidate_image_pdf(tmp_path: Path, monkeypatch):
+    input_pdf = tmp_path / "raw" / "image_report.pdf"
+    input_pdf.parent.mkdir(parents=True)
+    input_pdf.write_bytes(b"%PDF-1.4\n")
+    output_csv = tmp_path / "candidates" / "image_report_candidates.csv"
+    plan = tmp_path / "outcome_report_extraction_plan.csv"
+    with plan.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(
+            f,
+            fieldnames=[
+                "domain",
+                "entity_code",
+                "entity_name",
+                "metric_year",
+                "report_scope",
+                "source_title",
+                "source_url",
+                "source_date",
+                "availability_date",
+                "input_path",
+                "output_path",
+                "planned_metric_keys",
+                "extraction_status",
+                "block_reason",
+                "notes",
+            ],
+        )
+        writer.writeheader()
+        writer.writerow({
+            "domain": "school",
+            "entity_code": "1248",
+            "entity_name": "辽宁农业职业技术学院",
+            "metric_year": "2024",
+            "report_scope": "higher_vocational_quality_report",
+            "source_title": "辽宁农业职业技术学院高等职业教育质量报告（2024年度）",
+            "source_url": "https://example.edu/report.pdf",
+            "source_date": "2025-02-14",
+            "availability_date": "2025-02-14",
+            "input_path": str(input_pdf),
+            "output_path": str(output_csv),
+            "planned_metric_keys": '["employment_rate"]',
+            "extraction_status": "ready",
+            "block_reason": "",
+            "notes": "",
+        })
+
+    monkeypatch.setattr(
+        "datahub.builders.outcome_report_extraction_runner.extract_outcome_metric_candidates_from_report",
+        lambda path, **kwargs: [],
+    )
+    monkeypatch.setattr(
+        "datahub.builders.outcome_report_extraction_runner._empty_candidate_reason",
+        lambda path: ("pdf_text_empty_or_image_only", "ocr_or_manual_transcription"),
+    )
+
+    report = run_outcome_report_extraction_plan(plan_csv=plan, report_path=tmp_path / "extract_report.json")
+
+    assert report["errors"] == []
+    assert report["candidate_rows"] == 0
+    assert report["manual_action_counts"] == {"ocr_or_manual_transcription": 1}
+    assert report["zero_candidate_outputs"] == [{
+        "row_number": 2,
+        "input_path": str(input_pdf),
+        "output_path": str(output_csv),
+        "candidate_rows": 0,
+        "zero_candidate_reason": "pdf_text_empty_or_image_only",
+        "recommended_action": "ocr_or_manual_transcription",
+    }]
+
+
 def test_audit_outcome_collection_plan_reports_progress_and_errors(tmp_path: Path):
     plan = tmp_path / "outcome_collection_plan.csv"
     with plan.open("w", encoding="utf-8", newline="") as f:
