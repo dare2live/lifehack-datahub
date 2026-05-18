@@ -422,6 +422,25 @@
       "review_note": "学校官方 2023-2024 学年本科教学质量报告正文给出 2024 届本科毕业生 5787 人和攻读研究生 992 人；本种子按 992/5787 计算为 17.13%。"
     },
     {
+      "seed_id": "sylu_2024_undergraduate_employment_rate",
+      "domain": "school",
+      "entity_code": "0144",
+      "entity_name": "沈阳理工大学",
+      "metric_key": "employment_rate",
+      "metric_year": 2024,
+      "status": "verified",
+      "metric_value": 0.87,
+      "source_title": "沈阳理工大学就业率及就业前景怎么样_大学生必备网",
+      "source_url": "https://www.dxsbb.com/news/99892.html",
+      "evidence_quote": "2024 届本科生实际毕业5787 人，毕业去向落实率达到 87%。",
+      "metric_scope": "2024届本科毕业生，初次毕业去向落实率；公开摘要引用学校 2023-2024 学年本科教学质量报告",
+      "source_date": "2025-02-21",
+      "availability_date": "2025-02-21",
+      "reviewer": "codex",
+      "reviewed_at": "2026-05-18",
+      "review_note": "公开摘要直接引用学校 2023-2024 学年本科教学质量报告，并给出 2024 届本科生毕业去向落实率 87%（摘要中四舍五入表达），先按 0.87 入库；后续如能读取学校附件 PDF，可再补强原文口径。"
+    },
+    {
       "seed_id": "syu_2024_undergraduate_employment_rate",
       "domain": "school",
       "entity_code": "1035",
