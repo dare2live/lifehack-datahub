@@ -1655,6 +1655,25 @@
       "reviewer": "codex",
       "reviewed_at": "2026-05-18",
       "review_note": "人工复核：原文给出 2024 年已落实毕业生 1694 人，就业去向落实率 95.06%，作为学校总体就业去向落实率。"
+    },
+    {
+      "seed_id": "lnnzy_2024_school_employment_rate",
+      "domain": "school",
+      "entity_code": "1248",
+      "entity_name": "辽宁农业职业技术学院",
+      "metric_key": "employment_rate",
+      "metric_year": 2024,
+      "status": "verified",
+      "metric_value": 0.9656,
+      "source_title": "辽宁农业职业技术学院高等职业教育质量报告（2024年度）",
+      "source_url": "https://www.lnnzy.ln.cn/information/detail/379.html",
+      "evidence_quote": "学校 2024 届毕业生 4326 人，毕业生初次去向落实率为 90.01%，年终去向落实率 96.56%，其中，有 5 人到西部基层就业，92 人应征入伍。",
+      "metric_scope": "2024届，毕业生总体，年终毕业去向",
+      "source_date": "2025-02-14",
+      "availability_date": "2025-02-14",
+      "reviewer": "codex",
+      "reviewed_at": "2026-05-18",
+      "review_note": "人工复核：官方高等职业教育质量报告给出 2024 届毕业生 4326 人、年终去向落实率 96.56%；同句初次去向落实率 90.01%为较早口径，不作为本条 metric_value。"
     }
   ]
 }

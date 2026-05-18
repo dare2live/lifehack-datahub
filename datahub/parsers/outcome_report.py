@@ -271,7 +271,9 @@ def _infer_metric_scope(evidence_quote: str) -> str:
         scope_parts.append("国内升学")
     elif "升学" in quote:
         scope_parts.append("升学")
-    if "初次" in quote:
+    if "年终" in quote:
+        scope_parts.append("年终毕业去向")
+    elif "初次" in quote:
         scope_parts.append("初次毕业去向")
     elif "毕业去向落实率" in quote:
         scope_parts.append("毕业去向落实率")
