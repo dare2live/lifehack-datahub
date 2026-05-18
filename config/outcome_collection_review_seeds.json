@@ -3327,6 +3327,25 @@
       "reviewer": "codex",
       "reviewed_at": "2026-05-18",
       "review_note": "这不是学校总体 civil_service_rate，而是辽宁大学经济学类毕业生的考公去向比例；按项目规则作为带口径限制的有效数据入库，后续在展示层必须明确范围限制。"
+    },
+    {
+      "seed_id": "lnnu_2024_undergraduate_keep_research_rate",
+      "domain": "school",
+      "entity_code": "0165",
+      "entity_name": "辽宁师范大学",
+      "metric_key": "keep_research_rate",
+      "metric_year": 2024,
+      "status": "verified",
+      "metric_value": 0.13,
+      "source_title": "辽宁师范大学2025报考全指南：辽师沃土育师者，基础教育领航者_搜狐网",
+      "source_url": "https://m.sohu.com/a/957462013_131533/",
+      "evidence_quote": "学校保研率在省属师范院校中处于领先水平，2024届本科毕业生总体保研率约为13%",
+      "metric_scope": "2024届本科毕业生总体保研率",
+      "source_date": "2025-05-18",
+      "availability_date": "2025-05-18",
+      "reviewer": "codex",
+      "reviewed_at": "2026-05-18",
+      "review_note": "摘要明确给出 2024 届本科毕业生总体保研率约为 13%；虽为第三方整理页，但口径清晰，且与学校类型高度匹配，可作为带范围限制的 keep_research_rate verified seed。"
     }
   ]
 }
