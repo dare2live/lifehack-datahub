@@ -3498,6 +3498,25 @@
       "reviewer": "codex",
       "reviewed_at": "2026-05-18",
       "review_note": "第三方保研率榜单直接列出东北石油大学 3.23% 207；按项目规则作为带口径限制的有效 keep_research_rate 入库，后续展示层需保留来源为网络整理页。"
+    },
+    {
+      "seed_id": "synu_2024_undergraduate_postgrad_rate",
+      "domain": "school",
+      "entity_code": "0166",
+      "entity_name": "沈阳师范大学",
+      "metric_key": "postgrad_rate",
+      "metric_year": 2024,
+      "status": "verified",
+      "metric_value": 0.15,
+      "source_title": "沈阳师范大学好就业吗？就业前景怎么样？出来好找工作吗？",
+      "source_url": "https://www.gk100.com/read_260605910.htm",
+      "evidence_quote": "沈阳师范大学毕业生的就业率是96%，考研率是15%。",
+      "metric_scope": "2024届本科毕业生考研率，不是保研率",
+      "source_date": "2025-04-07",
+      "availability_date": "2025-04-07",
+      "reviewer": "codex",
+      "reviewed_at": "2026-05-18",
+      "review_note": "第三方页面明确写出沈阳师范大学就业率96%、考研率15%，并引用学校2023-2024学年本科教学质量报告；按项目规则作为带口径限制的有效 postgrad_rate 入库。"
     }
   ]
 }
