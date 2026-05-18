@@ -91,6 +91,7 @@ from datahub.builders.outcome_report_source_seed_merge import (
     audit_outcome_report_source_seeds,
 )
 from datahub.builders.outcome_scoped_stock_review import build_scoped_outcome_stock_review
+from datahub.builders.outcome_scoped_stock_review_batch import build_scoped_outcome_stock_review_batch
 from datahub.builders.policy_tables import (
     build_policy_industry_map_package,
     build_policy_plan_history_package,
@@ -11454,6 +11455,54 @@ def test_build_scoped_outcome_stock_review_flags_official_scoped_candidates(tmp_
     assert rows[0]["entity_name"] == "辽宁中医药大学"
     assert rows[0]["scoped_review_class"] == "scoped_official_candidate"
     assert "省内" in rows[0]["matched_scope_terms"]
+
+
+def test_build_scoped_outcome_stock_review_batch_filters_and_prioritizes(tmp_path: Path):
+    review_csv = tmp_path / "scoped_review.csv"
+    with review_csv.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=[
+            "candidate_file",
+            *CANDIDATE_COLUMNS,
+            "scoped_review_class",
+            "matched_scope_terms",
+            "recommended_action",
+        ])
+        writer.writeheader()
+        base = {column: "" for column in writer.fieldnames or []}
+        writer.writerow({
+            **base,
+            "entity_code": "2002",
+            "entity_name": "后处理学校",
+            "metric_key": "postgrad_rate",
+            "scoped_review_class": "scoped_official_candidate",
+        })
+        writer.writerow({
+            **base,
+            "entity_code": "1001",
+            "entity_name": "优先学校",
+            "metric_key": "employment_rate",
+            "scoped_review_class": "scoped_official_candidate",
+        })
+        writer.writerow({
+            **base,
+            "entity_code": "1000",
+            "entity_name": "总体学校",
+            "metric_key": "employment_rate",
+            "scoped_review_class": "overall_approved_candidate",
+        })
+
+    report = build_scoped_outcome_stock_review_batch(
+        review_csv=review_csv,
+        output_dir=tmp_path / "batch",
+        limit=2,
+        review_class=["scoped_official_candidate"],
+    )
+
+    assert report["batch_rows"] == 2
+    assert report["batch_metric_counts"] == {"employment_rate": 1, "postgrad_rate": 1}
+    with (tmp_path / "batch" / "scoped_stock_review_batch.csv").open(encoding="utf-8", newline="") as f:
+        rows = list(csv.DictReader(f))
+    assert [row["entity_name"] for row in rows] == ["优先学校", "后处理学校"]
 
 
 def test_build_outcome_packages_from_verified_collection_plan(tmp_path: Path):
