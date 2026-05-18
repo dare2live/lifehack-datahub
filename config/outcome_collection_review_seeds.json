@@ -3422,6 +3422,25 @@
       "reviewer": "codex",
       "reviewed_at": "2026-05-18",
       "review_note": "学校本科教学质量报告 PDF 直接给出 2024 届本科毕业生初次就业率 88.10%，可作为标准 school employment_rate verified seed。"
+    },
+    {
+      "seed_id": "lnnuhh_2024_undergraduate_postgrad_rate",
+      "domain": "school",
+      "entity_code": "3215",
+      "entity_name": "辽宁师范大学海华学院",
+      "metric_key": "postgrad_rate",
+      "metric_year": 2024,
+      "status": "verified",
+      "metric_value": 0.0842,
+      "source_title": "辽宁师范大学海华学院就业率及就业前景怎么样_大学生必备网",
+      "source_url": "https://www.dxsbb.com/news/136310.html",
+      "evidence_quote": "2024届毕业生考取研究生87人，出国攻读研究生18人。",
+      "metric_scope": "2024届本科毕业生升学率",
+      "source_date": "2025-01-22",
+      "availability_date": "2025-01-22",
+      "reviewer": "codex",
+      "reviewed_at": "2026-05-18",
+      "review_note": "页面同时给出 2024 届初次去向落实率与升学人数；按 87+18 升学、1247 毕业人数计算出学校级 postgrad_rate=8.42%，可用于继续推进辽宁学校结果区覆盖。"
     }
   ]
 }
