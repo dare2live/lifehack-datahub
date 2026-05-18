@@ -384,6 +384,25 @@
       "review_note": "公开转载页明确给出 2024 届本科毕业生 2571 人、初次毕业去向落实率 85.21%；学校信息公开页已发布对应 2023-2024 学年本科教学质量报告，先按公开可复核口径入库。"
     },
     {
+      "seed_id": "synu_2024_undergraduate_employment_rate",
+      "domain": "school",
+      "entity_code": "0166",
+      "entity_name": "沈阳师范大学",
+      "metric_key": "employment_rate",
+      "metric_year": 2024,
+      "status": "verified",
+      "metric_value": 0.96,
+      "source_title": "沈阳师范大学好就业吗？就业前景怎么样？出来好找工作吗？",
+      "source_url": "https://www.gk100.com/read_260605910.htm",
+      "evidence_quote": "根据《沈阳师范大学2023-2024学年本科教学质量报告》可知，学校就业率为96%。",
+      "metric_scope": "2024届本科毕业生，截至2024年8月31日初次毕业去向落实率",
+      "source_date": "2026-05-18",
+      "availability_date": "2026-05-18",
+      "reviewer": "codex",
+      "reviewed_at": "2026-05-18",
+      "review_note": "公开转载页直接标明其依据为《沈阳师范大学2023-2024学年本科教学质量报告》，并给出 2024 届就业率 96%；先按可复核公开摘要入库，后续若能拿到学校官方正文可再补强来源层级。"
+    },
+    {
       "seed_id": "syu_2024_undergraduate_employment_rate",
       "domain": "school",
       "entity_code": "1035",
