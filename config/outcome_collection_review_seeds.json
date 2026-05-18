@@ -3574,6 +3574,25 @@
       "reviewer": "codex",
       "reviewed_at": "2026-05-18",
       "review_note": "Secondary summary quotes the official 2023-2024本科教学质量报告; 2024届本科毕业生3017人、国(境)内外升学923人，按 total/total 作为 postgrad_rate 记录。"
+    },
+    {
+      "seed_id": "dlufl_2024_undergraduate_civil_service_rate",
+      "domain": "school",
+      "entity_code": "0172",
+      "entity_name": "大连外国语大学",
+      "metric_key": "civil_service_rate",
+      "metric_year": 2024,
+      "status": "verified",
+      "metric_value": 0.0445,
+      "source_title": "大连外国语大学2024届毕业生就业质量年度报告",
+      "source_url": "https://pdf.6617.com/employment/report/20250411/37251e29fd94c228.pdf",
+      "evidence_quote": "毕业生就业单位性质分布中，党政机关占比 4.45%。",
+      "metric_scope": "2024届毕业生就业单位性质中党政机关占比（窄口径 civil_service_rate）",
+      "source_date": "2025-04-11",
+      "availability_date": "2025-04-11",
+      "reviewer": "codex",
+      "reviewed_at": "2026-05-18",
+      "review_note": "Official 2024毕业生就业质量年度报告第12页给出就业单位性质分布，党政机关占比 4.45%。作为窄口径 civil_service_rate 记录，可用于当前 reviewed plan 的 0172 civl_service_rate todo 行。"
     }
   ]
 }
