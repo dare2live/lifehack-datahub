@@ -215,7 +215,7 @@ def extract_outcome_metric_candidates_from_lines(
                     "source_title": source_title,
                     "source_url": source_url,
                     "evidence_quote": evidence_quote,
-                    "metric_scope": "",
+                    "metric_scope": _infer_metric_scope(evidence_quote),
                     "source_date": source_date,
                     "availability_date": availability_date,
                     "page_number": page_number,
@@ -233,6 +233,41 @@ def write_outcome_metric_candidate_csv(path: Path, rows: list[dict[str, Any]]) -
         writer = csv.DictWriter(f, fieldnames=CANDIDATE_COLUMNS, extrasaction="ignore")
         writer.writeheader()
         writer.writerows(rows)
+
+
+def _infer_metric_scope(evidence_quote: str) -> str:
+    quote = evidence_quote.strip()
+    scope_parts: list[str] = []
+    if "本科应届毕业生" in quote:
+        scope_parts.append("本科应届毕业生")
+    elif "本科毕业生" in quote:
+        scope_parts.append("本科毕业生")
+    elif "毕业研究生" in quote or "研究生毕业生" in quote:
+        scope_parts.append("研究生")
+    elif "专科毕业生" in quote or "高职" in quote:
+        scope_parts.append("专科/高职毕业生")
+    elif "毕业生" in quote:
+        scope_parts.append("毕业生总体")
+
+    if "辽宁省内" in quote or "在辽就业" in quote or "辽宁省就业" in quote:
+        scope_parts.append("辽宁省内去向，不是学校总体就业率或本科总体口径")
+    if "男生" in quote or "女生" in quote or "男/女" in quote:
+        scope_parts.append("性别分组，不是学校总体就业率或本科总体口径")
+    if "师范生" in quote or "非师范生" in quote:
+        scope_parts.append("培养类型分组，不是学校总体就业率或本科总体口径")
+    if "学位点" in quote:
+        scope_parts.append("学位点口径，不是学校总体就业率或本科总体口径")
+    if "初次" in quote:
+        scope_parts.append("初次毕业去向")
+    elif "毕业去向落实率" in quote:
+        scope_parts.append("毕业去向落实率")
+    elif "就业率" in quote:
+        scope_parts.append("就业率")
+    if "截至" in quote:
+        match = re.search(r"截至\s*([0-9０-９]{4}\s*年\s*[0-9０-９]{1,2}\s*月\s*[0-9０-９]{1,2}\s*日|[0-9０-９]{1,2}\s*月\s*[0-9０-９]{1,2}\s*日)", quote)
+        if match:
+            scope_parts.append(f"截至{match.group(1)}")
+    return "，".join(dict.fromkeys(scope_parts))
 
 
 def _require_pdf_file(path: Path) -> None:
