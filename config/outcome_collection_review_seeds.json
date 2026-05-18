@@ -3194,6 +3194,25 @@
         "reviewer": "codex",
         "reviewed_at": "2026-05-18",
         "review_note": "官方专题网页面时间为 2024-12-04，信息公开网列表显示 2024-12-05；PDF 正文第 19 页明示本科毕业生初次就业率 86.15%。"
+    },
+    {
+      "seed_id": "dlmu_2024_undergraduate_employment_rate",
+      "domain": "school",
+      "entity_code": "0151",
+      "entity_name": "大连海事大学",
+      "metric_key": "employment_rate",
+      "metric_year": 2024,
+      "status": "verified",
+      "metric_value": 0.91,
+      "source_title": "大连海事大学2023-2024学年本科教学质量报告",
+      "source_url": "https://xxgk.dlmu.edu.cn/info/1651/41586.htm",
+      "evidence_quote": "截至2024年8月31日，学校本科生毕业生4331人（不含留学生），已落实毕业去向3941人，毕业去向落实率为91.00%。",
+      "metric_scope": "2024届本科生，毕业去向落实率",
+      "source_date": "2024-12-09",
+      "availability_date": "2024-12-09",
+      "reviewer": "codex",
+      "reviewed_at": "2026-05-18",
+      "review_note": "学校信息公开网正文页明确给出 2024-12-09 日期和 91.00% 毕业去向落实率；这条用于继续推进辽宁学校 school_outcome verified coverage。"
     }
   ]
 }
