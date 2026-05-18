@@ -3555,6 +3555,25 @@
       "reviewer": "codex",
       "reviewed_at": "2026-05-18",
       "review_note": "官方就业质量年度报告正文第6页直接给出学院2024届毕业生初次去向落实率 86.74%，可作为学校级 employment_rate verified seed。"
+    },
+    {
+      "seed_id": "dlufl_2024_undergraduate_postgrad_rate",
+      "domain": "school",
+      "entity_code": "0172",
+      "entity_name": "大连外国语大学",
+      "metric_key": "postgrad_rate",
+      "metric_year": 2024,
+      "status": "verified",
+      "metric_value": 0.3059330460722572,
+      "source_title": "大连外国语大学简介&深造、就业：2023-2024学年本科教学质量报告-高考直通车",
+      "source_url": "https://app.gaokaozhitongche.com/newsguide/h/MX0qAvog",
+      "evidence_quote": "2024届本科毕业生3017人，截止2024年8月31日共有2571人确定毕业去向，国（境）内外升学923人。",
+      "metric_scope": "2024届本科毕业生升学率（国内外升学合计）",
+      "source_date": "2025-05-12",
+      "availability_date": "2025-05-12",
+      "reviewer": "codex",
+      "reviewed_at": "2026-05-18",
+      "review_note": "Secondary summary quotes the official 2023-2024本科教学质量报告; 2024届本科毕业生3017人、国(境)内外升学923人，按 total/total 作为 postgrad_rate 记录。"
     }
   ]
 }
