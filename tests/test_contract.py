@@ -9172,6 +9172,9 @@ def test_extract_outcome_report_candidates_from_lines(tmp_path: Path):
             (13, "师范生/非师范生毕业去向落实率分别为 77.47%、81.70%。"),
             (14, "2024 届旅游管理专业毕业生就业率达 到 90%，其中从事研学旅行相关工作的学生占比达到 30%。"),
             (15, "就业人数比例上升 31.77%，升学人数比例上升 2.93%，自主创业率基本持平。"),
+            (16, "学校应届本科毕业生总体就业率达\x00 87.54%。"),
+            (17, "毕业生问卷调查显示，学习收获满意度为 98.80%，教育教学整体满意度为 99.01%。"),
+            (18, "毕 业 生 问 卷 调 查 显 示 学 习 收 获 满 意 度 为 9 8 . 8 0 %。"),
         ],
         domain="school",
         entity_code="0142",
@@ -9196,6 +9199,7 @@ def test_extract_outcome_report_candidates_from_lines(tmp_path: Path):
     assert any(row["candidate_value"] == "0.8376" and "性别分组" in row["metric_scope"] for row in rows)
     assert any(row["candidate_value"] == "0.9" and "专业口径" in row["metric_scope"] for row in rows)
     assert any(row["candidate_value"] == "0.0293" and "变化幅度" in row["metric_scope"] for row in rows)
+    assert any(row["candidate_value"] == "0.8754" and "\x00" not in row["evidence_quote"] for row in rows)
     assert any("截至 2024 年 8 月 31 日" in row["metric_scope"] for row in rows)
     assert not any(row["metric_key"] == "keep_research_rate" and row["candidate_value"] == "0.3757" for row in rows)
     assert not any(row["metric_key"] == "keep_research_rate" and row["candidate_value"] == "0.2547" for row in rows)
@@ -9204,6 +9208,7 @@ def test_extract_outcome_report_candidates_from_lines(tmp_path: Path):
     assert not any(row["metric_key"] == "employment_rate" and row["candidate_value"] in {"0.421", "1"} for row in rows)
     assert not any(row["metric_key"] == "employment_rate" and row["candidate_value"] == "0.7747" for row in rows)
     assert not any(row["metric_key"] == "civil_service_rate" and row["candidate_value"] == "0.476" for row in rows)
+    assert not any(row["candidate_value"] in {"0.988", "0.9901"} for row in rows)
     assert all(row["review_status"] == "needs_review" for row in rows)
 
     output = tmp_path / "outcome_candidates.csv"

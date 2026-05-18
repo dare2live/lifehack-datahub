@@ -42,6 +42,7 @@ CANDIDATE_COLUMNS = [
 PERCENT_RE = re.compile(r"(?<!\d)(\d{1,3}(?:\.\d+)?)\s*%")
 NUMBER_RE = re.compile(r"(?<!\d)(\d{1,3}(?:\.\d+)?)(?!\d)")
 SPACE_RE = re.compile(r"\s+")
+CONTROL_CHAR_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f]")
 CLAUSE_SPLIT_RE = re.compile(r"[。；;]")
 OFD_PAGE_RE = re.compile(r"(?:^|/)Pages/Page_(\d+)/Content\.xml$")
 OFD_BOUNDARY_RE = re.compile(r"[-+]?\d+(?:\.\d+)?")
@@ -461,11 +462,26 @@ def _matched_alias(line: str, metric: dict[str, Any]) -> str:
 
 
 def _context_allowed(line: str, metric: dict[str, Any]) -> bool:
+    if _blocked_evaluation_context(line):
+        return False
     blocked = [str(item) for item in metric.get("blocked_context_any", []) if str(item).strip()]
     if any(item in line for item in blocked):
         return False
     required = [str(item) for item in metric.get("required_context_any", []) if str(item).strip()]
     return not required or any(item in line for item in required)
+
+
+def _blocked_evaluation_context(line: str) -> bool:
+    text = str(line or "")
+    compact = re.sub(r"\s+", "", text)
+    return (
+        ("满意度" in text and ("问卷" in text or "调查" in text or "学习收获" in text))
+        or "学生学习满意度" in text
+        or "教育教学整体满意度" in text
+        or ("满意度" in compact and ("问卷" in compact or "调查" in compact or "学习收获" in compact))
+        or "学生学习满意度" in compact
+        or "教育教学整体满意度" in compact
+    )
 
 
 def _candidate_values(line: str, metric: dict[str, Any], alias: str) -> list[tuple[str, float]]:
@@ -545,7 +561,8 @@ def _confidence(alias: str, metric: dict[str, Any], value_count: int) -> str:
 
 
 def _clean_line(value: Any) -> str:
-    return SPACE_RE.sub(" ", str(value or "").strip())
+    text = CONTROL_CHAR_RE.sub("", str(value or ""))
+    return SPACE_RE.sub(" ", text.strip())
 
 
 def _quote(line: str) -> str:
