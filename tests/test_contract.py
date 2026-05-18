@@ -9182,6 +9182,7 @@ def test_extract_outcome_report_candidates_from_lines(tmp_path: Path):
             (21, "2024届本科毕业生初次就业率达到全省就业率平均值，其中出国（境）留学510人，国内升学298人，升学占比23.58%。"),
             (22, "2024年，学校毕业生对口就业率为 78.92%。"),
             (23, "学校 2024 届毕业生 4326 人，毕业生初次去向落实率为 90.01%，年终去向落实率 96.56%，其中，有 5 人到西部基层就业。"),
+            (24, "截 止 2 0 2 4 年 底   2 0 2 4 届 本 科 毕 业 生 毕 业 去 向 落 实 人 数 为 2 5 6 7 人   本 科 生 年 终 毕 业 去 向 落 实 率 为 9 1 . 9 4 %   2 0 2 4 届 本 科 毕 业 生 深 造 率 为 4 4 . 8 8 % 。"),
         ],
         domain="school",
         entity_code="0142",
@@ -9212,6 +9213,8 @@ def test_extract_outcome_report_candidates_from_lines(tmp_path: Path):
     assert any(row["candidate_value"] == "0.8346" and "辽宁省内去向" in row["metric_scope"] for row in rows)
     assert any(row["candidate_value"] == "0.052" and "变化幅度" in row["metric_scope"] for row in rows)
     assert any(row["candidate_value"] == "0.9656" and "年终毕业去向" in row["metric_scope"] for row in rows)
+    assert any(row["candidate_value"] == "0.9194" and "年终毕业去向" in row["metric_scope"] for row in rows)
+    assert any(row["metric_key"] == "postgrad_rate" and row["candidate_value"] == "0.4488" for row in rows)
     assert any("截至 2024 年 8 月 31 日" in row["metric_scope"] for row in rows)
     assert not any(row["metric_key"] == "keep_research_rate" and row["candidate_value"] == "0.3757" for row in rows)
     assert not any(row["metric_key"] == "keep_research_rate" and row["candidate_value"] == "0.2547" for row in rows)

@@ -43,6 +43,7 @@ PERCENT_RE = re.compile(r"(?<!\d)(\d{1,3}(?:\.\d+)?)\s*%")
 NUMBER_RE = re.compile(r"(?<!\d)(\d{1,3}(?:\.\d+)?)(?!\d)")
 SPACE_RE = re.compile(r"\s+")
 CONTROL_CHAR_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f]")
+PDF_INLINE_SPACE_RE = re.compile(r"(?<=[\u4e00-\u9fff0-9０-９A-Za-z])\s+(?=[\u4e00-\u9fff0-9０-９A-Za-z%％])")
 CLAUSE_SPLIT_RE = re.compile(r"[。；;]")
 OFD_PAGE_RE = re.compile(r"(?:^|/)Pages/Page_(\d+)/Content\.xml$")
 OFD_BOUNDARY_RE = re.compile(r"[-+]?\d+(?:\.\d+)?")
@@ -578,7 +579,8 @@ def _confidence(alias: str, metric: dict[str, Any], value_count: int) -> str:
 
 def _clean_line(value: Any) -> str:
     text = CONTROL_CHAR_RE.sub("", str(value or ""))
-    return SPACE_RE.sub(" ", text.strip())
+    text = SPACE_RE.sub(" ", text.strip())
+    return PDF_INLINE_SPACE_RE.sub("", text)
 
 
 def _quote(line: str) -> str:
