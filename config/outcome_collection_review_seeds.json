@@ -517,6 +517,25 @@
       "review_note": "Official PDF page 33 states the 2024届应届本科毕业生毕业去向落实率 is 87.24% and升学占比 is 12.99%; corrected the previously promoted seed to match the PDF."
     },
     {
+      "seed_id": "sau_2024_undergraduate_employment_rate",
+      "domain": "school",
+      "entity_code": "0143",
+      "entity_name": "沈阳航空航天大学",
+      "metric_key": "employment_rate",
+      "metric_year": 2024,
+      "status": "verified",
+      "metric_value": 0.9223,
+      "source_title": "沈阳航空航天大学本科教学工作审核评估应知应会手册（教工版）",
+      "source_url": "https://ceshi.sau.edu.cn/xinyilunbenkejiaoxuegongzuoshenhepingguyingzhiyinghuishoucejiaogongshuiyinban.pdf",
+      "evidence_quote": "表7-4毕业生初次就业率及留辽就业率。2024 92.23 55.09。",
+      "metric_scope": "2024届毕业生，初次就业率；报告同时给出留辽率 55.09%",
+      "source_date": "2025-01-01",
+      "availability_date": "2025-01-01",
+      "reviewer": "codex",
+      "reviewed_at": "2026-05-18",
+      "review_note": "Official PDF table 7-4 directly gives 2024 initial employment rate 92.23% and 留辽率 55.09%; this is a school official review manual, not a就业质量年度报告."
+    },
+    {
       "seed_id": "promoted_0587_2024_postgrad_rate",
       "domain": "school",
       "entity_code": "0587",
