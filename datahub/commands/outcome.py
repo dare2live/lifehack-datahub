@@ -33,6 +33,7 @@ from datahub.builders.outcome_report_source_seed_merge import (
     apply_outcome_report_source_seeds,
     audit_outcome_report_source_seeds,
 )
+from datahub.builders.outcome_report_source_manual_queue import build_outcome_report_source_manual_intake_queue
 from datahub.builders.outcome_scoped_stock_review import build_scoped_outcome_stock_review
 from datahub.builders.outcome_scoped_stock_review_batch import build_scoped_outcome_stock_review_batch
 from datahub.builders.outcome_scoped_stock_review_export import export_approved_scoped_stock_review_candidates
@@ -67,6 +68,7 @@ COMMANDS = {
     "apply-outcome-report-source-seeds",
     "build-outcome-report-intake-plan",
     "download-outcome-report-intake-assets",
+    "build-outcome-report-source-manual-intake-queue",
     "build-outcome-report-manual-intake-queue",
     "aggregate-outcome-report-manual-intake-queues",
     "merge-outcome-report-intake-results",
@@ -284,6 +286,18 @@ def register_outcome_commands(sub) -> None:
     build_outcome_report_manual_intake.add_argument("--intake-results-csv", required=True, type=Path)
     build_outcome_report_manual_intake.add_argument("--output", required=True, type=Path)
     build_outcome_report_manual_intake.add_argument("--report", type=Path)
+
+    build_outcome_report_source_manual_intake = sub.add_parser(
+        "build-outcome-report-source-manual-intake-queue",
+        help="Build a manual intake queue from outcome report source seeds that already flag manual work",
+    )
+    build_outcome_report_source_manual_intake.add_argument(
+        "--sources-json",
+        default=Path("config/outcome_report_sources.json"),
+        type=Path,
+    )
+    build_outcome_report_source_manual_intake.add_argument("--output", required=True, type=Path)
+    build_outcome_report_source_manual_intake.add_argument("--report", type=Path)
 
     aggregate_outcome_report_manual_intake = sub.add_parser(
         "aggregate-outcome-report-manual-intake-queues",
@@ -538,6 +552,14 @@ def handle_outcome_command(args: Namespace) -> int | None:
     if args.cmd == "build-outcome-report-manual-intake-queue":
         result = build_outcome_report_manual_intake_queue(
             intake_results_csv=args.intake_results_csv,
+            output=args.output,
+            report=args.report,
+        )
+        _print_json(result)
+        return 0
+    if args.cmd == "build-outcome-report-source-manual-intake-queue":
+        result = build_outcome_report_source_manual_intake_queue(
+            sources_json=args.sources_json,
             output=args.output,
             report=args.report,
         )
