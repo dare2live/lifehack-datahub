@@ -7,6 +7,7 @@ from pathlib import Path
 
 from datahub.builders.outcome_candidate_merge import merge_outcome_report_candidates
 from datahub.builders.outcome_collection_audit import audit_outcome_collection_plan
+from datahub.builders.outcome_collection_core_coverage_audit import audit_outcome_collection_core_coverage
 from datahub.builders.outcome_collection_batch import (
     build_outcome_collection_batch,
     merge_outcome_collection_batch,
@@ -50,6 +51,7 @@ from datahub.parsers.outcome_report import (
 COMMANDS = {
     "build-outcome-collection-plan",
     "audit-outcome-collection-plan",
+    "audit-outcome-collection-core-coverage",
     "build-outcome-collection-batch",
     "merge-outcome-collection-batch",
     "inherit-outcome-collection-verified",
@@ -99,6 +101,14 @@ def register_outcome_commands(sub) -> None:
     )
     audit_outcome_collection.add_argument("--plan-csv", required=True, type=Path)
     audit_outcome_collection.add_argument("--report", type=Path)
+
+    audit_outcome_collection_core = sub.add_parser(
+        "audit-outcome-collection-core-coverage",
+        help="Audit school outcome collection plan coverage against current core admission schools",
+    )
+    audit_outcome_collection_core.add_argument("--plan-csv", required=True, type=Path)
+    audit_outcome_collection_core.add_argument("--core-db", required=True, type=Path)
+    audit_outcome_collection_core.add_argument("--report", type=Path)
 
     build_outcome_collection_batch_parser = sub.add_parser(
         "build-outcome-collection-batch",
@@ -352,6 +362,14 @@ def handle_outcome_command(args: Namespace) -> int | None:
         _write_report(args.report, report)
         _print_json(report)
         return 0 if not report["errors"] else 1
+    if args.cmd == "audit-outcome-collection-core-coverage":
+        report = audit_outcome_collection_core_coverage(
+            plan_csv=args.plan_csv,
+            core_db=args.core_db,
+            report_path=args.report,
+        )
+        _print_json(report)
+        return 0 if report["ready_for_full_universe_review"] else 1
     if args.cmd == "build-outcome-collection-batch":
         result = build_outcome_collection_batch(
             plan_csv=args.plan_csv,

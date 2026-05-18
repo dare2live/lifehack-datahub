@@ -60,6 +60,7 @@ from datahub.builders.major_city_employment_fit import build_major_city_employme
 from datahub.builders.major_outcome_civil_service import build_major_outcome_from_civil_service_package
 from datahub.connectors.page_images import download_page_images
 from datahub.builders.outcome_collection_audit import audit_outcome_collection_plan
+from datahub.builders.outcome_collection_core_coverage_audit import audit_outcome_collection_core_coverage
 from datahub.builders.outcome_collection_batch import (
     build_outcome_collection_batch,
     merge_outcome_collection_batch,
@@ -11532,6 +11533,35 @@ def test_audit_scoped_outcome_stock_review_workspace_blocks_incomplete_approved_
     assert report["approved_rows"] == 1
     assert "metric_scope" in report["errors"][0]
     assert (tmp_path / "audit.json").exists()
+
+
+def test_audit_outcome_collection_core_coverage_detects_missing_admission_school(tmp_path: Path):
+    db = tmp_path / "core.duckdb"
+    con = duckdb.connect(str(db))
+    con.execute("CREATE TABLE fa_dim_ln_admission_plan (school_code VARCHAR, school_name VARCHAR)")
+    con.execute("INSERT INTO fa_dim_ln_admission_plan VALUES ('1001', '学校A'), ('1002', '学校B')")
+    con.close()
+
+    plan = tmp_path / "outcome_collection_plan.csv"
+    rows = [
+        _outcome_plan_row("school", "1001", "学校A", "employment_rate", status="todo", priority_rank="1"),
+        _outcome_plan_row("school", "1001", "学校A", "postgrad_rate", status="todo", priority_rank="1"),
+        _outcome_plan_row("school", "1001", "学校A", "keep_research_rate", status="todo", priority_rank="1"),
+        _outcome_plan_row("school", "1001", "学校A", "civil_service_rate", status="todo", priority_rank="1"),
+    ]
+    _write_outcome_plan(plan, rows)
+
+    report = audit_outcome_collection_core_coverage(
+        plan_csv=plan,
+        core_db=db,
+        report_path=tmp_path / "coverage.json",
+    )
+
+    assert report["ready_for_full_universe_review"] is False
+    assert report["core_school_count"] == 2
+    assert report["missing_school_count"] == 1
+    assert report["missing_school_sample"] == ["1002"]
+    assert (tmp_path / "coverage.json").exists()
 
 
 def test_build_scoped_outcome_stock_review_flags_official_scoped_candidates(tmp_path: Path):
