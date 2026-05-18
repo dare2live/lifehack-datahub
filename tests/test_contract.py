@@ -10299,6 +10299,80 @@ def test_download_outcome_report_intake_assets_classifies_ssl_eof_failures(tmp_p
     assert report["failure_reason_counts"] == {"ssl handshake failed; manual intake required": 1}
 
 
+def test_download_outcome_report_intake_assets_retries_certificate_failures_with_tls_fallback(tmp_path: Path, monkeypatch):
+    intake_csv = tmp_path / "outcome_report_intake_plan.csv"
+    target_pdf = tmp_path / "report.pdf"
+    row = {
+        "domain": "school",
+        "entity_code": "1248",
+        "entity_name": "辽宁农业职业技术学院",
+        "metric_year": "2024",
+        "report_scope": "employment_quality_report",
+        "candidate_report_title": "辽宁农业职业技术学院2024届毕业生就业质量报告",
+        "candidate_report_url": "https://example.edu/report.pdf",
+        "candidate_file_name": "辽宁农业职业技术学院2024届毕业生就业质量报告.pdf",
+        "candidate_source_date": "2025-01-10",
+        "availability_date": "2025-01-10",
+        "suggested_local_report_path": str(target_pdf),
+        "local_report_path": "",
+        "intake_status": "ready_for_intake",
+        "block_reason": "",
+        "source_status": "candidate_found",
+        "notes": "",
+    }
+    with intake_csv.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=list(row))
+        writer.writeheader()
+        writer.writerow(row)
+
+    class FakeHeaders:
+        def get(self, name: str, default=None):
+            return "application/pdf" if name == "Content-Type" else default
+
+    class FakeResponse:
+        headers = FakeHeaders()
+
+        def __init__(self, url: str):
+            self._url = url
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def read(self):
+            return b"%PDF-1.7\nlnnzy fixture"
+
+        def geturl(self):
+            return self._url
+
+    seen_contexts = []
+
+    def fake_urlopen(request, timeout=60, context=None):
+        seen_contexts.append(context)
+        if context is None:
+            raise OSError("certificate verify failed: unable to get local issuer certificate")
+        return FakeResponse(request.full_url)
+
+    monkeypatch.setattr("datahub.connectors.outcome_report_download.urlopen", fake_urlopen)
+
+    output = tmp_path / "downloaded.csv"
+    report = download_outcome_report_intake_assets(
+        intake_csv=intake_csv,
+        output=output,
+    )
+
+    assert report["downloaded_rows"] == 1
+    assert report["failed_rows"] == 0
+    assert target_pdf.read_bytes() == b"%PDF-1.7\nlnnzy fixture"
+    assert seen_contexts[0] is None
+    assert seen_contexts[1] is not None
+    with output.open(encoding="utf-8", newline="") as f:
+        rows = list(csv.DictReader(f))
+    assert rows[0]["download_tls_fallback"] == "true"
+
+
 def test_build_outcome_report_manual_intake_queue_classifies_failed_downloads(tmp_path: Path):
     intake_results_csv = tmp_path / "outcome_report_intake_results.csv"
     rows = [

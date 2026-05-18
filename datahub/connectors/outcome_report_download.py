@@ -9,6 +9,7 @@ import io
 import json
 import re
 import signal
+import ssl
 import zipfile
 from collections import Counter
 from datetime import datetime
@@ -28,6 +29,7 @@ DOWNLOAD_COLUMNS = [
     "download_url",
     "download_size_bytes",
     "download_sha256",
+    "download_tls_fallback",
     "download_error",
 ]
 MANUAL_INTAKE_COLUMNS = [
@@ -88,6 +90,7 @@ def download_outcome_report_intake_assets(
                 "download_url": downloaded["url"],
                 "download_size_bytes": str(downloaded["size_bytes"]),
                 "download_sha256": downloaded["sha256"],
+                "download_tls_fallback": "true" if downloaded.get("tls_fallback") else "false",
                 "download_error": "",
             })
             downloaded_rows += 1
@@ -95,6 +98,7 @@ def download_outcome_report_intake_assets(
             failure_reason = _failure_reason(exc)
             result_row.update({
                 "download_status": "failed",
+                "download_tls_fallback": "",
                 "download_error": str(exc),
             })
             failed_rows += 1
@@ -234,7 +238,7 @@ def _failure_reason(exc: Exception) -> str:
     lower = message.lower()
     if "timed out" in lower or "timeout" in lower:
         return "download timed out; manual intake required"
-    if "ssl" in lower and ("eof occurred" in lower or "handshake" in lower or "ssl_error" in lower or "certificate" in lower):
+    if _is_tls_error(exc):
         return "ssl handshake failed; manual intake required"
     return message.split(":", 1)[0].strip()
 
@@ -243,7 +247,7 @@ def _manual_intake_classification(download_error: str) -> tuple[str, str]:
     lower = download_error.lower()
     if "timed out" in lower or "timeout" in lower:
         return "download_timeout", "manual_download_or_retry_later"
-    if "ssl" in lower and ("eof occurred" in lower or "handshake" in lower or "ssl_error" in lower or "certificate" in lower):
+    if _is_tls_error_text(lower):
         return "ssl_handshake_failed", "manual_download_or_downloader_tls_fallback"
     if "captcha" in lower or "验证码" in download_error:
         return "captcha_required", "manual_browser_download"
@@ -277,10 +281,24 @@ def _download_row_with_deadline(row: dict[str, Any], *, timeout: int) -> dict[st
 
 
 def _download_row(row: dict[str, Any], *, timeout: int) -> dict[str, Any]:
+    try:
+        return _download_row_once(row, timeout=timeout, insecure_tls=False)
+    except Exception as exc:
+        if not _is_tls_error(exc):
+            raise
+        try:
+            downloaded = _download_row_once(row, timeout=timeout, insecure_tls=True)
+        except Exception as fallback_exc:
+            raise fallback_exc from exc
+        downloaded["tls_fallback"] = True
+        return downloaded
+
+
+def _download_row_once(row: dict[str, Any], *, timeout: int, insecure_tls: bool) -> dict[str, Any]:
     source_url = _required_text(row, "candidate_report_url")
     target_path = Path(_required_text(row, "suggested_local_report_path"))
     file_name = str(row.get("candidate_file_name") or target_path.name).strip()
-    response = _open(source_url, timeout=timeout, referer=source_url)
+    response = _open(source_url, timeout=timeout, referer=source_url, insecure_tls=insecure_tls)
     content_type = response["content_type"]
     body = response["body"]
 
@@ -294,7 +312,7 @@ def _download_row(row: dict[str, Any], *, timeout: int) -> dict[str, Any]:
             file_body = embedded_pdf
         else:
             file_url = _find_attachment_url(source_url, body, content_type, file_name)
-            file_response = _open(file_url, timeout=timeout, referer=source_url)
+            file_response = _open(file_url, timeout=timeout, referer=source_url, insecure_tls=insecure_tls)
             if not _looks_like_file_response(file_url, file_response["content_type"], file_response["body"]):
                 block_reason = _html_block_reason(file_response["content_type"], file_response["body"])
                 raise ValueError(f"{block_reason}: {file_url}")
@@ -313,20 +331,44 @@ def _download_row(row: dict[str, Any], *, timeout: int) -> dict[str, Any]:
         "url": file_url,
         "size_bytes": len(file_body),
         "sha256": hashlib.sha256(file_body).hexdigest(),
+        "tls_fallback": insecure_tls,
     }
 
 
-def _open(url: str, *, timeout: int, referer: str | None = None) -> dict[str, Any]:
+def _open(url: str, *, timeout: int, referer: str | None = None, insecure_tls: bool = False) -> dict[str, Any]:
     headers = {"User-Agent": USER_AGENT}
     if referer:
         headers["Referer"] = _iri_to_uri(referer)
     request = Request(_iri_to_uri(url), headers=headers)
-    with urlopen(request, timeout=timeout) as response:
+    context = ssl._create_unverified_context() if insecure_tls else None
+    if context:
+        response_handle = urlopen(request, timeout=timeout, context=context)
+    else:
+        response_handle = urlopen(request, timeout=timeout)
+    with response_handle as response:
         return {
             "url": response.geturl(),
             "content_type": str(response.headers.get("Content-Type") or ""),
             "body": response.read(),
         }
+
+
+def _is_tls_error(exc: Exception) -> bool:
+    return _is_tls_error_text(str(exc).lower())
+
+
+def _is_tls_error_text(lower_message: str) -> bool:
+    tls_tokens = [
+        "ssl",
+        "certificate",
+        "certificat",
+        "eof occurred",
+        "handshake",
+        "ssl_error",
+        "tlsv1",
+        "wrong version number",
+    ]
+    return any(token in lower_message for token in tls_tokens)
 
 
 def _iri_to_uri(url: str) -> str:
