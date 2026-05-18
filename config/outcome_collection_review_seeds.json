@@ -1750,6 +1750,44 @@
       "reviewer": "codex",
       "reviewed_at": "2026-05-18",
       "review_note": "人工复核：官方信息公开年度报告在清单事项公开情况中给出 2024 届毕业生初次毕业去向落实率 87.53%。该来源可靠但报告类型不是就业质量年度报告或本科教学质量报告，按受限口径 employment_rate 使用；同段 197 人考取硕士研究生缺少毕业生分母，不手工计算深造率。"
+    },
+    {
+      "seed_id": "heuniv_2024_undergraduate_employment_rate",
+      "domain": "school",
+      "entity_code": "3610",
+      "entity_name": "辽宁何氏医学院",
+      "metric_key": "employment_rate",
+      "metric_year": 2024,
+      "status": "verified",
+      "metric_value": 0.9232,
+      "source_title": "辽宁何氏医学院2023-2024学年本科教学质量报告",
+      "source_url": "https://huh.edu.cn/index.php?a=shows&catid=368&id=2904",
+      "evidence_quote": "截止至 2024 年 8 月 31 日，我校 2024 届本科毕业生初次就业率为 92.32%。其中，单位就业率为 87.92%，自由职业率为 0.53%，创业率 0.13%，升学率 3.74%。",
+      "metric_scope": "2024届，本科毕业生，初次就业率，截至2024年8月31日",
+      "source_date": "2024-11-30",
+      "availability_date": "2024-11-30",
+      "reviewer": "codex",
+      "reviewed_at": "2026-05-18",
+      "review_note": "人工复核：官方本科教学质量报告以图片页发布，第 25 页直接给出本科毕业生初次就业率 92.32%；该口径为本科初次就业率，不是全校总体年终毕业去向落实率。"
+    },
+    {
+      "seed_id": "heuniv_2024_undergraduate_postgrad_rate",
+      "domain": "school",
+      "entity_code": "3610",
+      "entity_name": "辽宁何氏医学院",
+      "metric_key": "postgrad_rate",
+      "metric_year": 2024,
+      "status": "verified",
+      "metric_value": 0.0374,
+      "source_title": "辽宁何氏医学院2023-2024学年本科教学质量报告",
+      "source_url": "https://huh.edu.cn/index.php?a=shows&catid=368&id=2904",
+      "evidence_quote": "截止至 2024 年 8 月 31 日，我校 2024 届本科毕业生初次就业率为 92.32%。其中，单位就业率为 87.92%，自由职业率为 0.53%，创业率 0.13%，升学率 3.74%。",
+      "metric_scope": "2024届，本科毕业生，升学率，截至2024年8月31日",
+      "source_date": "2024-11-30",
+      "availability_date": "2024-11-30",
+      "reviewer": "codex",
+      "reviewed_at": "2026-05-18",
+      "review_note": "人工复核：官方本科教学质量报告以图片页发布，第 25 页直接给出本科毕业生升学率 3.74%；该口径不含未说明的境外深造拆分。"
     }
   ]
 }
