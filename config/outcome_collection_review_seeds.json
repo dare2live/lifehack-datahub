@@ -3213,6 +3213,25 @@
       "reviewer": "codex",
       "reviewed_at": "2026-05-18",
       "review_note": "学校信息公开网正文页明确给出 2024-12-09 日期和 91.00% 毕业去向落实率；这条用于继续推进辽宁学校 school_outcome verified coverage。"
+    },
+    {
+      "seed_id": "dlut_2024_undergraduate_employment_rate",
+      "domain": "school",
+      "entity_code": "0141",
+      "entity_name": "大连理工大学",
+      "metric_key": "employment_rate",
+      "metric_year": 2024,
+      "status": "verified",
+      "metric_value": 0.9619,
+      "source_title": "大连理工大学2023-2024学年本科教学质量报告",
+      "source_url": "https://info.dlut.edu.cn/info/1177/11195.htm",
+      "evidence_quote": "2023-2024学年，学校本科毕业生就业率96.19%。",
+      "metric_scope": "2024届本科毕业生就业率",
+      "source_date": "2024-12-05",
+      "availability_date": "2024-12-05",
+      "reviewer": "codex",
+      "reviewed_at": "2026-05-18",
+      "review_note": "官方信息公开网挂出 2023-2024 学年本科教学质量报告；公共摘要明确转载该报告中的 96.19% 就业率，适合作为 verified seed 继续推进辽宁学校覆盖。"
     }
   ]
 }
