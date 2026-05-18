@@ -82,6 +82,63 @@ def build_major_city_employment_fit_package(
     }
 
 
+def audit_major_city_employment_fit_inputs(
+    *,
+    role_input: Path | None = None,
+    demand_input: Path | None = None,
+    output: Path | None = None,
+    role_sheet: str | None = None,
+    demand_sheet: str | None = None,
+) -> dict[str, Any]:
+    """Audit whether major-city employment fit inputs are ready for package build."""
+    config = load_major_city_employment_fit()
+    role_schema = get_table_schema("fa_bridge_major_employment_role")
+    demand_schema = get_table_schema("fa_fact_company_role_demand_signal")
+    errors: list[str] = []
+    warnings: list[str] = []
+    role_rows: list[dict[str, Any]] = []
+    demand_rows: list[dict[str, Any]] = []
+
+    if role_input is None:
+        errors.append("role_input_missing")
+    elif not role_input.exists():
+        errors.append(f"role_input_not_found:{role_input}")
+    else:
+        try:
+            role_rows = normalize_rows_for_schema(parse_tabular(role_input, sheet=role_sheet), role_schema)
+        except Exception as exc:
+            errors.append(f"role_input_parse_failed:{exc}")
+
+    if demand_input is None:
+        errors.append("demand_input_missing")
+    elif not demand_input.exists():
+        errors.append(f"demand_input_not_found:{demand_input}")
+    else:
+        try:
+            demand_rows = normalize_rows_for_schema(parse_tabular(demand_input, sheet=demand_sheet), demand_schema)
+        except Exception as exc:
+            errors.append(f"demand_input_parse_failed:{exc}")
+
+    input_quality = _input_quality_report(role_rows, demand_rows, config)
+    errors.extend(input_quality["errors"])
+    warnings.extend(input_quality["warnings"])
+    report = {
+        "ready_for_build": not errors,
+        "role_input": str(role_input) if role_input else "",
+        "demand_input": str(demand_input) if demand_input else "",
+        "role_rows": len(role_rows),
+        "demand_rows": len(demand_rows),
+        "input_quality": input_quality,
+        "errors": errors,
+        "warnings": warnings,
+        "notes": "This is a read-only readiness audit. It does not build or publish fa_mart_major_city_employment_fit.",
+    }
+    if output:
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return report
+
+
 def _score_rows(
     role_rows: list[dict[str, Any]],
     demand_rows: list[dict[str, Any]],

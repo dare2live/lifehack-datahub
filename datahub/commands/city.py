@@ -16,13 +16,17 @@ from datahub.builders.city_context_collection_plan import build_city_context_col
 from datahub.builders.city_context_target_cities import build_city_context_target_cities
 from datahub.builders.city_development_score import build_city_development_score_package
 from datahub.builders.city_listed_company_signal import build_city_listed_company_signal_package
-from datahub.builders.major_city_employment_fit import build_major_city_employment_fit_package
+from datahub.builders.major_city_employment_fit import (
+    audit_major_city_employment_fit_inputs,
+    build_major_city_employment_fit_package,
+)
 from datahub.builders.region_profile_from_amap import build_region_profile_package_from_amap_district
 from datahub.builders.school_city_industry_fit import build_school_city_industry_fit_package
 
 
 COMMANDS = {
     "build-major-city-employment-fit",
+    "audit-major-city-employment-fit-inputs",
     "build-campus-living-score",
     "build-school-city-industry-fit",
     "build-city-development-score",
@@ -49,6 +53,16 @@ def register_city_commands(sub) -> None:
     build_major_city_employment_fit.add_argument("--source-version")
     build_major_city_employment_fit.add_argument("--role-sheet")
     build_major_city_employment_fit.add_argument("--demand-sheet")
+
+    audit_major_city_employment_fit = sub.add_parser(
+        "audit-major-city-employment-fit-inputs",
+        help="Read-only readiness audit for fa_mart_major_city_employment_fit input files",
+    )
+    audit_major_city_employment_fit.add_argument("--role-input", type=Path)
+    audit_major_city_employment_fit.add_argument("--demand-input", type=Path)
+    audit_major_city_employment_fit.add_argument("--output", type=Path)
+    audit_major_city_employment_fit.add_argument("--role-sheet")
+    audit_major_city_employment_fit.add_argument("--demand-sheet")
 
     build_campus_living_score = sub.add_parser(
         "build-campus-living-score",
@@ -191,6 +205,16 @@ def handle_city_command(args: Namespace) -> int | None:
         )
         _print_json(result)
         return 0
+    if args.cmd == "audit-major-city-employment-fit-inputs":
+        result = audit_major_city_employment_fit_inputs(
+            role_input=args.role_input,
+            demand_input=args.demand_input,
+            output=args.output,
+            role_sheet=args.role_sheet,
+            demand_sheet=args.demand_sheet,
+        )
+        _print_json(result)
+        return 0 if result.get("ready_for_build") else 1
     if args.cmd == "build-campus-living-score":
         result = build_campus_living_score_package(
             location_input=args.location_input,
