@@ -669,6 +669,25 @@
       "review_note": "Promoted from current v66 reviewed full-universe collection plan so manually reviewed staging rows are reproducible from git-tracked seeds."
     },
     {
+      "seed_id": "promoted_0587_2023_civil_service_rate",
+      "domain": "school",
+      "entity_code": "0587",
+      "entity_name": "星海音乐学院",
+      "metric_key": "civil_service_rate",
+      "metric_year": 2023,
+      "status": "verified",
+      "metric_value": 0.0019,
+      "source_title": "星海音乐学院2023届毕业生就业质量报告",
+      "source_url": "https://xsjy.xhcom.edu.cn/info/1019/6398.htm",
+      "evidence_quote": "公务员 0.19%",
+      "metric_scope": "2023届毕业生就业职业类别中的公务员占比",
+      "source_date": "2025-04-12",
+      "availability_date": "2025-04-12",
+      "reviewer": "codex",
+      "reviewed_at": "2026-05-18",
+      "review_note": "官方就业质量报告在就业职业类别 TOP10 中直接列出公务员 0.19%；本条按 civil_service_rate 近似指标入库，口径不是机关/事业单位去向占比。"
+    },
+    {
       "seed_id": "promoted_0587_2024_employment_rate",
       "domain": "school",
       "entity_code": "0587",
