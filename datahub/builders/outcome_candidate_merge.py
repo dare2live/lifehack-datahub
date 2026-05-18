@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import csv
+import re
 from collections import Counter
 from datetime import datetime
 from pathlib import Path
@@ -46,6 +47,7 @@ def merge_outcome_report_candidates(
     duplicate_approved_keys = 0
     unknown_approved_keys = 0
     incomplete_approved_rows = 0
+    cohort_year_mismatch_rows = 0
     for row in approved_candidates:
         key = _candidate_key(row)
         if key in approved_by_key:
@@ -57,6 +59,9 @@ def merge_outcome_report_candidates(
         if _missing_required_candidate_values(row):
             incomplete_approved_rows += 1
             continue
+        if _cohort_year_mismatch(row):
+            cohort_year_mismatch_rows += 1
+            continue
         approved_by_key[key] = row
 
     errors = []
@@ -66,6 +71,8 @@ def merge_outcome_report_candidates(
         errors.append(f"unknown approved candidate task-key rows: {unknown_approved_keys}")
     if incomplete_approved_rows:
         errors.append(f"incomplete approved candidate rows: {incomplete_approved_rows}")
+    if cohort_year_mismatch_rows:
+        errors.append(f"approved candidate cohort-year mismatch rows: {cohort_year_mismatch_rows}")
     if errors:
         raise ValueError("; ".join(errors))
 
@@ -154,6 +161,22 @@ def _missing_required_candidate_values(row: dict[str, Any]) -> list[str]:
         "availability_date",
     ]
     return [column for column in required if not str(row.get(column) or "").strip()]
+
+
+def _cohort_year_mismatch(row: dict[str, Any]) -> bool:
+    metric_year = str(row.get("metric_year") or "").strip()
+    if not metric_year:
+        return False
+    text = " ".join([
+        str(row.get("metric_scope") or ""),
+        str(row.get("evidence_quote") or ""),
+    ])
+    cohorts = set(re.findall(r"([0-9０-９]{4})\s*届", text))
+    return any(_normalize_digits(cohort) != metric_year for cohort in cohorts)
+
+
+def _normalize_digits(value: str) -> str:
+    return value.translate(str.maketrans("０１２３４５６７８９", "0123456789"))
 
 
 def _candidate_key(row: dict[str, Any]) -> tuple[str, str, str, str]:
