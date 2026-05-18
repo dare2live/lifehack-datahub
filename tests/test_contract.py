@@ -9856,6 +9856,80 @@ def test_download_outcome_report_intake_assets_follows_vsb_pdf_iframe(tmp_path: 
     assert rows[0]["download_url"] == "https://example.edu/__local/A/D6/21/maple.pdf"
 
 
+def test_download_outcome_report_intake_assets_extracts_embedded_pdf_data(tmp_path: Path, monkeypatch):
+    intake_csv = tmp_path / "outcome_report_intake_plan.csv"
+    target_pdf = tmp_path / "raw" / "outcome_report" / "2024" / "dlufe.pdf"
+    row = {
+        "domain": "school",
+        "entity_code": "3218",
+        "entity_name": "大连财经学院",
+        "metric_year": "2024",
+        "report_scope": "undergraduate_teaching_quality_report",
+        "candidate_report_title": "大连财经学院2023-2024学年本科教学质量报告",
+        "candidate_report_url": "https://example.edu/pdfweb_567.shtml",
+        "candidate_file_name": "大连财经学院2023-2024学年本科教学质量报告.pdf",
+        "candidate_source_date": "2024-12-05",
+        "availability_date": "2024-12-05",
+        "suggested_local_report_path": str(target_pdf),
+        "local_report_path": "",
+        "intake_status": "ready_for_intake",
+        "block_reason": "",
+        "source_status": "candidate_found",
+        "notes": "",
+    }
+    with intake_csv.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=list(row))
+        writer.writeheader()
+        writer.writerow(row)
+
+    class FakeHeaders:
+        def __init__(self, content_type: str):
+            self._content_type = content_type
+
+        def get(self, name: str, default=None):
+            return self._content_type if name == "Content-Type" else default
+
+    class FakeResponse:
+        def __init__(self, url: str, body: bytes, content_type: str):
+            self._url = url
+            self._body = body
+            self.headers = FakeHeaders(content_type)
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def read(self):
+            return self._body
+
+        def geturl(self):
+            return self._url
+
+    pdf_body = b"%PDF-1.7 dlufe fixture"
+    encoded = base64.b64encode(pdf_body).decode("ascii")
+
+    def fake_urlopen(request, timeout=60):
+        html = f"<html><script>var pdfData='{encoded}';</script></html>"
+        return FakeResponse(request.full_url, html.encode("utf-8"), "text/html; charset=utf-8")
+
+    monkeypatch.setattr("datahub.connectors.outcome_report_download.urlopen", fake_urlopen)
+
+    output = tmp_path / "downloaded.csv"
+    report = download_outcome_report_intake_assets(
+        intake_csv=intake_csv,
+        output=output,
+    )
+
+    assert report["downloaded_rows"] == 1
+    assert report["failed_rows"] == 0
+    assert target_pdf.read_bytes() == pdf_body
+    with output.open(encoding="utf-8", newline="") as f:
+        rows = list(csv.DictReader(f))
+    assert rows[0]["download_url"] == "https://example.edu/pdfweb_567.shtml#embedded-pdf"
+
+
 def test_download_outcome_report_intake_assets_flags_embedded_report_images(tmp_path: Path, monkeypatch):
     intake_csv = tmp_path / "outcome_report_intake_plan.csv"
     row = {

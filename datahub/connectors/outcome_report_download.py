@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import base64
+import binascii
 import csv
 import hashlib
 import io
@@ -48,6 +49,7 @@ USER_AGENT = "Mozilla/5.0"
 CLOUD_IFRAME_NAME_RE = re.compile(r"name=\\\\\"([^\\\\\"]+)\\\\\"|name=\\\"([^\\\"]+)\\\"|name=\"([^\"]+)\"")
 VSB_PDF_IFRAME_RE = re.compile(r"showVsbpdfIframe\(\s*['\"]([^'\"]+\.pdf(?:\?[^'\"]*)?)['\"]", re.IGNORECASE)
 REPORT_IMAGE_RE = re.compile(r"<img\b[^>]*(?:alt|src)=['\"][^'\"]*(?:报告|report)[^'\"]*['\"][^>]*>", re.IGNORECASE)
+EMBEDDED_PDF_DATA_RE = re.compile(r"(?:var\s+)?pdfData\s*=\s*['\"]([A-Za-z0-9+/=\s]+)['\"]", re.IGNORECASE)
 
 
 def download_outcome_report_intake_assets(
@@ -203,12 +205,17 @@ def _download_row(row: dict[str, Any], *, timeout: int) -> dict[str, Any]:
         file_url = source_url
         file_body = body
     else:
-        file_url = _find_attachment_url(source_url, body, content_type, file_name)
-        file_response = _open(file_url, timeout=timeout, referer=source_url)
-        if not _looks_like_file_response(file_url, file_response["content_type"], file_response["body"]):
-            block_reason = _html_block_reason(file_response["content_type"], file_response["body"])
-            raise ValueError(f"{block_reason}: {file_url}")
-        file_body = file_response["body"]
+        embedded_pdf = _embedded_pdf_body(body, content_type)
+        if embedded_pdf:
+            file_url = f"{source_url}#embedded-pdf"
+            file_body = embedded_pdf
+        else:
+            file_url = _find_attachment_url(source_url, body, content_type, file_name)
+            file_response = _open(file_url, timeout=timeout, referer=source_url)
+            if not _looks_like_file_response(file_url, file_response["content_type"], file_response["body"]):
+                block_reason = _html_block_reason(file_response["content_type"], file_response["body"])
+                raise ValueError(f"{block_reason}: {file_url}")
+            file_body = file_response["body"]
     file_body, archive_member = _extract_report_from_archive(file_body, file_name, file_url)
     if archive_member:
         file_url = f"{file_url}#{archive_member}"
@@ -335,6 +342,21 @@ def _vsb_pdf_iframe_urls(page_url: str, text: str) -> list[str]:
         if candidate:
             urls.append(urljoin(page_url, candidate))
     return urls
+
+
+def _embedded_pdf_body(body: bytes, content_type: str) -> bytes:
+    if not _looks_like_html(content_type.lower(), body):
+        return b""
+    text = _decode_html(body, _charset_from_content_type(content_type))
+    match = EMBEDDED_PDF_DATA_RE.search(text)
+    if not match:
+        return b""
+    encoded = re.sub(r"\s+", "", match.group(1))
+    try:
+        decoded = base64.b64decode(encoded, validate=True)
+    except (ValueError, binascii.Error):
+        return b""
+    return decoded if decoded.startswith(b"%PDF") else b""
 
 
 def _direct_report_url_from_viewer_url(url: str) -> str:
