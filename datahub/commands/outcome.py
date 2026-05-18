@@ -35,6 +35,7 @@ from datahub.builders.outcome_report_source_seed_merge import (
 from datahub.builders.outcome_scoped_stock_review import build_scoped_outcome_stock_review
 from datahub.builders.outcome_scoped_stock_review_batch import build_scoped_outcome_stock_review_batch
 from datahub.builders.outcome_scoped_stock_review_export import export_approved_scoped_stock_review_candidates
+from datahub.builders.outcome_scoped_stock_review_workspace import build_scoped_outcome_stock_review_workspace
 from datahub.connectors.outcome_report_download import (
     build_outcome_report_manual_intake_queue,
     download_outcome_report_intake_assets,
@@ -70,6 +71,7 @@ COMMANDS = {
     "extract-outcome-report-candidates",
     "build-outcome-scoped-stock-review",
     "build-outcome-scoped-stock-review-batch",
+    "build-outcome-scoped-stock-review-workspace",
     "export-outcome-scoped-stock-approved-candidates",
 }
 
@@ -166,6 +168,13 @@ def register_outcome_commands(sub) -> None:
     scoped_stock_review_batch.add_argument("--limit", type=int, default=100)
     scoped_stock_review_batch.add_argument("--review-class", action="append", dest="review_class")
     scoped_stock_review_batch.add_argument("--metric-key", action="append", dest="metric_key")
+
+    scoped_stock_review_workspace = sub.add_parser(
+        "build-outcome-scoped-stock-review-workspace",
+        help="Build a markdown/CSV manual workspace from a scoped outcome review batch",
+    )
+    scoped_stock_review_workspace.add_argument("--batch-csv", required=True, type=Path)
+    scoped_stock_review_workspace.add_argument("--output-dir", required=True, type=Path)
 
     scoped_stock_review_export = sub.add_parser(
         "export-outcome-scoped-stock-approved-candidates",
@@ -400,6 +409,13 @@ def handle_outcome_command(args: Namespace) -> int | None:
             limit=args.limit,
             review_class=args.review_class,
             metric_key=args.metric_key,
+        )
+        _print_json(report)
+        return 0
+    if args.cmd == "build-outcome-scoped-stock-review-workspace":
+        report = build_scoped_outcome_stock_review_workspace(
+            batch_csv=args.batch_csv,
+            output_dir=args.output_dir,
         )
         _print_json(report)
         return 0

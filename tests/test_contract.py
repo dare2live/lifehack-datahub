@@ -93,6 +93,7 @@ from datahub.builders.outcome_report_source_seed_merge import (
 from datahub.builders.outcome_scoped_stock_review import build_scoped_outcome_stock_review
 from datahub.builders.outcome_scoped_stock_review_batch import build_scoped_outcome_stock_review_batch
 from datahub.builders.outcome_scoped_stock_review_export import export_approved_scoped_stock_review_candidates
+from datahub.builders.outcome_scoped_stock_review_workspace import build_scoped_outcome_stock_review_workspace
 from datahub.builders.policy_tables import (
     build_policy_industry_map_package,
     build_policy_plan_history_package,
@@ -11461,6 +11462,42 @@ def test_export_approved_scoped_stock_review_candidates_requires_manual_approval
     assert rows[0]["entity_code"] == "0162"
     assert rows[0]["review_status"] == "approved"
     assert rows[0]["metric_scope"] == "liaoning_province_in_province_destination_rate_not_school_overall"
+
+
+def test_build_scoped_outcome_stock_review_workspace_outputs_review_files(tmp_path: Path):
+    batch = tmp_path / "scoped_stock_review_batch.csv"
+    with batch.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=[*CANDIDATE_COLUMNS, "scoped_review_class", "matched_scope_terms", "recommended_action"])
+        writer.writeheader()
+        base = {column: "" for column in writer.fieldnames}
+        writer.writerow({
+            **base,
+            "candidate_file": "staging/v1/extraction_merged/candidates/school.csv",
+            "domain": "school",
+            "entity_code": "0140",
+            "entity_name": "辽宁大学",
+            "metric_key": "employment_rate",
+            "metric_year": "2024",
+            "candidate_value": "0.8582",
+            "candidate_text_value": "85.82%",
+            "source_title": "辽宁大学本科教学质量报告",
+            "source_url": "https://example.edu/lnu.htm",
+            "evidence_quote": "本科应届毕业生毕业去向落实率为85.82%。",
+            "review_status": "needs_review",
+            "recommended_action": "review_scope_before_approval",
+        })
+
+    report = build_scoped_outcome_stock_review_workspace(
+        batch_csv=batch,
+        output_dir=tmp_path / "workspace",
+    )
+
+    assert report["rows"] == 1
+    assert (tmp_path / "workspace" / "review.csv").exists()
+    markdown = (tmp_path / "workspace" / "review.md").read_text(encoding="utf-8")
+    assert "辽宁大学" in markdown
+    assert "本科应届毕业生毕业去向落实率" in markdown
+    assert "review_status" in markdown
 
 
 def test_build_scoped_outcome_stock_review_flags_official_scoped_candidates(tmp_path: Path):
