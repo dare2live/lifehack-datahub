@@ -28,7 +28,8 @@ def build_scoped_outcome_stock_review_batch(
         and (not selected_metrics or row.get("metric_key") in selected_metrics)
     ]
     filtered.sort(key=_priority_key)
-    batch_rows = filtered[: max(int(limit), 1)]
+    deduped = _dedupe_rows(filtered)
+    batch_rows = deduped[: max(int(limit), 1)]
 
     output_dir.mkdir(parents=True, exist_ok=True)
     output = output_dir / "scoped_stock_review_batch.csv"
@@ -39,6 +40,8 @@ def build_scoped_outcome_stock_review_batch(
         "output": str(output),
         "input_rows": len(rows),
         "filtered_rows": len(filtered),
+        "duplicate_filtered_rows": len(filtered) - len(deduped),
+        "deduped_rows": len(deduped),
         "batch_rows": len(batch_rows),
         "limit": limit,
         "review_class": sorted(selected_classes),
@@ -83,4 +86,30 @@ def _priority_key(row: dict[str, str]) -> tuple[int, int, str, str, str]:
         row.get("entity_code") or "",
         row.get("candidate_file") or "",
         row.get("evidence_quote") or "",
+    )
+
+
+def _dedupe_rows(rows: list[dict[str, str]]) -> list[dict[str, str]]:
+    seen: set[tuple[str, ...]] = set()
+    result = []
+    for row in rows:
+        key = _dedupe_key(row)
+        if key in seen:
+            continue
+        seen.add(key)
+        result.append(row)
+    return result
+
+
+def _dedupe_key(row: dict[str, str]) -> tuple[str, ...]:
+    return (
+        row.get("domain") or "",
+        row.get("entity_code") or "",
+        row.get("metric_key") or "",
+        row.get("metric_year") or "",
+        row.get("candidate_value") or "",
+        row.get("source_title") or "",
+        row.get("source_url") or "",
+        row.get("evidence_quote") or "",
+        row.get("metric_scope") or "",
     )

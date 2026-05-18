@@ -11538,6 +11538,24 @@ def test_build_scoped_outcome_stock_review_batch_filters_and_prioritizes(tmp_pat
             "entity_code": "1001",
             "entity_name": "优先学校",
             "metric_key": "employment_rate",
+            "metric_year": "2024",
+            "candidate_value": "0.88",
+            "source_title": "优先学校报告",
+            "source_url": "https://example.edu/priority.pdf",
+            "evidence_quote": "毕业去向落实率88%。",
+            "scoped_review_class": "scoped_official_candidate",
+        })
+        writer.writerow({
+            **base,
+            "candidate_file": "later_duplicate.csv",
+            "entity_code": "1001",
+            "entity_name": "优先学校重复",
+            "metric_key": "employment_rate",
+            "metric_year": "2024",
+            "candidate_value": "0.88",
+            "source_title": "优先学校报告",
+            "source_url": "https://example.edu/priority.pdf",
+            "evidence_quote": "毕业去向落实率88%。",
             "scoped_review_class": "scoped_official_candidate",
         })
         writer.writerow({
@@ -11556,6 +11574,7 @@ def test_build_scoped_outcome_stock_review_batch_filters_and_prioritizes(tmp_pat
     )
 
     assert report["batch_rows"] == 2
+    assert report["duplicate_filtered_rows"] == 1
     assert report["batch_metric_counts"] == {"employment_rate": 1, "postgrad_rate": 1}
     with (tmp_path / "batch" / "scoped_stock_review_batch.csv").open(encoding="utf-8", newline="") as f:
         rows = list(csv.DictReader(f))
