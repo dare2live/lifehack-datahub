@@ -52,6 +52,7 @@ def register_operational_commands(sub) -> None:
     gap_report_parser.add_argument("--outcome-audit", type=Path)
     gap_report_parser.add_argument("--amap-readiness", type=Path)
     gap_report_parser.add_argument("--score-readiness", action="append", default=[])
+    gap_report_parser.add_argument("--readiness", action="append", default=[])
     gap_report_parser.add_argument("--report", type=Path)
     gap_report_parser.add_argument("--markdown", type=Path)
 
@@ -86,6 +87,7 @@ def handle_operational_command(args: Namespace) -> int | None:
             outcome_audit_path=args.outcome_audit,
             amap_readiness_path=args.amap_readiness,
             score_readiness_paths=_parse_score_readiness(args.score_readiness),
+            readiness_paths=_parse_score_readiness(args.readiness),
             report_path=args.report,
             markdown_path=args.markdown,
         )

@@ -14,6 +14,7 @@ def build_operational_gap_report(
     outcome_audit_path: Path | None = None,
     amap_readiness_path: Path | None = None,
     score_readiness_paths: dict[str, Path] | None = None,
+    readiness_paths: dict[str, Path] | None = None,
     report_path: Path | None = None,
     markdown_path: Path | None = None,
 ) -> dict[str, Any]:
@@ -26,6 +27,10 @@ def build_operational_gap_report(
         label: _score_summary(label, _read_optional_json(path), str(path))
         for label, path in (score_readiness_paths or {}).items()
     }
+    readiness = {
+        label: _readiness_summary(label, _read_optional_json(path), str(path))
+        for label, path in (readiness_paths or {}).items()
+    }
     report = {
         "built_at": datetime.utcnow().isoformat(),
         "inputs": {
@@ -37,12 +42,17 @@ def build_operational_gap_report(
                 label: str(path)
                 for label, path in (score_readiness_paths or {}).items()
             },
+            "readiness": {
+                label: str(path)
+                for label, path in (readiness_paths or {}).items()
+            },
         },
         "coverage": _coverage_summary(coverage),
         "portfolio": _portfolio_summary(portfolio),
         "outcome": _outcome_summary(outcome),
         "amap": _amap_summary(amap),
         "score_reconciliation": score,
+        "readiness": readiness,
         "notes": "Gap report only. It reads existing audit artifacts and does not collect data, build packages, import core, or change readiness state.",
     }
     report["p0_blockers"] = _blockers(report)
@@ -134,6 +144,28 @@ def _score_summary(label: str, report: dict[str, Any], path: str) -> dict[str, A
     }
 
 
+def _readiness_summary(label: str, report: dict[str, Any], path: str) -> dict[str, Any]:
+    return {
+        "label": label,
+        "path": path,
+        "ready_for_build": report.get("ready_for_build"),
+        "ready_for_fetch": report.get("ready_for_fetch"),
+        "row_counts": _readiness_row_counts(report),
+        "errors": report.get("errors") or [],
+        "warnings": report.get("warnings") or [],
+    }
+
+
+def _readiness_row_counts(report: dict[str, Any]) -> dict[str, Any]:
+    if isinstance(report.get("row_counts"), dict):
+        return report["row_counts"]
+    return {
+        key: value
+        for key, value in report.items()
+        if key.endswith("_rows") and isinstance(value, (int, float))
+    }
+
+
 def _blockers(report: dict[str, Any]) -> list[dict[str, Any]]:
     blockers: list[dict[str, Any]] = []
     for blocker in report["coverage"].get("p0_blockers", []):
@@ -149,6 +181,11 @@ def _blockers(report: dict[str, Any]) -> list[dict[str, Any]]:
         pending = (score.get("progress") or {}).get("pending_rows", 0)
         if isinstance(pending, (int, float)) and pending:
             blockers.append({"domain": "score_reconciliation", "code": "score_reconciliation_pending_rows", "details": {"label": label, "pending_rows": pending}})
+    for label, readiness in report["readiness"].items():
+        if readiness.get("ready_for_build") is False:
+            blockers.append({"domain": "readiness", "code": f"{label}_not_ready_for_build", "details": readiness})
+        elif readiness.get("ready_for_fetch") is False:
+            blockers.append({"domain": "readiness", "code": f"{label}_not_ready_for_fetch", "details": readiness})
     return blockers
 
 
@@ -178,5 +215,12 @@ def _markdown(report: dict[str, Any]) -> str:
     lines.extend(["", "## Score reconciliation", ""])
     for label, score in report["score_reconciliation"].items():
         lines.append(f"- `{label}` progress: `{json.dumps(score.get('progress') or {}, ensure_ascii=False)}`")
+    lines.extend(["", "## Readiness", ""])
+    for label, readiness in report["readiness"].items():
+        lines.append(
+            f"- `{label}` ready_for_build: `{readiness.get('ready_for_build')}`, "
+            f"ready_for_fetch: `{readiness.get('ready_for_fetch')}`, "
+            f"errors: `{json.dumps(readiness.get('errors') or [], ensure_ascii=False)}`"
+        )
     lines.append("")
     return "\n".join(lines)

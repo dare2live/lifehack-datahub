@@ -11395,6 +11395,13 @@ def test_build_operational_gap_report_summarizes_existing_artifacts(tmp_path: Pa
         "progress": {"ready_rows": 3391, "pending_rows": 21087},
         "status_counts": {"reviewed": 3391, "todo": 21087},
     }), encoding="utf-8")
+    readiness = tmp_path / "campus_living.json"
+    readiness.write_text(json.dumps({
+        "ready_for_build": False,
+        "location_rows": 0,
+        "poi_rows": 0,
+        "errors": ["location_input_missing", "poi_input_missing"],
+    }), encoding="utf-8")
 
     report = build_operational_gap_report(
         coverage_report_path=coverage,
@@ -11402,17 +11409,20 @@ def test_build_operational_gap_report_summarizes_existing_artifacts(tmp_path: Pa
         outcome_audit_path=outcome,
         amap_readiness_path=amap,
         score_readiness_paths={"2023_2024": score},
+        readiness_paths={"campus_living": readiness},
         report_path=tmp_path / "gap.json",
         markdown_path=tmp_path / "gap.md",
     )
 
     assert report["summary"]["ready_for_normal_operation"] is False
-    assert report["summary"]["p0_blocker_signal_count"] == 5
-    assert report["summary"]["unique_p0_blocker_count"] == 5
+    assert report["summary"]["p0_blocker_signal_count"] == 6
+    assert report["summary"]["unique_p0_blocker_count"] == 6
+    assert report["readiness"]["campus_living"]["row_counts"] == {"location_rows": 0, "poi_rows": 0}
     assert (tmp_path / "gap.json").exists()
     markdown = (tmp_path / "gap.md").read_text(encoding="utf-8")
     assert "outcome_pending_rows" in markdown
     assert "score_reconciliation_pending_rows" in markdown
+    assert "campus_living_not_ready_for_build" in markdown
 
 
 def test_merge_outcome_report_candidates_requires_metric_scope(tmp_path: Path):
