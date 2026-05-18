@@ -59,7 +59,10 @@ from datahub.builders.data_update_batch_plan import build_data_update_batch_plan
 from datahub.builders.data_update_plan import build_data_update_plan
 from datahub.builders.data_update_readiness_plan import build_data_update_readiness_plan
 from datahub.builders.entity_normalization_registry import build_entity_normalization_registry_package
-from datahub.builders.major_city_employment_fit import build_major_city_employment_fit_package
+from datahub.builders.major_city_employment_fit import (
+    audit_major_city_employment_fit_inputs,
+    build_major_city_employment_fit_package,
+)
 from datahub.builders.major_outcome_civil_service import build_major_outcome_from_civil_service_package
 from datahub.connectors.page_images import download_page_images
 from datahub.builders.outcome_collection_audit import audit_outcome_collection_plan
@@ -8808,6 +8811,20 @@ def test_build_major_city_employment_fit_package(tmp_path: Path):
     lineage = json.loads(row["pit_lineage_json"])
     assert "fa_fact_company_role_demand_signal" in lineage["tables"]
     assert result["quality_report"]["input_quality"]["errors"] == []
+
+
+def test_audit_major_city_employment_fit_inputs_reports_required_contracts():
+    result = audit_major_city_employment_fit_inputs()
+
+    assert result["ready_for_build"] is False
+    assert "role_input_missing" in result["errors"]
+    assert "demand_input_missing" in result["errors"]
+    assert result["expected_inputs"]["role_input"]["table"] == "fa_bridge_major_employment_role"
+    assert result["expected_inputs"]["demand_input"]["table"] == "fa_fact_company_role_demand_signal"
+    assert result["expected_inputs"]["demand_input"]["not_substitutable_by"][0]["table"] == "fa_fact_career_signal"
+    blocked = {item["blocked_input"]: item for item in result["blocker_details"]}
+    assert blocked["role_input"]["required_source_key"] == "major_employment_role_map"
+    assert blocked["demand_input"]["required_source_key"] == "company_role_demand_signal"
 
 
 def test_build_major_city_employment_fit_rejects_bad_input_metadata(tmp_path: Path):

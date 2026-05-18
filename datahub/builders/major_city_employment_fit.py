@@ -98,6 +98,7 @@ def audit_major_city_employment_fit_inputs(
     warnings: list[str] = []
     role_rows: list[dict[str, Any]] = []
     demand_rows: list[dict[str, Any]] = []
+    expected_inputs = _expected_input_contracts()
 
     if role_input is None:
         errors.append("role_input_missing")
@@ -128,6 +129,8 @@ def audit_major_city_employment_fit_inputs(
         "demand_input": str(demand_input) if demand_input else "",
         "role_rows": len(role_rows),
         "demand_rows": len(demand_rows),
+        "expected_inputs": expected_inputs,
+        "blocker_details": _input_blocker_details(errors, expected_inputs),
         "input_quality": input_quality,
         "errors": errors,
         "warnings": warnings,
@@ -137,6 +140,54 @@ def audit_major_city_employment_fit_inputs(
         output.parent.mkdir(parents=True, exist_ok=True)
         output.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return report
+
+
+def _expected_input_contracts() -> dict[str, dict[str, Any]]:
+    return {
+        "role_input": {
+            "table": "fa_bridge_major_employment_role",
+            "source_key": "major_employment_role_map",
+            "purpose": "Maps Liaoning admission majors to direct, generalist, public-sector, and listed-company employment roles.",
+            "required_before_build": True,
+        },
+        "demand_input": {
+            "table": "fa_fact_company_role_demand_signal",
+            "source_key": "company_role_demand_signal",
+            "purpose": "Provides source-backed role demand by city, employer, metric, year, and evidence URL.",
+            "required_before_build": True,
+            "not_substitutable_by": [
+                {
+                    "table": "fa_fact_career_signal",
+                    "reason": "Career signals can support downstream explanation, but they do not provide company/city/role demand rows required by this mart.",
+                }
+            ],
+        },
+    }
+
+
+def _input_blocker_details(
+    errors: list[str],
+    expected_inputs: dict[str, dict[str, Any]],
+) -> list[dict[str, Any]]:
+    details: list[dict[str, Any]] = []
+    for error in errors:
+        if error.startswith("role_input_missing") or error.startswith("role_input_not_found"):
+            details.append({
+                "error": error,
+                "blocked_input": "role_input",
+                "required_table": expected_inputs["role_input"]["table"],
+                "required_source_key": expected_inputs["role_input"]["source_key"],
+                "next_action": "Finish reviewed fa_bridge_major_employment_role input from the major employment role review batches before building the mart.",
+            })
+        elif error.startswith("demand_input_missing") or error.startswith("demand_input_not_found"):
+            details.append({
+                "error": error,
+                "blocked_input": "demand_input",
+                "required_table": expected_inputs["demand_input"]["table"],
+                "required_source_key": expected_inputs["demand_input"]["source_key"],
+                "next_action": "Collect and approve company_role_demand_signal rows by role_key and city; do not use fa_fact_career_signal as a direct substitute.",
+            })
+    return details
 
 
 def _score_rows(
