@@ -11360,7 +11360,7 @@ def test_merge_outcome_report_candidates_requires_approved_status(tmp_path: Path
 def test_build_operational_gap_report_summarizes_existing_artifacts(tmp_path: Path):
     coverage = tmp_path / "coverage.json"
     coverage.write_text(json.dumps({
-        "total_school_count": 2,
+        "summary": {"liaoning_admission_school_count": 2},
         "p0_blockers": [{"code": "SCHOOL_OUTCOME_NOT_OPERATIONAL"}],
         "coverage_areas": [{
             "key": "outcome",
@@ -11417,6 +11417,7 @@ def test_build_operational_gap_report_summarizes_existing_artifacts(tmp_path: Pa
     assert report["summary"]["ready_for_normal_operation"] is False
     assert report["summary"]["p0_blocker_signal_count"] == 6
     assert report["summary"]["unique_p0_blocker_count"] == 6
+    assert report["coverage"]["total_school_count"] == 2
     assert report["portfolio"]["category_counts"] == {"required_unavailable": 1}
     assert report["readiness"]["campus_living"]["row_counts"] == {"location_rows": 0, "poi_rows": 0}
     assert (tmp_path / "gap.json").exists()

@@ -82,9 +82,10 @@ def _read_optional_json(path: Path | None) -> dict[str, Any]:
 
 def _coverage_summary(report: dict[str, Any]) -> dict[str, Any]:
     areas = report.get("coverage_areas") if isinstance(report.get("coverage_areas"), list) else []
+    summary = report.get("summary") if isinstance(report.get("summary"), dict) else {}
     return {
         "source_status": report.get("status"),
-        "total_school_count": report.get("total_school_count"),
+        "total_school_count": report.get("total_school_count") or summary.get("liaoning_admission_school_count"),
         "p0_blockers": report.get("p0_blockers") or [],
         "areas": [
             {
