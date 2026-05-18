@@ -11535,6 +11535,7 @@ def test_build_scoped_outcome_stock_review_batch_filters_and_prioritizes(tmp_pat
         })
         writer.writerow({
             **base,
+            "candidate_file": "staging/outcome_v46/extraction/candidates/priority.csv",
             "entity_code": "1001",
             "entity_name": "优先学校",
             "metric_key": "employment_rate",
@@ -11547,9 +11548,9 @@ def test_build_scoped_outcome_stock_review_batch_filters_and_prioritizes(tmp_pat
         })
         writer.writerow({
             **base,
-            "candidate_file": "later_duplicate.csv",
+            "candidate_file": "staging/outcome_v48/extraction_merged/candidates/priority.csv",
             "entity_code": "1001",
-            "entity_name": "优先学校重复",
+            "entity_name": "优先学校更新版",
             "metric_key": "employment_rate",
             "metric_year": "2024",
             "candidate_value": "0.88",
@@ -11578,7 +11579,7 @@ def test_build_scoped_outcome_stock_review_batch_filters_and_prioritizes(tmp_pat
     assert report["batch_metric_counts"] == {"employment_rate": 1, "postgrad_rate": 1}
     with (tmp_path / "batch" / "scoped_stock_review_batch.csv").open(encoding="utf-8", newline="") as f:
         rows = list(csv.DictReader(f))
-    assert [row["entity_name"] for row in rows] == ["优先学校", "后处理学校"]
+    assert [row["entity_name"] for row in rows] == ["优先学校更新版", "后处理学校"]
 
 
 def test_build_outcome_packages_from_verified_collection_plan(tmp_path: Path):

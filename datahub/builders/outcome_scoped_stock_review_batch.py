@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import csv
 import json
+import re
 from collections import Counter
 from datetime import datetime
 from pathlib import Path
@@ -67,7 +68,7 @@ def _write_rows(path: Path, rows: list[dict[str, str]]) -> None:
         writer.writerows(rows)
 
 
-def _priority_key(row: dict[str, str]) -> tuple[int, int, str, str, str]:
+def _priority_key(row: dict[str, str]) -> tuple[int, int, str, tuple[int, int], str, str]:
     class_rank = {
         "overall_approved_candidate": 0,
         "scoped_official_candidate": 1,
@@ -84,9 +85,18 @@ def _priority_key(row: dict[str, str]) -> tuple[int, int, str, str, str]:
         class_rank,
         metric_rank,
         row.get("entity_code") or "",
+        _candidate_file_rank(row.get("candidate_file") or ""),
         row.get("candidate_file") or "",
         row.get("evidence_quote") or "",
     )
+
+
+def _candidate_file_rank(candidate_file: str) -> tuple[int, int]:
+    path = candidate_file.replace("\\", "/")
+    merged_rank = 0 if "/extraction_merged/" in path else 1
+    version_match = re.search(r"_v(\d+)(?:/|_)", path)
+    version = int(version_match.group(1)) if version_match else 0
+    return (merged_rank, -version)
 
 
 def _dedupe_rows(rows: list[dict[str, str]]) -> list[dict[str, str]]:
