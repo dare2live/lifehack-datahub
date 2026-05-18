@@ -20,6 +20,7 @@ from datahub.builders.major_city_employment_fit import (
     audit_major_city_employment_fit_inputs,
     build_major_city_employment_fit_package,
 )
+from datahub.builders.major_employment_role_review_plan import build_major_employment_role_review_plan
 from datahub.builders.region_profile_from_amap import build_region_profile_package_from_amap_district
 from datahub.builders.school_city_industry_fit import build_school_city_industry_fit_package
 
@@ -27,6 +28,7 @@ from datahub.builders.school_city_industry_fit import build_school_city_industry
 COMMANDS = {
     "build-major-city-employment-fit",
     "audit-major-city-employment-fit-inputs",
+    "build-major-employment-role-review-plan",
     "build-campus-living-score",
     "build-school-city-industry-fit",
     "build-city-development-score",
@@ -63,6 +65,15 @@ def register_city_commands(sub) -> None:
     audit_major_city_employment_fit.add_argument("--output", type=Path)
     audit_major_city_employment_fit.add_argument("--role-sheet")
     audit_major_city_employment_fit.add_argument("--demand-sheet")
+
+    build_major_role_plan = sub.add_parser(
+        "build-major-employment-role-review-plan",
+        help="Build a curation plan for fa_bridge_major_employment_role from core admission majors",
+    )
+    build_major_role_plan.add_argument("--core-db", required=True, type=Path)
+    build_major_role_plan.add_argument("--output-csv", required=True, type=Path)
+    build_major_role_plan.add_argument("--report", type=Path)
+    build_major_role_plan.add_argument("--limit", type=int)
 
     build_campus_living_score = sub.add_parser(
         "build-campus-living-score",
@@ -215,6 +226,15 @@ def handle_city_command(args: Namespace) -> int | None:
         )
         _print_json(result)
         return 0 if result.get("ready_for_build") else 1
+    if args.cmd == "build-major-employment-role-review-plan":
+        result = build_major_employment_role_review_plan(
+            core_db=args.core_db,
+            output_csv=args.output_csv,
+            report_path=args.report,
+            limit=args.limit,
+        )
+        _print_json(result)
+        return 0
     if args.cmd == "build-campus-living-score":
         result = build_campus_living_score_package(
             location_input=args.location_input,
