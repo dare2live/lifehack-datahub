@@ -80,6 +80,25 @@
       "review_note": "postgrad_rate 按 outcome 指标定义纳入境内升学和出国出境深造，本次取 42.96%+5.50%=48.46%。"
     },
     {
+      "seed_id": "jlu_2024_undergraduate_keep_research_rate",
+      "domain": "school",
+      "entity_code": "0183",
+      "entity_name": "吉林大学",
+      "metric_key": "keep_research_rate",
+      "metric_year": 2024,
+      "status": "verified",
+      "metric_value": 0.271,
+      "source_title": "吉林大学保研率多少？保研率最新数据速看！-高顿去保研",
+      "source_url": "https://www.gaodun.com/baoyan/1726649.html",
+      "evidence_quote": "2024届 | 27.1%",
+      "metric_scope": "2024届本科毕业生保研率",
+      "source_date": "2026-05-18",
+      "availability_date": "2026-05-18",
+      "reviewer": "codex",
+      "reviewed_at": "2026-05-18",
+      "review_note": "第三方整理页明确给出吉林大学 2024 届保研率 27.1%，并引用学校教务处 2024 年推免通知；用于补齐 school_outcome 中 keep_research_rate 缺口。"
+    },
+    {
       "seed_id": "lntu_2024_undergraduate_employment_rate",
       "domain": "school",
       "entity_code": "0147",
