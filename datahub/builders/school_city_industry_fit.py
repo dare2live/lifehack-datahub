@@ -102,6 +102,120 @@ def build_school_city_industry_fit_package(
     }
 
 
+def audit_school_city_industry_fit_inputs(
+    *,
+    recruitment_input: Path | None = None,
+    research_input: Path | None = None,
+    employment_input: Path | None = None,
+    zone_input: Path | None = None,
+    location_input: Path | None = None,
+    output: Path | None = None,
+    recruitment_sheet: str | None = None,
+    research_sheet: str | None = None,
+    employment_sheet: str | None = None,
+    zone_sheet: str | None = None,
+    location_sheet: str | None = None,
+) -> dict[str, Any]:
+    """Audit whether school-city-industry fit inputs are ready for package build."""
+    config = load_school_city_industry_fit()
+    recruitment_schema = get_table_schema("fa_fact_school_recruitment_event")
+    research_schema = get_table_schema("fa_fact_school_research_industry_link")
+    employment_schema = get_table_schema("fa_fact_school_local_employment")
+    zone_schema = get_table_schema("fa_dim_city_industry_zone")
+    location_schema = get_table_schema("fa_dim_school_location")
+    errors: list[str] = []
+    warnings: list[str] = []
+
+    recruitment_rows = _read_input_rows(
+        label="recruitment_input",
+        path=recruitment_input,
+        schema=recruitment_schema,
+        errors=errors,
+        sheet=recruitment_sheet,
+    )
+    research_rows = _read_input_rows(
+        label="research_input",
+        path=research_input,
+        schema=research_schema,
+        errors=errors,
+        sheet=research_sheet,
+    )
+    employment_rows = _read_input_rows(
+        label="employment_input",
+        path=employment_input,
+        schema=employment_schema,
+        errors=errors,
+        sheet=employment_sheet,
+    )
+    zone_rows = _read_input_rows(
+        label="zone_input",
+        path=zone_input,
+        schema=zone_schema,
+        errors=errors,
+        sheet=zone_sheet,
+    )
+    location_rows = _read_input_rows(
+        label="location_input",
+        path=location_input,
+        schema=location_schema,
+        errors=errors,
+        sheet=location_sheet,
+    )
+
+    input_quality = _input_quality_report(
+        recruitment_rows,
+        research_rows,
+        employment_rows,
+        zone_rows,
+        location_rows,
+        config,
+    )
+    errors.extend(input_quality["errors"])
+    warnings.extend(input_quality["warnings"])
+    report = {
+        "ready_for_build": not errors,
+        "recruitment_input": str(recruitment_input) if recruitment_input else "",
+        "research_input": str(research_input) if research_input else "",
+        "employment_input": str(employment_input) if employment_input else "",
+        "zone_input": str(zone_input) if zone_input else "",
+        "location_input": str(location_input) if location_input else "",
+        "recruitment_rows": len(recruitment_rows),
+        "research_rows": len(research_rows),
+        "employment_rows": len(employment_rows),
+        "zone_rows": len(zone_rows),
+        "location_rows": len(location_rows),
+        "input_quality": input_quality,
+        "errors": errors,
+        "warnings": warnings,
+        "notes": "This is a read-only readiness audit. It does not build or publish fa_mart_school_city_industry_fit.",
+    }
+    if output:
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return report
+
+
+def _read_input_rows(
+    *,
+    label: str,
+    path: Path | None,
+    schema: dict[str, Any],
+    errors: list[str],
+    sheet: str | None = None,
+) -> list[dict[str, Any]]:
+    if path is None:
+        errors.append(f"{label}_missing")
+        return []
+    if not path.exists():
+        errors.append(f"{label}_not_found:{path}")
+        return []
+    try:
+        return normalize_rows_for_schema(parse_tabular(path, sheet=sheet), schema)
+    except Exception as exc:
+        errors.append(f"{label}_parse_failed:{exc}")
+        return []
+
+
 def _score_rows(
     recruitment_rows: list[dict[str, Any]],
     research_rows: list[dict[str, Any]],

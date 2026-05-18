@@ -50,7 +50,10 @@ from datahub.builders.city_context_target_cities import build_city_context_targe
 from datahub.builders.campus_living_score import audit_campus_living_score_inputs, build_campus_living_score_package
 from datahub.builders.city_development_score import build_city_development_score_package
 from datahub.builders.city_listed_company_signal import build_city_listed_company_signal_package
-from datahub.builders.school_city_industry_fit import build_school_city_industry_fit_package
+from datahub.builders.school_city_industry_fit import (
+    audit_school_city_industry_fit_inputs,
+    build_school_city_industry_fit_package,
+)
 from datahub.builders.data_update_policy_audit import audit_data_update_policy
 from datahub.builders.data_update_batch_plan import build_data_update_batch_plan
 from datahub.builders.data_update_plan import build_data_update_plan
@@ -7282,6 +7285,27 @@ def test_build_school_city_industry_fit_package(tmp_path: Path):
     lineage = json.loads(row["pit_lineage_json"])
     assert "fa_dim_city_industry_zone" in lineage["tables"]
     assert result["quality_report"]["input_quality"]["errors"] == []
+
+
+def test_audit_school_city_industry_fit_inputs_reports_missing_files(tmp_path: Path):
+    report_path = tmp_path / "school_city_industry_readiness.json"
+
+    report = audit_school_city_industry_fit_inputs(output=report_path)
+
+    assert report_path.exists()
+    assert report["ready_for_build"] is False
+    assert report["recruitment_rows"] == 0
+    assert report["research_rows"] == 0
+    assert report["employment_rows"] == 0
+    assert report["zone_rows"] == 0
+    assert report["location_rows"] == 0
+    assert report["errors"] == [
+        "recruitment_input_missing",
+        "research_input_missing",
+        "employment_input_missing",
+        "zone_input_missing",
+        "location_input_missing",
+    ]
 
 
 def test_build_school_city_industry_fit_rejects_bad_input_metadata(tmp_path: Path):

@@ -28,7 +28,10 @@ from datahub.builders.major_employment_role_review_plan import (
     build_major_employment_role_review_plan,
 )
 from datahub.builders.region_profile_from_amap import build_region_profile_package_from_amap_district
-from datahub.builders.school_city_industry_fit import build_school_city_industry_fit_package
+from datahub.builders.school_city_industry_fit import (
+    audit_school_city_industry_fit_inputs,
+    build_school_city_industry_fit_package,
+)
 
 
 COMMANDS = {
@@ -38,6 +41,7 @@ COMMANDS = {
     "build-major-employment-role-review-batch",
     "audit-campus-living-score-inputs",
     "build-campus-living-score",
+    "audit-school-city-industry-fit-inputs",
     "build-school-city-industry-fit",
     "build-city-development-score",
     "build-city-listed-company-signal",
@@ -141,6 +145,22 @@ def register_city_commands(sub) -> None:
     build_school_city_industry_fit.add_argument("--employment-sheet")
     build_school_city_industry_fit.add_argument("--zone-sheet")
     build_school_city_industry_fit.add_argument("--location-sheet")
+
+    audit_school_city_industry_fit = sub.add_parser(
+        "audit-school-city-industry-fit-inputs",
+        help="Read-only readiness audit for fa_mart_school_city_industry_fit input files",
+    )
+    audit_school_city_industry_fit.add_argument("--recruitment-input", type=Path)
+    audit_school_city_industry_fit.add_argument("--research-input", type=Path)
+    audit_school_city_industry_fit.add_argument("--employment-input", type=Path)
+    audit_school_city_industry_fit.add_argument("--zone-input", type=Path)
+    audit_school_city_industry_fit.add_argument("--location-input", type=Path)
+    audit_school_city_industry_fit.add_argument("--output", type=Path)
+    audit_school_city_industry_fit.add_argument("--recruitment-sheet")
+    audit_school_city_industry_fit.add_argument("--research-sheet")
+    audit_school_city_industry_fit.add_argument("--employment-sheet")
+    audit_school_city_industry_fit.add_argument("--zone-sheet")
+    audit_school_city_industry_fit.add_argument("--location-sheet")
 
     build_city_development_score = sub.add_parser(
         "build-city-development-score",
@@ -327,6 +347,22 @@ def handle_city_command(args: Namespace) -> int | None:
         )
         _print_json(result)
         return 0
+    if args.cmd == "audit-school-city-industry-fit-inputs":
+        result = audit_school_city_industry_fit_inputs(
+            recruitment_input=args.recruitment_input,
+            research_input=args.research_input,
+            employment_input=args.employment_input,
+            zone_input=args.zone_input,
+            location_input=args.location_input,
+            output=args.output,
+            recruitment_sheet=args.recruitment_sheet,
+            research_sheet=args.research_sheet,
+            employment_sheet=args.employment_sheet,
+            zone_sheet=args.zone_sheet,
+            location_sheet=args.location_sheet,
+        )
+        _print_json(result)
+        return 0 if result.get("ready_for_build") else 1
     if args.cmd == "build-city-development-score":
         result = build_city_development_score_package(
             economic_input=args.economic_input,
