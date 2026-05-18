@@ -593,6 +593,25 @@
       "review_note": "Promoted from current v66 reviewed full-universe collection plan so manually reviewed staging rows are reproducible from git-tracked seeds."
     },
     {
+      "seed_id": "promoted_0177_2024_civil_service_rate",
+      "domain": "school",
+      "entity_code": "0177",
+      "entity_name": "沈阳音乐学院",
+      "metric_key": "civil_service_rate",
+      "metric_year": 2024,
+      "status": "verified",
+      "metric_value": 0.2517,
+      "source_title": "沈阳音乐学院2024届毕业生就业质量年度报告",
+      "source_url": "https://www.sycm.edu.cn/video/%E6%B2%88%E9%98%B3%E9%9F%B3%E4%B9%90%E5%AD%A6%E9%99%A22024%E5%B1%8A%E6%AF%95%E4%B8%9A%E7%94%9F%E5%B0%B1%E4%B8%9A%E8%B4%A8%E9%87%8F%E5%B9%B4%E5%BA%A6%E6%8A%A5%E5%91%8A.pdf",
+      "evidence_quote": "硕士研究生流向的单位类型除自由职业者外，事业单位（25.17%）占比相对较高。",
+      "metric_scope": "2024届硕士研究生流向的单位类型中事业单位比例；不含自由职业者",
+      "source_date": "2025-01-20",
+      "availability_date": "2025-01-20",
+      "reviewer": "codex",
+      "reviewed_at": "2026-05-18",
+      "review_note": "Official PDF gives the master's cohort unit-type breakdown; this seed records the explicit 25.17%事业单位 share as the civil_service_rate proxy with a narrowed scope."
+    },
+    {
       "seed_id": "promoted_0177_2024_employment_rate",
       "domain": "school",
       "entity_code": "0177",
