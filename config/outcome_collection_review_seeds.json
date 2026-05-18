@@ -1693,6 +1693,44 @@
       "reviewer": "codex",
       "reviewed_at": "2026-05-18",
       "review_note": "人工复核：官方本科教学质量报告明确给出 2024 届初次去向落实率 86.94%，作为学校总体初次毕业去向口径；同段考研和出国人数没有直接给出百分比，本条不手工计算深造率。"
+    },
+    {
+      "seed_id": "sjzu_2024_undergraduate_employment_rate",
+      "domain": "school",
+      "entity_code": "0153",
+      "entity_name": "沈阳建筑大学",
+      "metric_key": "employment_rate",
+      "metric_year": 2024,
+      "status": "verified",
+      "metric_value": 0.9194,
+      "source_title": "沈阳建筑大学2023-2024年度本科质量报告",
+      "source_url": "https://gh.sjzu.edu.cn/news.jsp?urltype=news.NewsContentUrl&wbnewsid=7882&wbtreeid=1007",
+      "evidence_quote": "截止 2024 年底，2024 届本科毕业生毕业去向落实人数为 2567 人，本科生年终毕业去向落实率为 91.94%。",
+      "metric_scope": "2024届，本科毕业生，年终毕业去向，截至2024年底",
+      "source_date": "2024-12-05",
+      "availability_date": "2024-12-05",
+      "reviewer": "codex",
+      "reviewed_at": "2026-05-18",
+      "review_note": "人工复核：PDF 文本因字符间隔未被 parser 自动抽取，但官方本科质量报告明确给出本科生年终毕业去向落实率 91.94%，作为本科年终口径 employment_rate。"
+    },
+    {
+      "seed_id": "sjzu_2024_undergraduate_postgrad_rate",
+      "domain": "school",
+      "entity_code": "0153",
+      "entity_name": "沈阳建筑大学",
+      "metric_key": "postgrad_rate",
+      "metric_year": 2024,
+      "status": "verified",
+      "metric_value": 0.4488,
+      "source_title": "沈阳建筑大学2023-2024年度本科质量报告",
+      "source_url": "https://gh.sjzu.edu.cn/news.jsp?urltype=news.NewsContentUrl&wbnewsid=7882&wbtreeid=1007",
+      "evidence_quote": "学生深造学习意愿不断增强，本科生升学率也在继续攀升，2024 届本科毕业生深造率为 44.88%。",
+      "metric_scope": "2024届，本科毕业生，深造率",
+      "source_date": "2024-12-05",
+      "availability_date": "2024-12-05",
+      "reviewer": "codex",
+      "reviewed_at": "2026-05-18",
+      "review_note": "人工复核：官方本科质量报告明确给出 2024 届本科毕业生深造率 44.88%，作为本科深造口径 postgrad_rate。"
     }
   ]
 }
