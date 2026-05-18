@@ -3669,6 +3669,25 @@
       "reviewer": "codex",
       "reviewed_at": "2026-05-18",
       "review_note": "Third-party summary page directly gives考研率10%，并同时展示就业率与考研率表格；按带口径限制的 keep_research_rate verified seed 记录。"
+    },
+    {
+      "seed_id": "xamc_2024_undergraduate_civil_service_rate",
+      "domain": "school",
+      "entity_code": "0728",
+      "entity_name": "西安音乐学院",
+      "metric_key": "civil_service_rate",
+      "metric_year": 2024,
+      "status": "verified",
+      "metric_value": 0.0136,
+      "source_title": "西安音乐学院 2024 届毕业生就业质量监测报告",
+      "source_url": "https://pdf.gk100.com/employment/report/2024/20250412/bd0385eada36386d.pdf",
+      "evidence_quote": "机关 1.36%",
+      "metric_scope": "2024届毕业生就业单位性质中机关占比（总体口径）",
+      "source_date": "2025-04-12",
+      "availability_date": "2025-04-12",
+      "reviewer": "codex",
+      "reviewed_at": "2026-05-18",
+      "review_note": "Official PDF line 175 directly gives 2024届毕业生就业单位性质 overall机关占比 1.36%；按窄口径 civil_service_rate 记录。"
     }
   ]
 }
