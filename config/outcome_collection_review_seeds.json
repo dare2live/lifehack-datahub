@@ -365,6 +365,25 @@
       "review_note": "原文明确该指标属于 2023 届本科毕业生，因此按 metric_year=2023 入库，不混入 2024 届指标。"
     },
     {
+      "seed_id": "dlufl_2024_undergraduate_employment_rate",
+      "domain": "school",
+      "entity_code": "0172",
+      "entity_name": "大连外国语大学",
+      "metric_key": "employment_rate",
+      "metric_year": 2024,
+      "status": "verified",
+      "metric_value": 0.8521,
+      "source_title": "大连外国语大学2023-2024学年本科教学质量报告",
+      "source_url": "https://www.dxsbb.com/news/14016.html",
+      "evidence_quote": "截止2024年8月31日，2024届本科毕业生共有2571人确定毕业去向，初次毕业去向落实率85.21%。",
+      "metric_scope": "2024届本科毕业生，截至2024年8月31日初次毕业去向落实率",
+      "source_date": "2025-02-21",
+      "availability_date": "2025-02-21",
+      "reviewer": "codex",
+      "reviewed_at": "2026-05-18",
+      "review_note": "公开转载页明确给出 2024 届本科毕业生 2571 人、初次毕业去向落实率 85.21%；学校信息公开页已发布对应 2023-2024 学年本科教学质量报告，先按公开可复核口径入库。"
+    },
+    {
       "seed_id": "syu_2024_undergraduate_employment_rate",
       "domain": "school",
       "entity_code": "1035",
