@@ -505,16 +505,16 @@
       "metric_key": "employment_rate",
       "metric_year": 2024,
       "status": "verified",
-      "metric_value": 0.8757,
+      "metric_value": 0.8724,
       "source_title": "沈阳音乐学院2024届毕业生就业质量年度报告",
       "source_url": "https://www.sycm.edu.cn/video/%E6%B2%88%E9%98%B3%E9%9F%B3%E4%B9%90%E5%AD%A6%E9%99%A22024%E5%B1%8A%E6%AF%95%E4%B8%9A%E7%94%9F%E5%B0%B1%E4%B8%9A%E8%B4%A8%E9%87%8F%E5%B9%B4%E5%BA%A6%E6%8A%A5%E5%91%8A.pdf",
-      "evidence_quote": "三、毕业生初次毕业去向落实率 截至8月31日，沈阳音乐学院总体就业人数为2106人，毕业生 初次毕业去向落实率为87.57%。",
-      "metric_scope": "school_overall_initial_destination_rate_as_of_2024_08_31",
+      "evidence_quote": "截至 2024 年 8 月 31 日，学校应届本科毕业生毕业去向落实率 87.24%。其中，单位就业占比 40.48%，较去年提升 9.08%；升学占比 12.99%，较去年提升 3.73%。",
+      "metric_scope": "2024届应届本科毕业生，截至2024年8月31日毕业去向落实率",
       "source_date": "2025-01-01",
       "availability_date": "2025-01-01",
       "reviewer": "codex",
       "reviewed_at": "2026-05-18",
-      "review_note": "Promoted from current v66 reviewed full-universe collection plan so manually reviewed staging rows are reproducible from git-tracked seeds."
+      "review_note": "Official PDF page 33 states the 2024届应届本科毕业生毕业去向落实率 is 87.24% and升学占比 is 12.99%; corrected the previously promoted seed to match the PDF."
     },
     {
       "seed_id": "promoted_0587_2024_postgrad_rate",
