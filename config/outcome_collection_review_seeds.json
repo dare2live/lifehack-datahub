@@ -631,6 +631,25 @@
       "review_note": "第三方整理页明确写出考研率 4%，并注明依据学校本科教学质量报告；按带口径限制的 keep_research_rate verified seed 记录。"
     },
     {
+      "seed_id": "xhcom_2024_undergraduate_keep_research_rate",
+      "domain": "school",
+      "entity_code": "0587",
+      "entity_name": "星海音乐学院",
+      "metric_key": "keep_research_rate",
+      "metric_year": 2024,
+      "status": "verified",
+      "metric_value": 0.04,
+      "source_title": "星海音乐学院好就业吗？就业前景怎么样？出来好找工作吗？-高考100",
+      "source_url": "https://www.gk100.com/read_191184937.htm",
+      "evidence_quote": "就业率 98%，考研率 4%。",
+      "metric_scope": "2024届本科毕业生考研率，不是保研率",
+      "source_date": "2026-03-18",
+      "availability_date": "2026-05-18",
+      "reviewer": "codex",
+      "reviewed_at": "2026-05-18",
+      "review_note": "第三方整理页明确给出考研率 4%，并注明依据学校 2023-2024 学年教学质量报告；按带口径限制的 keep_research_rate verified seed 记录。"
+    },
+    {
       "seed_id": "promoted_0177_2024_employment_rate",
       "domain": "school",
       "entity_code": "0177",
