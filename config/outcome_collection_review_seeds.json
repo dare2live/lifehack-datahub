@@ -3157,11 +3157,11 @@
     "reviewed_at": "2026-05-18",
     "review_note": "官方 PDF 明示 2024 届毕业生毕业去向落实率 87.95%；报告题名含本科毕业生就业质量年度报告，但该句为毕业生总体口径。"
 },
-{
-    "seed_id": "cstu_2024_undergraduate_postgrad_rate",
-    "domain": "school",
-    "entity_code": "3606",
-    "entity_name": "长春科技学院",
+    {
+        "seed_id": "cstu_2024_undergraduate_postgrad_rate",
+        "domain": "school",
+        "entity_code": "3606",
+        "entity_name": "长春科技学院",
     "metric_key": "postgrad_rate",
     "metric_year": 2024,
     "status": "verified",
@@ -3173,8 +3173,27 @@
     "source_date": "2025-01-16",
     "availability_date": "2025-01-16",
     "reviewer": "codex",
-    "reviewed_at": "2026-05-18",
-    "review_note": "官方 PDF 表 1-1 同时给出升学总体小计 9.51% 和本科毕业生升学小计 4.67%；本项目面向本科志愿决策，采用本科毕业生升学小计，未采用全学历总体升学口径。"
-}
+        "reviewed_at": "2026-05-18",
+        "review_note": "官方 PDF 表 1-1 同时给出升学总体小计 9.51% 和本科毕业生升学小计 4.67%；本项目面向本科志愿决策，采用本科毕业生升学小计，未采用全学历总体升学口径。"
+    },
+    {
+        "seed_id": "syuct_2024_undergraduate_employment_rate",
+        "domain": "school",
+        "entity_code": "0149",
+        "entity_name": "沈阳化工大学",
+        "metric_key": "employment_rate",
+        "metric_year": 2024,
+        "status": "verified",
+        "metric_value": 0.8615,
+        "source_title": "沈阳化工大学2023-2024学年本科教学质量报告",
+        "source_url": "https://www.syuct.edu.cn/__local/0/66/71/38417F84976EABCFC58DAAA81E1_2E83863E_1B0C6F.pdf",
+        "evidence_quote": "截至 2024 年 8 月 31 日，本科毕业生初次就业率达到 86.15%。",
+        "metric_scope": "2024届本科生，初次就业率",
+        "source_date": "2024-12-04",
+        "availability_date": "2024-12-05",
+        "reviewer": "codex",
+        "reviewed_at": "2026-05-18",
+        "review_note": "官方专题网页面时间为 2024-12-04，信息公开网列表显示 2024-12-05；PDF 正文第 19 页明示本科毕业生初次就业率 86.15%。"
+    }
   ]
 }
