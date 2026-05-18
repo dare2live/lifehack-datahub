@@ -3023,6 +3023,44 @@
     "reviewer": "codex",
     "reviewed_at": "2026-05-18",
     "review_note": "官方本科教学质量报告明确给出升学人数、比例和出国境留学比例。"
+},
+{
+    "seed_id": "cstu_2024_school_employment_rate",
+    "domain": "school",
+    "entity_code": "3606",
+    "entity_name": "长春科技学院",
+    "metric_key": "employment_rate",
+    "metric_year": 2024,
+    "status": "verified",
+    "metric_value": 0.8795,
+    "source_title": "长春科技学院2024届本科毕业生就业质量年度报告",
+    "source_url": "https://www.cstu.edu.cn/__local/E/45/EB/FB8F05E583A8D8F3BC9A64A554E_4F2E452D_9D6DF.pdf?e=.pdf",
+    "evidence_quote": "2024届毕业生毕业去向落实率为87.95%。",
+    "metric_scope": "2024届毕业生学校总体毕业去向落实率，含全学历层次",
+    "source_date": "2025-01-16",
+    "availability_date": "2025-01-16",
+    "reviewer": "codex",
+    "reviewed_at": "2026-05-18",
+    "review_note": "官方 PDF 明示 2024 届毕业生毕业去向落实率 87.95%；报告题名含本科毕业生就业质量年度报告，但该句为毕业生总体口径。"
+},
+{
+    "seed_id": "cstu_2024_undergraduate_postgrad_rate",
+    "domain": "school",
+    "entity_code": "3606",
+    "entity_name": "长春科技学院",
+    "metric_key": "postgrad_rate",
+    "metric_year": 2024,
+    "status": "verified",
+    "metric_value": 0.0467,
+    "source_title": "长春科技学院2024届本科毕业生就业质量年度报告",
+    "source_url": "https://www.cstu.edu.cn/__local/E/45/EB/FB8F05E583A8D8F3BC9A64A554E_4F2E452D_9D6DF.pdf?e=.pdf",
+    "evidence_quote": "本科毕业生升学小计为4.67%。",
+    "metric_scope": "2024届本科毕业生升学小计，本科口径",
+    "source_date": "2025-01-16",
+    "availability_date": "2025-01-16",
+    "reviewer": "codex",
+    "reviewed_at": "2026-05-18",
+    "review_note": "官方 PDF 表 1-1 同时给出升学总体小计 9.51% 和本科毕业生升学小计 4.67%；本项目面向本科志愿决策，采用本科毕业生升学小计，未采用全学历总体升学口径。"
 }
   ]
 }
