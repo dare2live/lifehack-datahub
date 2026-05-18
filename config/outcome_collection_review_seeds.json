@@ -3289,6 +3289,25 @@
       "reviewer": "codex",
       "reviewed_at": "2026-05-18",
       "review_note": "页面明确列出 2024 届保研率 3.58% 和保研人数 184；页面备注称数据来源于网络，仅供学习参考，但表格口径清晰，可作为 keep_research_rate verified seed。"
+    },
+    {
+      "seed_id": "lnu_2024_undergraduate_keep_research_rate",
+      "domain": "school",
+      "entity_code": "0140",
+      "entity_name": "辽宁大学",
+      "metric_key": "keep_research_rate",
+      "metric_year": 2024,
+      "status": "verified",
+      "metric_value": 0.134,
+      "source_title": "2026辽宁大学保研率：25保研人数603，保研率12.09%！-高顿教育",
+      "source_url": "https://www.gaodun.com/baoyan/1717561.html",
+      "evidence_quote": "2024  | 587  | 13.40%",
+      "metric_scope": "2024届保研率",
+      "source_date": "2025-08-13",
+      "availability_date": "2025-08-13",
+      "reviewer": "codex",
+      "reviewed_at": "2026-05-18",
+      "review_note": "页面正文给出 2024 届保研率 13.40%，并列出 2025 届 12.09%；虽为第三方整理页，但表格口径明确，可用于 keep_research_rate verified seed。"
     }
   ]
 }
