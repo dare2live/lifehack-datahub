@@ -1674,6 +1674,25 @@
       "reviewer": "codex",
       "reviewed_at": "2026-05-18",
       "review_note": "人工复核：官方高等职业教育质量报告给出 2024 届毕业生 4326 人、年终去向落实率 96.56%；同句初次去向落实率 90.01%为较早口径，不作为本条 metric_value。"
+    },
+    {
+      "seed_id": "lnnuhh_2024_school_employment_rate",
+      "domain": "school",
+      "entity_code": "3215",
+      "entity_name": "辽宁师范大学海华学院",
+      "metric_key": "employment_rate",
+      "metric_year": 2024,
+      "status": "verified",
+      "metric_value": 0.8694,
+      "source_title": "辽宁师范大学海华学院2023-2024学年本科教学质量报告",
+      "source_url": "https://www.lshhxy.edu.cn/info/1073/4620.htm",
+      "evidence_quote": "2024 届初次去向落实率为 86.94%。2024 届毕业生考取研究生 87 人，出国攻读研究生 18 人，2024 届毕业生的就业去向如表 11 所示。",
+      "metric_scope": "2024届，毕业生总体，初次毕业去向",
+      "source_date": "2024-12-31",
+      "availability_date": "2024-12-31",
+      "reviewer": "codex",
+      "reviewed_at": "2026-05-18",
+      "review_note": "人工复核：官方本科教学质量报告明确给出 2024 届初次去向落实率 86.94%，作为学校总体初次毕业去向口径；同段考研和出国人数没有直接给出百分比，本条不手工计算深造率。"
     }
   ]
 }
