@@ -19,14 +19,17 @@ def build_scoped_outcome_stock_review_batch(
     limit: int = 100,
     review_class: list[str] | None = None,
     metric_key: list[str] | None = None,
+    exclude_csv: list[Path] | None = None,
 ) -> dict[str, Any]:
     rows = _read_rows(review_csv)
+    excluded_keys = _excluded_keys(exclude_csv or [])
     selected_classes = {item for item in (review_class or []) if item}
     selected_metrics = {item for item in (metric_key or []) if item}
     filtered = [
         row for row in rows
         if (not selected_classes or row.get("scoped_review_class") in selected_classes)
         and (not selected_metrics or row.get("metric_key") in selected_metrics)
+        and _dedupe_key(row) not in excluded_keys
     ]
     filtered.sort(key=_priority_key)
     deduped = _dedupe_rows(filtered)
@@ -47,6 +50,8 @@ def build_scoped_outcome_stock_review_batch(
         "limit": limit,
         "review_class": sorted(selected_classes),
         "metric_key": sorted(selected_metrics),
+        "exclude_csv": [str(path) for path in (exclude_csv or [])],
+        "excluded_row_keys": len(excluded_keys),
         "batch_class_counts": dict(sorted(Counter(row.get("scoped_review_class") or "" for row in batch_rows).items())),
         "batch_metric_counts": dict(sorted(Counter(row.get("metric_key") or "" for row in batch_rows).items())),
         "notes": "Manual review batch only. Edit review_status/metric_scope/notes in a copied approved-candidate CSV before merging.",
@@ -59,6 +64,14 @@ def build_scoped_outcome_stock_review_batch(
 def _read_rows(path: Path) -> list[dict[str, str]]:
     with path.open(encoding="utf-8", newline="") as f:
         return list(csv.DictReader(f))
+
+
+def _excluded_keys(paths: list[Path]) -> set[tuple[str, ...]]:
+    keys: set[tuple[str, ...]] = set()
+    for path in paths:
+        for row in _read_rows(path):
+            keys.add(_dedupe_key(row))
+    return keys
 
 
 def _write_rows(path: Path, rows: list[dict[str, str]]) -> None:

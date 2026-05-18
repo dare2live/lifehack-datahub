@@ -11683,6 +11683,75 @@ def test_build_scoped_outcome_stock_review_batch_filters_and_prioritizes(tmp_pat
     assert [row["entity_name"] for row in rows] == ["优先学校更新版", "后处理学校"]
 
 
+def test_build_scoped_outcome_stock_review_batch_excludes_reviewed_rows(tmp_path: Path):
+    review_csv = tmp_path / "scoped_review.csv"
+    reviewed_csv = tmp_path / "reviewed.csv"
+    fieldnames = [
+        "candidate_file",
+        *CANDIDATE_COLUMNS,
+        "scoped_review_class",
+        "matched_scope_terms",
+        "recommended_action",
+    ]
+    base = {column: "" for column in fieldnames}
+    with review_csv.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerow({
+            **base,
+            "entity_code": "1001",
+            "entity_name": "已复核学校",
+            "metric_key": "employment_rate",
+            "metric_year": "2024",
+            "candidate_value": "0.88",
+            "source_title": "已复核学校报告",
+            "source_url": "https://example.edu/reviewed.pdf",
+            "evidence_quote": "毕业去向落实率88%。",
+            "scoped_review_class": "scoped_official_candidate",
+        })
+        writer.writerow({
+            **base,
+            "entity_code": "1002",
+            "entity_name": "新学校",
+            "metric_key": "employment_rate",
+            "metric_year": "2024",
+            "candidate_value": "0.86",
+            "source_title": "新学校报告",
+            "source_url": "https://example.edu/new.pdf",
+            "evidence_quote": "毕业去向落实率86%。",
+            "scoped_review_class": "scoped_official_candidate",
+        })
+    with reviewed_csv.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerow({
+            **base,
+            "entity_code": "1001",
+            "entity_name": "已复核学校",
+            "metric_key": "employment_rate",
+            "metric_year": "2024",
+            "candidate_value": "0.88",
+            "source_title": "已复核学校报告",
+            "source_url": "https://example.edu/reviewed.pdf",
+            "evidence_quote": "毕业去向落实率88%。",
+            "scoped_review_class": "scoped_official_candidate",
+        })
+
+    report = build_scoped_outcome_stock_review_batch(
+        review_csv=review_csv,
+        output_dir=tmp_path / "batch",
+        limit=10,
+        review_class=["scoped_official_candidate"],
+        exclude_csv=[reviewed_csv],
+    )
+
+    assert report["excluded_row_keys"] == 1
+    assert report["batch_rows"] == 1
+    with (tmp_path / "batch" / "scoped_stock_review_batch.csv").open(encoding="utf-8", newline="") as f:
+        rows = list(csv.DictReader(f))
+    assert [row["entity_name"] for row in rows] == ["新学校"]
+
+
 def test_build_outcome_packages_from_verified_collection_plan(tmp_path: Path):
     plan = tmp_path / "outcome_collection_plan.csv"
     fieldnames = [

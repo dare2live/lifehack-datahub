@@ -180,6 +180,7 @@ def register_outcome_commands(sub) -> None:
     scoped_stock_review_batch.add_argument("--limit", type=int, default=100)
     scoped_stock_review_batch.add_argument("--review-class", action="append", dest="review_class")
     scoped_stock_review_batch.add_argument("--metric-key", action="append", dest="metric_key")
+    scoped_stock_review_batch.add_argument("--exclude-csv", action="append", dest="exclude_csv", type=Path)
 
     scoped_stock_review_workspace = sub.add_parser(
         "build-outcome-scoped-stock-review-workspace",
@@ -436,6 +437,7 @@ def handle_outcome_command(args: Namespace) -> int | None:
             limit=args.limit,
             review_class=args.review_class,
             metric_key=args.metric_key,
+            exclude_csv=args.exclude_csv,
         )
         _print_json(report)
         return 0
