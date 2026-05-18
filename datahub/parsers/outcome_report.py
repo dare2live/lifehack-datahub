@@ -254,12 +254,16 @@ def _infer_metric_scope(evidence_quote: str) -> str:
 
     if "辽宁省内" in quote or "在辽就业" in quote or "辽宁省就业" in quote:
         scope_parts.append("辽宁省内去向，不是学校总体就业率或本科总体口径")
+    if "专业毕业生" in quote or re.search(r"[\u4e00-\u9fa5]{2,24}专业[^。；;]{0,12}就业率", quote):
+        scope_parts.append("专业口径，不是学校总体就业率或本科总体口径")
     if "男生" in quote or "女生" in quote or "男/女" in quote:
         scope_parts.append("性别分组，不是学校总体就业率或本科总体口径")
     if "师范生" in quote or "非师范生" in quote:
         scope_parts.append("培养类型分组，不是学校总体就业率或本科总体口径")
     if "学位点" in quote:
         scope_parts.append("学位点口径，不是学校总体就业率或本科总体口径")
+    if re.search(r"(比例|率)[^。；;]{0,8}(上升|增长|提高|下降|降低)", quote):
+        scope_parts.append("变化幅度，不是学校总体就业率或本科总体口径")
     if "初次" in quote:
         scope_parts.append("初次毕业去向")
     elif "毕业去向落实率" in quote:
@@ -471,12 +475,14 @@ def _candidate_values(line: str, metric: dict[str, Any], alias: str) -> list[tup
         if alias == "升学" and not _broad_postgrad_alias_allowed(line, search_start):
             return []
         clause = _candidate_clause(line, search_start)
+        matches = list(PERCENT_RE.finditer(clause))
+        match = _nearest_match(matches, search_start, max_before_distance=8)
+        if match:
+            return [(match.group(0), round(float(match.group(1)) / 100, 6))]
         occupied = _occupied_ratio_match(clause[search_start:])
         if occupied:
             return [(occupied.group(0), round(float(occupied.group(1)) / 100, 6))]
-        matches = list(PERCENT_RE.finditer(clause))
-        match = _nearest_match(matches, search_start, max_before_distance=8)
-        return [(match.group(0), round(float(match.group(1)) / 100, 6))] if match else []
+        return []
     if unit == "score":
         matches = [match for match in NUMBER_RE.finditer(line) if 0 <= float(match.group(1)) <= 100]
         match = _nearest_match(matches, search_start, max_before_distance=8)
