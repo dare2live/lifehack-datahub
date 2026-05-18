@@ -11116,6 +11116,13 @@ def test_run_outcome_report_extraction_plan_flags_zero_candidate_image_pdf(tmp_p
     assert report["manual_action_counts"] == {"ocr_or_manual_transcription": 1}
     assert report["zero_candidate_outputs"] == [{
         "row_number": 2,
+        "domain": "school",
+        "entity_code": "1248",
+        "entity_name": "辽宁农业职业技术学院",
+        "metric_year": "2024",
+        "report_scope": "higher_vocational_quality_report",
+        "source_title": "辽宁农业职业技术学院高等职业教育质量报告（2024年度）",
+        "source_url": "https://example.edu/report.pdf",
         "input_path": str(input_pdf),
         "output_path": str(output_csv),
         "candidate_rows": 0,

@@ -52,6 +52,13 @@ def run_outcome_report_extraction_plan(
             candidate_rows += len(candidates)
             output_entry = {
                 "row_number": index,
+                "domain": row.get("domain", ""),
+                "entity_code": row.get("entity_code", ""),
+                "entity_name": row.get("entity_name", ""),
+                "metric_year": row.get("metric_year", ""),
+                "report_scope": row.get("report_scope", ""),
+                "source_title": row.get("source_title", ""),
+                "source_url": row.get("source_url", ""),
                 "input_path": row["input_path"],
                 "output_path": str(output_path),
                 "candidate_rows": len(candidates),
