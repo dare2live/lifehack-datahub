@@ -299,7 +299,7 @@ def handle_outcome_command(args: Namespace) -> int | None:
         report = audit_outcome_collection_plan(args.plan_csv)
         _write_report(args.report, report)
         _print_json(report)
-        return 0
+        return 0 if not report["errors"] else 1
     if args.cmd == "build-outcome-collection-batch":
         result = build_outcome_collection_batch(
             plan_csv=args.plan_csv,

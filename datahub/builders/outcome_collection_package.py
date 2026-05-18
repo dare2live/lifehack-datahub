@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import csv
+import json
 import tempfile
 from datetime import datetime
 from pathlib import Path
@@ -155,7 +156,7 @@ def _build_domain_package(
     with tempfile.TemporaryDirectory(prefix="lifehack_outcome_") as temp_dir:
         source = Path(temp_dir) / f"{table_name}.csv"
         _write_csv(source, rows)
-        return build_local_package(
+        package = build_local_package(
             source_key=source_key,
             table_name=table_name,
             input_path=source,
@@ -164,6 +165,23 @@ def _build_domain_package(
             source_version=source_version,
             source_lineage=source_lineage,
         )
+        if source_lineage.get("is_partial"):
+            _mark_partial_package_not_importable(package["package_dir"])
+            quality_report = package.get("quality_report")
+            if isinstance(quality_report, dict):
+                errors = quality_report.setdefault("errors", [])
+                errors.append("partial_outcome_collection_package_not_for_core_import")
+                quality_report["error_count"] = len(errors)
+        return package
+
+
+def _mark_partial_package_not_importable(package_dir: str) -> None:
+    quality_path = Path(package_dir) / "quality_report.json"
+    quality = json.loads(quality_path.read_text(encoding="utf-8"))
+    errors = quality.setdefault("errors", [])
+    errors.append("partial_outcome_collection_package_not_for_core_import")
+    quality["error_count"] = len(errors)
+    quality_path.write_text(json.dumps(quality, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
 def _domain_package_id(package_id: str | None, source_key: str, domain: str) -> str | None:
