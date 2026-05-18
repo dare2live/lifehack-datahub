@@ -2472,6 +2472,44 @@
       "reviewer": "codex",
       "reviewed_at": "2026-05-18",
       "review_note": "A 数据来源核验组只读核验：官方本科教育教学质量报告可提取本科初次就业率；升学口径混入公费师范就业/去向，暂不转 postgrad_rate。"
+    },
+    {
+      "seed_id": "dlemc_2024_school_employment_rate",
+      "domain": "school",
+      "entity_code": "4227",
+      "entity_name": "大连装备制造职业技术学院",
+      "metric_key": "employment_rate",
+      "metric_year": 2024,
+      "status": "verified",
+      "metric_value": 0.9202,
+      "source_title": "大连装备制造职业技术学院2024年毕业生就业质量年度报告",
+      "source_url": "https://www.dlemcedu.cn/upload/news/dalianzhuangbeizhizaozhiyejishuxueyuan2024nianbiyeshengjiuyezhiliangniandubaogao.pdf",
+      "evidence_quote": "2024年共有毕业生总数1291人；截至2024年12月，2024届毕业生就业率为92.02%；2024年学院共计升学人数为22人，升学率为1.7%。",
+      "metric_scope": "2024届全校毕业生；报告明示就业率，截至2024年12月",
+      "source_date": "2025-01-08",
+      "availability_date": "2025-01-08",
+      "reviewer": "codex",
+      "reviewed_at": "2026-05-18",
+      "review_note": "A 数据来源核验组只读核验：官方 PDF 报告直接给出就业率；civil_service_rate 未披露，keep_research_rate 高职院校不适用且未披露。"
+    },
+    {
+      "seed_id": "dlemc_2024_school_postgrad_rate",
+      "domain": "school",
+      "entity_code": "4227",
+      "entity_name": "大连装备制造职业技术学院",
+      "metric_key": "postgrad_rate",
+      "metric_year": 2024,
+      "status": "verified",
+      "metric_value": 0.017,
+      "source_title": "大连装备制造职业技术学院2024年毕业生就业质量年度报告",
+      "source_url": "https://www.dlemcedu.cn/upload/news/dalianzhuangbeizhizaozhiyejishuxueyuan2024nianbiyeshengjiuyezhiliangniandubaogao.pdf",
+      "evidence_quote": "2024年共有毕业生总数1291人；截至2024年12月，2024届毕业生就业率为92.02%；2024年学院共计升学人数为22人，升学率为1.7%。",
+      "metric_scope": "2024届全校毕业生，升学率；高职专升本/升学口径，不等同本科考研率或保研率",
+      "source_date": "2025-01-08",
+      "availability_date": "2025-01-08",
+      "reviewer": "codex",
+      "reviewed_at": "2026-05-18",
+      "review_note": "A 数据来源核验组只读核验：官方 PDF 报告直接给出升学人数和升学率；按高职升学口径进入 postgrad_rate。"
     }
   ]
 }
