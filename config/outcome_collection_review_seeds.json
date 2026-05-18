@@ -3519,6 +3519,25 @@
       "review_note": "公开整理页明确给出沈阳师范大学 20% 考取公务员或事业单位；按项目规则作为带口径限制的有效 civil_service_rate 入库，后续展示需明确口径。"
     },
     {
+      "seed_id": "xhcom_2024_undergraduate_civil_service_rate",
+      "domain": "school",
+      "entity_code": "0587",
+      "entity_name": "星海音乐学院",
+      "metric_key": "civil_service_rate",
+      "metric_year": 2024,
+      "status": "verified",
+      "metric_value": 0.035,
+      "source_title": "星海音乐学院2024届毕业生就业质量报告",
+      "source_url": "https://xsjy.xhcom.edu.cn/__local/D/DC/87/5302885ED892F6610F780150B03_239F2931_30BC85.pdf",
+      "evidence_quote": "机关 3.50%",
+      "metric_scope": "2024届本科毕业生就业单位性质中机关占比（窄口径 civil_service_rate）",
+      "source_date": "2025-01-14",
+      "availability_date": "2025-01-14",
+      "reviewer": "codex",
+      "reviewed_at": "2026-05-18",
+      "review_note": "星海音乐学院 2024 届毕业生就业质量报告正文页直接给出本科毕业生就业单位性质中机关占比 3.50%。按项目规则作为带口径限制的有效 civil_service_rate 入库，后续展示层必须明确是本科毕业生窄口径，不是全校总体体制内比例。"
+    },
+    {
       "seed_id": "lnstgc_2024_undergraduate_employment_rate",
       "domain": "school",
       "entity_code": "2593",
