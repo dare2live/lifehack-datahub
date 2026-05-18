@@ -63,6 +63,12 @@ def apply_outcome_collection_review_seeds(
     rows = _read_csv(plan_csv)
     complete_statuses = set(load_outcome_collection()["audit"]["complete_statuses"])
     built_at = datetime.utcnow().replace(microsecond=0).isoformat()
+    plan_keys = {_task_key(row) for row in rows}
+    unmatched_seed_rows = [
+        _unmatched_seed_row(seed)
+        for seed in seeds
+        if _task_key(seed) not in plan_keys
+    ]
 
     matched = 0
     updated = 0
@@ -90,6 +96,7 @@ def apply_outcome_collection_review_seeds(
         "updated_rows": updated,
         "skipped_complete_rows": skipped_complete,
         "unmatched_seeds": len(seeds) - matched,
+        "unmatched_seed_rows": unmatched_seed_rows,
         "status_counts": dict(sorted(status_counts.items())),
         "overwrite": overwrite,
         "audit": audit,
@@ -206,6 +213,18 @@ def _seed_rows() -> list[dict[str, Any]]:
 
 def _task_key(row: dict[str, Any]) -> tuple[str, ...]:
     return tuple(str(row.get(column) or "").strip() for column in TASK_KEY_COLUMNS)
+
+
+def _unmatched_seed_row(seed: dict[str, Any]) -> dict[str, str]:
+    return {
+        "seed_id": str(seed.get("seed_id") or ""),
+        "task_key": "|".join(_task_key(seed)),
+        "domain": str(seed.get("domain") or ""),
+        "entity_code": str(seed.get("entity_code") or ""),
+        "entity_name": str(seed.get("entity_name") or ""),
+        "metric_key": str(seed.get("metric_key") or ""),
+        "metric_year": str(seed.get("metric_year") or ""),
+    }
 
 
 def _append_note(current: str, review_note: str) -> str:

@@ -11051,6 +11051,16 @@ def test_apply_outcome_collection_review_seeds_updates_matching_rows(tmp_path: P
     assert report["matched_rows"] == expected_matching_seeds
     assert report["updated_rows"] == expected_matching_seeds
     assert report["unmatched_seeds"] == seed_count - expected_matching_seeds
+    assert len(report["unmatched_seed_rows"]) == seed_count - expected_matching_seeds
+    assert {
+        "seed_id",
+        "task_key",
+        "domain",
+        "entity_code",
+        "entity_name",
+        "metric_key",
+        "metric_year",
+    } <= set(report["unmatched_seed_rows"][0])
 
     with output.open(encoding="utf-8", newline="") as f:
         rows = list(csv.DictReader(f))
