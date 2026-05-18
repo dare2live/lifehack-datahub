@@ -650,6 +650,25 @@
       "review_note": "第三方整理页明确给出考研率 4%，并注明依据学校 2023-2024 学年教学质量报告；按带口径限制的 keep_research_rate verified seed 记录。"
     },
     {
+      "seed_id": "jzmu_2024_undergraduate_employment_rate",
+      "domain": "school",
+      "entity_code": "0160",
+      "entity_name": "锦州医科大学",
+      "metric_key": "employment_rate",
+      "metric_year": 2024,
+      "status": "verified",
+      "metric_value": 0.9259,
+      "source_title": "锦州医科大学2023-2024 学年本科教学质量报告",
+      "source_url": "https://cat.jzmu.edu.cn/__local/3/34/DB/5A5894FD68AAA86546962266C77_3F10AE04_119903.pdf",
+      "evidence_quote": "2024 届本科毕业生 2481 人，应届本科生初次就业率 92.59%。",
+      "metric_scope": "2024届本科毕业生初次就业率",
+      "source_date": "2025-01-01",
+      "availability_date": "2025-01-01",
+      "reviewer": "codex",
+      "reviewed_at": "2026-05-18",
+      "review_note": "官方本科教学质量报告 PDF 直接给出 2024 届本科生初次就业率 92.59%，作为 school_outcome verified seed 记录。"
+    },
+    {
       "seed_id": "promoted_0177_2024_employment_rate",
       "domain": "school",
       "entity_code": "0177",
