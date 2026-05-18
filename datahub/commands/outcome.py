@@ -36,6 +36,7 @@ from datahub.builders.outcome_scoped_stock_review import build_scoped_outcome_st
 from datahub.builders.outcome_scoped_stock_review_batch import build_scoped_outcome_stock_review_batch
 from datahub.builders.outcome_scoped_stock_review_export import export_approved_scoped_stock_review_candidates
 from datahub.builders.outcome_scoped_stock_review_workspace import build_scoped_outcome_stock_review_workspace
+from datahub.builders.outcome_scoped_stock_review_workspace_audit import audit_scoped_outcome_stock_review_workspace
 from datahub.connectors.outcome_report_download import (
     build_outcome_report_manual_intake_queue,
     download_outcome_report_intake_assets,
@@ -72,6 +73,7 @@ COMMANDS = {
     "build-outcome-scoped-stock-review",
     "build-outcome-scoped-stock-review-batch",
     "build-outcome-scoped-stock-review-workspace",
+    "audit-outcome-scoped-stock-review-workspace",
     "export-outcome-scoped-stock-approved-candidates",
 }
 
@@ -175,6 +177,13 @@ def register_outcome_commands(sub) -> None:
     )
     scoped_stock_review_workspace.add_argument("--batch-csv", required=True, type=Path)
     scoped_stock_review_workspace.add_argument("--output-dir", required=True, type=Path)
+
+    scoped_stock_review_workspace_audit = sub.add_parser(
+        "audit-outcome-scoped-stock-review-workspace",
+        help="Audit an edited scoped outcome review workspace before approved-candidate export",
+    )
+    scoped_stock_review_workspace_audit.add_argument("--review-csv", required=True, type=Path)
+    scoped_stock_review_workspace_audit.add_argument("--report", type=Path)
 
     scoped_stock_review_export = sub.add_parser(
         "export-outcome-scoped-stock-approved-candidates",
@@ -419,6 +428,13 @@ def handle_outcome_command(args: Namespace) -> int | None:
         )
         _print_json(report)
         return 0
+    if args.cmd == "audit-outcome-scoped-stock-review-workspace":
+        report = audit_scoped_outcome_stock_review_workspace(
+            review_csv=args.review_csv,
+            report_path=args.report,
+        )
+        _print_json(report)
+        return 0 if report["ready_for_export"] else 1
     if args.cmd == "export-outcome-scoped-stock-approved-candidates":
         report = export_approved_scoped_stock_review_candidates(
             batch_csv=args.batch_csv,

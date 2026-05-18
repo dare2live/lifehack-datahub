@@ -94,6 +94,7 @@ from datahub.builders.outcome_scoped_stock_review import build_scoped_outcome_st
 from datahub.builders.outcome_scoped_stock_review_batch import build_scoped_outcome_stock_review_batch
 from datahub.builders.outcome_scoped_stock_review_export import export_approved_scoped_stock_review_candidates
 from datahub.builders.outcome_scoped_stock_review_workspace import build_scoped_outcome_stock_review_workspace
+from datahub.builders.outcome_scoped_stock_review_workspace_audit import audit_scoped_outcome_stock_review_workspace
 from datahub.builders.policy_tables import (
     build_policy_industry_map_package,
     build_policy_plan_history_package,
@@ -11498,6 +11499,39 @@ def test_build_scoped_outcome_stock_review_workspace_outputs_review_files(tmp_pa
     assert "辽宁大学" in markdown
     assert "本科应届毕业生毕业去向落实率" in markdown
     assert "review_status" in markdown
+
+
+def test_audit_scoped_outcome_stock_review_workspace_blocks_incomplete_approved_rows(tmp_path: Path):
+    review = tmp_path / "review.csv"
+    with review.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=[*CANDIDATE_COLUMNS, "scoped_review_class", "matched_scope_terms", "recommended_action"])
+        writer.writeheader()
+        base = {column: "" for column in writer.fieldnames}
+        writer.writerow({
+            **base,
+            "domain": "school",
+            "entity_code": "0140",
+            "entity_name": "辽宁大学",
+            "metric_key": "employment_rate",
+            "metric_year": "2024",
+            "candidate_value": "0.8582",
+            "source_title": "辽宁大学本科教学质量报告",
+            "source_url": "https://example.edu/lnu.htm",
+            "evidence_quote": "本科应届毕业生毕业去向落实率为85.82%。",
+            "source_date": "2024-12-31",
+            "availability_date": "2024-12-31",
+            "review_status": "approved",
+        })
+
+    report = audit_scoped_outcome_stock_review_workspace(
+        review_csv=review,
+        report_path=tmp_path / "audit.json",
+    )
+
+    assert report["ready_for_export"] is False
+    assert report["approved_rows"] == 1
+    assert "metric_scope" in report["errors"][0]
+    assert (tmp_path / "audit.json").exists()
 
 
 def test_build_scoped_outcome_stock_review_flags_official_scoped_candidates(tmp_path: Path):
