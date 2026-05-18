@@ -89,3 +89,53 @@ def test_operational_coverage_audit_blocks_when_admission_table_missing(tmp_path
         "severity": "P0",
         "message": "fa_dim_ln_admission_plan is missing; cannot define Liaoning admission-school universe",
     }]
+
+
+def test_operational_coverage_audit_ranks_missing_table_queues(tmp_path: Path):
+    db_path = tmp_path / "core.duckdb"
+    con = duckdb.connect(str(db_path))
+    try:
+        con.execute(
+            """
+            create table fa_dim_ln_admission_plan (
+                school_code varchar,
+                school_name varchar,
+                major_code varchar,
+                batch varchar,
+                subject_cat varchar
+            )
+            """
+        )
+        con.execute(
+            """
+            insert into fa_dim_ln_admission_plan values
+                ('1001', 'Alpha University', '01', '本科批', '物理类'),
+                ('1002', 'Beta College', '01', '本科批', '物理类'),
+                ('1002', 'Beta College', '02', '本科批', '历史类')
+            """
+        )
+    finally:
+        con.close()
+
+    missing_dir = tmp_path / "missing"
+    report = audit_operational_coverage(
+        core_db=db_path,
+        missing_dir=missing_dir,
+        sample_limit=1,
+    )
+
+    identity = next(row for row in report["coverage_areas"] if row["key"] == "identity")
+    assert identity["status"] == "missing_table"
+    assert identity["missing_samples"] == [{
+        "school_code": "1002",
+        "school_name": "Beta College",
+        "plan_row_count": 2,
+        "major_count": 2,
+        "batches": "本科批",
+        "subject_cats": "历史类|物理类",
+        "priority_rank": 1,
+        "priority_score": 22,
+    }]
+    assert (missing_dir / "identity_missing_schools.csv").read_text(encoding="utf-8").splitlines()[1].startswith(
+        "1,22,1002,Beta College"
+    )

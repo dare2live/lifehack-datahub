@@ -246,18 +246,24 @@ def _coverage_for_area(
         row["status"] = "no_admission_schools"
         return row
     if not available_table:
-        row["missing_records_path"] = _write_missing_records(missing_dir, area["key"], admission_schools)
+        missing = _rank_missing_schools(admission_schools)
+        row["missing_records_path"] = _write_missing_records(missing_dir, area["key"], missing)
+        row["missing_samples"] = missing[:sample_limit]
         row["blocker"] = {
             "code": f"{area['key'].upper()}_TABLE_MISSING",
             "severity": "P0",
             "message": f"No table found for {area['label']}: {', '.join(area['tables'])}",
             "area": area["key"],
+            "missing_school_count": len(missing),
+            "missing_samples": missing[:sample_limit],
         }
         return row
 
     covered_codes = _covered_admission_codes(con, tables, available_table)
     if not covered_codes:
-        row["missing_records_path"] = _write_missing_records(missing_dir, area["key"], admission_schools)
+        missing = _rank_missing_schools(admission_schools)
+        row["missing_records_path"] = _write_missing_records(missing_dir, area["key"], missing)
+        row["missing_samples"] = missing[:sample_limit]
         row["status"] = "missing_school_code_column"
         row["blocker"] = {
             "code": f"{area['key'].upper()}_SCHOOL_CODE_COLUMN_MISSING",
@@ -265,6 +271,8 @@ def _coverage_for_area(
             "message": f"{available_table} has no supported school-code column or bridgeable national-school code",
             "area": area["key"],
             "table": available_table,
+            "missing_school_count": len(missing),
+            "missing_samples": missing[:sample_limit],
         }
         return row
 
