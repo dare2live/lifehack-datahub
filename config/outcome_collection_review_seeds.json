@@ -1826,6 +1826,44 @@
       "reviewer": "codex",
       "reviewed_at": "2026-05-18",
       "review_note": "人工复核：官方就业质量年度报告 PDF 第 12 页直接给出学校总体升学占比 29.72%；第 22 页列示境内升学 29.68%、境外留学 0.04%，与总体升学占比一致。"
+    },
+    {
+      "seed_id": "lnpu_2024_undergraduate_employment_rate",
+      "domain": "school",
+      "entity_code": "0148",
+      "entity_name": "辽宁石油化工大学",
+      "metric_key": "employment_rate",
+      "metric_year": 2024,
+      "status": "verified",
+      "metric_value": 0.8787,
+      "source_title": "辽宁石油化工大学2023-2024学年本科教学质量报告",
+      "source_url": "https://www.lnpu.edu.cn/__local/D/19/A4/96619CCC0AB796455C0B30E4399_45EF9015_10DAAB.pdf",
+      "evidence_quote": "2024 届全日制本科离校学生 3833 人。本科生毕业去向总计：升学 502 人、就业 2811 人、境外留学 21 人、参军 27 人、自主创业 7 人。",
+      "metric_scope": "2024届，全日制本科毕业生；由报告分项人数计算：(升学502+就业2811+境外留学21+参军27+自主创业7)/3833=87.87%",
+      "source_date": "2024-12-31",
+      "availability_date": "2024-12-31",
+      "reviewer": "codex",
+      "reviewed_at": "2026-05-18",
+      "review_note": "人工复核：官方本科教学质量报告第 20 页给出本科离校学生分母和毕业去向分项人数，未直接写百分比；本条按报告明示分子分母计算本科毕业去向落实率，并在口径中标注计算方式。"
+    },
+    {
+      "seed_id": "lnpu_2024_undergraduate_postgrad_rate",
+      "domain": "school",
+      "entity_code": "0148",
+      "entity_name": "辽宁石油化工大学",
+      "metric_key": "postgrad_rate",
+      "metric_year": 2024,
+      "status": "verified",
+      "metric_value": 0.1364,
+      "source_title": "辽宁石油化工大学2023-2024学年本科教学质量报告",
+      "source_url": "https://www.lnpu.edu.cn/__local/D/19/A4/96619CCC0AB796455C0B30E4399_45EF9015_10DAAB.pdf",
+      "evidence_quote": "2024 届本科毕业生攻读研究生 523 人（含出国读研），其中攻读本校研究生 180 人，攻读外校研究生 343 人，本科生考研平均录取率为 13.64%。",
+      "metric_scope": "2024届，全日制本科毕业生，攻读研究生含出国读研；报告直接给出本科生考研平均录取率13.64%",
+      "source_date": "2024-12-31",
+      "availability_date": "2024-12-31",
+      "reviewer": "codex",
+      "reviewed_at": "2026-05-18",
+      "review_note": "人工复核：官方本科教学质量报告第 20 页直接给出攻读研究生 523 人（含出国读研）和本科生考研平均录取率 13.64%，作为本科深造口径 postgrad_rate。"
     }
   ]
 }
