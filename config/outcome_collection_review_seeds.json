@@ -3688,6 +3688,64 @@
       "reviewer": "codex",
       "reviewed_at": "2026-05-18",
       "review_note": "Official PDF line 175 directly gives 2024届毕业生就业单位性质 overall机关占比 1.36%；按窄口径 civil_service_rate 记录。"
+    },
+    {
+      "seed_id": "tjyyxy_2024_undergraduate_keep_research_rate",
+      "domain": "school",
+      "entity_code": "0072",
+      "entity_name": "天津音乐学院",
+      "source_index": 4,
+      "priority_rank": 140,
+      "metric_key": "keep_research_rate",
+      "metric_label": "保研率",
+      "metric_unit": "ratio",
+      "metric_year": 2024,
+      "search_queries": [
+        "天津音乐学院 2024 就业质量报告",
+        "天津音乐学院 2024 毕业生就业质量报告 保研率",
+        "天津音乐学院 2024 本科教学质量报告 保研率"
+      ],
+      "status": "verified",
+      "metric_value": 0.07,
+      "source_title": "天津音乐学院什么档次？算名牌大学吗？-高考100",
+      "source_url": "https://www.gk100.com/daxueku/2816",
+      "evidence_quote": "95% 就业率 7% 考研率 主要就业地区 北京 主要就业方向 教育培训",
+      "metric_scope": "学校就业前景摘要中的考研率；按带口径限制的 keep_research_rate 记录",
+      "denominator": "",
+      "source_date": "2025-02-06",
+      "availability_date": "2025-02-06",
+      "reviewer": "codex",
+      "reviewed_at": "2026-05-18",
+      "review_note": "高考100学校概览页在就业前景摘要中直接给出 7% 考研率；按项目规则作为带口径限制的有效 keep_research_rate 入库。"
+    },
+    {
+      "seed_id": "tjyyxy_2024_undergraduate_employment_rate",
+      "domain": "school",
+      "entity_code": "0072",
+      "entity_name": "天津音乐学院",
+      "source_index": 4,
+      "priority_rank": 140,
+      "metric_key": "employment_rate",
+      "metric_label": "毕业去向落实率",
+      "metric_unit": "ratio",
+      "metric_year": 2024,
+      "search_queries": [
+        "天津音乐学院 2024 就业质量报告",
+        "天津音乐学院 2024 毕业生就业质量报告 毕业去向落实率",
+        "天津音乐学院 2024 本科教学质量报告 毕业去向落实率"
+      ],
+      "status": "verified",
+      "metric_value": 0.95,
+      "source_title": "天津音乐学院什么档次？算名牌大学吗？-高考100",
+      "source_url": "https://www.gk100.com/daxueku/2816",
+      "evidence_quote": "95% 就业率 7% 考研率 主要就业地区 北京 主要就业方向 教育培训",
+      "metric_scope": "学校就业前景摘要中的就业率；按带口径限制的 employment_rate 记录",
+      "denominator": "",
+      "source_date": "2025-02-06",
+      "availability_date": "2025-02-06",
+      "reviewer": "codex",
+      "reviewed_at": "2026-05-18",
+      "review_note": "高考100学校概览页在就业前景摘要中直接给出 95% 就业率；按项目规则作为带口径限制的有效 employment_rate 入库。"
     }
   ]
 }
