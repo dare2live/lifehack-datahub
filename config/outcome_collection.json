@@ -132,6 +132,14 @@
             "{entity_name} {metric_year} 本科教学质量报告 就业",
             "{entity_name} {metric_year} 本科教学质量报告 PDF"
           ]
+        },
+        {
+          "report_scope": "higher_vocational_quality_report",
+          "query_templates": [
+            "{entity_name} {metric_year} 高等职业教育质量报告 就业",
+            "{entity_name} {metric_year} 高等职业教育质量报告 PDF",
+            "{entity_name} {metric_year} 高职教育质量报告"
+          ]
         }
       ],
       "major": [

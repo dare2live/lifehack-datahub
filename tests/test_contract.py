@@ -9282,11 +9282,12 @@ def test_build_outcome_report_source_plan_groups_metric_tasks(tmp_path: Path):
         domains=["school"],
     )
 
-    assert result["rows"] == 2
+    assert result["rows"] == 3
     with Path(result["csv"]).open(encoding="utf-8", newline="") as f:
         source_rows = list(csv.DictReader(f))
     assert {row["report_scope"] for row in source_rows} == {
         "employment_quality_report",
+        "higher_vocational_quality_report",
         "undergraduate_teaching_quality_report",
     }
     assert source_rows[0]["entity_name"] == "辽宁大学"
@@ -9297,7 +9298,7 @@ def test_build_outcome_report_source_plan_groups_metric_tasks(tmp_path: Path):
 
     manifest = json.loads(Path(result["manifest"]).read_text(encoding="utf-8"))
     assert manifest["notes"].startswith("Report-source discovery plan only")
-    assert manifest["rows"] == 2
+    assert manifest["rows"] == 3
 
 
 def test_build_outcome_report_source_plan_keeps_seeded_scope_beyond_limit(tmp_path: Path):
@@ -9337,7 +9338,7 @@ def test_audit_outcome_report_source_plan_requires_confirmed_source(tmp_path: Pa
     )
     report = audit_outcome_report_source_plan(Path(source_result["csv"]))
     assert report["errors"] == []
-    assert report["pending_rows"] == 2
+    assert report["pending_rows"] == 3
     assert report["ready_for_report_intake"] is False
 
     with Path(source_result["csv"]).open(encoding="utf-8", newline="") as f:

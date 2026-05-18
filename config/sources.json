@@ -1144,7 +1144,7 @@
       "remote_files": [],
       "acquisition": {
         "status": "source_collection_required",
-        "official_distribution": "学校就业质量报告、升学质量报告、教育质量报告",
+        "official_distribution": "学校就业质量报告、升学质量报告、本科教学质量报告、高等职业教育质量报告",
         "evidence_urls": [],
         "notes": "只采集可引用来源中的结构化指标，如升学率、就业落实率、深造率、保研率等；指标口径必须进入 metric_scope 和 evidence_quote。"
       },

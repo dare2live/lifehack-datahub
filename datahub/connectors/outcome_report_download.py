@@ -8,6 +8,7 @@ import hashlib
 import io
 import json
 import re
+import signal
 import zipfile
 from collections import Counter
 from datetime import datetime
@@ -79,7 +80,7 @@ def download_outcome_report_intake_assets(
             output_rows.append(result_row)
             continue
         try:
-            downloaded = _download_row(row, timeout=timeout)
+            downloaded = _download_row_with_deadline(row, timeout=timeout)
             result_row.update({
                 "local_report_path": downloaded["path"],
                 "intake_status": downloaded_status,
@@ -170,14 +171,18 @@ def _failure_reason(exc: Exception) -> str:
     if not message:
         return exc.__class__.__name__
     lower = message.lower()
-    if "ssl" in lower and ("eof occurred" in lower or "handshake" in lower or "ssl_error" in lower):
+    if "timed out" in lower or "timeout" in lower:
+        return "download timed out; manual intake required"
+    if "ssl" in lower and ("eof occurred" in lower or "handshake" in lower or "ssl_error" in lower or "certificate" in lower):
         return "ssl handshake failed; manual intake required"
     return message.split(":", 1)[0].strip()
 
 
 def _manual_intake_classification(download_error: str) -> tuple[str, str]:
     lower = download_error.lower()
-    if "ssl" in lower and ("eof occurred" in lower or "handshake" in lower or "ssl_error" in lower):
+    if "timed out" in lower or "timeout" in lower:
+        return "download_timeout", "manual_download_or_retry_later"
+    if "ssl" in lower and ("eof occurred" in lower or "handshake" in lower or "ssl_error" in lower or "certificate" in lower):
         return "ssl_handshake_failed", "manual_download_or_downloader_tls_fallback"
     if "captcha" in lower or "验证码" in download_error:
         return "captcha_required", "manual_browser_download"
@@ -191,6 +196,23 @@ def _intake_config(config: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(intake_config, dict):
         raise ValueError("outcome_collection.report_intake_plan is required")
     return intake_config
+
+
+def _download_row_with_deadline(row: dict[str, Any], *, timeout: int) -> dict[str, Any]:
+    if timeout <= 0 or not hasattr(signal, "SIGALRM"):
+        return _download_row(row, timeout=timeout)
+
+    def _raise_timeout(_signum, _frame):
+        raise TimeoutError(f"download timed out after {timeout}s")
+
+    previous_handler = signal.getsignal(signal.SIGALRM)
+    signal.signal(signal.SIGALRM, _raise_timeout)
+    signal.alarm(timeout)
+    try:
+        return _download_row(row, timeout=timeout)
+    finally:
+        signal.alarm(0)
+        signal.signal(signal.SIGALRM, previous_handler)
 
 
 def _download_row(row: dict[str, Any], *, timeout: int) -> dict[str, Any]:
