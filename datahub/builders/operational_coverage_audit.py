@@ -56,6 +56,13 @@ COVERAGE_AREAS = [
         "threshold": 1.0,
         "p0_if_below_threshold": True,
     },
+    {
+        "key": "major_city_employment",
+        "label": "major-city employment fit",
+        "tables": ["fa_mart_major_city_employment_fit"],
+        "threshold": 1.0,
+        "p0_if_below_threshold": True,
+    },
 ]
 
 SCHOOL_CODE_COLUMNS = (
@@ -295,6 +302,11 @@ def _covered_admission_codes(
     table: str,
 ) -> set[str]:
     columns = tables[table]
+    if table == "fa_mart_major_city_employment_fit":
+        covered = _covered_by_major_city_employment_fit(con, tables, columns)
+        if covered:
+            return covered
+
     local_col = _first_column(columns, SCHOOL_CODE_COLUMNS)
     if local_col:
         return _load_school_codes(con, table, local_col)
@@ -318,6 +330,59 @@ def _covered_admission_codes(
         return {str(row[0]).strip() for row in con.execute(sql).fetchall() if str(row[0]).strip()}
 
     return set()
+
+
+def _covered_by_major_city_employment_fit(
+    con: duckdb.DuckDBPyConnection,
+    tables: dict[str, set[str]],
+    columns: set[str],
+) -> set[str]:
+    admission_columns = tables.get(ADMISSION_TABLE, set())
+    fit_major_code_col = _first_column(columns, ("major_code",))
+    fit_major_name_col = _first_column(columns, ("major_name",))
+    fit_city_col = _first_column(columns, ("city",))
+    if not fit_city_col or not (fit_major_code_col or fit_major_name_col):
+        return set()
+
+    admission_code_col = _first_column(admission_columns, ADMISSION_SCHOOL_CODE_COLUMNS)
+    if not admission_code_col:
+        return set()
+    admission_major_code_col = _first_column(admission_columns, ("major_code", "major_short"))
+    admission_major_name_col = _first_column(admission_columns, ("major_full", "major_name"))
+    admission_city_col = _first_column(admission_columns, ("city", "school_city"))
+    if not (admission_major_code_col or admission_major_name_col):
+        return set()
+
+    major_matches: list[str] = []
+    if fit_major_code_col and admission_major_code_col:
+        major_matches.append(
+            f"cast(f.{_quoted(fit_major_code_col)} as varchar) = cast(p.{_quoted(admission_major_code_col)} as varchar)"
+        )
+    if fit_major_name_col and admission_major_name_col:
+        major_matches.append(
+            f"cast(f.{_quoted(fit_major_name_col)} as varchar) = cast(p.{_quoted(admission_major_name_col)} as varchar)"
+        )
+    if not major_matches:
+        return set()
+
+    if admission_city_col:
+        city_match = (
+            f"(cast(f.{_quoted(fit_city_col)} as varchar) = cast(p.{_quoted(admission_city_col)} as varchar) "
+            f"or cast(f.{_quoted(fit_city_col)} as varchar) = '全国')"
+        )
+    else:
+        city_match = f"cast(f.{_quoted(fit_city_col)} as varchar) = '全国'"
+
+    sql = f"""
+        select distinct cast(p.{_quoted(admission_code_col)} as varchar) as school_code
+        from {_quoted(ADMISSION_TABLE)} p
+        join {_quoted("fa_mart_major_city_employment_fit")} f
+          on ({' or '.join(major_matches)})
+         and {city_match}
+        where p.{_quoted(admission_code_col)} is not null
+          and trim(cast(p.{_quoted(admission_code_col)} as varchar)) <> ''
+    """
+    return {str(row[0]).strip() for row in con.execute(sql).fetchall() if str(row[0]).strip()}
 
 
 def _load_school_codes(con: duckdb.DuckDBPyConnection, table: str, column: str) -> set[str]:

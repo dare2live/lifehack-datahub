@@ -15,6 +15,7 @@ def test_operational_coverage_audit_reports_missing_school_blockers(tmp_path: Pa
                 school_code varchar,
                 school_name varchar,
                 major_code varchar,
+                city varchar,
                 batch varchar,
                 subject_cat varchar
             )
@@ -23,9 +24,9 @@ def test_operational_coverage_audit_reports_missing_school_blockers(tmp_path: Pa
         con.execute(
             """
             insert into fa_dim_ln_admission_plan values
-                ('1001', 'Alpha University', '01', '本科批', '物理类'),
-                ('1002', 'Beta College', '01', '本科批', '物理类'),
-                ('1002', 'Beta College', '02', '本科批', '历史类')
+                ('1001', 'Alpha University', '01', 'Alpha City', '本科批', '物理类'),
+                ('1002', 'Beta College', '01', 'Beta City', '本科批', '物理类'),
+                ('1002', 'Beta College', '02', 'Beta City', '本科批', '历史类')
             """
         )
         con.execute("create table fa_bridge_school_identity (school_code varchar)")
@@ -40,6 +41,8 @@ def test_operational_coverage_audit_reports_missing_school_blockers(tmp_path: Pa
         con.execute("insert into fa_mart_campus_living_score values ('1001'), ('1002')")
         con.execute("create table fa_mart_school_city_industry_fit (school_code varchar)")
         con.execute("insert into fa_mart_school_city_industry_fit values ('1001'), ('1002')")
+        con.execute("create table fa_mart_major_city_employment_fit (major_code varchar, major_name varchar, city varchar)")
+        con.execute("insert into fa_mart_major_city_employment_fit values ('01', '', 'Alpha City'), ('02', '', '全国')")
     finally:
         con.close()
 

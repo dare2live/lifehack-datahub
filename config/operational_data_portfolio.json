@@ -88,6 +88,16 @@
       "normal_operation_requirement": "Required to answer whether the city can absorb graduates in the recommended major direction."
     },
     {
+      "key": "major_city_employment",
+      "label": "Major-city employment fit",
+      "classification": "required_unavailable",
+      "coverage_area": "major_city_employment",
+      "business_importance": "P0",
+      "availability": "not_imported",
+      "use_depth": "not_available",
+      "normal_operation_requirement": "Required to explain whether each recommended major has direct roles, generalist roles, local demand, public-sector paths and fallback space in the school city or national fallback口径."
+    },
+    {
       "key": "major_outcome",
       "label": "Major outcome evidence",
       "classification": "easy_but_underused",
