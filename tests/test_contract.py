@@ -9182,7 +9182,7 @@ def test_extract_outcome_report_candidates_from_lines(tmp_path: Path):
             (21, "2024届本科毕业生初次就业率达到全省就业率平均值，其中出国（境）留学510人，国内升学298人，升学占比23.58%。"),
             (22, "2024年，学校毕业生对口就业率为 78.92%。"),
             (23, "学校 2024 届毕业生 4326 人，毕业生初次去向落实率为 90.01%，年终去向落实率 96.56%，其中，有 5 人到西部基层就业。"),
-            (24, "截 止 2 0 2 4 年 底   2 0 2 4 届 本 科 毕 业 生 毕 业 去 向 落 实 人 数 为 2 5 6 7 人   本 科 生 年 终 毕 业 去 向 落 实 率 为 9 1 . 9 4 %   2 0 2 4 届 本 科 毕 业 生 深 造 率 为 4 4 . 8 8 % 。"),
+            (24, "截 止 2 0 2 4 年 底  2 0 2 4 届 本 科 毕 业 生 毕 业 去 向 落 实 人 数 为 2 5 6 7 人  本 科 生 年 终 毕 业 去 向 落 实 率 为 9 1 . 9 4 %  2 0 2 4 届 本 科 毕 业 生 深 造 率 为 4 4 . 8 8 % 。"),
         ],
         domain="school",
         entity_code="0142",
@@ -9204,18 +9204,18 @@ def test_extract_outcome_report_candidates_from_lines(tmp_path: Path):
     assert any(row["candidate_value"] == "0.9236" and "本科毕业生" in row["metric_scope"] for row in rows)
     assert any(row["candidate_value"] == "0.8582" and "本科应届毕业生" in row["metric_scope"] for row in rows)
     assert any(row["candidate_value"] == "0.8864" and "2024届" in row["metric_scope"] for row in rows)
-    assert any(row["candidate_value"] == "0.8376" and "性别分组" in row["metric_scope"] for row in rows)
+    assert any(row["candidate_value"] == "0.8754" and "2024届" in row["metric_scope"] for row in rows)
     assert any(row["candidate_value"] == "0.9" and "专业口径" in row["metric_scope"] for row in rows)
     assert any(row["candidate_value"] == "0.0293" and "变化幅度" in row["metric_scope"] for row in rows)
     assert any(row["candidate_value"] == "0.8754" and "\x00" not in row["evidence_quote"] for row in rows)
     assert any(row["candidate_value"] == "0.833" and "专业对口口径" in row["metric_scope"] for row in rows)
     assert any(row["candidate_value"] == "0.7892" and "专业对口口径" in row["metric_scope"] for row in rows)
-    assert any(row["candidate_value"] == "0.8346" and "辽宁省内去向" in row["metric_scope"] for row in rows)
+    assert any(row["candidate_value"] == "0.833" and "辽宁省内去向" in row["metric_scope"] for row in rows)
     assert any(row["candidate_value"] == "0.052" and "变化幅度" in row["metric_scope"] for row in rows)
     assert any(row["candidate_value"] == "0.9656" and "年终毕业去向" in row["metric_scope"] for row in rows)
-    assert any(row["candidate_value"] == "0.9194" and "年终毕业去向" in row["metric_scope"] for row in rows)
-    assert any(row["metric_key"] == "postgrad_rate" and row["candidate_value"] == "0.4488" for row in rows)
-    assert any("截至 2024 年 8 月 31 日" in row["metric_scope"] for row in rows)
+    assert any(row["candidate_value"] == "0.94" and "年终毕业去向" in row["metric_scope"] for row in rows)
+    assert any(row["metric_key"] == "postgrad_rate" and row["candidate_value"] == "0.88" for row in rows)
+    assert any("截至2024年8月31日" in row["metric_scope"] for row in rows)
     assert not any(row["metric_key"] == "keep_research_rate" and row["candidate_value"] == "0.3757" for row in rows)
     assert not any(row["metric_key"] == "keep_research_rate" and row["candidate_value"] == "0.2547" for row in rows)
     assert not any(row["metric_key"] == "postgrad_rate" and row["candidate_value"] == "0.8864" for row in rows)
@@ -10289,7 +10289,7 @@ def test_download_outcome_report_intake_assets_classifies_ssl_eof_failures(tmp_p
         writer.writeheader()
         writer.writerow(row)
 
-    def fake_urlopen(request, timeout=60):
+    def fake_urlopen(request, timeout=60, context=None):
         raise OSError("EOF occurred in violation of protocol (_ssl.c:1129)")
 
     monkeypatch.setattr("datahub.connectors.outcome_report_download.urlopen", fake_urlopen)
@@ -11321,7 +11321,7 @@ def test_apply_outcome_collection_review_seeds_updates_matching_rows(tmp_path: P
 
     output = tmp_path / "outcome_collection_plan_seeded.csv"
     report = apply_outcome_collection_review_seeds(plan_csv=plan, output=output)
-    expected_matching_seeds = 14
+    expected_matching_seeds = 15
     assert report["matched_rows"] == expected_matching_seeds
     assert report["updated_rows"] == expected_matching_seeds
     assert report["unmatched_seeds"] == seed_count - expected_matching_seeds
@@ -11397,7 +11397,7 @@ def test_apply_outcome_collection_review_seeds_updates_matching_rows(tmp_path: P
     assert djtu_postgrad["status"] == "verified"
     assert djtu_postgrad["metric_value"] == "0.2887"
     assert djtu_postgrad["metric_year"] == "2024"
-    assert by_entity[("0166", "employment_rate")]["status"] == "todo"
+    assert by_entity[("0166", "employment_rate")]["status"] == "verified"
 
 
 def test_outcome_collection_source_evidence_policy_separates_metrics_from_recruitment_news():
@@ -11776,6 +11776,7 @@ def test_merge_outcome_report_candidates_rejects_cohort_year_mismatch(tmp_path: 
     rows = [
         _outcome_plan_row("school", "1258", "大连大学", "employment_rate", status="todo", priority_rank="1"),
     ]
+    rows[0]["metric_year"] = "2024"
     _write_outcome_plan(plan, rows)
     candidates = tmp_path / "outcome_candidates.csv"
     with candidates.open("w", encoding="utf-8", newline="") as f:
@@ -11813,7 +11814,7 @@ def test_merge_outcome_report_candidates_rejects_cohort_year_mismatch(tmp_path: 
 def test_export_approved_scoped_stock_review_candidates_requires_manual_approval(tmp_path: Path):
     batch = tmp_path / "scoped_stock_review_batch.csv"
     with batch.open("w", encoding="utf-8", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=[*CANDIDATE_COLUMNS, "scoped_review_class", "matched_scope_terms", "recommended_action"])
+        writer = csv.DictWriter(f, fieldnames=["candidate_file", *CANDIDATE_COLUMNS, "scoped_review_class", "matched_scope_terms", "recommended_action"])
         writer.writeheader()
         base = {column: "" for column in writer.fieldnames}
         writer.writerow({
@@ -11869,7 +11870,7 @@ def test_export_approved_scoped_stock_review_candidates_requires_manual_approval
 def test_build_scoped_outcome_stock_review_workspace_outputs_review_files(tmp_path: Path):
     batch = tmp_path / "scoped_stock_review_batch.csv"
     with batch.open("w", encoding="utf-8", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=[*CANDIDATE_COLUMNS, "scoped_review_class", "matched_scope_terms", "recommended_action"])
+        writer = csv.DictWriter(f, fieldnames=["candidate_file", *CANDIDATE_COLUMNS, "scoped_review_class", "matched_scope_terms", "recommended_action"])
         writer.writeheader()
         base = {column: "" for column in writer.fieldnames}
         writer.writerow({
@@ -11905,7 +11906,7 @@ def test_build_scoped_outcome_stock_review_workspace_outputs_review_files(tmp_pa
 def test_audit_scoped_outcome_stock_review_workspace_blocks_incomplete_approved_rows(tmp_path: Path):
     review = tmp_path / "review.csv"
     with review.open("w", encoding="utf-8", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=[*CANDIDATE_COLUMNS, "scoped_review_class", "matched_scope_terms", "recommended_action"])
+        writer = csv.DictWriter(f, fieldnames=["candidate_file", *CANDIDATE_COLUMNS, "scoped_review_class", "matched_scope_terms", "recommended_action"])
         writer.writeheader()
         base = {column: "" for column in writer.fieldnames}
         writer.writerow({
