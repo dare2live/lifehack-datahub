@@ -20,7 +20,10 @@ from datahub.builders.major_city_employment_fit import (
     audit_major_city_employment_fit_inputs,
     build_major_city_employment_fit_package,
 )
-from datahub.builders.major_employment_role_review_plan import build_major_employment_role_review_plan
+from datahub.builders.major_employment_role_review_plan import (
+    build_major_employment_role_review_batch,
+    build_major_employment_role_review_plan,
+)
 from datahub.builders.region_profile_from_amap import build_region_profile_package_from_amap_district
 from datahub.builders.school_city_industry_fit import build_school_city_industry_fit_package
 
@@ -29,6 +32,7 @@ COMMANDS = {
     "build-major-city-employment-fit",
     "audit-major-city-employment-fit-inputs",
     "build-major-employment-role-review-plan",
+    "build-major-employment-role-review-batch",
     "build-campus-living-score",
     "build-school-city-industry-fit",
     "build-city-development-score",
@@ -74,6 +78,17 @@ def register_city_commands(sub) -> None:
     build_major_role_plan.add_argument("--output-csv", required=True, type=Path)
     build_major_role_plan.add_argument("--report", type=Path)
     build_major_role_plan.add_argument("--limit", type=int)
+
+    build_major_role_batch = sub.add_parser(
+        "build-major-employment-role-review-batch",
+        help="Build a prioritized batch from a major employment role review plan",
+    )
+    build_major_role_batch.add_argument("--plan-csv", required=True, type=Path)
+    build_major_role_batch.add_argument("--output-csv", required=True, type=Path)
+    build_major_role_batch.add_argument("--report", type=Path)
+    build_major_role_batch.add_argument("--limit", type=int, default=100)
+    build_major_role_batch.add_argument("--offset", type=int, default=0)
+    build_major_role_batch.add_argument("--status", default="todo")
 
     build_campus_living_score = sub.add_parser(
         "build-campus-living-score",
@@ -232,6 +247,17 @@ def handle_city_command(args: Namespace) -> int | None:
             output_csv=args.output_csv,
             report_path=args.report,
             limit=args.limit,
+        )
+        _print_json(result)
+        return 0
+    if args.cmd == "build-major-employment-role-review-batch":
+        result = build_major_employment_role_review_batch(
+            plan_csv=args.plan_csv,
+            output_csv=args.output_csv,
+            report_path=args.report,
+            limit=args.limit,
+            offset=args.offset,
+            status=args.status,
         )
         _print_json(result)
         return 0

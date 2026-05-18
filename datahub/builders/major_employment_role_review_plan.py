@@ -23,6 +23,8 @@ def build_major_employment_role_review_plan(
     schema = get_table_schema("fa_bridge_major_employment_role")
     output_columns = [
         *schema["columns"],
+        "plan_rows",
+        "plan_count",
         "review_status",
         "review_note",
     ]
@@ -39,6 +41,8 @@ def build_major_employment_role_review_plan(
             "source_date": row["source_date"],
             "availability_date": row["availability_date"],
             "built_at": built_at,
+            "plan_rows": row["plan_rows"],
+            "plan_count": row["plan_count"],
             "review_status": "todo",
             "review_note": "Fill role_key/role_name/role_type/confidence/rationale and source metadata before package build.",
         }
@@ -60,6 +64,48 @@ def build_major_employment_role_review_plan(
             "This is a review plan, not an approved input. It must be curated "
             "and source-backed before being used by build-major-city-employment-fit."
         ),
+    }
+    if report_path:
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        report_path.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return report
+
+
+def build_major_employment_role_review_batch(
+    *,
+    plan_csv: Path,
+    output_csv: Path,
+    report_path: Path | None = None,
+    limit: int = 100,
+    offset: int = 0,
+    status: str = "todo",
+) -> dict[str, Any]:
+    """Build a bounded review batch from a role-mapping review plan."""
+    rows = _read_csv(plan_csv)
+    selected = [
+        row for row in rows
+        if not status or str(row.get("review_status") or "").strip() == status
+    ]
+    selected.sort(key=lambda row: (-_int_value(row.get("plan_count")), -_int_value(row.get("plan_rows")), str(row.get("major_name") or "")))
+    offset = max(offset, 0)
+    limit = max(limit, 1)
+    batch = selected[offset:offset + limit]
+    output_csv.parent.mkdir(parents=True, exist_ok=True)
+    fieldnames = list(rows[0].keys()) if rows else []
+    with output_csv.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(batch)
+    report = {
+        "plan_csv": str(plan_csv),
+        "output_csv": str(output_csv),
+        "input_rows": len(rows),
+        "eligible_rows": len(selected),
+        "batch_rows": len(batch),
+        "limit": limit,
+        "offset": offset,
+        "status": status,
+        "notes": "Review batch only. Rows still need source-backed role curation before they can become fa_bridge_major_employment_role input.",
     }
     if report_path:
         report_path.parent.mkdir(parents=True, exist_ok=True)
@@ -100,3 +146,15 @@ def _major_rows(core_db: Path, *, limit: int | None) -> list[dict[str, Any]]:
         return [dict(zip(columns, row)) for row in raw_rows]
     finally:
         con.close()
+
+
+def _read_csv(path: Path) -> list[dict[str, Any]]:
+    with path.open("r", encoding="utf-8", newline="") as f:
+        return list(csv.DictReader(f))
+
+
+def _int_value(value: Any) -> int:
+    try:
+        return int(float(value or 0))
+    except (TypeError, ValueError):
+        return 0
