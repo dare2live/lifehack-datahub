@@ -69,12 +69,20 @@ def build_school_location_geocode_input_plan(
     built_at = datetime.utcnow().replace(microsecond=0).isoformat()
 
     local_schools = _read_local_schools(core_db, config, limit)
-    profiles = _read_csv_by_key(school_profile_csv, "national_school_code") if school_profile_csv else {}
+    profiles = (
+        _read_csv_by_key(school_profile_csv, "national_school_code")
+        if school_profile_csv
+        else _read_core_profiles(core_db)
+    )
     profiles_by_name = _profiles_by_name(profiles.values())
-    identity = _read_identity(
-        school_identity_csv,
-        approved_statuses=approved_identity_statuses or ["approved"],
-    ) if school_identity_csv else {}
+    identity = (
+        _read_identity(
+            school_identity_csv,
+            approved_statuses=approved_identity_statuses or ["approved"],
+        )
+        if school_identity_csv
+        else _read_core_identity(core_db)
+    )
 
     rows = [
         _build_plan_row(
@@ -225,6 +233,95 @@ def _read_identity(path: Path, approved_statuses: list[str]) -> dict[str, dict[s
                 "is_approved": "true",
             }
     return result
+
+
+def _read_core_profiles(core_db: Path) -> dict[str, dict[str, str]]:
+    con = duckdb.connect(str(core_db), read_only=True)
+    try:
+        if not _core_table_exists(con, "fa_dim_school_profile"):
+            return {}
+        columns = _core_columns(con, "fa_dim_school_profile")
+        required = {"national_school_code", "school_name", "province", "city"}
+        if not required.issubset(columns):
+            return {}
+        rows = con.execute("""
+            SELECT
+                CAST(national_school_code AS VARCHAR) AS national_school_code,
+                CAST(school_name AS VARCHAR) AS school_name,
+                CAST(province AS VARCHAR) AS province,
+                CAST(city AS VARCHAR) AS city
+            FROM fa_dim_school_profile
+            WHERE national_school_code IS NOT NULL
+              AND trim(CAST(national_school_code AS VARCHAR)) <> ''
+        """).fetchall()
+    finally:
+        con.close()
+    return {
+        _clean_text(row[0]): {
+            "national_school_code": _clean_text(row[0]),
+            "school_name": _clean_text(row[1]),
+            "province": _clean_text(row[2]),
+            "city": _clean_text(row[3]),
+        }
+        for row in rows
+        if _clean_text(row[0])
+    }
+
+
+def _read_core_identity(core_db: Path) -> dict[str, dict[str, str]]:
+    con = duckdb.connect(str(core_db), read_only=True)
+    try:
+        if not _core_table_exists(con, "fa_bridge_school_identity"):
+            return {}
+        columns = _core_columns(con, "fa_bridge_school_identity")
+        required = {"local_school_code", "national_school_code"}
+        if not required.issubset(columns):
+            return {}
+        rows = con.execute("""
+            SELECT
+                CAST(local_school_code AS VARCHAR) AS local_school_code,
+                CAST(national_school_code AS VARCHAR) AS national_school_code
+            FROM fa_bridge_school_identity
+            WHERE local_school_code IS NOT NULL
+              AND trim(CAST(local_school_code AS VARCHAR)) <> ''
+        """).fetchall()
+    finally:
+        con.close()
+    return {
+        _clean_text(row[0]): {
+            "national_school_code": _clean_text(row[1]),
+            "review_status": "core_imported",
+            "is_approved": "true",
+        }
+        for row in rows
+        if _clean_text(row[0]) and _clean_text(row[1])
+    }
+
+
+def _core_table_exists(con: duckdb.DuckDBPyConnection, table_name: str) -> bool:
+    row = con.execute(
+        """
+        SELECT COUNT(*)
+        FROM information_schema.tables
+        WHERE table_schema = 'main'
+          AND table_name = ?
+        """,
+        [table_name],
+    ).fetchone()
+    return bool(row and row[0])
+
+
+def _core_columns(con: duckdb.DuckDBPyConnection, table_name: str) -> set[str]:
+    rows = con.execute(
+        """
+        SELECT column_name
+        FROM information_schema.columns
+        WHERE table_schema = 'main'
+          AND table_name = ?
+        """,
+        [table_name],
+    ).fetchall()
+    return {str(row[0]) for row in rows}
 
 
 def _read_csv(path: Path) -> list[dict[str, str]]:

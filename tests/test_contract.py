@@ -13449,6 +13449,67 @@ def test_build_school_location_geocode_input_plan(tmp_path: Path):
     assert any("duplicate input primary keys" in error for error in duplicate_audit["errors"])
 
 
+def test_build_school_location_geocode_input_plan_uses_core_identity_profile(tmp_path: Path):
+    core_db = tmp_path / "core.duckdb"
+    con = duckdb.connect(str(core_db))
+    try:
+        con.execute("""
+            CREATE TABLE fa_dim_ln_admission_plan (
+                school_code VARCHAR,
+                school_name VARCHAR,
+                region VARCHAR,
+                batch VARCHAR
+            )
+        """)
+        con.execute("""
+            INSERT INTO fa_dim_ln_admission_plan VALUES
+            ('10145', '东北大学', '辽宁沈阳', '本科批'),
+            ('10183', '吉林大学', '吉林省长春市', '本科批')
+        """)
+        con.execute("""
+            CREATE TABLE fa_bridge_school_identity (
+                local_school_code VARCHAR,
+                national_school_code VARCHAR
+            )
+        """)
+        con.execute("""
+            INSERT INTO fa_bridge_school_identity VALUES
+            ('10145', '4121010145'),
+            ('10183', '4122010183')
+        """)
+        con.execute("""
+            CREATE TABLE fa_dim_school_profile (
+                national_school_code VARCHAR,
+                school_name VARCHAR,
+                province VARCHAR,
+                city VARCHAR
+            )
+        """)
+        con.execute("""
+            INSERT INTO fa_dim_school_profile VALUES
+            ('4121010145', '东北大学', '辽宁省', '沈阳市'),
+            ('4122010183', '吉林大学', '吉林省', '长春市')
+        """)
+    finally:
+        con.close()
+
+    result = build_school_location_geocode_input_plan(
+        core_db=core_db,
+        output_dir=tmp_path / "staging",
+        source_date="2026-05-18",
+    )
+
+    assert result["rows"] == 2
+    assert result["ready_rows"] == 2
+    assert result["blocked_rows"] == 0
+    with Path(result["amap_input_csv"]).open(encoding="utf-8", newline="") as f:
+        input_rows = list(csv.DictReader(f))
+    assert {row["national_school_code"] for row in input_rows} == {"4121010145", "4122010183"}
+    with Path(result["plan_csv"]).open(encoding="utf-8", newline="") as f:
+        plan_rows = list(csv.DictReader(f))
+    assert {row["match_method"] for row in plan_rows} == {"identity_bridge"}
+
+
 def test_fetch_amap_web_api_geocode_writes_raw_manifest(tmp_path: Path, monkeypatch):
     source = tmp_path / "schools.csv"
     source.write_text("school_name,address,city\n东北大学,沈阳市和平区文化路3号巷11号,沈阳\n", encoding="utf-8")
