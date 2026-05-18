@@ -9177,6 +9177,7 @@ def test_extract_outcome_report_candidates_from_lines(tmp_path: Path):
             (18, "毕 业 生 问 卷 调 查 显 示 学 习 收 获 满 意 度 为 9 8 . 8 0 %。"),
             (19, "2024届毕业生专业对口就业率为 83.3%，留辽就业率为 83.46%。"),
             (20, "2024年总体毕业生去向落实率比去年稍有提升，留辽落实率较去年提升 5.2%。"),
+            (21, "2024届本科毕业生初次就业率达到全省就业率平均值，其中出国（境）留学510人，国内升学298人，升学占比23.58%。"),
         ],
         domain="school",
         entity_code="0142",
@@ -9212,6 +9213,8 @@ def test_extract_outcome_report_candidates_from_lines(tmp_path: Path):
     assert not any(row["metric_key"] == "postgrad_rate" and row["candidate_value"] in {"0.421", "0.2395"} for row in rows)
     assert not any(row["metric_key"] == "employment_rate" and row["candidate_value"] in {"0.421", "1"} for row in rows)
     assert not any(row["metric_key"] == "employment_rate" and row["candidate_value"] == "0.7747" for row in rows)
+    assert not any(row["metric_key"] == "employment_rate" and row["candidate_value"] == "0.2358" for row in rows)
+    assert any(row["metric_key"] == "postgrad_rate" and row["candidate_value"] == "0.2358" for row in rows)
     assert not any(row["metric_key"] == "civil_service_rate" and row["candidate_value"] == "0.476" for row in rows)
     assert not any(row["candidate_value"] in {"0.988", "0.9901"} for row in rows)
     assert all(row["review_status"] == "needs_review" for row in rows)

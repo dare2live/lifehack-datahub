@@ -499,6 +499,8 @@ def _candidate_values(line: str, metric: dict[str, Any], alias: str) -> list[tup
         clause = _candidate_clause(line, search_start)
         matches = list(PERCENT_RE.finditer(clause))
         match = _nearest_match(matches, search_start, max_before_distance=8)
+        if match and _ratio_match_crosses_other_metric_context(alias, clause[search_start:match.start()]):
+            return []
         if match:
             return [(match.group(0), round(float(match.group(1)) / 100, 6))]
         occupied = _occupied_ratio_match(clause[search_start:])
@@ -534,6 +536,12 @@ def _broad_postgrad_alias_allowed(line: str, search_start: int) -> bool:
         return False
     after = str(line or "")[search_start:]
     return re.match(r"\s*\d+\s*人", after) is not None
+
+
+def _ratio_match_crosses_other_metric_context(alias: str, between_text: str) -> bool:
+    if "就业率" not in alias and "就业落实率" not in alias and "毕业去向落实率" not in alias:
+        return False
+    return any(item in str(between_text or "") for item in ("升学", "留学", "出国", "出境", "自主创业"))
 
 
 def _nearest_match(
