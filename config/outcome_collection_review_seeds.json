@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "updated_at": "2026-05-14",
+  "updated_at": "2026-05-18",
   "notes": "学校/专业出口指标复核种子。只保存人工核对后的指标值、口径、来源和摘录，用于重放 outcome_collection_plan，不保存 PDF 原文。",
   "seeds": [
     {
@@ -477,6 +477,44 @@
       "reviewer": "codex",
       "reviewed_at": "2026-05-14",
       "review_note": "OFD 正文 6.3 就业情况段给出毕业人数、升学人数和分类；按 outcome 深造率定义采用 1443/2198=65.65%，并在口径中保留第二学士学位计入说明。"
+    },
+    {
+      "seed_id": "zjcm_2024_school_overall_employment_rate",
+      "domain": "school",
+      "entity_code": "4535",
+      "entity_name": "浙江音乐学院",
+      "metric_key": "employment_rate",
+      "metric_year": 2024,
+      "status": "verified",
+      "metric_value": 0.9622,
+      "source_title": "2024届毕业生规模",
+      "source_url": "https://xxgk.zjcm.edu.cn/jxzlxx/bys/202411/41524.html",
+      "evidence_quote": "我校2024届毕业生毕业去向落实率为96.22%（截至8月31日），位于全省本科高校前列。",
+      "metric_scope": "2024届毕业生，截至2024年8月31日毕业去向落实率，学校总体口径",
+      "source_date": "2024-09-05",
+      "availability_date": "2024-09-05",
+      "reviewer": "codex",
+      "reviewed_at": "2026-05-18",
+      "review_note": "浙江音乐学院信息公开网教学质量信息-毕业生页面直接给出2024届毕业生截至8月31日毕业去向落实率96.22%。"
+    },
+    {
+      "seed_id": "zjcm_2024_school_overall_postgrad_rate",
+      "domain": "school",
+      "entity_code": "4535",
+      "entity_name": "浙江音乐学院",
+      "metric_key": "postgrad_rate",
+      "metric_year": 2024,
+      "status": "verified",
+      "metric_value": 0.2945,
+      "source_title": "2024届毕业生规模",
+      "source_url": "https://xxgk.zjcm.edu.cn/jxzlxx/bys/202411/41524.html",
+      "evidence_quote": "2024届毕业生中，出国出境97人，占毕业生总人数的15.28%；考取国内研究生90人，占毕业生总人数的14.17%。",
+      "metric_scope": "2024届毕业生，出国出境15.28%与考取国内研究生14.17%合计继续深造比例",
+      "source_date": "2024-09-05",
+      "availability_date": "2024-09-05",
+      "reviewer": "codex",
+      "reviewed_at": "2026-05-18",
+      "review_note": "按 outcome 深造率定义纳入国内研究生和出国出境深造，本次取15.28%+14.17%=29.45%。"
     }
   ]
 }
