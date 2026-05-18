@@ -298,6 +298,16 @@ def register_outcome_commands(sub) -> None:
     )
     build_outcome_report_source_manual_intake.add_argument("--output", required=True, type=Path)
     build_outcome_report_source_manual_intake.add_argument("--report", type=Path)
+    build_outcome_report_source_manual_intake.add_argument(
+        "--collection-review-seeds-json",
+        type=Path,
+        help="Optional reviewed outcome seed JSON used to skip source URLs already promoted to verified metrics.",
+    )
+    build_outcome_report_source_manual_intake.add_argument(
+        "--exclude-resolved-sources",
+        action="store_true",
+        help="Exclude source URLs that already have verified outcome collection review seeds.",
+    )
 
     aggregate_outcome_report_manual_intake = sub.add_parser(
         "aggregate-outcome-report-manual-intake-queues",
@@ -562,6 +572,8 @@ def handle_outcome_command(args: Namespace) -> int | None:
             sources_json=args.sources_json,
             output=args.output,
             report=args.report,
+            collection_review_seeds_json=args.collection_review_seeds_json,
+            exclude_resolved_sources=args.exclude_resolved_sources,
         )
         _print_json(result)
         return 0

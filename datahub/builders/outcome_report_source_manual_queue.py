@@ -7,6 +7,7 @@ from collections import Counter
 from datetime import datetime
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit, urlunsplit
 
 
 MANUAL_INTAKE_COLUMNS = [
@@ -34,18 +35,26 @@ def build_outcome_report_source_manual_intake_queue(
     sources_json: Path,
     output: Path,
     report: Path | None = None,
+    collection_review_seeds_json: Path | None = None,
+    exclude_resolved_sources: bool = False,
 ) -> dict[str, Any]:
     """Create reviewable manual intake rows from source seeds that already flag manual work."""
     data = json.loads(sources_json.read_text(encoding="utf-8"))
     seeds = data.get("seeds") or []
     if not isinstance(seeds, list):
         raise ValueError("outcome report sources JSON must contain a list field: seeds")
+    resolved_source_urls = _resolved_source_urls(collection_review_seeds_json) if exclude_resolved_sources else set()
 
     output_rows: list[dict[str, str]] = []
     reason_counts: Counter[str] = Counter()
     action_counts: Counter[str] = Counter()
+    resolved_source_rows = 0
     for index, seed in enumerate(seeds, start=1):
         if not isinstance(seed, dict):
+            continue
+        source_url = _text(seed.get("candidate_report_url"))
+        if _normalized_url(source_url) in resolved_source_urls:
+            resolved_source_rows += 1
             continue
         note = _text(seed.get("evidence_note"))
         failure_reason, recommended_action = _classify_manual_signal(note)
@@ -58,7 +67,7 @@ def build_outcome_report_source_manual_intake_queue(
             "metric_year": _text(seed.get("metric_year")),
             "report_scope": _text(seed.get("report_scope")),
             "candidate_report_title": _text(seed.get("candidate_report_title")),
-            "candidate_report_url": _text(seed.get("candidate_report_url")),
+            "candidate_report_url": source_url,
             "candidate_file_name": _text(seed.get("candidate_file_name")),
             "failure_reason": failure_reason,
             "recommended_action": recommended_action,
@@ -78,6 +87,8 @@ def build_outcome_report_source_manual_intake_queue(
         "output": str(output),
         "source_seed_count": len(seeds),
         "manual_queue_rows": len(output_rows),
+        "resolved_source_rows": resolved_source_rows,
+        "exclude_resolved_sources": exclude_resolved_sources,
         "failure_reason_counts": dict(sorted(reason_counts.items())),
         "recommended_action_counts": dict(sorted(action_counts.items())),
         "notes": (
@@ -89,6 +100,33 @@ def build_outcome_report_source_manual_intake_queue(
         report.parent.mkdir(parents=True, exist_ok=True)
         report.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return result
+
+
+def _resolved_source_urls(collection_review_seeds_json: Path | None) -> set[str]:
+    if not collection_review_seeds_json or not collection_review_seeds_json.exists():
+        return set()
+    data = json.loads(collection_review_seeds_json.read_text(encoding="utf-8"))
+    urls: set[str] = set()
+    for seed in data.get("seeds") or []:
+        if not isinstance(seed, dict):
+            continue
+        if _text(seed.get("status")) != "verified":
+            continue
+        url = _normalized_url(_text(seed.get("source_url")))
+        if url:
+            urls.add(url)
+    return urls
+
+
+def _normalized_url(value: str) -> str:
+    if not value:
+        return ""
+    parsed = urlsplit(value.strip())
+    netloc = parsed.netloc.lower()
+    if netloc.startswith("www."):
+        netloc = netloc[4:]
+    path = parsed.path.rstrip("/")
+    return urlunsplit((parsed.scheme.lower(), netloc, path, parsed.query, ""))
 
 
 def _classify_manual_signal(note: str) -> tuple[str, str]:
