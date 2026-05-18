@@ -140,12 +140,10 @@ def _dedupe_key(row: dict[str, str]) -> tuple[str, ...]:
 
 def _exclude_key(row: dict[str, str]) -> tuple[str, ...]:
     return (
-        row.get("candidate_file") or "",
         row.get("domain") or "",
         row.get("entity_code") or "",
         row.get("metric_key") or "",
         row.get("metric_year") or "",
-        row.get("candidate_value") or "",
         row.get("source_title") or "",
         row.get("source_url") or "",
         row.get("evidence_quote") or "",
