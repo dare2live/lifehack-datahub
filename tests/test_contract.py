@@ -90,6 +90,7 @@ from datahub.builders.outcome_report_source_seed_merge import (
     apply_outcome_report_source_seeds,
     audit_outcome_report_source_seeds,
 )
+from datahub.builders.outcome_scoped_stock_review import build_scoped_outcome_stock_review
 from datahub.builders.policy_tables import (
     build_policy_industry_map_package,
     build_policy_plan_history_package,
@@ -11402,6 +11403,57 @@ def test_merge_outcome_report_candidates_requires_metric_scope(tmp_path: Path):
             candidate_csv=candidates,
             output=output,
         )
+
+
+def test_build_scoped_outcome_stock_review_flags_official_scoped_candidates(tmp_path: Path):
+    candidates = tmp_path / "school_candidates.csv"
+    with candidates.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=CANDIDATE_COLUMNS)
+        writer.writeheader()
+        base = {column: "" for column in CANDIDATE_COLUMNS}
+        writer.writerow({
+            **base,
+            "domain": "school",
+            "entity_code": "0162",
+            "entity_name": "辽宁中医药大学",
+            "metric_key": "employment_rate",
+            "metric_label": "毕业去向落实率",
+            "metric_unit": "ratio",
+            "metric_year": "2024",
+            "candidate_value": "0.85",
+            "source_title": "辽宁中医药大学2023-2024学年本科教学质量报告",
+            "source_url": "https://xxgk.lnutcm.edu.cn/report.pdf",
+            "evidence_quote": "辽宁省内毕业去向落实率 85%以上。",
+            "review_status": "rejected",
+            "notes": "非学校总体就业率。",
+        })
+        writer.writerow({
+            **base,
+            "domain": "school",
+            "entity_code": "10140",
+            "entity_name": "辽宁大学",
+            "metric_key": "employment_rate",
+            "metric_label": "毕业去向落实率",
+            "metric_unit": "ratio",
+            "metric_year": "2024",
+            "candidate_value": "0.9",
+            "source_title": "第三方汇总",
+            "evidence_quote": "就业率 90%。",
+            "review_status": "rejected",
+            "notes": "第三方来源。",
+        })
+
+    report = build_scoped_outcome_stock_review(
+        candidate_globs=[str(candidates)],
+        output=tmp_path / "scoped_review.csv",
+    )
+
+    assert report["review_rows"] == 1
+    with (tmp_path / "scoped_review.csv").open(encoding="utf-8", newline="") as f:
+        rows = list(csv.DictReader(f))
+    assert rows[0]["entity_name"] == "辽宁中医药大学"
+    assert rows[0]["scoped_review_class"] == "scoped_official_candidate"
+    assert "省内" in rows[0]["matched_scope_terms"]
 
 
 def test_build_outcome_packages_from_verified_collection_plan(tmp_path: Path):

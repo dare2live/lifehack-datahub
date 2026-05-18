@@ -32,6 +32,7 @@ from datahub.builders.outcome_report_source_seed_merge import (
     apply_outcome_report_source_seeds,
     audit_outcome_report_source_seeds,
 )
+from datahub.builders.outcome_scoped_stock_review import build_scoped_outcome_stock_review
 from datahub.connectors.outcome_report_download import (
     build_outcome_report_manual_intake_queue,
     download_outcome_report_intake_assets,
@@ -65,6 +66,7 @@ COMMANDS = {
     "run-outcome-report-extraction-plan",
     "build-outcome-from-collection-plan",
     "extract-outcome-report-candidates",
+    "build-outcome-scoped-stock-review",
 }
 
 
@@ -141,6 +143,15 @@ def register_outcome_commands(sub) -> None:
     merge_outcome_candidates.add_argument("--candidate-csv", required=True, type=Path)
     merge_outcome_candidates.add_argument("--output", required=True, type=Path)
     merge_outcome_candidates.add_argument("--report", type=Path)
+
+    scoped_stock_review = sub.add_parser(
+        "build-outcome-scoped-stock-review",
+        help="Build a review queue for historical scoped official outcome candidates",
+    )
+    scoped_stock_review.add_argument("--candidate-glob", required=True, action="append", dest="candidate_globs")
+    scoped_stock_review.add_argument("--output", required=True, type=Path)
+    scoped_stock_review.add_argument("--report", type=Path)
+    scoped_stock_review.add_argument("--include-status", action="append", dest="include_statuses")
 
     build_outcome_report_sources = sub.add_parser(
         "build-outcome-report-source-plan",
@@ -348,6 +359,15 @@ def handle_outcome_command(args: Namespace) -> int | None:
             output=args.output,
         )
         _write_report(args.report, report)
+        _print_json(report)
+        return 0
+    if args.cmd == "build-outcome-scoped-stock-review":
+        report = build_scoped_outcome_stock_review(
+            candidate_globs=args.candidate_globs,
+            output=args.output,
+            report_path=args.report,
+            include_statuses=args.include_statuses,
+        )
         _print_json(report)
         return 0
     if args.cmd == "build-outcome-report-source-plan":
