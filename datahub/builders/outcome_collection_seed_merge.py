@@ -69,6 +69,11 @@ def apply_outcome_collection_review_seeds(
         for seed in seeds
         if _task_key(seed) not in plan_keys
     ]
+    unmatched_seed_ids = [
+        str(row.get("seed_id") or "")
+        for row in unmatched_seed_rows
+        if row.get("seed_id")
+    ]
 
     matched = 0
     updated = 0
@@ -96,6 +101,7 @@ def apply_outcome_collection_review_seeds(
         "updated_rows": updated,
         "skipped_complete_rows": skipped_complete,
         "unmatched_seeds": len(seeds) - matched,
+        "unmatched_seed_ids": unmatched_seed_ids,
         "unmatched_seed_rows": unmatched_seed_rows,
         "status_counts": dict(sorted(status_counts.items())),
         "overwrite": overwrite,
