@@ -3308,6 +3308,25 @@
       "reviewer": "codex",
       "reviewed_at": "2026-05-18",
       "review_note": "页面正文给出 2024 届保研率 13.40%，并列出 2025 届 12.09%；虽为第三方整理页，但表格口径明确，可用于 keep_research_rate verified seed。"
+    },
+    {
+      "seed_id": "lnu_2024_economics_civil_service_rate",
+      "domain": "school",
+      "entity_code": "0140",
+      "entity_name": "辽宁大学",
+      "metric_key": "civil_service_rate",
+      "metric_year": 2024,
+      "status": "verified",
+      "metric_value": 0.30,
+      "source_title": "辽宁大学：这所211高校值得中等生重点考虑吗？-高考100",
+      "source_url": "https://www.gk100.com/read_1373234775610.htm",
+      "evidence_quote": "经济学类：毕业生35%进入银行/证券系统，30%考取公务员（财政局、税务局为主）；",
+      "metric_scope": "辽宁大学经济学类毕业生",
+      "source_date": "2025-04-20",
+      "availability_date": "2025-04-20",
+      "reviewer": "codex",
+      "reviewed_at": "2026-05-18",
+      "review_note": "这不是学校总体 civil_service_rate，而是辽宁大学经济学类毕业生的考公去向比例；按项目规则作为带口径限制的有效数据入库，后续在展示层必须明确范围限制。"
     }
   ]
 }
