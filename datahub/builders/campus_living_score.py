@@ -96,6 +96,101 @@ def build_campus_living_score_package(
     }
 
 
+def audit_campus_living_score_inputs(
+    *,
+    location_input: Path | None = None,
+    poi_input: Path | None = None,
+    housing_input: Path | None = None,
+    region_cost_input: Path | None = None,
+    output: Path | None = None,
+    location_sheet: str | None = None,
+    poi_sheet: str | None = None,
+    housing_sheet: str | None = None,
+    region_cost_sheet: str | None = None,
+) -> dict[str, Any]:
+    """Audit whether campus living score inputs are ready for package build."""
+    config = load_campus_living_score()
+    location_schema = get_table_schema("fa_dim_school_location")
+    poi_schema = get_table_schema("fa_fact_campus_surrounding_poi")
+    housing_schema = get_table_schema("fa_fact_campus_housing_market")
+    region_cost_schema = get_table_schema("fa_fact_region_living_cost")
+    errors: list[str] = []
+    warnings: list[str] = []
+
+    location_rows = _read_input_rows(
+        label="location_input",
+        path=location_input,
+        schema=location_schema,
+        errors=errors,
+        sheet=location_sheet,
+    )
+    poi_rows = _read_input_rows(
+        label="poi_input",
+        path=poi_input,
+        schema=poi_schema,
+        errors=errors,
+        sheet=poi_sheet,
+    )
+    housing_rows = _read_input_rows(
+        label="housing_input",
+        path=housing_input,
+        schema=housing_schema,
+        errors=errors,
+        sheet=housing_sheet,
+    )
+    region_cost_rows = _read_input_rows(
+        label="region_cost_input",
+        path=region_cost_input,
+        schema=region_cost_schema,
+        errors=errors,
+        sheet=region_cost_sheet,
+    )
+
+    input_quality = _input_quality_report(location_rows, poi_rows, housing_rows, region_cost_rows, config)
+    errors.extend(input_quality["errors"])
+    warnings.extend(input_quality["warnings"])
+    report = {
+        "ready_for_build": not errors,
+        "location_input": str(location_input) if location_input else "",
+        "poi_input": str(poi_input) if poi_input else "",
+        "housing_input": str(housing_input) if housing_input else "",
+        "region_cost_input": str(region_cost_input) if region_cost_input else "",
+        "location_rows": len(location_rows),
+        "poi_rows": len(poi_rows),
+        "housing_rows": len(housing_rows),
+        "region_living_cost_rows": len(region_cost_rows),
+        "input_quality": input_quality,
+        "errors": errors,
+        "warnings": warnings,
+        "notes": "This is a read-only readiness audit. It does not build or publish fa_mart_campus_living_score.",
+    }
+    if output:
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return report
+
+
+def _read_input_rows(
+    *,
+    label: str,
+    path: Path | None,
+    schema: dict[str, Any],
+    errors: list[str],
+    sheet: str | None = None,
+) -> list[dict[str, Any]]:
+    if path is None:
+        errors.append(f"{label}_missing")
+        return []
+    if not path.exists():
+        errors.append(f"{label}_not_found:{path}")
+        return []
+    try:
+        return normalize_rows_for_schema(parse_tabular(path, sheet=sheet), schema)
+    except Exception as exc:
+        errors.append(f"{label}_parse_failed:{exc}")
+        return []
+
+
 def _score_rows(
     location_rows: list[dict[str, Any]],
     poi_rows: list[dict[str, Any]],

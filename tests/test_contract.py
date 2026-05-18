@@ -47,7 +47,7 @@ from datahub.builders.city_context_collection_batch import (
 from datahub.builders.city_context_collection_package import build_city_context_packages_from_collection_plan
 from datahub.builders.city_context_collection_plan import build_city_context_collection_plan
 from datahub.builders.city_context_target_cities import build_city_context_target_cities
-from datahub.builders.campus_living_score import build_campus_living_score_package
+from datahub.builders.campus_living_score import audit_campus_living_score_inputs, build_campus_living_score_package
 from datahub.builders.city_development_score import build_city_development_score_package
 from datahub.builders.city_listed_company_signal import build_city_listed_company_signal_package
 from datahub.builders.school_city_industry_fit import build_school_city_industry_fit_package
@@ -6776,6 +6776,25 @@ def test_build_campus_living_score_package(tmp_path: Path):
     lineage = json.loads(row["pit_lineage_json"])
     assert "fa_fact_campus_housing_market" in lineage["tables"]
     assert result["quality_report"]["input_quality"]["errors"] == []
+
+
+def test_audit_campus_living_score_inputs_reports_missing_files(tmp_path: Path):
+    report_path = tmp_path / "campus_living_readiness.json"
+
+    report = audit_campus_living_score_inputs(output=report_path)
+
+    assert report_path.exists()
+    assert report["ready_for_build"] is False
+    assert report["location_rows"] == 0
+    assert report["poi_rows"] == 0
+    assert report["housing_rows"] == 0
+    assert report["region_living_cost_rows"] == 0
+    assert report["errors"] == [
+        "location_input_missing",
+        "poi_input_missing",
+        "housing_input_missing",
+        "region_cost_input_missing",
+    ]
 
 
 def test_build_campus_living_score_rejects_bad_input_metadata(tmp_path: Path):

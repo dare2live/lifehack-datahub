@@ -5,7 +5,10 @@ import json
 from argparse import Namespace
 from pathlib import Path
 
-from datahub.builders.campus_living_score import build_campus_living_score_package
+from datahub.builders.campus_living_score import (
+    audit_campus_living_score_inputs,
+    build_campus_living_score_package,
+)
 from datahub.builders.city_context_collection_audit import audit_city_context_collection_plan
 from datahub.builders.city_context_collection_batch import (
     build_city_context_review_batch,
@@ -33,6 +36,7 @@ COMMANDS = {
     "audit-major-city-employment-fit-inputs",
     "build-major-employment-role-review-plan",
     "build-major-employment-role-review-batch",
+    "audit-campus-living-score-inputs",
     "build-campus-living-score",
     "build-school-city-industry-fit",
     "build-city-development-score",
@@ -105,6 +109,20 @@ def register_city_commands(sub) -> None:
     build_campus_living_score.add_argument("--poi-sheet")
     build_campus_living_score.add_argument("--housing-sheet")
     build_campus_living_score.add_argument("--region-cost-sheet")
+
+    audit_campus_living_score = sub.add_parser(
+        "audit-campus-living-score-inputs",
+        help="Read-only readiness audit for fa_mart_campus_living_score input files",
+    )
+    audit_campus_living_score.add_argument("--location-input", type=Path)
+    audit_campus_living_score.add_argument("--poi-input", type=Path)
+    audit_campus_living_score.add_argument("--housing-input", type=Path)
+    audit_campus_living_score.add_argument("--region-cost-input", type=Path)
+    audit_campus_living_score.add_argument("--output", type=Path)
+    audit_campus_living_score.add_argument("--location-sheet")
+    audit_campus_living_score.add_argument("--poi-sheet")
+    audit_campus_living_score.add_argument("--housing-sheet")
+    audit_campus_living_score.add_argument("--region-cost-sheet")
 
     build_school_city_industry_fit = sub.add_parser(
         "build-school-city-industry-fit",
@@ -277,6 +295,20 @@ def handle_city_command(args: Namespace) -> int | None:
         )
         _print_json(result)
         return 0
+    if args.cmd == "audit-campus-living-score-inputs":
+        result = audit_campus_living_score_inputs(
+            location_input=args.location_input,
+            poi_input=args.poi_input,
+            housing_input=args.housing_input,
+            region_cost_input=args.region_cost_input,
+            output=args.output,
+            location_sheet=args.location_sheet,
+            poi_sheet=args.poi_sheet,
+            housing_sheet=args.housing_sheet,
+            region_cost_sheet=args.region_cost_sheet,
+        )
+        _print_json(result)
+        return 0 if result.get("ready_for_build") else 1
     if args.cmd == "build-school-city-industry-fit":
         result = build_school_city_industry_fit_package(
             recruitment_input=args.recruitment_input,
