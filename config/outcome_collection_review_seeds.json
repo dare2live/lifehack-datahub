@@ -1731,6 +1731,25 @@
       "reviewer": "codex",
       "reviewed_at": "2026-05-18",
       "review_note": "人工复核：官方本科质量报告明确给出 2024 届本科毕业生深造率 44.88%，作为本科深造口径 postgrad_rate。"
+    },
+    {
+      "seed_id": "lnist_2024_school_employment_rate",
+      "domain": "school",
+      "entity_code": "1430",
+      "entity_name": "辽宁科技学院",
+      "metric_key": "employment_rate",
+      "metric_year": 2024,
+      "status": "verified",
+      "metric_value": 0.8753,
+      "source_title": "辽宁科技学院2023-2024年度信息公开年度报告",
+      "source_url": "https://www.lnist.edu.cn/info/1132/11186.htm",
+      "evidence_quote": "2024年学校面向25个省（自治区、直辖市）招生，招生专业涵盖工学、文学、经济学、管理学、艺术学、教育学六大学科门类，落实招生计划4034人，录取3983人，实际报到3923人，报到率98.49%，2024届毕业生初次毕业去向落实率87.53%。",
+      "metric_scope": "2024届毕业生，初次毕业去向落实率；来源为学校信息公开年度报告，不是就业质量年度报告或本科教学质量报告",
+      "source_date": "2024-10-30",
+      "availability_date": "2024-10-30",
+      "reviewer": "codex",
+      "reviewed_at": "2026-05-18",
+      "review_note": "人工复核：官方信息公开年度报告在清单事项公开情况中给出 2024 届毕业生初次毕业去向落实率 87.53%。该来源可靠但报告类型不是就业质量年度报告或本科教学质量报告，按受限口径 employment_rate 使用；同段 197 人考取硕士研究生缺少毕业生分母，不手工计算深造率。"
     }
   ]
 }
