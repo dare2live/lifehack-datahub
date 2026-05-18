@@ -1788,6 +1788,44 @@
       "reviewer": "codex",
       "reviewed_at": "2026-05-18",
       "review_note": "人工复核：官方本科教学质量报告以图片页发布，第 25 页直接给出本科毕业生升学率 3.74%；该口径不含未说明的境外深造拆分。"
+    },
+    {
+      "seed_id": "symc_2024_school_employment_rate",
+      "domain": "school",
+      "entity_code": "0164",
+      "entity_name": "沈阳医学院",
+      "metric_key": "employment_rate",
+      "metric_year": 2024,
+      "status": "verified",
+      "metric_value": 0.8707,
+      "source_title": "沈阳医学院2024届毕业生就业质量年度报告",
+      "source_url": "https://yxjyyjzx.symc.edu.cn/shenyangyixueyuan-2024jiebiyeshengjiuyezhiliangniandubaogao.pdf",
+      "evidence_quote": "截至 2024 年 08 月 31 日，学校 2024 届毕业生毕业去向落实率为 87.07%；从其去向构成来看，毕业生以单位就业为主（57.23%），升学（29.72%）次之。",
+      "metric_scope": "2024届，毕业生总体，毕业去向落实率，截至2024年8月31日",
+      "source_date": "2025-01-15",
+      "availability_date": "2025-01-15",
+      "reviewer": "codex",
+      "reviewed_at": "2026-05-18",
+      "review_note": "人工复核：官方就业质量年度报告 PDF 第 12 页直接给出学校 2024 届毕业生总体毕业去向落实率 87.07%，作为学校总体初次口径 employment_rate。"
+    },
+    {
+      "seed_id": "symc_2024_school_postgrad_rate",
+      "domain": "school",
+      "entity_code": "0164",
+      "entity_name": "沈阳医学院",
+      "metric_key": "postgrad_rate",
+      "metric_year": 2024,
+      "status": "verified",
+      "metric_value": 0.2972,
+      "source_title": "沈阳医学院2024届毕业生就业质量年度报告",
+      "source_url": "https://yxjyyjzx.symc.edu.cn/shenyangyixueyuan-2024jiebiyeshengjiuyezhiliangniandubaogao.pdf",
+      "evidence_quote": "截至 2024 年 08 月 31 日，学校 2024 届毕业生毕业去向落实率为 87.07%；从其去向构成来看，毕业生以单位就业为主（57.23%），升学（29.72%）次之。",
+      "metric_scope": "2024届，毕业生总体，升学占比，含境内升学和境外留学，截至2024年8月31日",
+      "source_date": "2025-01-15",
+      "availability_date": "2025-01-15",
+      "reviewer": "codex",
+      "reviewed_at": "2026-05-18",
+      "review_note": "人工复核：官方就业质量年度报告 PDF 第 12 页直接给出学校总体升学占比 29.72%；第 22 页列示境内升学 29.68%、境外留学 0.04%，与总体升学占比一致。"
     }
   ]
 }
