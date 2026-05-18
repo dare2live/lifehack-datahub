@@ -11707,6 +11707,7 @@ def test_build_scoped_outcome_stock_review_batch_excludes_reviewed_rows(tmp_path
             "source_title": "已复核学校报告",
             "source_url": "https://example.edu/reviewed.pdf",
             "evidence_quote": "毕业去向落实率88%。",
+            "metric_scope": "manually_reviewed_scope",
             "scoped_review_class": "scoped_official_candidate",
         })
         writer.writerow({

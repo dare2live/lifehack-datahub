@@ -29,7 +29,7 @@ def build_scoped_outcome_stock_review_batch(
         row for row in rows
         if (not selected_classes or row.get("scoped_review_class") in selected_classes)
         and (not selected_metrics or row.get("metric_key") in selected_metrics)
-        and _dedupe_key(row) not in excluded_keys
+        and _exclude_key(row) not in excluded_keys
     ]
     filtered.sort(key=_priority_key)
     deduped = _dedupe_rows(filtered)
@@ -70,7 +70,7 @@ def _excluded_keys(paths: list[Path]) -> set[tuple[str, ...]]:
     keys: set[tuple[str, ...]] = set()
     for path in paths:
         for row in _read_rows(path):
-            keys.add(_dedupe_key(row))
+            keys.add(_exclude_key(row))
     return keys
 
 
@@ -135,4 +135,18 @@ def _dedupe_key(row: dict[str, str]) -> tuple[str, ...]:
         row.get("source_url") or "",
         row.get("evidence_quote") or "",
         row.get("metric_scope") or "",
+    )
+
+
+def _exclude_key(row: dict[str, str]) -> tuple[str, ...]:
+    return (
+        row.get("candidate_file") or "",
+        row.get("domain") or "",
+        row.get("entity_code") or "",
+        row.get("metric_key") or "",
+        row.get("metric_year") or "",
+        row.get("candidate_value") or "",
+        row.get("source_title") or "",
+        row.get("source_url") or "",
+        row.get("evidence_quote") or "",
     )
