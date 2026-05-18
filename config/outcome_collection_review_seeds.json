@@ -3232,6 +3232,25 @@
       "reviewer": "codex",
       "reviewed_at": "2026-05-18",
       "review_note": "官方信息公开网挂出 2023-2024 学年本科教学质量报告；公共摘要明确转载该报告中的 96.19% 就业率，适合作为 verified seed 继续推进辽宁学校覆盖。"
+    },
+    {
+      "seed_id": "sygxy_2024_undergraduate_employment_rate",
+      "domain": "school",
+      "entity_code": "3201",
+      "entity_name": "沈阳工学院",
+      "metric_key": "employment_rate",
+      "metric_year": 2024,
+      "status": "verified",
+      "metric_value": 0.8778,
+      "source_title": "沈阳工学院2023-2024学年本科教学质量报告",
+      "source_url": "https://www.situ.edu.cn/info/1032/12153.htm",
+      "evidence_quote": "截至2024年8月31日，学校应届本科毕业生总体毕业去向落实率达87.78%。",
+      "metric_scope": "2024届本科毕业生总体毕业去向落实率",
+      "source_date": "2025-11-07",
+      "availability_date": "2025-11-07",
+      "reviewer": "codex",
+      "reviewed_at": "2026-05-18",
+      "review_note": "学校官方信息公开页发布 2023-2024 学年本科教学质量报告，第三方摘要与官方页标题一致，并直接给出 87.78% 口径，适合用于继续推进辽宁学校 2024 verified coverage。"
     }
   ]
 }
