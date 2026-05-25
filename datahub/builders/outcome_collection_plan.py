@@ -9,6 +9,7 @@ from typing import Any
 
 import duckdb
 
+from datahub.builders.outcome_collection_exemptions import school_outcome_exemption_index
 from datahub.config import load_outcome_collection, load_outcome_metrics, load_outcome_report_sources
 
 
@@ -24,6 +25,7 @@ PLAN_COLUMNS = [
     "metric_year",
     "search_queries",
     "status",
+    "blocking_reason",
     "metric_value",
     "source_title",
     "source_url",
@@ -51,6 +53,7 @@ def build_outcome_collection_plan(
 ) -> dict[str, Any]:
     config = load_outcome_collection()
     metrics_config = load_outcome_metrics()
+    exemptions = school_outcome_exemption_index()
     selected_domains = domains or list(config.get("domains", {}))
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -72,8 +75,19 @@ def build_outcome_collection_plan(
             school_outcome_table=school_outcome_table,
             coverage_year=coverage_year or target_metric_year,
             seeded_entity_codes=seeded_entity_codes,
+            exempt_entity_codes=list(_school_exempt_entity_codes(exemptions, domain)) if domain == "school" else [],
         )
-        all_rows.extend(_build_rows(domain, domain_config, entities, metrics_config, config, metric_year))
+        all_rows.extend(
+            _build_rows(
+                domain,
+                domain_config,
+                entities,
+                metrics_config,
+                config,
+                metric_year,
+                exemptions,
+            )
+        )
 
     csv_path = output_dir / "outcome_collection_plan.csv"
     manifest_path = output_dir / "outcome_collection_plan.json"
@@ -88,6 +102,7 @@ def build_outcome_collection_plan(
         "school_outcome_table": school_outcome_table if missing_school_outcome_only else None,
         "coverage_year": coverage_year or metric_year,
         "rows": len(all_rows),
+        "blocked_rows": sum(1 for row in all_rows if str(row.get("status") or "") in {"blocked", "not_applicable"}),
         "csv": str(csv_path),
         "notes": "Collection plan only. It is not a data package and must not be imported into core.",
     }
@@ -97,6 +112,7 @@ def build_outcome_collection_plan(
         "csv": str(csv_path),
         "manifest": str(manifest_path),
         "rows": len(all_rows),
+        "blocked_rows": sum(1 for row in all_rows if str(row.get("status") or "") in {"blocked", "not_applicable"}),
         "domains": selected_domains,
     }
 
@@ -135,6 +151,7 @@ def _read_domain_entities(
     school_outcome_table: str,
     coverage_year: int | None,
     seeded_entity_codes: list[str],
+    exempt_entity_codes: list[str],
 ) -> list[dict[str, Any]]:
     table = domain_config["source_table"]
     code_col = domain_config["entity_code_column"]
@@ -148,6 +165,7 @@ def _read_domain_entities(
             school_outcome_table=school_outcome_table,
             coverage_year=coverage_year,
             params=params,
+            exempt_entity_codes=exempt_entity_codes,
         )
     seed_filter = ""
     if seeded_entity_codes:
@@ -245,6 +263,7 @@ def _missing_school_outcome_filter(
     school_outcome_table: str,
     coverage_year: int | None,
     params: list[Any],
+    exempt_entity_codes: list[str],
 ) -> str:
     con = duckdb.connect(str(con_path), read_only=True)
     try:
@@ -260,17 +279,25 @@ def _missing_school_outcome_filter(
         con.close()
     if not table_exists:
         return ""
+    exempt_entity_codes = [str(code).strip() for code in exempt_entity_codes if str(code).strip()]
     if coverage_year is not None:
         params.append(int(coverage_year))
         year_filter = "AND CAST(metric_year AS INTEGER) = ?"
     else:
         year_filter = ""
+    exempt_clause = ""
+    if exempt_entity_codes:
+        placeholders = ", ".join(["?"] * len(exempt_entity_codes))
+        params.extend(exempt_entity_codes)
+        exempt_clause = f" OR CAST({code_col} AS VARCHAR) IN ({placeholders})"
     return f"""
-              AND CAST({code_col} AS VARCHAR) NOT IN (
-                SELECT DISTINCT CAST(school_code AS VARCHAR)
-                FROM {school_outcome_table}
-                WHERE school_code IS NOT NULL
-                  {year_filter}
+              AND (
+                CAST({code_col} AS VARCHAR) NOT IN (
+                  SELECT DISTINCT CAST(school_code AS VARCHAR)
+                  FROM {school_outcome_table}
+                  WHERE school_code IS NOT NULL
+                    {year_filter}
+                ){exempt_clause}
               )"""
 
 
@@ -293,6 +320,7 @@ def _build_rows(
     metrics_config: dict[str, Any],
     collection_config: dict[str, Any],
     metric_year_override: int | None,
+    exemptions: dict[tuple[str, str], dict[str, Any]],
 ) -> list[dict[str, Any]]:
     metrics = metrics_config.get("domains", {}).get(domain, {})
     metric_year = metric_year_override or collection_config.get("defaults", {}).get("metric_year")
@@ -303,6 +331,8 @@ def _build_rows(
             metric = metrics.get(metric_key)
             if not metric:
                 raise KeyError(f"outcome metric not registered for {domain}: {metric_key}")
+            exemption = exemptions.get((domain, str(entity["entity_code"])))
+            applies = bool(exemption and _exemption_applies(exemption, metric_key))
             queries = [
                 template.format(
                     entity_name=entity["entity_name"],
@@ -324,17 +354,18 @@ def _build_rows(
                 "metric_unit": metric["unit"],
                 "metric_year": metric_year,
                 "search_queries": json.dumps(queries, ensure_ascii=False),
-                "status": status,
+                "status": exemption["status"] if applies else status,
+                "blocking_reason": exemption["blocking_reason"] if applies else "",
                 "metric_value": "",
-                "source_title": "",
-                "source_url": "",
-                "evidence_quote": "",
+                "source_title": exemption["source_title"] if applies else "",
+                "source_url": exemption["source_url"] if applies else "",
+                "evidence_quote": exemption["evidence_quote"] if applies else "",
                 "metric_scope": "",
                 "denominator": "",
-                "source_date": "",
-                "availability_date": "",
+                "source_date": exemption["source_date"] if applies else "",
+                "availability_date": exemption["availability_date"] if applies else "",
                 "built_at": "",
-                "notes": "",
+                "notes": _append_note("", str(exemption["review_note"]) if applies else ""),
             })
     return rows
 
@@ -344,3 +375,31 @@ def _write_csv(path: Path, rows: list[dict[str, Any]]) -> None:
         writer = csv.DictWriter(f, fieldnames=PLAN_COLUMNS, extrasaction="ignore")
         writer.writeheader()
         writer.writerows(rows)
+
+
+def _school_exempt_entity_codes(
+    exemptions: dict[tuple[str, str], dict[str, Any]],
+    domain: str,
+) -> set[str]:
+    return {
+        entity_code
+        for (exempt_domain, entity_code), exemption in exemptions.items()
+        if exempt_domain == domain and _exemption_applies(exemption, None)
+    }
+
+
+def _exemption_applies(exemption: dict[str, Any], metric_key: str | None) -> bool:
+    metric_keys = [str(item).strip() for item in exemption.get("metric_keys") or [] if str(item).strip()]
+    if metric_keys and metric_key is not None:
+        return metric_key in metric_keys
+    return True
+
+
+def _append_note(current: str, note: str) -> str:
+    current = str(current or "").strip()
+    note = str(note or "").strip()
+    if not note:
+        return current
+    if not current:
+        return note
+    return f"{current}; {note}"

@@ -71,6 +71,7 @@ from datahub.builders.outcome_collection_batch import (
     build_outcome_collection_batch,
     merge_outcome_collection_batch,
 )
+from datahub.builders.outcome_collection_exemptions import audit_outcome_collection_exemptions
 from datahub.builders.outcome_collection_seed_merge import (
     apply_outcome_collection_review_seeds,
     audit_outcome_collection_review_seeds,
@@ -8986,6 +8987,66 @@ def test_build_outcome_collection_plan_from_core_admission_plan(tmp_path: Path):
     assert manifest["metric_year"] == 2024
 
 
+def test_audit_outcome_collection_exemptions_registry(tmp_path: Path):
+    report = audit_outcome_collection_exemptions(report_path=tmp_path / "outcome_collection_exemptions.json")
+
+    assert report["errors"] == []
+    assert report["status_counts"] == {"blocked": 1, "not_applicable": 1}
+    assert {row["entity_code"] for row in report["exemptions"]} == {"4822", "X012"}
+    assert any(row["review_note"] for row in report["exemptions"])
+    assert (tmp_path / "outcome_collection_exemptions.json").exists()
+
+
+def test_build_outcome_collection_plan_marks_school_exemptions_blocked(tmp_path: Path):
+    db = tmp_path / "core.duckdb"
+    con = duckdb.connect(str(db))
+    try:
+        con.execute("""
+            CREATE TABLE fa_dim_ln_admission_plan (
+                school_code VARCHAR,
+                school_name VARCHAR,
+                major_full VARCHAR,
+                batch VARCHAR,
+                subject_cat VARCHAR
+            )
+        """)
+        con.execute("""
+            INSERT INTO fa_dim_ln_admission_plan VALUES
+                ('4822', '桂林信息工程职业学院', '计算机网络技术', '本科批', '物理类'),
+                ('4822', '桂林信息工程职业学院', '大数据技术', '本科批', '物理类'),
+                ('X012', '香港珠海学院', '新闻学', '本科批', '历史类'),
+                ('X012', '香港珠海学院', '会计学', '本科批', '历史类'),
+                ('0140', '辽宁大学', '法学', '本科批', '历史类')
+        """)
+    finally:
+        con.close()
+
+    result = build_outcome_collection_plan(
+        core_db=db,
+        output_dir=tmp_path / "collection_exemptions",
+        domains=["school"],
+        school_limit=10,
+        metric_year=2024,
+    )
+
+    assert result["rows"] == 12
+    assert result["blocked_rows"] == 8
+    with Path(result["csv"]).open(encoding="utf-8", newline="") as f:
+        rows = list(csv.DictReader(f))
+    exempt_rows = [row for row in rows if row["entity_code"] in {"4822", "X012"}]
+    assert {row["status"] for row in exempt_rows if row["entity_code"] == "4822"} == {"not_applicable"}
+    assert {row["status"] for row in exempt_rows if row["entity_code"] == "X012"} == {"blocked"}
+    assert {row["blocking_reason"] for row in rows if row["entity_code"] == "4822"} == {"no_graduates_yet"}
+    assert {row["blocking_reason"] for row in rows if row["entity_code"] == "X012"} == {"no_public_school_level_outcome_report"}
+    assert any(row["source_title"] for row in rows if row["entity_code"] == "4822")
+    assert any(row["notes"] for row in rows if row["entity_code"] == "4822")
+    audit = audit_outcome_collection_plan(Path(result["csv"]))
+    assert audit["errors"] == []
+    assert audit["progress"]["blocked_rows"] == 8
+    manifest = json.loads(Path(result["manifest"]).read_text(encoding="utf-8"))
+    assert manifest["blocked_rows"] == 8
+
+
 def test_build_outcome_collection_plan_can_skip_covered_school_outcomes(tmp_path: Path):
     db = tmp_path / "core.duckdb"
     con = duckdb.connect(str(db))
@@ -11184,6 +11245,26 @@ def test_audit_outcome_collection_plan_reports_progress_and_errors(tmp_path: Pat
             "entity_name": "东北大学",
             "priority_rank": "1",
             "plan_rows": "120",
+            "metric_key": "keep_research_rate",
+            "metric_label": "保研率",
+            "metric_unit": "ratio",
+            "metric_year": "2025",
+            "search_queries": json.dumps(["东北大学 2025 就业质量报告"], ensure_ascii=False),
+            "status": "verified",
+            "metric_value": "0",
+            "source_title": "2025届毕业生就业质量报告",
+            "source_url": "https://example.edu/report.pdf",
+            "evidence_quote": "本科毕业生保研率为0%。",
+            "metric_scope": "本科毕业生",
+            "denominator": "",
+            "notes": "",
+        })
+        writer.writerow({
+            "domain": "school",
+            "entity_code": "10145",
+            "entity_name": "东北大学",
+            "priority_rank": "1",
+            "plan_rows": "120",
             "metric_key": "made_up_metric",
             "metric_label": "未知指标",
             "metric_unit": "ratio",
@@ -11221,9 +11302,10 @@ def test_audit_outcome_collection_plan_reports_progress_and_errors(tmp_path: Pat
 
     report = audit_outcome_collection_plan(plan)
 
-    assert report["rows"] == 3
-    assert report["progress"]["complete_rows"] == 2
-    assert report["evidence_counts"]["rows_with_source_url"] == 1
+    assert report["rows"] == 4
+    assert report["progress"]["complete_rows"] == 3
+    assert report["evidence_counts"]["rows_with_source_url"] == 2
+    assert report["evidence_counts"]["rows_with_metric_value"] == 3
     assert any("unregistered outcome metric" in error for error in report["errors"])
     assert any("search_queries is not valid JSON" in error for error in report["errors"])
     assert any("complete status missing evidence" in error for error in report["errors"])
@@ -12925,6 +13007,7 @@ def _outcome_plan_row(
         "metric_year": "2025",
         "search_queries": json.dumps([f"{entity_name} 2025 {metric_label}"], ensure_ascii=False),
         "status": status,
+        "blocking_reason": "",
         "metric_value": "",
         "source_title": "",
         "source_url": "",

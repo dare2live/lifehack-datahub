@@ -55,6 +55,11 @@ def load_outcome_collection_review_seeds() -> dict[str, Any]:
     return load_json_config(path)
 
 
+def load_outcome_collection_exemptions() -> dict[str, Any]:
+    path = CONFIG_DIR / "outcome_collection_exemptions.json"
+    return load_json_config(path)
+
+
 def load_outcome_report_sources() -> dict[str, Any]:
     path = CONFIG_DIR / "outcome_report_sources.json"
     return load_json_config(path)

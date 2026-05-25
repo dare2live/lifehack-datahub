@@ -12,6 +12,7 @@ from datahub.builders.outcome_collection_batch import (
     build_outcome_collection_batch,
     merge_outcome_collection_batch,
 )
+from datahub.builders.outcome_collection_exemptions import audit_outcome_collection_exemptions
 from datahub.builders.outcome_collection_package import build_outcome_packages_from_collection_plan
 from datahub.builders.outcome_collection_plan import build_outcome_collection_plan
 from datahub.builders.outcome_collection_progress_report import build_outcome_collection_progress_report
@@ -54,6 +55,7 @@ from datahub.parsers.outcome_report import (
 COMMANDS = {
     "build-outcome-collection-plan",
     "audit-outcome-collection-plan",
+    "audit-outcome-collection-exemptions",
     "build-outcome-collection-progress-report",
     "audit-outcome-collection-core-coverage",
     "build-outcome-collection-batch",
@@ -108,6 +110,12 @@ def register_outcome_commands(sub) -> None:
     audit_outcome_collection.add_argument("--plan-csv", required=True, type=Path)
     audit_outcome_collection.add_argument("--report", type=Path)
 
+    audit_outcome_collection_exemptions_parser = sub.add_parser(
+        "audit-outcome-collection-exemptions",
+        help="Audit configured outcome collection exemptions and blockers",
+    )
+    audit_outcome_collection_exemptions_parser.add_argument("--report", type=Path)
+
     build_outcome_collection_progress = sub.add_parser(
         "build-outcome-collection-progress-report",
         help="Build an operator-facing outcome progress report with per-metric coverage and top missing tasks",
@@ -116,6 +124,7 @@ def register_outcome_commands(sub) -> None:
     build_outcome_collection_progress.add_argument("--report", required=True, type=Path)
     build_outcome_collection_progress.add_argument("--top-limit", type=int, default=50)
     build_outcome_collection_progress.add_argument("--metric-key", action="append", dest="metric_keys")
+    build_outcome_collection_progress.add_argument("--core-db", type=Path)
 
     audit_outcome_collection_core = sub.add_parser(
         "audit-outcome-collection-core-coverage",
@@ -408,6 +417,10 @@ def handle_outcome_command(args: Namespace) -> int | None:
         _write_report(args.report, report)
         _print_json(report)
         return 0 if not report["errors"] else 1
+    if args.cmd == "audit-outcome-collection-exemptions":
+        report = audit_outcome_collection_exemptions(report_path=args.report)
+        _print_json(report)
+        return 0 if not report["errors"] else 1
     if args.cmd == "audit-outcome-collection-core-coverage":
         report = audit_outcome_collection_core_coverage(
             plan_csv=args.plan_csv,
@@ -422,6 +435,7 @@ def handle_outcome_command(args: Namespace) -> int | None:
             report_path=args.report,
             top_limit=args.top_limit,
             metric_keys=args.metric_keys,
+            core_db=args.core_db,
         )
         _print_json(report)
         return 0 if not report["errors"] else 1

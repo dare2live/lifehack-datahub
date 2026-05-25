@@ -5,16 +5,20 @@ import csv
 import json
 from collections import Counter
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 from datahub.config import load_outcome_collection, load_outcome_metrics
 
 
-def audit_outcome_collection_plan(plan_csv: Path) -> dict[str, Any]:
+def audit_outcome_collection_plan(
+    plan_csv: Path,
+    *,
+    rows: Optional[list[dict[str, Any]]] = None,
+) -> dict[str, Any]:
     config = load_outcome_collection()
     metrics_config = load_outcome_metrics()
     audit_config = _audit_config(config)
-    rows = _read_csv(plan_csv)
+    rows = rows if rows is not None else _read_csv(plan_csv)
     errors: list[str] = []
     warnings: list[str] = []
 
@@ -116,13 +120,19 @@ def _validate_row(
 
     if status not in audit_config["known_statuses"]:
         errors.append(f"row {index} uses unknown collection status: {status}")
+    if status in audit_config["blocked_statuses"]:
+        if _is_blank_value(row.get("blocking_reason")):
+            errors.append(f"row {index} blocked status missing blocking_reason")
+        if not _is_blank_value(row.get("metric_value")):
+            errors.append(f"row {index} blocked status must not set metric_value: {row.get('metric_value')}")
 
     _validate_search_queries(index, row.get("search_queries"), errors)
     for column in audit_config["required_evidence_columns"]:
-        if str(row.get(column) or "").strip():
+        if not _is_blank_value(row.get(column)):
             evidence_counts[f"rows_with_{column}"] += 1
 
-    metric_value = str(row.get("metric_value") or "").strip()
+    metric_value_raw = row.get("metric_value")
+    metric_value = "" if metric_value_raw is None else str(metric_value_raw).strip()
     if metric_value and metric:
         value = _as_number(metric_value)
         if value is None:
@@ -139,7 +149,7 @@ def _validate_row(
         missing_evidence = [
             column
             for column in audit_config["required_evidence_columns"]
-            if not str(row.get(column) or "").strip()
+            if _is_blank_value(row.get(column))
         ]
         if missing_evidence:
             errors.append(f"row {index} complete status missing evidence: {', '.join(missing_evidence)}")
@@ -163,6 +173,14 @@ def _as_number(value: str) -> float | None:
         return float(text)
     except ValueError:
         return None
+
+
+def _is_blank_value(value: Any) -> bool:
+    if value is None:
+        return True
+    if isinstance(value, str):
+        return not value.strip()
+    return False
 
 
 def _read_csv(path: Path) -> list[dict[str, Any]]:

@@ -1,0 +1,37 @@
+{
+  "version": "1",
+  "updated_at": "2026-05-26",
+  "notes": "Outcome collection exemption registry. These rows are system-level blockers or not-applicable cases and must stay out of normal todo coverage until the exemption is revisited.",
+  "school_outcome_exemptions": [
+    {
+      "domain": "school",
+      "entity_code": "4822",
+      "entity_name": "桂林信息工程职业学院",
+      "status": "not_applicable",
+      "blocking_reason": "no_graduates_yet",
+      "source_title": "桂林信息工程职业学院2025年招生章程",
+      "source_url": "https://www.glcie.edu.cn/html/1055/2025-01-05/content-2003.html",
+      "evidence_quote": "目前尚无毕业生",
+      "source_date": "2025-01-05",
+      "availability_date": "2025-01-05",
+      "reviewer": "codex",
+      "reviewed_at": "2026-05-26",
+      "review_note": "学校官方招生章程明确写明目前尚无毕业生，学校 outcome 指标暂不适用，按 not_applicable 管理。"
+    },
+    {
+      "domain": "school",
+      "entity_code": "X012",
+      "entity_name": "香港珠海学院",
+      "status": "blocked",
+      "blocking_reason": "no_public_school_level_outcome_report",
+      "source_title": "香港珠海学院官方网站 Programme Information",
+      "source_url": "https://www.chuhai.edu.hk/en/programme-information",
+      "evidence_quote": "",
+      "source_date": "2026-05-26",
+      "availability_date": "2026-05-26",
+      "reviewer": "codex",
+      "reviewed_at": "2026-05-26",
+      "review_note": "官方站点可见课程与招生信息，但未检出学校级 outcome 报告；先按 blocked 管理，待后续人工复核或官方发布后再解除。"
+    }
+  ]
+}
