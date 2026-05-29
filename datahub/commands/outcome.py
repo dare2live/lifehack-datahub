@@ -21,6 +21,11 @@ from datahub.builders.outcome_collection_seed_merge import (
     apply_outcome_collection_review_seeds,
     audit_outcome_collection_review_seeds,
 )
+from datahub.builders.outcome_policy_hint_batch import (
+    audit_outcome_policy_hint_route_evidence,
+    build_official_route_source_plan_from_policy_hints,
+    build_outcome_policy_hint_review_batch,
+)
 from datahub.builders.outcome_report_extraction_plan import build_outcome_report_extraction_plan
 from datahub.builders.outcome_report_extraction_runner import run_outcome_report_extraction_plan
 from datahub.builders.outcome_report_intake_merge import merge_outcome_report_intake_results
@@ -63,6 +68,9 @@ COMMANDS = {
     "inherit-outcome-collection-verified",
     "audit-outcome-collection-review-seeds",
     "apply-outcome-collection-review-seeds",
+    "build-outcome-policy-hint-review-batch",
+    "audit-outcome-policy-hint-route-evidence",
+    "build-official-route-source-plan-from-policy-hints",
     "merge-outcome-report-candidates",
     "build-outcome-report-source-plan",
     "audit-outcome-report-source-plan",
@@ -176,6 +184,44 @@ def register_outcome_commands(sub) -> None:
     apply_outcome_collection_review_seeds_parser.add_argument("--output", required=True, type=Path)
     apply_outcome_collection_review_seeds_parser.add_argument("--report", type=Path)
     apply_outcome_collection_review_seeds_parser.add_argument("--overwrite", action="store_true")
+
+    build_outcome_policy_hint_batch_parser = sub.add_parser(
+        "build-outcome-policy-hint-review-batch",
+        help="Build a bounded local review batch from unresolved outcome seed policy hints",
+    )
+    build_outcome_policy_hint_batch_parser.add_argument("--output-dir", required=True, type=Path)
+    build_outcome_policy_hint_batch_parser.add_argument("--limit", type=int)
+    build_outcome_policy_hint_batch_parser.add_argument("--hint-kind", action="append", dest="hint_kinds")
+    build_outcome_policy_hint_batch_parser.add_argument("--metric-key", action="append", dest="metric_keys")
+    build_outcome_policy_hint_batch_parser.add_argument("--source-host", action="append", dest="source_hosts")
+    build_outcome_policy_hint_batch_parser.add_argument(
+        "--source-policy-tier",
+        action="append",
+        dest="source_policy_tiers",
+    )
+    build_outcome_policy_hint_batch_parser.add_argument(
+        "--official-route-status",
+        action="append",
+        dest="official_route_statuses",
+    )
+
+    audit_outcome_policy_hint_route_parser = sub.add_parser(
+        "audit-outcome-policy-hint-route-evidence",
+        help="Audit a policy hint review batch against local official report artifacts and candidates",
+    )
+    audit_outcome_policy_hint_route_parser.add_argument("--batch-csv", required=True, type=Path)
+    audit_outcome_policy_hint_route_parser.add_argument("--artifact-root", type=Path, default=Path("."))
+    audit_outcome_policy_hint_route_parser.add_argument("--output-csv", type=Path)
+    audit_outcome_policy_hint_route_parser.add_argument("--report", type=Path)
+
+    official_route_source_plan_parser = sub.add_parser(
+        "build-official-route-source-plan-from-policy-hints",
+        help="Build a report-source plan from active official routes in policy hint rows",
+    )
+    official_route_source_plan_parser.add_argument("--batch-csv", required=True, type=Path)
+    official_route_source_plan_parser.add_argument("--output", required=True, type=Path)
+    official_route_source_plan_parser.add_argument("--report", type=Path)
+    official_route_source_plan_parser.add_argument("--status")
 
     merge_outcome_candidates = sub.add_parser(
         "merge-outcome-report-candidates",
@@ -477,6 +523,36 @@ def handle_outcome_command(args: Namespace) -> int | None:
             output=args.output,
             report_path=args.report,
             overwrite=args.overwrite,
+        )
+        _print_json(report)
+        return 0
+    if args.cmd == "build-outcome-policy-hint-review-batch":
+        result = build_outcome_policy_hint_review_batch(
+            output_dir=args.output_dir,
+            limit=args.limit,
+            hint_kinds=args.hint_kinds,
+            metric_keys=args.metric_keys,
+            source_hosts=args.source_hosts,
+            source_policy_tiers=args.source_policy_tiers,
+            official_route_statuses=args.official_route_statuses,
+        )
+        _print_json(result)
+        return 0
+    if args.cmd == "audit-outcome-policy-hint-route-evidence":
+        report = audit_outcome_policy_hint_route_evidence(
+            batch_csv=args.batch_csv,
+            artifact_root=args.artifact_root,
+            output_csv=args.output_csv,
+            report_path=args.report,
+        )
+        _print_json(report)
+        return 0
+    if args.cmd == "build-official-route-source-plan-from-policy-hints":
+        report = build_official_route_source_plan_from_policy_hints(
+            batch_csv=args.batch_csv,
+            output=args.output,
+            report_path=args.report,
+            status=args.status,
         )
         _print_json(report)
         return 0

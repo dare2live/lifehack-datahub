@@ -69,6 +69,312 @@
       "require_review_for_conflicting_values": true
     }
   },
+  "source_lineage_taxonomy": {
+    "lineage_spine": [
+      "source_key",
+      "source_instance_key",
+      "artifact_uri",
+      "raw_artifact_hash",
+      "parser_or_builder",
+      "normalized_row_key",
+      "review_decision",
+      "package_id",
+      "core_table_row"
+    ],
+    "source_key_granularity": "source_family",
+    "granularity_model": {
+      "source_family": "DataHub 顶层 source_key，表示一类数据管道或业务来源家族，例如 school_outcome；不表示某一所大学官网。",
+      "source_instance": "具体学校、年份、渠道或接口实例，例如某校 2024 就业质量报告 URL、招生办页面或就业网栏目。",
+      "artifact_snapshot": "一次下载或 intake 的 PDF、Excel、HTML、图片、API 响应或人工文件，必须有 hash、source_date 和 availability_date。",
+      "candidate_record": "从 artifact 解析出的候选指标、事实或映射行，进入 review batch 前不得覆盖标准包。",
+      "published_record": "通过复核、manifest 和质量门禁后进入标准包/core 的行。"
+    },
+    "data_domains": {
+      "admission": "报考与录取事实，包括招生计划、投档线、分数段和历史位次。",
+      "school": "学校画像、校区位置、招聘活动、科研平台和学校城市产业连接。",
+      "outcome": "学校或专业出口结果，包括就业、升学、留辽、机关等结果指标。",
+      "career": "职业目录、岗位需求、专业角色映射和职业/城市适配。",
+      "city_life": "城市底盘、公共资源、生活成本、校区周边和上市公司城市信号。",
+      "policy_industry": "政策产业映射、产业园区和政策兑现历史。",
+      "reference": "跨域基础目录、别名、标准化和人工映射参考。",
+      "governance": "DataHub 更新治理、source health 和运行元数据。"
+    },
+    "acquisition_methods": {
+      "manual_excel": "受控人工 Excel 或本地工作簿 intake。",
+      "official_research": "官方来源研究或官方派生候选。",
+      "official_remote_file": "官方公开附件、目录或报告远程文件。",
+      "official_web_api": "官方 Web API 或官方附件接口。",
+      "web_api": "受控第三方 Web API。",
+      "manual_review": "人工复核后晋级的候选或配置化映射。",
+      "manual_snapshot": "人工导入的快照型外部数据。",
+      "collection_review": "采集计划 + 证据摘录 + 人工复核链路。",
+      "derived_rebuild": "从已发布标准包或受控配置重建。",
+      "governance_config": "治理配置或更新运行元数据。"
+    },
+    "evidence_tiers": {
+      "official_distribution": "官方系统、官方杂志或官方明确分发渠道。",
+      "controlled_manual": "本地受控清洗文件，必须回指上游官方分发说明。",
+      "official_source_research": "官方来源研究候选，未完成标准包发布前不得覆盖 core。",
+      "official_attachment": "官方附件或官方报告文件。",
+      "government_source": "政府、教育主管部门或官方目录。",
+      "government_statistics": "官方统计公报、年鉴或公共服务统计。",
+      "verified_web_api": "已登记 key、限流和响应 schema 的 Web API。",
+      "reviewed_manual": "人工复核通过的补充记录、映射或指标。",
+      "derived_from_reviewed": "从已发布包、受控配置或 approved 行派生。",
+      "governed_metadata": "DataHub 治理和运行元数据。",
+      "market_snapshot": "外部市场、招聘、住房或公司快照，必须保留 snapshot lineage。",
+      "official_report": "学校就业质量报告、年度报告或官方发布报告。",
+      "official_site_snapshot": "学校就业网、招聘网或官方站点页面快照。",
+      "authorized_dataset": "已复核且授权边界明确的外部数据集或只读快照。",
+      "public_ranking": "公开榜单或指标汇编，只能作为候选信号。"
+    },
+    "processing_stages": {
+      "source_config": "来源和治理配置登记。",
+      "raw_snapshot": "原始文件、API 响应、页面或人工 intake 快照。",
+      "candidate": "解析后的候选记录，尚未批准发布。",
+      "reviewed": "人工复核或规则复核通过的标准输入。",
+      "published_package": "已通过 manifest 与质量门禁的标准包。",
+      "derived_mart": "从已发布包重建的评分或解释 mart。"
+    },
+    "source_domains": {
+      "ln_admission_plan": "admission",
+      "ln_application_workbook": "admission",
+      "ln_score_history": "admission",
+      "ln_projection_score": "admission",
+      "ln_score_distribution": "admission",
+      "moe_major_catalog": "reference",
+      "major_mapping_review": "reference",
+      "school_profile": "school",
+      "school_profile_supplemental": "school",
+      "school_location_geocode": "school",
+      "region_profile_geocode": "city_life",
+      "entity_normalization_registry": "reference",
+      "data_update_governance": "governance",
+      "campus_surrounding_poi": "city_life",
+      "campus_housing_market": "city_life",
+      "region_living_cost": "city_life",
+      "campus_living_score": "city_life",
+      "school_identity_bridge": "school",
+      "school_outcome": "outcome",
+      "major_outcome": "outcome",
+      "school_recruitment_event": "school",
+      "school_research_industry_link": "school",
+      "school_local_employment": "school",
+      "city_industry_zone": "policy_industry",
+      "school_city_industry_fit": "school",
+      "city_economic_indicator": "city_life",
+      "city_public_resource": "city_life",
+      "city_listed_company_signal": "city_life",
+      "city_ranking_signal": "city_life",
+      "city_development_score": "city_life",
+      "major_employment_role_map": "career",
+      "company_role_demand_signal": "career",
+      "major_city_employment_fit": "career",
+      "career_occupation_catalog": "career",
+      "career_civil_service_posts": "career",
+      "career_signal": "career",
+      "career_score": "career",
+      "policy_industry_map": "policy_industry",
+      "policy_plan_history": "policy_industry"
+    },
+    "source_kind_defaults": {
+      "controlled_manual_export": {
+        "acquisition_method": "manual_excel",
+        "evidence_tier": "official_distribution",
+        "processing_stage": "raw_snapshot"
+      },
+      "controlled_manual_cleaned_workbook": {
+        "acquisition_method": "manual_excel",
+        "evidence_tier": "controlled_manual",
+        "processing_stage": "raw_snapshot"
+      },
+      "official_source_research": {
+        "acquisition_method": "official_research",
+        "evidence_tier": "official_source_research",
+        "processing_stage": "candidate"
+      },
+      "official_attachment": {
+        "acquisition_method": "official_remote_file",
+        "evidence_tier": "official_attachment",
+        "processing_stage": "raw_snapshot"
+      },
+      "official_score_distribution": {
+        "acquisition_method": "official_remote_file",
+        "evidence_tier": "official_attachment",
+        "processing_stage": "raw_snapshot"
+      },
+      "public_catalog": {
+        "acquisition_method": "official_remote_file",
+        "evidence_tier": "government_source",
+        "processing_stage": "published_package"
+      },
+      "core_review_db": {
+        "acquisition_method": "manual_review",
+        "evidence_tier": "reviewed_manual",
+        "processing_stage": "reviewed"
+      },
+      "official_catalog_or_verified_profile": {
+        "acquisition_method": "official_remote_file",
+        "evidence_tier": "government_source",
+        "processing_stage": "published_package"
+      },
+      "reviewed_supplemental_profile": {
+        "acquisition_method": "manual_review",
+        "evidence_tier": "reviewed_manual",
+        "processing_stage": "reviewed"
+      },
+      "verified_address_plus_amap_web_api_geocode": {
+        "acquisition_method": "web_api",
+        "evidence_tier": "verified_web_api",
+        "processing_stage": "published_package"
+      },
+      "amap_web_api_district_profile": {
+        "acquisition_method": "web_api",
+        "evidence_tier": "verified_web_api",
+        "processing_stage": "raw_snapshot"
+      },
+      "derived_semantic_registry": {
+        "acquisition_method": "derived_rebuild",
+        "evidence_tier": "derived_from_reviewed",
+        "processing_stage": "derived_mart"
+      },
+      "datahub_update_metadata": {
+        "acquisition_method": "governance_config",
+        "evidence_tier": "governed_metadata",
+        "processing_stage": "source_config"
+      },
+      "amap_web_api_poi_around_snapshot": {
+        "acquisition_method": "web_api",
+        "evidence_tier": "verified_web_api",
+        "processing_stage": "raw_snapshot"
+      },
+      "housing_listing_or_public_market_snapshot": {
+        "acquisition_method": "manual_snapshot",
+        "evidence_tier": "market_snapshot",
+        "processing_stage": "raw_snapshot"
+      },
+      "public_statistics_and_market_snapshot": {
+        "acquisition_method": "collection_review",
+        "evidence_tier": "government_statistics",
+        "processing_stage": "candidate"
+      },
+      "derived_from_campus_geo_poi_and_housing": {
+        "acquisition_method": "derived_rebuild",
+        "evidence_tier": "derived_from_reviewed",
+        "processing_stage": "derived_mart"
+      },
+      "core_db_plus_official_catalog": {
+        "acquisition_method": "derived_rebuild",
+        "evidence_tier": "derived_from_reviewed",
+        "processing_stage": "reviewed"
+      },
+      "annual_report_metrics": {
+        "acquisition_method": "collection_review",
+        "evidence_tier": "official_report",
+        "processing_stage": "candidate"
+      },
+      "curated_outcome_metrics": {
+        "acquisition_method": "manual_review",
+        "evidence_tier": "reviewed_manual",
+        "processing_stage": "reviewed"
+      },
+      "campus_career_site_snapshot": {
+        "acquisition_method": "collection_review",
+        "evidence_tier": "official_site_snapshot",
+        "processing_stage": "candidate"
+      },
+      "official_research_platform_and_industry_mapping": {
+        "acquisition_method": "collection_review",
+        "evidence_tier": "official_report",
+        "processing_stage": "candidate"
+      },
+      "annual_employment_report_metrics": {
+        "acquisition_method": "collection_review",
+        "evidence_tier": "official_report",
+        "processing_stage": "candidate"
+      },
+      "government_industry_zone_catalog": {
+        "acquisition_method": "collection_review",
+        "evidence_tier": "government_source",
+        "processing_stage": "candidate"
+      },
+      "derived_school_city_industry_mart": {
+        "acquisition_method": "derived_rebuild",
+        "evidence_tier": "derived_from_reviewed",
+        "processing_stage": "derived_mart"
+      },
+      "official_statistics_indicator": {
+        "acquisition_method": "collection_review",
+        "evidence_tier": "government_statistics",
+        "processing_stage": "candidate"
+      },
+      "official_public_service_indicator": {
+        "acquisition_method": "collection_review",
+        "evidence_tier": "government_source",
+        "processing_stage": "candidate"
+      },
+      "listed_company_city_aggregate": {
+        "acquisition_method": "manual_snapshot",
+        "evidence_tier": "authorized_dataset",
+        "processing_stage": "raw_snapshot"
+      },
+      "curated_city_ranking_signal": {
+        "acquisition_method": "collection_review",
+        "evidence_tier": "public_ranking",
+        "processing_stage": "candidate"
+      },
+      "derived_city_context_mart": {
+        "acquisition_method": "derived_rebuild",
+        "evidence_tier": "derived_from_reviewed",
+        "processing_stage": "derived_mart"
+      },
+      "curated_major_role_mapping": {
+        "acquisition_method": "manual_review",
+        "evidence_tier": "reviewed_manual",
+        "processing_stage": "reviewed"
+      },
+      "company_role_demand_snapshot": {
+        "acquisition_method": "collection_review",
+        "evidence_tier": "market_snapshot",
+        "processing_stage": "candidate"
+      },
+      "derived_major_city_employment_mart": {
+        "acquisition_method": "derived_rebuild",
+        "evidence_tier": "derived_from_reviewed",
+        "processing_stage": "derived_mart"
+      },
+      "official_catalog": {
+        "acquisition_method": "official_remote_file",
+        "evidence_tier": "government_source",
+        "processing_stage": "published_package"
+      },
+      "official_web_api_attachment": {
+        "acquisition_method": "official_web_api",
+        "evidence_tier": "official_attachment",
+        "processing_stage": "raw_snapshot"
+      },
+      "career_market_metrics": {
+        "acquisition_method": "collection_review",
+        "evidence_tier": "market_snapshot",
+        "processing_stage": "candidate"
+      },
+      "derived_career_mart": {
+        "acquisition_method": "derived_rebuild",
+        "evidence_tier": "derived_from_reviewed",
+        "processing_stage": "derived_mart"
+      },
+      "curated_policy_mapping": {
+        "acquisition_method": "manual_review",
+        "evidence_tier": "reviewed_manual",
+        "processing_stage": "reviewed"
+      },
+      "curated_policy_backtest": {
+        "acquisition_method": "manual_review",
+        "evidence_tier": "reviewed_manual",
+        "processing_stage": "reviewed"
+      }
+    }
+  },
   "validity_checks": {
     "remote_file": ["url_accessible", "content_hash", "file_size", "mime_type", "source_date_present"],
     "web_api": ["endpoint_accessible", "status_code_ok", "response_schema", "quota_error_absent", "key_not_logged"],
@@ -226,9 +532,9 @@
     }
   },
   "state_management": {
-    "snapshot_id_pattern": "{source_key}:{partition_hash}:{content_hash}:{source_date}",
+    "snapshot_id_pattern": "{source_key}:{source_instance_key}:{partition_hash}:{content_hash}:{source_date}",
     "content_hash_scope": ["raw_file_bytes", "api_response_body", "normalized_candidate_row", "package_manifest"],
-    "partition_state_fields": ["source_key", "target_table", "partition_key_json", "source_date", "availability_date", "content_hash"],
+    "partition_state_fields": ["source_key", "source_instance_key", "target_table", "partition_key_json", "source_date", "availability_date", "content_hash"],
     "supersede_policy": "新快照不覆盖旧快照；发布层用 source_date/availability_date 和 promotion_status 选择当前版本。",
     "stale_policy": {
       "mark_stale_after_failed_health_checks": 2,

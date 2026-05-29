@@ -39,7 +39,7 @@ CANDIDATE_COLUMNS = [
     "notes",
 ]
 
-PERCENT_RE = re.compile(r"(?<!\d)(\d{1,3}(?:\.\d+)?)\s*%")
+PERCENT_RE = re.compile(r"(?<![\d.])(\d{1,3}(?:\.\d+)?)\s*%")
 NUMBER_RE = re.compile(r"(?<!\d)(\d{1,3}(?:\.\d+)?)(?!\d)")
 SPACE_RE = re.compile(r"\s+")
 CONTROL_CHAR_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f]")
@@ -506,6 +506,10 @@ def _candidate_values(line: str, metric: dict[str, Any], alias: str) -> list[tup
             return []
         if match:
             return [(match.group(0), round(float(match.group(1)) / 100, 6))]
+        compact_table_match = _compact_table_ratio_match(clause[search_start:])
+        if compact_table_match:
+            value = compact_table_match.group(1)
+            return [(f"{value}%", round(float(value) / 100, 6))]
         occupied = _occupied_ratio_match(clause[search_start:])
         if occupied:
             return [(occupied.group(0), round(float(occupied.group(1)) / 100, 6))]
@@ -530,6 +534,10 @@ def _candidate_clause(line: str, search_start: int) -> str:
 def _occupied_ratio_match(clause: str) -> re.Match[str] | None:
     match = re.search(r"占(?:比|本科毕业生总数|毕业生总数|应届本科毕业生总数)?\s*[^%]{0,12}?" + PERCENT_RE.pattern, clause)
     return match
+
+
+def _compact_table_ratio_match(clause: str) -> re.Match[str] | None:
+    return re.search(r"^\s*\d{1,6}(\d{1,2}\.\d+)\s*%", str(clause or ""))
 
 
 def _broad_postgrad_alias_allowed(line: str, search_start: int) -> bool:

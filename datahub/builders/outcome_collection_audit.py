@@ -7,6 +7,7 @@ from collections import Counter
 from pathlib import Path
 from typing import Any, Optional
 
+from datahub.builders.outcome_evidence_policy import build_outcome_policy_hint_report
 from datahub.config import load_outcome_collection, load_outcome_metrics
 
 
@@ -52,6 +53,18 @@ def audit_outcome_collection_plan(
     complete_rows = sum(count for status, count in status_counts.items() if status in complete_statuses)
     blocked_rows = sum(count for status, count in status_counts.items() if status in blocked_statuses)
     pending_rows = len(rows) - complete_rows - blocked_rows
+    complete_plan_rows = [
+        row for row in rows if str(row.get("status") or "").strip() in complete_statuses
+    ]
+    policy_hints = build_outcome_policy_hint_report(
+        config,
+        complete_plan_rows,
+        text_fields=("metric_scope", "evidence_quote", "notes"),
+    )
+    if policy_hints["source_hint_rows"]:
+        warnings.append(f"source policy hints on complete rows require review: {len(policy_hints['source_hint_rows'])}")
+    if policy_hints["semantic_hint_rows"]:
+        warnings.append(f"semantic policy hints on complete rows require review: {len(policy_hints['semantic_hint_rows'])}")
     return {
         "plan_csv": str(plan_csv),
         "rows": len(rows),
@@ -74,6 +87,12 @@ def audit_outcome_collection_plan(
             "blocked_rows": blocked_rows,
             "completion_rate": round(complete_rows / len(rows), 4) if rows else 0,
         },
+        "source_host_counts": policy_hints["source_host_counts"],
+        "source_hint_counts": policy_hints["source_hint_counts"],
+        "source_hint_rows": policy_hints["source_hint_rows"],
+        "semantic_hint_counts": policy_hints["semantic_hint_counts"],
+        "semantic_hint_rows": policy_hints["semantic_hint_rows"],
+        "publication_ready": not errors and not pending_rows and not blocked_rows and not policy_hints["has_policy_hints"],
         "errors": errors,
         "warnings": warnings,
         "notes": "Collection audit only. It does not create an outcome data package or import core.",

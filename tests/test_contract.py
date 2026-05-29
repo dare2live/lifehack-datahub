@@ -76,6 +76,12 @@ from datahub.builders.outcome_collection_seed_merge import (
     apply_outcome_collection_review_seeds,
     audit_outcome_collection_review_seeds,
 )
+from datahub.builders.outcome_policy_hint_batch import (
+    BATCH_COLUMNS,
+    audit_outcome_policy_hint_route_evidence,
+    build_official_route_source_plan_from_policy_hints,
+    build_outcome_policy_hint_review_batch,
+)
 from datahub.builders.outcome_candidate_merge import merge_outcome_report_candidates
 from datahub.builders.outcome_collection_package import build_outcome_packages_from_collection_plan
 from datahub.builders.outcome_collection_verified_inherit import inherit_verified_outcome_collection_rows
@@ -143,6 +149,7 @@ from datahub.config import (
     load_outcome_metrics,
     load_outcome_report_sources,
     load_pipeline_error_policy,
+    load_sources,
     load_source_schemas,
 )
 from datahub.builders.school_identity import build_school_identity_package
@@ -209,6 +216,7 @@ from datahub.parsers.outcome_report import (
     extract_outcome_metric_candidates_from_report,
     write_outcome_metric_candidate_csv,
 )
+from datahub.orchestrator import audit_update, run_update
 from datahub.source_audit import audit_sources
 from datahub.validators.package_validator import validate_manifest
 
@@ -7868,9 +7876,26 @@ def test_data_update_policy_config_and_schemas():
     assert "major_city_employment_fit" in config["source_policies"]
     assert config["source_policies"]["career_civil_service_posts"]["validity_profile"] == "web_api"
     assert "career_civil_service_posts" in config["source_policies"]["career_signal"]["depends_on"]
+    taxonomy = config["source_lineage_taxonomy"]
+    assert taxonomy["source_key_granularity"] == "source_family"
+    assert "source_instance" in taxonomy["granularity_model"]
+    assert "artifact_snapshot" in taxonomy["granularity_model"]
+    assert "source_instance_key" in taxonomy["lineage_spine"]
+    assert "source_instance_key" in config["state_management"]["partition_state_fields"]
+    assert taxonomy["source_domains"]["ln_admission_plan"] == "admission"
+    assert taxonomy["source_domains"]["school_outcome"] == "outcome"
+    assert taxonomy["source_domains"]["city_development_score"] == "city_life"
+    assert taxonomy["source_domains"]["policy_industry_map"] == "policy_industry"
+    assert taxonomy["source_kind_defaults"]["annual_report_metrics"]["evidence_tier"] == "official_report"
+    assert taxonomy["source_kind_defaults"]["controlled_manual_cleaned_workbook"]["acquisition_method"] == "manual_excel"
 
     schemas = load_source_schemas()["tables"]
-    assert schemas["fa_meta_source_snapshot"]["primary_key"] == ["source_key", "snapshot_id"]
+    assert schemas["fa_meta_source_snapshot"]["primary_key"] == [
+        "source_key",
+        "source_instance_key",
+        "snapshot_id",
+    ]
+    assert "artifact_kind" in schemas["fa_meta_source_snapshot"]["required"]
     assert schemas["fa_meta_source_health"]["primary_key"] == ["source_key", "check_at", "check_type"]
     assert schemas["fa_meta_update_run"]["primary_key"] == ["update_run_id"]
     assert schemas["fa_meta_update_run_step"]["primary_key"] == ["update_run_id", "source_key", "step_key"]
@@ -8064,6 +8089,35 @@ def test_build_data_update_batch_plan_groups_parallel_sources(tmp_path: Path):
     assert "phase_complete_without_blocking_failure" in derived_batch["dependency_gate"]
 
 
+def test_run_update_writes_source_snapshot_artifacts(tmp_path: Path):
+    result = run_update(
+        output_root=tmp_path / "runs",
+        source_keys=["city_development_score"],
+        update_run_id="fixture_city_update_run",
+        source_date="2026-05-27",
+        availability_date="2026-05-27",
+    )
+
+    assert not result.get("errors")
+    assert result["source_snapshot_count"] == result["step_count"]
+    snapshot_path = Path(result["output_files"]["fa_meta_source_snapshot"])
+    assert snapshot_path.exists()
+    with snapshot_path.open(encoding="utf-8", newline="") as f:
+        rows = list(csv.DictReader(f))
+    assert len(rows) == result["step_count"]
+    city_score = next(row for row in rows if row["source_key"] == "city_development_score")
+    assert city_score["source_instance_key"] == "city_development_score:family"
+    assert city_score["snapshot_id"] == "fixture_city_update_run:city_development_score:family:2026-05-27"
+    assert city_score["artifact_kind"] == "update_governance_plan"
+    assert city_score["artifact_uri"].endswith("data_update_plan.csv")
+    assert city_score["manifest_path"].endswith("data_update_plan.json")
+    assert json.loads(city_score["notes"])["source_instance_granularity"] == "family"
+
+    audit = audit_update(output_root=tmp_path / "runs", run_id="fixture_city_update_run")
+    assert not audit.get("errors")
+    assert audit["source_snapshot_count"] == len(rows)
+
+
 def test_audit_score_source_coverage_tracks_derivation_gaps(tmp_path: Path):
     report_path = tmp_path / "score_source_coverage.json"
     report = audit_score_source_coverage(report_path=report_path)
@@ -8127,6 +8181,37 @@ def test_audit_data_update_policy_has_no_errors():
     assert report["errors"] == []
     assert report["status"] == "ok"
     assert report["policy_count"] >= 18
+    assert report["source_domain_counts"]["admission"] >= 5
+    assert report["source_domain_counts"]["outcome"] == 2
+    assert report["source_domain_counts"]["governance"] == 1
+
+
+def test_audit_data_update_policy_requires_source_lineage_taxonomy(monkeypatch: pytest.MonkeyPatch):
+    config = json.loads(json.dumps(load_data_update_policy(), ensure_ascii=False))
+    sources = load_sources()
+    schemas = load_source_schemas()
+    del config["source_lineage_taxonomy"]["source_domains"]["school_outcome"]
+
+    monkeypatch.setattr("datahub.builders.data_update_policy_audit.load_data_update_policy", lambda: config)
+    monkeypatch.setattr("datahub.builders.data_update_policy_audit.load_sources", lambda: sources)
+    monkeypatch.setattr("datahub.builders.data_update_policy_audit.load_source_schemas", lambda: schemas)
+
+    report = audit_data_update_policy()
+    assert "school_outcome: missing source domain taxonomy" in report["errors"]
+
+
+def test_audit_data_update_policy_rejects_unknown_lineage_defaults(monkeypatch: pytest.MonkeyPatch):
+    config = json.loads(json.dumps(load_data_update_policy(), ensure_ascii=False))
+    sources = load_sources()
+    schemas = load_source_schemas()
+    config["source_lineage_taxonomy"]["source_kind_defaults"]["annual_report_metrics"]["evidence_tier"] = "invented"
+
+    monkeypatch.setattr("datahub.builders.data_update_policy_audit.load_data_update_policy", lambda: config)
+    monkeypatch.setattr("datahub.builders.data_update_policy_audit.load_sources", lambda: sources)
+    monkeypatch.setattr("datahub.builders.data_update_policy_audit.load_source_schemas", lambda: schemas)
+
+    report = audit_data_update_policy()
+    assert "school_outcome: unknown evidence_tier invented for kind annual_report_metrics" in report["errors"]
 
 
 def test_build_entity_normalization_registry_package(tmp_path: Path):
@@ -9223,6 +9308,8 @@ def test_extract_outcome_report_candidates_from_lines(tmp_path: Path):
             (9, "占比 36.34%；自由职业人数为 770 人，占比 17.84%。"),
             (10, "本科毕业生 4315 人中，攻读研究生 1549 人。其中，推荐免试攻读研究生"),
             (10, "582 人，占比 37.57%；考取本校研究生 150 人，占比 9.68%。"),
+            (25, "表 6-3-1 应届本科生升学情况表 项目 人数 占比 免试推荐研究生 206 3.98%"),
+            (25, "免试推荐研究生2063.98% 考研录取总数4208.12%"),
             (10, "2024 届本科毕业生考取研究生 876 人(其中推免生 143 人),占本科毕业生总数的 25.47%,"),
             (10, "截至 2024 年 8 月 31 日，学校应届本科毕业生总体就业率达 87.54%。毕业"),
             (10, "生最主要的毕业去向是企业，占 54.95%。升学 1160 人，占 21.70%，其中出国"),
@@ -9261,6 +9348,8 @@ def test_extract_outcome_report_candidates_from_lines(tmp_path: Path):
     assert any(row["match_alias"] == "升学人数" and row["candidate_value"] == "0.3634" for row in rows)
     assert any(row["match_alias"] == "考取研究生" and row["candidate_value"] == "0.2547" for row in rows)
     assert any(row["match_alias"] == "升学" and row["candidate_value"] == "0.217" for row in rows)
+    assert any(row["match_alias"] == "免试推荐研究生" and row["candidate_value"] == "0.0398" for row in rows)
+    assert not any(row["metric_key"] == "keep_research_rate" and row["candidate_value"] == "0.98" for row in rows)
     assert any(row["match_alias"] == "推荐免试" for row in rows)
     assert any(row["candidate_value"] == "0.9236" and "本科毕业生" in row["metric_scope"] for row in rows)
     assert any(row["candidate_value"] == "0.8582" and "本科应届毕业生" in row["metric_scope"] for row in rows)
@@ -10143,9 +10232,9 @@ def test_download_outcome_report_intake_assets_flags_embedded_report_images(tmp_
         html = """
         <html><body>
           <a href="/detail/292_image_report.html">大连艺术学院2023-2024学年本科教学质量报告</a>
-          <img alt="大连艺术学院2023-2024学年本科教学质量报告-第1页" src="/image/page1.jpg">
-          <img alt="大连艺术学院2023-2024学年本科教学质量报告-第2页" src="/image/page2.jpg">
-          <img alt="大连艺术学院2023-2024学年本科教学质量报告-第3页" src="/image/page3.jpg">
+          <img src=/image/page1.jpg alt=大连艺术学院2023-2024学年本科教学质量报告-第1页>
+          <img src=/image/page2.jpg alt=大连艺术学院2023-2024学年本科教学质量报告-第2页>
+          <img src=/image/page3.jpg alt=大连艺术学院2023-2024学年本科教学质量报告-第3页>
         </body></html>
         """
         return FakeResponse(request.full_url, html.encode("utf-8"), "text/html; charset=utf-8")
@@ -10523,6 +10612,42 @@ def test_build_outcome_report_manual_intake_queue_classifies_failed_downloads(tm
         },
         {
             "domain": "school",
+            "entity_code": "0146",
+            "entity_name": "辽宁科技大学",
+            "metric_year": "2024",
+            "report_scope": "undergraduate_teaching_quality_report",
+            "candidate_report_title": "辽宁科技大学2023-2024学年本科教学质量报告",
+            "candidate_report_url": "https://example.edu/ustl.htm",
+            "candidate_file_name": "辽宁科技大学2023-2024学年本科教学质量报告.pdf",
+            "download_status": "failed",
+            "download_error": "attachment URL returned HTML instead of a report file: https://example.edu/content.jsp",
+        },
+        {
+            "domain": "school",
+            "entity_code": "1524",
+            "entity_name": "武汉音乐学院",
+            "metric_year": "2024",
+            "report_scope": "employment_quality_report",
+            "candidate_report_title": "武汉音乐学院2024届毕业生就业质量报告",
+            "candidate_report_url": "https://example.edu/whcm.htm",
+            "candidate_file_name": "武汉音乐学院2024届毕业生就业质量报告.pdf",
+            "download_status": "failed",
+            "download_error": "HTTP Error 404: Not Found",
+        },
+        {
+            "domain": "school",
+            "entity_code": "3621",
+            "entity_name": "沈阳科技学院",
+            "metric_year": "2024",
+            "report_scope": "undergraduate_teaching_quality_report",
+            "candidate_report_title": "沈阳科技学院2023-2024学年本科教学质量报告",
+            "candidate_report_url": "https://example.edu/syist.htm",
+            "candidate_file_name": "沈阳科技学院2023-2024学年本科教学质量报告.pdf",
+            "download_status": "failed",
+            "download_error": "no matching report attachment found on page: https://example.edu/syist.htm",
+        },
+        {
+            "domain": "school",
             "entity_code": "4535",
             "entity_name": "浙江音乐学院",
             "metric_year": "2024",
@@ -10545,18 +10670,24 @@ def test_build_outcome_report_manual_intake_queue_classifies_failed_downloads(tm
         output=output,
     )
 
-    assert report["rows"] == 3
+    assert report["rows"] == 6
     assert report["reason_counts"] == {
+        "attachment_html_or_permission_page": 1,
         "captcha_required": 1,
         "image_pdf_ocr_required": 1,
+        "no_report_attachment_found": 1,
+        "source_url_not_found": 1,
         "ssl_handshake_failed": 1,
     }
     with output.open(encoding="utf-8", newline="") as f:
         output_rows = list(csv.DictReader(f))
-    assert [row["entity_code"] for row in output_rows] == ["0728", "0157", "1258"]
+    assert [row["entity_code"] for row in output_rows] == ["0728", "0157", "1258", "0146", "1524", "3621"]
     assert output_rows[0]["recommended_action"] == "manual_download_or_downloader_tls_fallback"
     assert output_rows[1]["recommended_action"] == "manual_browser_download"
     assert output_rows[2]["recommended_action"] == "ocr_or_manual_transcription"
+    assert output_rows[3]["recommended_action"] == "manual_browser_download_or_source_url_fix"
+    assert output_rows[4]["recommended_action"] == "find_alternate_official_url"
+    assert output_rows[5]["recommended_action"] == "manual_page_inspection_or_image_intake"
 
 
 def test_aggregate_outcome_report_manual_intake_queues_deduplicates_sources(tmp_path: Path):
@@ -11340,6 +11471,30 @@ def test_build_outcome_collection_batch_limits_pending_rows(tmp_path: Path):
     assert "source_url" in manifest["editable_columns"]
 
 
+def _outcome_review_seed(**overrides):
+    seed = {
+        "seed_id": "seed_0001_2024_employment_rate",
+        "domain": "school",
+        "entity_code": "0001",
+        "entity_name": "测试大学",
+        "metric_key": "employment_rate",
+        "metric_year": 2024,
+        "status": "verified",
+        "metric_value": 0.9,
+        "source_title": "测试报告",
+        "source_url": "https://example.edu/report.pdf",
+        "evidence_quote": "毕业去向落实率为 90%。",
+        "metric_scope": "测试口径",
+        "source_date": "2024-12-31",
+        "availability_date": "2024-12-31",
+        "reviewer": "codex",
+        "reviewed_at": "2026-05-14",
+        "review_note": "测试种子。",
+    }
+    seed.update(overrides)
+    return seed
+
+
 def test_apply_outcome_collection_review_seeds_updates_matching_rows(tmp_path: Path):
     seed_config = load_outcome_collection_review_seeds()
     seed_count = len(seed_config["seeds"])
@@ -11347,6 +11502,7 @@ def test_apply_outcome_collection_review_seeds_updates_matching_rows(tmp_path: P
     audit = audit_outcome_collection_review_seeds()
     assert audit["errors"] == []
     assert audit["seed_count"] == seed_count
+    assert audit["duplicate_seed_ids"] == {}
     assert audit["status_counts"] == {"verified": verified_seed_count}
 
     plan = tmp_path / "outcome_collection_plan.csv"
@@ -11354,6 +11510,8 @@ def test_apply_outcome_collection_review_seeds_updates_matching_rows(tmp_path: P
     seeded["metric_year"] = "2024"
     dlpu = _outcome_plan_row("school", "0152", "大连工业大学", "postgrad_rate", status="todo", priority_rank="2")
     dlpu["metric_year"] = "2024"
+    dlpu_keep = _outcome_plan_row("school", "0152", "大连工业大学", "keep_research_rate", status="todo", priority_rank="15")
+    dlpu_keep["metric_year"] = "2024"
     bohai = _outcome_plan_row("school", "0167", "渤海大学", "employment_rate", status="todo", priority_rank="3")
     bohai["metric_year"] = "2024"
     dufe = _outcome_plan_row("school", "0173", "东北财经大学", "employment_rate", status="todo", priority_rank="4")
@@ -11383,9 +11541,10 @@ def test_apply_outcome_collection_review_seeds_updates_matching_rows(tmp_path: P
     _write_outcome_plan(
         plan,
         [
-            seeded,
-            dlpu,
-            bohai,
+                seeded,
+                dlpu,
+                dlpu_keep,
+                bohai,
             dufe,
             dlu,
             lnu_soe,
@@ -11431,6 +11590,11 @@ def test_apply_outcome_collection_review_seeds_updates_matching_rows(tmp_path: P
     assert dlpu_postgrad["status"] == "verified"
     assert dlpu_postgrad["metric_value"] == "0.2547"
     assert "不是保研率" in dlpu_postgrad["metric_scope"]
+    dlpu_keep = by_entity[("0152", "keep_research_rate")]
+    assert dlpu_keep["status"] == "verified"
+    assert dlpu_keep["metric_value"] == "0.0415"
+    assert dlpu_keep["source_url"] == "https://xxgk.dlpu.edu.cn/detail/1901_2fea4d9ec8e16e937831dca9edb4f0db.html"
+    assert "143/3449" in dlpu_keep["metric_scope"]
     bohai_employment = by_entity[("0167", "employment_rate")]
     assert bohai_employment["status"] == "verified"
     assert bohai_employment["metric_value"] == "0.8754"
@@ -11479,7 +11643,7 @@ def test_apply_outcome_collection_review_seeds_updates_matching_rows(tmp_path: P
     assert djtu_postgrad["status"] == "verified"
     assert djtu_postgrad["metric_value"] == "0.2887"
     assert djtu_postgrad["metric_year"] == "2024"
-    assert by_entity[("0166", "employment_rate")]["status"] == "verified"
+    assert by_entity[("0166", "employment_rate")]["status"] == "todo"
 
 
 def test_outcome_collection_source_evidence_policy_separates_metrics_from_recruitment_news():
@@ -11499,6 +11663,859 @@ def test_outcome_collection_source_evidence_policy_separates_metrics_from_recrui
     assert "必须回查学校、人社局或人才市场官方页面" in tiers["local_news_recruitment_fair"]["required_review"]
     assert tiers["self_media"]["can_publish_outcome_metric"] is False
     assert tiers["self_media"]["allowed_evidence_targets"] == ["research_candidate"]
+    seed_audit = policy["review_seed_audit"]
+    assert "www.gk100.com" in seed_audit["third_party_source_hosts"]
+    assert seed_audit["source_host_policy_tiers"]["www.gk100.com"] == "third_party_summary_page"
+    assert seed_audit["source_host_policy_tiers"]["pdf.gk100.com"] == "third_party_report_mirror"
+    assert seed_audit["source_host_policy_tiers"]["www.gaodun.com"] == "third_party_metric_compilation"
+    assert tiers["third_party_report_mirror"]["can_publish_outcome_metric"] is False
+    assert tiers["third_party_summary_page"]["allowed_evidence_targets"] == ["research_candidate"]
+    assert "官方报告" in tiers["third_party_report_mirror"]["required_review"]
+    assert "回查官方报告" in tiers["third_party_summary_page"]["required_review"]
+    assert "不是保研率" in seed_audit["metric_semantic_risk_markers"]["keep_research_rate"]
+    assert "下限" in seed_audit["metric_semantic_risk_markers"]["civil_service_rate"]
+    assert seed_audit["review_batch"]["hint_kind_priority"] == ["semantic", "source"]
+    assert "replacement_source_url" in seed_audit["review_batch"]["review_columns"]
+    assert set(seed_audit["review_batch"]["hint_kind_priority"]) <= {"semantic", "source"}
+    assert seed_audit["review_batch"]["default_limit"] > 0
+    assert set(seed_audit["review_batch"]["review_columns"]) <= set(BATCH_COLUMNS)
+
+
+def test_audit_outcome_collection_review_seeds_rejects_duplicate_seed_ids(monkeypatch: pytest.MonkeyPatch):
+    seeds = [
+        _outcome_review_seed(seed_id="duplicate_seed_id", entity_code="0001"),
+        _outcome_review_seed(
+            seed_id="duplicate_seed_id",
+            entity_code="0002",
+            entity_name="测试大学二",
+            metric_key="postgrad_rate",
+        ),
+    ]
+    monkeypatch.setattr(
+        "datahub.builders.outcome_collection_seed_merge.load_outcome_collection_review_seeds",
+        lambda: {"seeds": seeds},
+    )
+
+    audit = audit_outcome_collection_review_seeds()
+
+    assert "duplicate seed_id values: 1" in audit["errors"]
+    assert audit["duplicate_seed_ids"] == {"duplicate_seed_id": 2}
+    assert audit["publication_ready"] is False
+
+
+def test_audit_outcome_collection_review_seeds_reports_source_and_semantic_hints(monkeypatch: pytest.MonkeyPatch):
+    seed = _outcome_review_seed(
+        seed_id="hint_seed",
+        metric_key="keep_research_rate",
+        source_url="https://www.gk100.com/read_1.htm",
+        metric_scope="2024届本科毕业生考研率，不是保研率",
+        review_note="第三方整理页给出口径，需人工复核。",
+    )
+    monkeypatch.setattr(
+        "datahub.builders.outcome_collection_seed_merge.load_outcome_collection_review_seeds",
+        lambda: {"seeds": [seed]},
+    )
+
+    audit = audit_outcome_collection_review_seeds()
+
+    assert audit["errors"] == []
+    assert audit["source_hint_counts"] == {"third_party_source_host": 1}
+    assert audit["semantic_hint_counts"]["keep_research_rate_semantic_proxy"] == 2
+    assert audit["source_hint_rows"][0]["evidence"] == "www.gk100.com"
+    assert audit["semantic_hint_rows"][0]["seed_id"] == "hint_seed"
+    assert audit["publication_ready"] is False
+
+
+def test_audit_outcome_collection_plan_reports_source_and_semantic_hints(tmp_path: Path):
+    plan = tmp_path / "outcome_collection_plan.csv"
+    row = _outcome_plan_row(
+        "school",
+        "0001",
+        "测试大学",
+        "keep_research_rate",
+        status="verified",
+        priority_rank="1",
+    )
+    row.update({
+        "metric_year": "2024",
+        "metric_value": "0.07",
+        "source_title": "测试第三方页面",
+        "source_url": "https://www.gk100.com/read_1.htm",
+        "evidence_quote": "2024届本科毕业生考研率，不是保研率。",
+        "metric_scope": "2024届本科毕业生考研率，不是保研率",
+        "source_date": "2025-02-06",
+        "availability_date": "2025-02-06",
+    })
+    _write_outcome_plan(plan, [row])
+
+    audit = audit_outcome_collection_plan(plan)
+
+    assert audit["errors"] == []
+    assert audit["source_hint_counts"] == {"third_party_source_host": 1}
+    assert audit["semantic_hint_counts"]["keep_research_rate_semantic_proxy"] == 2
+    assert audit["source_hint_rows"][0]["row_index"] == "1"
+    assert audit["semantic_hint_rows"][0]["metric_key"] == "keep_research_rate"
+    assert audit["publication_ready"] is False
+
+
+def test_build_outcome_packages_from_collection_plan_blocks_policy_hints(tmp_path: Path):
+    plan = tmp_path / "outcome_collection_plan.csv"
+    row = _outcome_plan_row(
+        "school",
+        "0001",
+        "测试大学",
+        "keep_research_rate",
+        status="verified",
+        priority_rank="1",
+    )
+    row.update({
+        "metric_year": "2024",
+        "metric_value": "0.07",
+        "source_title": "测试第三方页面",
+        "source_url": "https://www.gk100.com/read_1.htm",
+        "evidence_quote": "2024届本科毕业生考研率，不是保研率。",
+        "metric_scope": "2024届本科毕业生考研率，不是保研率",
+        "source_date": "2025-02-06",
+        "availability_date": "2025-02-06",
+    })
+    _write_outcome_plan(plan, [row])
+
+    with pytest.raises(ValueError, match="unresolved policy hints"):
+        build_outcome_packages_from_collection_plan(
+            plan_csv=plan,
+            output_root=tmp_path / "exports",
+            package_id="pkg-outcome-collection",
+        )
+
+
+def test_build_outcome_policy_hint_review_batch_filters_and_prioritizes(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    seed = _outcome_review_seed(
+        seed_id="hint_seed",
+        metric_key="keep_research_rate",
+        source_url="https://www.gk100.com/read_1.htm",
+        metric_scope="2024届本科毕业生考研率，不是保研率",
+        review_note="第三方整理页给出口径，需人工复核。",
+    )
+    monkeypatch.setattr(
+        "datahub.builders.outcome_collection_seed_merge.load_outcome_collection_review_seeds",
+        lambda: {"seeds": [seed]},
+    )
+    monkeypatch.setattr(
+        "datahub.builders.outcome_policy_hint_batch.load_outcome_collection_review_seeds",
+        lambda: {"seeds": [seed]},
+    )
+    monkeypatch.setattr(
+        "datahub.builders.outcome_policy_hint_batch.load_outcome_report_sources",
+        lambda: {
+            "applied_status": "candidate_found",
+            "seeds": [{
+                "domain": "school",
+                "entity_code": "0001",
+                "entity_name": "测试大学",
+                "metric_year": 2024,
+                "report_scope": "undergraduate_teaching_quality_report",
+                "candidate_report_title": "测试大学本科教学质量报告",
+                "candidate_report_url": "https://official.example.edu/report.htm",
+                "candidate_source_date": "2024-12-30",
+                "availability_date": "2024-12-31",
+            }],
+        },
+    )
+
+    result = build_outcome_policy_hint_review_batch(
+        output_dir=tmp_path / "batch",
+        limit=2,
+    )
+
+    assert result["raw_hint_rows"] == 3
+    assert result["available_hint_rows"] == 2
+    assert result["rows"] == 2
+    assert result["hint_kind_counts"] == {"semantic": 1, "source": 1}
+    assert result["source_policy_tier_counts"] == {"third_party_summary_page": 2}
+    with Path(result["csv"]).open(encoding="utf-8", newline="") as f:
+        rows = list(csv.DictReader(f))
+    assert [row["hint_kind"] for row in rows] == ["semantic", "source"]
+    assert rows[0]["hint_evidence"] == "不是保研率; 考研率"
+    assert rows[0]["source_host"] == "www.gk100.com"
+    assert rows[0]["source_policy_tier"] == "third_party_summary_page"
+    assert rows[0]["source_family"] == "school_outcome"
+    assert rows[0]["source_instance_key"].startswith("school_outcome:0001:2024:")
+    assert rows[0]["artifact_kind"] == "web_page"
+    assert rows[0]["artifact_uri"] == "https://www.gk100.com/read_1.htm"
+    assert rows[0]["raw_artifact_hash"] == hashlib.sha256(
+        "https://www.gk100.com/read_1.htm".encode("utf-8")
+    ).hexdigest()[:16]
+    assert rows[0]["official_route_status"] == "official_source_seed_active"
+    assert rows[0]["official_route_count"] == "1"
+    assert rows[0]["official_report_scopes"] == "undergraduate_teaching_quality_report"
+    assert rows[0]["official_report_titles"] == "测试大学本科教学质量报告"
+    assert rows[0]["official_report_urls"] == "https://official.example.edu/report.htm"
+    assert rows[0]["official_report_seed_statuses"] == "candidate_found"
+    assert rows[0]["source_date"] == "2024-12-31"
+    assert rows[0]["availability_date"] == "2024-12-31"
+    assert rows[0]["metric_label"] == "保研率"
+    assert rows[0]["metric_unit"] == "ratio"
+    assert rows[0]["review_status"] == "needs_review"
+    assert rows[0]["replacement_source_url"] == ""
+    assert rows[0]["replacement_evidence_quote"] == ""
+    manifest = json.loads(Path(result["manifest"]).read_text(encoding="utf-8"))
+    assert "controller_note" in manifest["review_columns"]
+    assert manifest["source_policy_tier_counts"] == {"third_party_summary_page": 2}
+    assert manifest["source_family_counts"] == {"school_outcome": 2}
+    assert manifest["artifact_kind_counts"] == {"web_page": 2}
+    assert manifest["official_route_status_counts"] == {"official_source_seed_active": 2}
+
+
+def test_build_outcome_policy_hint_review_batch_supports_host_filter(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    gk_seed = _outcome_review_seed(
+        seed_id="gk_hint_seed",
+        source_url="https://www.gk100.com/read_1.htm",
+    )
+    other_seed = _outcome_review_seed(
+        seed_id="other_hint_seed",
+        entity_code="0002",
+        entity_name="测试大学二",
+        metric_key="postgrad_rate",
+        source_url="https://www.6617.com/read_1.htm",
+    )
+    monkeypatch.setattr(
+        "datahub.builders.outcome_collection_seed_merge.load_outcome_collection_review_seeds",
+        lambda: {"seeds": [gk_seed, other_seed]},
+    )
+    monkeypatch.setattr(
+        "datahub.builders.outcome_policy_hint_batch.load_outcome_collection_review_seeds",
+        lambda: {"seeds": [gk_seed, other_seed]},
+    )
+    monkeypatch.setattr(
+        "datahub.builders.outcome_policy_hint_batch.load_outcome_report_sources",
+        lambda: {"applied_status": "candidate_found", "seeds": []},
+    )
+
+    result = build_outcome_policy_hint_review_batch(
+        output_dir=tmp_path / "batch",
+        hint_kinds=["source"],
+        source_hosts=["www.6617.com"],
+    )
+
+    assert result["raw_hint_rows"] == 2
+    assert result["available_hint_rows"] == 2
+    assert result["rows"] == 1
+    assert result["source_host_counts"] == {"www.6617.com": 1}
+    assert result["source_policy_tier_counts"] == {"third_party_summary_page": 1}
+    with Path(result["csv"]).open(encoding="utf-8", newline="") as f:
+        rows = list(csv.DictReader(f))
+    assert rows[0]["seed_id"] == "other_hint_seed"
+    assert rows[0]["source_policy_tier"] == "third_party_summary_page"
+    assert rows[0]["source_family"] == "school_outcome"
+    assert rows[0]["artifact_kind"] == "web_page"
+    assert rows[0]["official_route_status"] == "official_source_seed_missing"
+
+
+def test_build_outcome_policy_hint_review_batch_supports_source_policy_tier_filter(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    summary_seed = _outcome_review_seed(
+        seed_id="summary_hint_seed",
+        source_url="https://www.gk100.com/read_1.htm",
+    )
+    mirror_seed = _outcome_review_seed(
+        seed_id="mirror_hint_seed",
+        entity_code="0002",
+        entity_name="测试大学二",
+        metric_key="postgrad_rate",
+        source_url="https://pdf.gk100.com/report.pdf",
+    )
+    monkeypatch.setattr(
+        "datahub.builders.outcome_collection_seed_merge.load_outcome_collection_review_seeds",
+        lambda: {"seeds": [summary_seed, mirror_seed]},
+    )
+    monkeypatch.setattr(
+        "datahub.builders.outcome_policy_hint_batch.load_outcome_collection_review_seeds",
+        lambda: {"seeds": [summary_seed, mirror_seed]},
+    )
+    monkeypatch.setattr(
+        "datahub.builders.outcome_policy_hint_batch.load_outcome_report_sources",
+        lambda: {
+            "applied_status": "candidate_found",
+            "seeds": [{
+                "domain": "school",
+                "entity_code": "0002",
+                "entity_name": "测试大学二",
+                "metric_year": 2024,
+                "report_scope": "undergraduate_teaching_quality_report",
+                "candidate_report_title": "测试大学二本科教学质量报告",
+                "candidate_report_url": "https://official.example.edu/report2.htm",
+                "candidate_source_date": "2024-12-30",
+                "availability_date": "2024-12-31",
+                "seed_status": "rejected",
+            }],
+        },
+    )
+
+    result = build_outcome_policy_hint_review_batch(
+        output_dir=tmp_path / "batch",
+        hint_kinds=["source"],
+        source_policy_tiers=["third_party_report_mirror"],
+    )
+
+    assert result["raw_hint_rows"] == 2
+    assert result["available_hint_rows"] == 2
+    assert result["filtered_hint_rows"] == 1
+    assert result["rows"] == 1
+    assert result["source_policy_tier_counts"] == {"third_party_report_mirror": 1}
+    with Path(result["csv"]).open(encoding="utf-8", newline="") as f:
+        rows = list(csv.DictReader(f))
+    assert rows[0]["seed_id"] == "mirror_hint_seed"
+    assert rows[0]["source_policy_tier"] == "third_party_report_mirror"
+    assert rows[0]["artifact_kind"] == "report_pdf"
+    assert rows[0]["artifact_uri"] == "https://pdf.gk100.com/report.pdf"
+    assert rows[0]["official_route_status"] == "official_source_seed_rejected"
+    assert rows[0]["official_report_seed_statuses"] == "rejected"
+    manifest = json.loads(Path(result["manifest"]).read_text(encoding="utf-8"))
+    assert manifest["selected_source_policy_tiers"] == ["third_party_report_mirror"]
+    assert manifest["artifact_kind_counts"] == {"report_pdf": 1}
+    assert manifest["official_route_status_counts"] == {"official_source_seed_rejected": 1}
+
+
+def test_build_outcome_policy_hint_review_batch_supports_official_route_status_filter(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    active_seed = _outcome_review_seed(
+        seed_id="active_route_hint_seed",
+        source_url="https://www.gk100.com/read_1.htm",
+    )
+    missing_seed = _outcome_review_seed(
+        seed_id="missing_route_hint_seed",
+        entity_code="0002",
+        entity_name="测试大学二",
+        metric_key="postgrad_rate",
+        source_url="https://www.6617.com/read_1.htm",
+    )
+    monkeypatch.setattr(
+        "datahub.builders.outcome_collection_seed_merge.load_outcome_collection_review_seeds",
+        lambda: {"seeds": [active_seed, missing_seed]},
+    )
+    monkeypatch.setattr(
+        "datahub.builders.outcome_policy_hint_batch.load_outcome_collection_review_seeds",
+        lambda: {"seeds": [active_seed, missing_seed]},
+    )
+    monkeypatch.setattr(
+        "datahub.builders.outcome_policy_hint_batch.load_outcome_report_sources",
+        lambda: {
+            "applied_status": "candidate_found",
+            "seeds": [{
+                "domain": "school",
+                "entity_code": "0001",
+                "entity_name": "测试大学",
+                "metric_year": 2024,
+                "report_scope": "undergraduate_teaching_quality_report",
+                "candidate_report_title": "测试大学本科教学质量报告",
+                "candidate_report_url": "https://official.example.edu/report.htm",
+                "candidate_source_date": "2024-12-30",
+                "availability_date": "2024-12-31",
+            }],
+        },
+    )
+
+    result = build_outcome_policy_hint_review_batch(
+        output_dir=tmp_path / "batch",
+        hint_kinds=["source"],
+        official_route_statuses=["official_source_seed_active"],
+    )
+
+    assert result["filtered_hint_rows"] == 1
+    assert result["rows"] == 1
+    assert result["official_route_status_counts"] == {"official_source_seed_active": 1}
+    with Path(result["csv"]).open(encoding="utf-8", newline="") as f:
+        rows = list(csv.DictReader(f))
+    assert rows[0]["seed_id"] == "active_route_hint_seed"
+    assert rows[0]["official_route_status"] == "official_source_seed_active"
+    manifest = json.loads(Path(result["manifest"]).read_text(encoding="utf-8"))
+    assert manifest["selected_official_route_statuses"] == ["official_source_seed_active"]
+
+
+def test_build_outcome_policy_hint_review_batch_blocks_audit_errors(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    monkeypatch.setattr(
+        "datahub.builders.outcome_policy_hint_batch.audit_outcome_collection_review_seeds",
+        lambda: {"errors": ["duplicate seed_id values: 1"]},
+    )
+
+    with pytest.raises(ValueError, match="duplicate seed_id values"):
+        build_outcome_policy_hint_review_batch(output_dir=tmp_path / "batch")
+
+
+def test_build_outcome_policy_hint_review_batch_rejects_zero_limit(tmp_path: Path):
+    with pytest.raises(ValueError, match="limit must be a positive integer"):
+        build_outcome_policy_hint_review_batch(output_dir=tmp_path / "batch", limit=0)
+
+
+def test_build_outcome_policy_hint_review_batch_rejects_unknown_source_policy_host(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    config = json.loads(json.dumps(load_outcome_collection(), ensure_ascii=False))
+    config["source_evidence_policy"]["review_seed_audit"]["source_host_policy_tiers"][
+        "example.com"
+    ] = "third_party_summary_page"
+    monkeypatch.setattr(
+        "datahub.builders.outcome_policy_hint_batch.load_outcome_collection",
+        lambda: config,
+    )
+
+    with pytest.raises(ValueError, match="unknown host"):
+        build_outcome_policy_hint_review_batch(output_dir=tmp_path / "batch")
+
+
+def test_build_outcome_policy_hint_review_batch_rejects_unknown_source_policy_tier(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    config = json.loads(json.dumps(load_outcome_collection(), ensure_ascii=False))
+    config["source_evidence_policy"]["review_seed_audit"]["source_host_policy_tiers"][
+        "www.gk100.com"
+    ] = "unknown_tier"
+    monkeypatch.setattr(
+        "datahub.builders.outcome_policy_hint_batch.load_outcome_collection",
+        lambda: config,
+    )
+
+    with pytest.raises(ValueError, match="unknown tier"):
+        build_outcome_policy_hint_review_batch(output_dir=tmp_path / "batch")
+
+
+def test_build_outcome_policy_hint_review_batch_rejects_unknown_source_policy_tier_filter(
+    tmp_path: Path,
+):
+    with pytest.raises(ValueError, match="unknown source policy tier"):
+        build_outcome_policy_hint_review_batch(
+            output_dir=tmp_path / "batch",
+            source_policy_tiers=["unknown_tier"],
+        )
+
+
+def test_build_outcome_policy_hint_review_batch_rejects_unknown_official_route_status(
+    tmp_path: Path,
+):
+    with pytest.raises(ValueError, match="unknown official route status"):
+        build_outcome_policy_hint_review_batch(
+            output_dir=tmp_path / "batch",
+            official_route_statuses=["unknown_route_status"],
+        )
+
+
+def test_cli_build_outcome_policy_hint_review_batch_writes_files(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    import datahub.cli as cli
+
+    seed = _outcome_review_seed(
+        seed_id="hint_seed",
+        source_url="https://www.gk100.com/read_1.htm",
+    )
+    monkeypatch.setattr(
+        "datahub.builders.outcome_policy_hint_batch.audit_outcome_collection_review_seeds",
+        lambda: {
+            "errors": [],
+            "semantic_hint_rows": [],
+            "source_hint_rows": [{
+                "row_index": "1",
+                "seed_id": "hint_seed",
+                "domain": "school",
+                "entity_code": "0001",
+                "entity_name": "测试大学",
+                "metric_key": "employment_rate",
+                "metric_year": "2024",
+                "hint_code": "third_party_source_host",
+                "evidence": "www.gk100.com",
+                "source_url": "https://www.gk100.com/read_1.htm",
+            }],
+        },
+    )
+    monkeypatch.setattr(
+        "datahub.builders.outcome_policy_hint_batch.load_outcome_collection_review_seeds",
+        lambda: {"seeds": [seed]},
+    )
+    monkeypatch.setattr(
+        "datahub.builders.outcome_policy_hint_batch.load_outcome_report_sources",
+        lambda: {"applied_status": "candidate_found", "seeds": []},
+    )
+    monkeypatch.setattr("sys.argv", [
+        "lifehack-datahub",
+        "build-outcome-policy-hint-review-batch",
+        "--output-dir",
+        str(tmp_path / "batch"),
+        "--hint-kind",
+        "source",
+        "--limit",
+        "1",
+        "--source-policy-tier",
+        "third_party_summary_page",
+        "--official-route-status",
+        "official_source_seed_missing",
+    ])
+
+    assert cli.main() == 0
+    assert (tmp_path / "batch" / "outcome_policy_hint_review_batch.csv").exists()
+    manifest = json.loads((tmp_path / "batch" / "outcome_policy_hint_review_batch.json").read_text(encoding="utf-8"))
+    assert manifest["rows"] == 1
+    assert manifest["review_columns"]
+    assert manifest["source_policy_tier_counts"] == {"third_party_summary_page": 1}
+    assert manifest["source_family_counts"] == {"school_outcome": 1}
+    assert manifest["official_route_status_counts"] == {"official_source_seed_missing": 1}
+    assert manifest["selected_official_route_statuses"] == ["official_source_seed_missing"]
+
+
+def test_audit_outcome_policy_hint_route_evidence_counts_local_artifacts(tmp_path: Path):
+    batch_csv = tmp_path / "batch.csv"
+    rows = []
+    for seed_id, entity_code, metric_key in [
+        ("same_metric_seed", "0001", "employment_rate"),
+        ("missing_metric_seed", "0001", "keep_research_rate"),
+        ("no_artifact_seed", "0002", "postgrad_rate"),
+    ]:
+        row = {column: "" for column in BATCH_COLUMNS}
+        row.update({
+            "seed_id": seed_id,
+            "domain": "school",
+            "entity_code": entity_code,
+            "entity_name": "测试大学",
+            "metric_key": metric_key,
+            "metric_year": "2024",
+            "official_route_status": "official_source_seed_active",
+            "official_report_urls": "https://official.example.edu/report.pdf",
+        })
+        rows.append(row)
+    with batch_csv.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=BATCH_COLUMNS)
+        writer.writeheader()
+        writer.writerows(rows)
+
+    raw_path = (
+        tmp_path
+        / "raw"
+        / "outcome_report"
+        / "2024"
+        / "school_0001_undergraduate_teaching_quality_report"
+        / "report.pdf"
+    )
+    raw_path.parent.mkdir(parents=True)
+    raw_path.write_bytes(b"%PDF-1.4\n")
+    candidate_csv = (
+        tmp_path
+        / "staging"
+        / "extract"
+        / "candidates"
+        / "school_0001_2024_undergraduate_teaching_quality_report_candidates.csv"
+    )
+    candidate_csv.parent.mkdir(parents=True)
+    with candidate_csv.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=["domain", "entity_code", "metric_year", "metric_key"])
+        writer.writeheader()
+        writer.writerow({
+            "domain": "school",
+            "entity_code": "0001",
+            "metric_year": "2024",
+            "metric_key": "employment_rate",
+        })
+    duplicate_candidate_csv = (
+        tmp_path
+        / "staging"
+        / "extract2"
+        / "candidates"
+        / "school_0001_2024_undergraduate_teaching_quality_report_candidates.csv"
+    )
+    duplicate_candidate_csv.parent.mkdir(parents=True)
+    duplicate_candidate_csv.write_text(candidate_csv.read_text(encoding="utf-8"), encoding="utf-8")
+
+    result = audit_outcome_policy_hint_route_evidence(
+        batch_csv=batch_csv,
+        artifact_root=tmp_path,
+        output_csv=tmp_path / "route_evidence.csv",
+        report_path=tmp_path / "route_evidence.json",
+    )
+
+    assert result["rows"] == 3
+    assert result["entity_count"] == 2
+    assert result["route_evidence_status_counts"] == {
+        "official_artifact_but_metric_missing": 1,
+        "official_route_pending_artifact_intake": 1,
+        "same_metric_candidate_exists": 1,
+    }
+    with (tmp_path / "route_evidence.csv").open(encoding="utf-8", newline="") as f:
+        audit_rows = {row["seed_id"]: row for row in csv.DictReader(f)}
+    assert audit_rows["same_metric_seed"]["same_metric_candidate_count"] == "1"
+    assert audit_rows["same_metric_seed"]["candidate_file_count"] == "2"
+    assert audit_rows["same_metric_seed"]["candidate_row_count"] == "1"
+    assert audit_rows["same_metric_seed"]["raw_file_count"] == "1"
+    assert audit_rows["missing_metric_seed"]["route_evidence_status"] == "official_artifact_but_metric_missing"
+    assert audit_rows["no_artifact_seed"]["route_evidence_status"] == "official_route_pending_artifact_intake"
+    assert json.loads((tmp_path / "route_evidence.json").read_text(encoding="utf-8"))["rows"] == 3
+
+
+def test_cli_audit_outcome_policy_hint_route_evidence_writes_report(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    import datahub.cli as cli
+
+    batch_csv = tmp_path / "batch.csv"
+    row = {column: "" for column in BATCH_COLUMNS}
+    row.update({
+        "seed_id": "hint_seed",
+        "domain": "school",
+        "entity_code": "0001",
+        "entity_name": "测试大学",
+        "metric_key": "employment_rate",
+        "metric_year": "2024",
+        "official_route_status": "official_source_seed_missing",
+    })
+    with batch_csv.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=BATCH_COLUMNS)
+        writer.writeheader()
+        writer.writerow(row)
+    monkeypatch.setattr("sys.argv", [
+        "lifehack-datahub",
+        "audit-outcome-policy-hint-route-evidence",
+        "--batch-csv",
+        str(batch_csv),
+        "--artifact-root",
+        str(tmp_path),
+        "--output-csv",
+        str(tmp_path / "route_evidence.csv"),
+        "--report",
+        str(tmp_path / "route_evidence.json"),
+    ])
+
+    assert cli.main() == 0
+    report = json.loads((tmp_path / "route_evidence.json").read_text(encoding="utf-8"))
+    assert report["route_evidence_status_counts"] == {"official_route_missing": 1}
+    assert (tmp_path / "route_evidence.csv").exists()
+
+
+def test_build_official_route_source_plan_from_policy_hints_dedupes_routes(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    batch_csv = tmp_path / "policy_hints.csv"
+    rows = []
+    for seed_id, metric_key, metric_label in [
+        ("employment_seed", "employment_rate", "就业率"),
+        ("postgrad_seed", "postgrad_rate", "升学率"),
+        ("missing_route_seed", "keep_research_rate", "保研率"),
+    ]:
+        row = {column: "" for column in BATCH_COLUMNS}
+        row.update({
+            "seed_id": seed_id,
+            "domain": "school",
+            "entity_code": "0001",
+            "entity_name": "测试大学",
+            "metric_key": metric_key,
+            "metric_label": metric_label,
+            "metric_year": "2024",
+            "official_route_status": (
+                "official_source_seed_missing"
+                if seed_id == "missing_route_seed"
+                else "official_source_seed_active"
+            ),
+            "official_report_urls": "https://official.example.edu/report.htm",
+        })
+        rows.append(row)
+    with batch_csv.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=BATCH_COLUMNS)
+        writer.writeheader()
+        writer.writerows(rows)
+
+    monkeypatch.setattr(
+        "datahub.builders.outcome_policy_hint_batch.load_outcome_report_sources",
+        lambda: {
+            "applied_status": "candidate_found",
+            "seeds": [{
+                "domain": "school",
+                "entity_code": "0001",
+                "entity_name": "测试大学",
+                "metric_year": 2024,
+                "report_scope": "undergraduate_teaching_quality_report",
+                "candidate_report_title": "测试大学本科教学质量报告",
+                "candidate_report_url": "https://official.example.edu/report.htm",
+                "candidate_file_name": "report.pdf",
+                "candidate_source_date": "2024-12-30",
+                "availability_date": "2024-12-31",
+            }],
+        },
+    )
+
+    result = build_official_route_source_plan_from_policy_hints(
+        batch_csv=batch_csv,
+        output=tmp_path / "report_source_plan.csv",
+        report_path=tmp_path / "report_source_plan.json",
+    )
+
+    assert result["input_rows"] == 3
+    assert result["rows"] == 1
+    assert result["skipped_rows"] == 1
+    assert result["report_scope_counts"] == {"undergraduate_teaching_quality_report": 1}
+    with (tmp_path / "report_source_plan.csv").open(encoding="utf-8", newline="") as f:
+        output_rows = list(csv.DictReader(f))
+    assert output_rows[0]["status"] == "candidate_found"
+    assert output_rows[0]["candidate_file_name"] == "report.pdf"
+    assert json.loads(output_rows[0]["planned_metric_keys"]) == ["employment_rate", "postgrad_rate"]
+    assert json.loads(output_rows[0]["planned_metric_labels"]) == {
+        "employment_rate": "就业率",
+        "postgrad_rate": "升学率",
+    }
+    assert json.loads((tmp_path / "report_source_plan.json").read_text(encoding="utf-8"))["rows"] == 1
+
+
+def test_cli_build_official_route_source_plan_from_policy_hints_writes_report(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    import datahub.cli as cli
+
+    batch_csv = tmp_path / "policy_hints.csv"
+    row = {column: "" for column in BATCH_COLUMNS}
+    row.update({
+        "seed_id": "hint_seed",
+        "domain": "school",
+        "entity_code": "0001",
+        "entity_name": "测试大学",
+        "metric_key": "employment_rate",
+        "metric_label": "就业率",
+        "metric_year": "2024",
+        "official_route_status": "official_source_seed_active",
+        "official_report_urls": "https://official.example.edu/report.htm",
+    })
+    with batch_csv.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=BATCH_COLUMNS)
+        writer.writeheader()
+        writer.writerow(row)
+    monkeypatch.setattr(
+        "datahub.builders.outcome_policy_hint_batch.load_outcome_report_sources",
+        lambda: {
+            "applied_status": "candidate_found",
+            "seeds": [{
+                "domain": "school",
+                "entity_code": "0001",
+                "entity_name": "测试大学",
+                "metric_year": 2024,
+                "report_scope": "undergraduate_teaching_quality_report",
+                "candidate_report_title": "测试大学本科教学质量报告",
+                "candidate_report_url": "https://official.example.edu/report.htm",
+                "candidate_file_name": "report.pdf",
+                "candidate_source_date": "2024-12-30",
+                "availability_date": "2024-12-31",
+            }],
+        },
+    )
+    monkeypatch.setattr("sys.argv", [
+        "lifehack-datahub",
+        "build-official-route-source-plan-from-policy-hints",
+        "--batch-csv",
+        str(batch_csv),
+        "--output",
+        str(tmp_path / "report_source_plan.csv"),
+        "--report",
+        str(tmp_path / "report_source_plan.json"),
+    ])
+
+    assert cli.main() == 0
+    assert (tmp_path / "report_source_plan.csv").exists()
+    report = json.loads((tmp_path / "report_source_plan.json").read_text(encoding="utf-8"))
+    assert report["rows"] == 1
+    assert report["status"] == "candidate_found"
+
+
+def test_audit_outcome_policy_hint_route_evidence_records_bad_candidate_csv(tmp_path: Path):
+    batch_csv = tmp_path / "batch.csv"
+    row = {column: "" for column in BATCH_COLUMNS}
+    row.update({
+        "seed_id": "hint_seed",
+        "domain": "school",
+        "entity_code": "0001",
+        "entity_name": "测试大学",
+        "metric_key": "employment_rate",
+        "metric_year": "2024",
+        "official_route_status": "official_source_seed_active",
+    })
+    with batch_csv.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=BATCH_COLUMNS)
+        writer.writeheader()
+        writer.writerow(row)
+    bad_candidate_csv = (
+        tmp_path
+        / "staging"
+        / "extract"
+        / "candidates"
+        / "school_0001_2024_undergraduate_teaching_quality_report_candidates.csv"
+    )
+    bad_candidate_csv.parent.mkdir(parents=True)
+    bad_candidate_csv.write_bytes(b"domain,entity_code,metric_key\nschool,\x000001,employment_rate\n")
+
+    result = audit_outcome_policy_hint_route_evidence(
+        batch_csv=batch_csv,
+        artifact_root=tmp_path,
+        output_csv=tmp_path / "route_evidence.csv",
+    )
+
+    assert result["candidate_parse_error_count"] == 1
+    assert result["route_evidence_status_counts"] == {"official_artifact_but_metric_missing": 1}
+    with (tmp_path / "route_evidence.csv").open(encoding="utf-8", newline="") as f:
+        audit_rows = list(csv.DictReader(f))
+    assert audit_rows[0]["candidate_parse_error_count"] == "1"
+    assert audit_rows[0]["candidate_parse_error_paths"] == str(bad_candidate_csv)
+
+
+def test_audit_outcome_policy_hint_route_evidence_uses_intake_local_paths(tmp_path: Path):
+    batch_csv = tmp_path / "batch.csv"
+    row = {column: "" for column in BATCH_COLUMNS}
+    row.update({
+        "seed_id": "hint_seed",
+        "domain": "school",
+        "entity_code": "0001",
+        "entity_name": "测试大学",
+        "metric_key": "postgrad_rate",
+        "metric_year": "2024",
+        "official_route_status": "official_source_seed_active",
+    })
+    with batch_csv.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=BATCH_COLUMNS)
+        writer.writeheader()
+        writer.writerow(row)
+    local_report = tmp_path / "raw" / "outcome_report" / "2024" / "fixture_alias_report.pdf"
+    local_report.parent.mkdir(parents=True)
+    local_report.write_bytes(b"%PDF-1.4\n")
+    intake_csv = tmp_path / "staging" / "intake" / "outcome_report_intake_results.csv"
+    intake_csv.parent.mkdir(parents=True)
+    with intake_csv.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=["domain", "entity_code", "metric_year", "local_report_path"])
+        writer.writeheader()
+        writer.writerow({
+            "domain": "school",
+            "entity_code": "0001",
+            "metric_year": "2024",
+            "local_report_path": str(local_report.relative_to(tmp_path)),
+        })
+
+    result = audit_outcome_policy_hint_route_evidence(
+        batch_csv=batch_csv,
+        artifact_root=tmp_path,
+        output_csv=tmp_path / "route_evidence.csv",
+    )
+
+    assert result["route_evidence_status_counts"] == {"official_artifact_but_metric_missing": 1}
+    with (tmp_path / "route_evidence.csv").open(encoding="utf-8", newline="") as f:
+        audit_rows = list(csv.DictReader(f))
+    assert audit_rows[0]["raw_file_count"] == "1"
+    assert audit_rows[0]["raw_paths"] == str(local_report)
 
 
 def test_audit_outcome_collection_review_seeds_rejects_metric_value_out_of_range(monkeypatch: pytest.MonkeyPatch):
@@ -14455,7 +15472,10 @@ def test_download_page_images_from_config(tmp_path: Path, monkeypatch):
     image = tmp_path / "table.png"
     image.write_bytes(b"image-bytes")
     html = tmp_path / "page.html"
-    html.write_text(f'<html><body><img src="{image.name}"></body></html>', encoding="utf-8")
+    html.write_text(
+        f"<html><body><img src={image.name} alt=table><a href='{image.name}'>duplicate</a></body></html>",
+        encoding="utf-8",
+    )
 
     monkeypatch.setattr(
         "datahub.connectors.page_images.load_sources",

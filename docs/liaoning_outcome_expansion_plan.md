@@ -15,7 +15,7 @@
 - source gate：报告来源已进入 `outcome_report_source_plan`，状态为 `candidate_found`、`verified` 或 `ready`，并有标题、URL、来源日期和可用日期。
 - intake gate：报告已下载或人工放入 `raw/outcome_report/`，失败项已分类并给出下一步。
 - extraction gate：候选提取已产出候选行，或人工确认报告无对应指标并登记原因。
-- review gate：人工复核后的指标值、摘录、口径、来源、日期完整，合并后 `audit-outcome-collection-plan` 无 errors/warnings。
+- review gate：人工复核后的指标值、摘录、口径、来源、日期完整，合并后 `audit-outcome-collection-plan` 无 errors 且 `publication_ready=true`，没有未消化的 source/semantic policy hints。
 
 ## 2. 当前基线
 

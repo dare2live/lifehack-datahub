@@ -9,53 +9,249 @@
     "status": "todo"
   },
   "audit": {
-    "pending_statuses": ["todo", "in_progress", "needs_review"],
-    "complete_statuses": ["collected", "verified", "ready"],
-    "blocked_statuses": ["blocked", "not_found", "not_applicable"],
-    "required_evidence_columns": ["metric_value", "source_url", "evidence_quote"]
+    "pending_statuses": [
+      "todo",
+      "in_progress",
+      "needs_review"
+    ],
+    "complete_statuses": [
+      "collected",
+      "verified",
+      "ready"
+    ],
+    "blocked_statuses": [
+      "blocked",
+      "not_found",
+      "not_applicable"
+    ],
+    "required_evidence_columns": [
+      "metric_value",
+      "source_url",
+      "evidence_quote"
+    ]
+  },
+  "report_priority_profiles": {
+    "default": {
+      "employment_rate": "high",
+      "postgrad_rate": "high",
+      "keep_research_rate": "medium",
+      "civil_service_rate": "medium"
+    },
+    "艺术类": {
+      "employment_rate": "high",
+      "postgrad_rate": "medium",
+      "keep_research_rate": "medium",
+      "civil_service_rate": "low"
+    },
+    "高职高专院校": {
+      "employment_rate": "high",
+      "postgrad_rate": "medium",
+      "keep_research_rate": "low",
+      "civil_service_rate": "low"
+    },
+    "师范院校": {
+      "employment_rate": "high",
+      "postgrad_rate": "high",
+      "keep_research_rate": "high",
+      "civil_service_rate": "medium"
+    }
   },
   "source_evidence_policy": {
     "metric_publication_rule": "学校 outcome 指标只能来自直接给出本科毕业生统计口径的来源：明确指标值，或同时给出分子、分母和毕业届别。招聘会、岗位供给、人才市场活动和自媒体线索不能直接发布为 fa_fact_school_outcome。",
+    "review_seed_audit": {
+      "third_party_source_hosts": [
+        "app.gaokaozhitongche.com",
+        "cacsc.com.cn",
+        "m.gk100.com",
+        "m.gwy.com",
+        "m.sohu.com",
+        "pdf.6617.com",
+        "pdf.gk100.com",
+        "www.6617.com",
+        "www.bnsya.com",
+        "www.dxsbb.com",
+        "www.gaodun.com",
+        "www.gk100.com",
+        "www.jzves.com",
+        "www.sohu.com",
+        "www.ysygaokao.cn",
+        "www.zggx100.com",
+        "www.zizzs.com"
+      ],
+      "source_host_policy_tiers": {
+        "app.gaokaozhitongche.com": "third_party_summary_page",
+        "cacsc.com.cn": "third_party_metric_compilation",
+        "m.gk100.com": "third_party_summary_page",
+        "m.gwy.com": "third_party_metric_compilation",
+        "m.sohu.com": "self_media",
+        "pdf.6617.com": "third_party_report_mirror",
+        "pdf.gk100.com": "third_party_report_mirror",
+        "www.6617.com": "third_party_summary_page",
+        "www.bnsya.com": "third_party_summary_page",
+        "www.dxsbb.com": "third_party_summary_page",
+        "www.gaodun.com": "third_party_metric_compilation",
+        "www.gk100.com": "third_party_summary_page",
+        "www.jzves.com": "third_party_report_mirror",
+        "www.sohu.com": "self_media",
+        "www.ysygaokao.cn": "third_party_metric_compilation",
+        "www.zggx100.com": "third_party_summary_page",
+        "www.zizzs.com": "third_party_summary_page"
+      },
+      "metric_semantic_risk_markers": {
+        "keep_research_rate": [
+          "不是保研率",
+          "考研率",
+          "深造率",
+          "升学率"
+        ],
+        "civil_service_rate": [
+          "代理",
+          "下限",
+          "选调生"
+        ]
+      },
+      "review_batch": {
+        "default_limit": 100,
+        "hint_kind_priority": [
+          "semantic",
+          "source"
+        ],
+        "review_columns": [
+          "review_status",
+          "resolution_action",
+          "resolution_reason_code",
+          "publish_decision",
+          "replacement_source_title",
+          "replacement_source_url",
+          "replacement_evidence_quote",
+          "replacement_source_date",
+          "replacement_availability_date",
+          "corrected_metric_key",
+          "corrected_metric_value",
+          "corrected_metric_scope",
+          "corrected_denominator",
+          "controller_note"
+        ]
+      },
+      "notes": "review seeds 可以保留风险行用于排队复核；发布 package 前必须先消化 duplicate seed_id、第三方来源和代理/下限/选调生口径风险。"
+    },
     "tiers": {
       "school_official_report": {
         "label": "学校官方报告",
-        "examples": ["就业质量年度报告", "本科教学质量报告", "学校信息公开年报附件"],
+        "examples": [
+          "就业质量年度报告",
+          "本科教学质量报告",
+          "学校信息公开年报附件"
+        ],
         "can_publish_outcome_metric": true,
-        "allowed_evidence_targets": ["fa_fact_school_outcome", "fa_fact_major_outcome"],
+        "allowed_evidence_targets": [
+          "fa_fact_school_outcome",
+          "fa_fact_major_outcome"
+        ],
         "required_review": "核对毕业届别、学历层次、统计时点、分子分母或原文百分比，并写入 metric_scope。"
       },
       "school_official_news": {
         "label": "学校官方新闻",
-        "examples": ["学校就业网新闻", "招生就业处通知", "学院官方就业去向发布"],
+        "examples": [
+          "学校就业网新闻",
+          "招生就业处通知",
+          "学院官方就业去向发布"
+        ],
         "can_publish_outcome_metric": true,
-        "allowed_evidence_targets": ["fa_fact_school_outcome", "fa_fact_major_outcome", "fa_mart_school_city_industry_fit"],
+        "allowed_evidence_targets": [
+          "fa_fact_school_outcome",
+          "fa_fact_major_outcome",
+          "fa_mart_school_city_industry_fit"
+        ],
         "required_review": "只有原文直接给出全校/学院/专业毕业去向统计值时才能发布 outcome；普通招聘活动新闻只作为学校城市产业连接证据。"
+      },
+      "third_party_report_mirror": {
+        "label": "第三方报告镜像",
+        "examples": [
+          "第三方站点托管的就业质量报告 PDF",
+          "第三方站点托管的本科教学质量报告 PDF"
+        ],
+        "can_publish_outcome_metric": false,
+        "allowed_evidence_targets": [
+          "research_candidate"
+        ],
+        "required_review": "只作为查找官方报告的线索；必须替换为学校官网、就业网、信息公开网或官方附件，或登记受控 mirror policy 后才能进入发布判断。"
+      },
+      "third_party_summary_page": {
+        "label": "第三方摘要页",
+        "examples": [
+          "高考志愿站点整理页",
+          "大学生信息站摘要页",
+          "第三方学校就业前景页面"
+        ],
+        "can_publish_outcome_metric": false,
+        "allowed_evidence_targets": [
+          "research_candidate"
+        ],
+        "required_review": "只能用于发现候选指标和搜索关键词；发布前必须回查官方报告、官方新闻或信息公开附件。"
+      },
+      "third_party_metric_compilation": {
+        "label": "第三方指标汇总",
+        "examples": [
+          "保研率汇总页",
+          "考公/升学率汇总页",
+          "学校指标榜单"
+        ],
+        "can_publish_outcome_metric": false,
+        "allowed_evidence_targets": [
+          "research_candidate"
+        ],
+        "required_review": "只能作为指标线索；保研、升学、公务员/机关去向必须回到官方报告原文核对口径、层次和分母。"
       },
       "government_talent_market": {
         "label": "政府/人才市场官方渠道",
-        "examples": ["人社局高校毕业生专场招聘会", "公共就业服务中心活动", "地方人才市场应届生专题"],
+        "examples": [
+          "人社局高校毕业生专场招聘会",
+          "公共就业服务中心活动",
+          "地方人才市场应届生专题"
+        ],
         "can_publish_outcome_metric": false,
-        "allowed_evidence_targets": ["fa_fact_career_signal", "fa_mart_school_city_industry_fit", "fa_mart_major_city_employment_fit"],
+        "allowed_evidence_targets": [
+          "fa_fact_career_signal",
+          "fa_mart_school_city_industry_fit",
+          "fa_mart_major_city_employment_fit"
+        ],
         "required_review": "用于岗位需求、城市机会和校地就业连接；不得把活动场次、参会企业数或岗位数当成毕业去向落实率。"
       },
       "local_news_recruitment_fair": {
         "label": "当地媒体招聘会报道",
-        "examples": ["地方新闻招聘会报道", "校园双选会新闻转载"],
+        "examples": [
+          "地方新闻招聘会报道",
+          "校园双选会新闻转载"
+        ],
         "can_publish_outcome_metric": false,
-        "allowed_evidence_targets": ["fa_mart_school_city_industry_fit", "fa_mart_major_city_employment_fit"],
+        "allowed_evidence_targets": [
+          "fa_mart_school_city_industry_fit",
+          "fa_mart_major_city_employment_fit"
+        ],
         "required_review": "只作为候选线索或连接证据，必须回查学校、人社局或人才市场官方页面后才能进入 verified。"
       },
       "self_media": {
         "label": "自媒体线索",
-        "examples": ["公众号汇总", "短视频/图文转述", "论坛或家长社群截图"],
+        "examples": [
+          "公众号汇总",
+          "短视频/图文转述",
+          "论坛或家长社群截图"
+        ],
         "can_publish_outcome_metric": false,
-        "allowed_evidence_targets": ["research_candidate"],
+        "allowed_evidence_targets": [
+          "research_candidate"
+        ],
         "required_review": "只用于发现线索和搜索关键词；不得直接进入 outcome、职业信号或推荐 evidence packet。"
       }
     }
   },
   "review_batch": {
-    "selection_statuses": ["todo", "in_progress", "needs_review"],
+    "selection_statuses": [
+      "todo",
+      "in_progress",
+      "needs_review"
+    ],
     "limit_per_domain": 20,
     "editable_columns": [
       "status",
@@ -72,7 +268,9 @@
     ]
   },
   "candidate_merge": {
-    "approved_statuses": ["approved"],
+    "approved_statuses": [
+      "approved"
+    ],
     "target_status": "verified",
     "editable_columns": [
       "status",
@@ -91,9 +289,20 @@
     "status": "todo",
     "limit_per_domain": 40,
     "include_seeded_entities_beyond_limit": true,
-    "pending_statuses": ["todo", "in_progress", "needs_review"],
-    "complete_statuses": ["candidate_found", "verified", "ready"],
-    "blocked_statuses": ["not_found", "blocked"],
+    "pending_statuses": [
+      "todo",
+      "in_progress",
+      "needs_review"
+    ],
+    "complete_statuses": [
+      "candidate_found",
+      "verified",
+      "ready"
+    ],
+    "blocked_statuses": [
+      "not_found",
+      "blocked"
+    ],
     "required_source_columns": [
       "candidate_report_title",
       "candidate_report_url",
@@ -101,7 +310,11 @@
       "availability_date"
     ],
     "review_batch": {
-      "selection_statuses": ["todo", "in_progress", "needs_review"],
+      "selection_statuses": [
+        "todo",
+        "in_progress",
+        "needs_review"
+      ],
       "limit_per_domain": 20,
       "editable_columns": [
         "status",
@@ -155,16 +368,32 @@
     }
   },
   "report_extraction_plan": {
-    "source_statuses": ["candidate_found", "verified", "ready", "downloaded"],
-    "supported_extensions": [".pdf", ".ofd", ".docx"],
+    "source_statuses": [
+      "candidate_found",
+      "verified",
+      "ready",
+      "downloaded"
+    ],
+    "supported_extensions": [
+      ".pdf",
+      ".ofd",
+      ".docx"
+    ],
     "output_path_template": "candidates/{domain}_{safe_entity_code}_{metric_year}_{report_scope}_candidates.csv",
     "ready_status": "ready",
     "blocked_status": "blocked"
   },
   "report_intake_plan": {
-    "source_statuses": ["candidate_found", "verified", "ready"],
+    "source_statuses": [
+      "candidate_found",
+      "verified",
+      "ready"
+    ],
     "local_path_template": "raw/outcome_report/{metric_year}/{domain}_{safe_entity_code}_{report_scope}/{safe_file_name}",
-    "approved_statuses": ["downloaded", "ready"],
+    "approved_statuses": [
+      "downloaded",
+      "ready"
+    ],
     "target_source_status": "ready",
     "ready_status": "ready_for_intake",
     "blocked_status": "blocked"
@@ -175,10 +404,24 @@
       "entity_code_column": "school_code",
       "entity_name_column": "school_name",
       "filters": {
-        "batch": ["本科批", "专科批", "艺术类", "提前批", "体育类"],
-        "subject_cat": ["物理类", "历史类"]
+        "batch": [
+          "本科批",
+          "专科批",
+          "艺术类",
+          "提前批",
+          "体育类"
+        ],
+        "subject_cat": [
+          "物理类",
+          "历史类"
+        ]
       },
-      "metrics": ["postgrad_rate", "employment_rate", "keep_research_rate", "civil_service_rate"],
+      "metrics": [
+        "postgrad_rate",
+        "employment_rate",
+        "keep_research_rate",
+        "civil_service_rate"
+      ],
       "query_templates": [
         "{entity_name} {metric_year} 就业质量报告",
         "{entity_name} {metric_year} 毕业生就业质量报告 {metric_label}",
@@ -190,10 +433,20 @@
       "entity_code_column": "major_full",
       "entity_name_column": "major_full",
       "filters": {
-        "batch": ["本科批"],
-        "subject_cat": ["物理类", "历史类"]
+        "batch": [
+          "本科批"
+        ],
+        "subject_cat": [
+          "物理类",
+          "历史类"
+        ]
       },
-      "metrics": ["employment_rate", "postgrad_rate", "civil_service_fit_score", "exam_friendly_score"],
+      "metrics": [
+        "employment_rate",
+        "postgrad_rate",
+        "civil_service_fit_score",
+        "exam_friendly_score"
+      ],
       "query_templates": [
         "{entity_name} 专业 {metric_year} 就业质量报告",
         "{entity_name} 专业 就业方向 {metric_label}",

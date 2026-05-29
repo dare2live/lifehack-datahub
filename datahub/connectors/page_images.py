@@ -14,7 +14,7 @@ from urllib.request import Request, urlopen
 from datahub.config import load_sources
 
 
-LINK_RE = re.compile(r"""(?:src|href)=["']([^"']+)["']""", re.IGNORECASE)
+LINK_RE = re.compile(r"""(?:src|href)\s*=\s*(?:"([^"]+)"|'([^']+)'|([^\s>]+))""", re.IGNORECASE)
 IMAGE_EXTENSIONS = (".jpg", ".jpeg", ".png", ".webp")
 
 
@@ -101,7 +101,8 @@ def _discover_image_urls(
     exclude = page_source.get("exclude")
     urls = []
     seen = set()
-    for raw in LINK_RE.findall(html):
+    for match in LINK_RE.finditer(html):
+        raw = next(item for item in match.groups() if item)
         image_url = urljoin(page_url, raw)
         lower = urlparse(image_url).path.lower()
         if not lower.endswith(IMAGE_EXTENSIONS):

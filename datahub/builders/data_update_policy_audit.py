@@ -1,6 +1,7 @@
 """Audit DataHub update-governance policy consistency."""
 from __future__ import annotations
 
+from collections import Counter
 from typing import Any
 
 from datahub.config import load_data_update_policy, load_source_schemas, load_sources
@@ -21,6 +22,8 @@ def audit_data_update_policy() -> dict[str, Any]:
 
     errors: list[str] = []
     warnings: list[str] = []
+    source_domain_counts: Counter[str] = Counter()
+    source_kind_counts: Counter[str] = Counter()
     if not isinstance(policies, dict) or not policies:
         errors.append("data_update_policy.source_policies is required")
         policies = {}
@@ -31,6 +34,15 @@ def audit_data_update_policy() -> dict[str, Any]:
         errors.append("data_update_policy.validity_check_catalog must be an object")
         validity_check_catalog = {}
 
+    _audit_source_lineage_taxonomy(
+        taxonomy=config.get("source_lineage_taxonomy"),
+        sources=sources,
+        schemas=schemas,
+        source_domain_counts=source_domain_counts,
+        source_kind_counts=source_kind_counts,
+        errors=errors,
+        warnings=warnings,
+    )
     for source_key, policy in policies.items():
         _audit_source_policy(
             source_key=source_key,
@@ -57,8 +69,124 @@ def audit_data_update_policy() -> dict[str, Any]:
         "warnings": warnings,
         "policy_count": len(policies),
         "source_count": len(sources),
+        "source_domain_counts": dict(sorted(source_domain_counts.items())),
+        "source_kind_counts": dict(sorted(source_kind_counts.items())),
         "status": "ok" if not errors else "error",
     }
+
+
+def _audit_source_lineage_taxonomy(
+    *,
+    taxonomy: Any,
+    sources: dict[str, Any],
+    schemas: dict[str, Any],
+    source_domain_counts: Counter[str],
+    source_kind_counts: Counter[str],
+    errors: list[str],
+    warnings: list[str],
+) -> None:
+    if not isinstance(taxonomy, dict):
+        errors.append("data_update_policy.source_lineage_taxonomy must be an object")
+        return
+
+    required_sections = [
+        "lineage_spine",
+        "granularity_model",
+        "data_domains",
+        "acquisition_methods",
+        "evidence_tiers",
+        "processing_stages",
+        "source_domains",
+        "source_kind_defaults",
+    ]
+    for section in required_sections:
+        if section not in taxonomy:
+            errors.append(f"source_lineage_taxonomy.{section} is required")
+
+    if taxonomy.get("source_key_granularity") != "source_family":
+        errors.append("source_lineage_taxonomy.source_key_granularity must be source_family")
+
+    lineage_spine = taxonomy.get("lineage_spine")
+    if not isinstance(lineage_spine, list) or "source_key" not in lineage_spine or "package_id" not in lineage_spine:
+        errors.append("source_lineage_taxonomy.lineage_spine must include source_key and package_id")
+
+    granularity_model = taxonomy.get("granularity_model")
+    if not isinstance(granularity_model, dict) or "source_instance" not in granularity_model:
+        errors.append("source_lineage_taxonomy.granularity_model must describe source_instance")
+
+    data_domains = taxonomy.get("data_domains")
+    if not isinstance(data_domains, dict):
+        errors.append("source_lineage_taxonomy.data_domains must be an object")
+        data_domains = {}
+    acquisition_methods = taxonomy.get("acquisition_methods")
+    if not isinstance(acquisition_methods, dict):
+        errors.append("source_lineage_taxonomy.acquisition_methods must be an object")
+        acquisition_methods = {}
+    evidence_tiers = taxonomy.get("evidence_tiers")
+    if not isinstance(evidence_tiers, dict):
+        errors.append("source_lineage_taxonomy.evidence_tiers must be an object")
+        evidence_tiers = {}
+    processing_stages = taxonomy.get("processing_stages")
+    if not isinstance(processing_stages, dict):
+        errors.append("source_lineage_taxonomy.processing_stages must be an object")
+        processing_stages = {}
+    source_domains = taxonomy.get("source_domains")
+    if not isinstance(source_domains, dict):
+        errors.append("source_lineage_taxonomy.source_domains must be an object")
+        source_domains = {}
+    source_kind_defaults = taxonomy.get("source_kind_defaults")
+    if not isinstance(source_kind_defaults, dict):
+        errors.append("source_lineage_taxonomy.source_kind_defaults must be an object")
+        source_kind_defaults = {}
+
+    for source_key, source in sources.items():
+        if not isinstance(source, dict):
+            errors.append(f"{source_key}: source config must be an object")
+            continue
+
+        domain = str(source_domains.get(source_key) or "")
+        if not domain:
+            errors.append(f"{source_key}: missing source domain taxonomy")
+        elif domain not in data_domains:
+            errors.append(f"{source_key}: unknown source domain {domain}")
+        else:
+            source_domain_counts[domain] += 1
+
+        kind = str(source.get("kind") or "")
+        source_kind_counts[kind] += 1
+        defaults = source_kind_defaults.get(kind)
+        if not isinstance(defaults, dict):
+            errors.append(f"{source_key}: missing source kind lineage defaults for {kind}")
+            continue
+        method = str(defaults.get("acquisition_method") or "")
+        tier = str(defaults.get("evidence_tier") or "")
+        stage = str(defaults.get("processing_stage") or "")
+        if method not in acquisition_methods:
+            errors.append(f"{source_key}: unknown acquisition_method {method} for kind {kind}")
+        if tier not in evidence_tiers:
+            errors.append(f"{source_key}: unknown evidence_tier {tier} for kind {kind}")
+        if stage not in processing_stages:
+            errors.append(f"{source_key}: unknown processing_stage {stage} for kind {kind}")
+
+        target_tables = source.get("target_tables") or []
+        if not target_tables:
+            warnings.append(f"{source_key}: source has no target_tables")
+        for table_name in target_tables:
+            table = str(table_name)
+            schema = schemas.get(table)
+            if not isinstance(schema, dict):
+                continue
+            schema_source = str(schema.get("source_key") or "")
+            accepted_sources = set(_list_value(schema.get("accepted_intake_source_keys")))
+            if schema_source and schema_source != source_key and source_key not in accepted_sources:
+                errors.append(
+                    f"{source_key}: target table {table} belongs to {schema_source} "
+                    "and does not accept this intake source"
+                )
+
+    for source_key in source_domains:
+        if source_key not in sources:
+            errors.append(f"source_lineage_taxonomy.source_domains has unknown source: {source_key}")
 
 
 def _audit_source_policy(

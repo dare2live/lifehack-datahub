@@ -75,6 +75,15 @@ def run_update(
         source_date=source_date,
         availability_date=availability_date,
     )
+    snapshot_rows = _build_snapshot_rows(
+        execution_rows=execution_rows,
+        step_rows=step_rows,
+        run_id=run_id,
+        plan_csv=Path(plan_result["csv"]),
+        plan_manifest=Path(plan_result["manifest"]),
+        source_date=source_date,
+        availability_date=availability_date,
+    )
     health_rows = _build_health_rows(
         readiness_rows=readiness_rows,
         source_date=source_date,
@@ -91,9 +100,11 @@ def run_update(
     )
 
     meta_run_path = run_dir / "fa_meta_update_run.csv"
+    meta_snapshot_path = run_dir / "fa_meta_source_snapshot.csv"
     meta_step_path = run_dir / "fa_meta_update_run_step.csv"
     meta_health_path = run_dir / "fa_meta_source_health.csv"
     _write_csv(meta_run_path, "fa_meta_update_run", [run_row])
+    _write_csv(meta_snapshot_path, "fa_meta_source_snapshot", snapshot_rows)
     _write_csv(meta_step_path, "fa_meta_update_run_step", step_rows)
     _write_csv(meta_health_path, "fa_meta_source_health", health_rows)
 
@@ -105,6 +116,7 @@ def run_update(
         "plan_csv": plan_result["csv"],
         "readiness_csv": readiness_result["csv"],
         "batch_csv": batch_result["csv"],
+        "source_snapshot_count": len(snapshot_rows),
         "step_count": len(step_rows),
         "blocked_steps": len([row for row in step_rows if row["step_status"] == "blocked"]),
         "health_count": len(health_rows),
@@ -117,6 +129,7 @@ def run_update(
         "availability_date": run_row["availability_date"],
         "output_files": {
             "fa_meta_update_run": str(meta_run_path),
+            "fa_meta_source_snapshot": str(meta_snapshot_path),
             "fa_meta_update_run_step": str(meta_step_path),
             "fa_meta_source_health": str(meta_health_path),
             "run_json": str(run_dir / "run.json"),
@@ -266,15 +279,20 @@ def audit_update(*, output_root: Path, run_id: str | None = None) -> dict[str, A
             "status": "error",
         }
     run_dir = Path(record["run_dir"])
+    snapshot_path = run_dir / "fa_meta_source_snapshot.csv"
     health_path = run_dir / "fa_meta_source_health.csv"
     step_path = run_dir / "fa_meta_update_run_step.csv"
-    if not health_path.exists() or not step_path.exists():
+    if not snapshot_path.exists() or not health_path.exists() or not step_path.exists():
         return {
             "run_id": run_id,
-            "errors": ["missing run artifacts: fa_meta_source_health.csv or fa_meta_update_run_step.csv"],
+            "errors": [
+                "missing run artifacts: "
+                "fa_meta_source_snapshot.csv, fa_meta_source_health.csv, or fa_meta_update_run_step.csv"
+            ],
             "status": "error",
         }
 
+    snapshot_rows = _read_csv_rows(snapshot_path)
     health_rows = _read_csv_rows(health_path)
     step_rows = _read_csv_rows(step_path)
     blocked_steps = [row for row in step_rows if row["step_status"] == "blocked"]
@@ -282,6 +300,7 @@ def audit_update(*, output_root: Path, run_id: str | None = None) -> dict[str, A
     return {
         "run_id": run_id,
         "status": "ok" if not blocked_steps else "warning",
+        "source_snapshot_count": len(snapshot_rows),
         "step_count": len(step_rows),
         "blocked_step_count": len(blocked_steps),
         "source_health_count": len(health_rows),
@@ -395,11 +414,54 @@ def _build_step_rows(
             "depends_on_json": row.get("depends_on", "[]"),
             "started_at": _now_iso(),
             "finished_at": _now_iso(),
-            "snapshot_id": f"{run_id}:{source_key}:{source_date}",
+            "snapshot_id": f"{run_id}:{_family_source_instance_key(source_key)}:{source_date}",
             "error_message": error_message,
             "source_date": source_date,
             "availability_date": availability_date,
             "built_at": _now_iso(),
+        })
+    return rows
+
+
+def _build_snapshot_rows(
+    *,
+    execution_rows: list[dict[str, str]],
+    step_rows: list[dict[str, str]],
+    run_id: str,
+    plan_csv: Path,
+    plan_manifest: Path,
+    source_date: str,
+    availability_date: str,
+) -> list[dict[str, str]]:
+    steps_by_source = {row["source_key"]: row for row in step_rows}
+    rows: list[dict[str, str]] = []
+    for row in execution_rows:
+        source_key = row["source_key"]
+        step = steps_by_source.get(source_key, {})
+        rows.append({
+            "source_key": source_key,
+            "source_instance_key": _family_source_instance_key(source_key),
+            "snapshot_id": step.get("snapshot_id", f"{run_id}:{_family_source_instance_key(source_key)}:{source_date}"),
+            "source_version": run_id,
+            "update_mode": row.get("update_mode", ""),
+            "snapshot_status": step.get("step_status", row.get("step_status", "")),
+            "artifact_kind": "update_governance_plan",
+            "artifact_uri": str(plan_csv),
+            "partition_key_json": row.get("partition_keys", "[]"),
+            "raw_artifact_hash": "",
+            "content_hash": "",
+            "row_count": "",
+            "file_count": "1",
+            "manifest_path": str(plan_manifest),
+            "quality_report_path": "",
+            "source_date": source_date,
+            "availability_date": availability_date,
+            "built_at": _now_iso(),
+            "notes": json.dumps({
+                "source_family": source_key,
+                "source_instance_granularity": "family",
+                "target_tables": row.get("target_tables", "[]"),
+            }, ensure_ascii=False),
         })
     return rows
 
@@ -534,6 +596,10 @@ def _is_blocked(status: str) -> bool:
 
 def _is_waiting(status: str) -> bool:
     return str(status).startswith("awaiting") or status == "research_required"
+
+
+def _family_source_instance_key(source_key: str) -> str:
+    return f"{source_key}:family"
 
 
 def _group_rows(rows: list[dict[str, str]], key: str) -> dict[str, list[dict[str, str]]]:

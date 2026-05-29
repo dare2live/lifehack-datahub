@@ -658,13 +658,24 @@ python3 scripts/build_package.py merge-outcome-collection-batch \
   --report staging/outcome_collection/outcome_collection_merge.json
 ```
 
-采集推进过程中应先审计任务表，而不是直接打包。`audit-outcome-collection-plan` 会检查 metric 是否登记、单位和值域是否匹配、完成状态是否有 `metric_value/source_url/evidence_quote`，并输出 domain/metric/status 进度：
+采集推进过程中应先审计任务表，而不是直接打包。`audit-outcome-collection-plan` 会检查 metric 是否登记、单位和值域是否匹配、完成状态是否有 `metric_value/source_url/evidence_quote`，并输出 domain/metric/status 进度和 complete 行上的 source/semantic policy hints；带 unresolved policy hints 的计划不能生成 outcome package：
 
 ```bash
 python3 scripts/build_package.py audit-outcome-collection-plan \
   --plan-csv staging/outcome_collection/outcome_collection_plan.csv \
   --report staging/outcome_collection/outcome_collection_audit.json
 ```
+
+如果 audit 或 seed audit 返回 source/semantic policy hints，先生成本地复核批次，不直接编辑总 seed 文件：
+
+```bash
+python3 scripts/build_package.py build-outcome-policy-hint-review-batch \
+  --output-dir staging/outcome_collection/policy_hint_batch_001 \
+  --hint-kind semantic \
+  --limit 100
+```
+
+该批次按 `config/outcome_collection.json` 的 `source_evidence_policy.review_seed_audit.review_batch` 配置选择字段和优先级；它只服务人工复核排队，不是标准数据包，也不能导入 core。
 
 真实 smoke：用 core DB 生成学校 5 个、专业 5 个的小样本采集队列，共 40 条任务；审计结果为 `todo=40`、`complete_rows=0`、`errors=[]`，说明当前仍是采集计划，不能作为 outcome 数据包导入 core。
 

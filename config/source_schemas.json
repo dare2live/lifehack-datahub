@@ -413,6 +413,7 @@
     },
     "fa_dim_school_profile": {
       "source_key": "school_profile",
+      "accepted_intake_source_keys": ["school_profile_supplemental"],
       "primary_key": ["national_school_code"],
       "required": ["national_school_code", "school_name", "province", "city", "school_tier", "source_date", "availability_date", "built_at"],
       "columns": [
@@ -724,15 +725,19 @@
     },
     "fa_meta_source_snapshot": {
       "source_key": "data_update_governance",
-      "primary_key": ["source_key", "snapshot_id"],
-      "required": ["source_key", "snapshot_id", "update_mode", "snapshot_status", "source_date", "availability_date", "built_at"],
+      "primary_key": ["source_key", "source_instance_key", "snapshot_id"],
+      "required": ["source_key", "source_instance_key", "snapshot_id", "update_mode", "snapshot_status", "artifact_kind", "source_date", "availability_date", "built_at"],
       "columns": [
         "source_key",
+        "source_instance_key",
         "snapshot_id",
         "source_version",
         "update_mode",
         "snapshot_status",
+        "artifact_kind",
+        "artifact_uri",
         "partition_key_json",
+        "raw_artifact_hash",
         "content_hash",
         "row_count",
         "file_count",
@@ -746,11 +751,15 @@
       "numeric": ["row_count", "file_count"],
       "aliases": {
         "source_key": ["source_key", "来源键"],
+        "source_instance_key": ["source_instance_key", "来源实例键"],
         "snapshot_id": ["snapshot_id", "快照ID"],
         "source_version": ["source_version", "来源版本"],
         "update_mode": ["update_mode", "更新模式"],
         "snapshot_status": ["snapshot_status", "快照状态"],
+        "artifact_kind": ["artifact_kind", "产物类型"],
+        "artifact_uri": ["artifact_uri", "产物路径或链接"],
         "partition_key_json": ["partition_key_json", "分区键JSON"],
+        "raw_artifact_hash": ["raw_artifact_hash", "原始产物哈希"],
         "content_hash": ["content_hash", "内容哈希"],
         "row_count": ["row_count", "行数"],
         "file_count": ["file_count", "文件数"],
@@ -1434,6 +1443,7 @@
     },
     "fa_fact_career_signal": {
       "source_key": "career_signal",
+      "accepted_intake_source_keys": ["career_civil_service_posts"],
       "primary_key": ["occupation_code", "city", "metric_key", "metric_year", "source_url"],
       "required": ["occupation_code", "occupation_name", "city", "metric_key", "metric_name", "metric_value", "metric_unit", "metric_year", "source_title", "source_url", "evidence_quote", "source_date", "availability_date", "built_at"],
       "columns": [

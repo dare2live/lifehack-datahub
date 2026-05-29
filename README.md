@@ -184,7 +184,7 @@ python3 scripts/build_package.py build-entity-normalization-registry \
   --package-id 2026_entity_normalization_registry
 ```
 
-数据更新治理用于确定数据什么时候重跑、怎么增量、旧数据如何覆盖、失败来源如何阻断依赖。`config/data_update_policy.json` 统一维护 `full_replace/partition_replace/primary_key_upsert/append_snapshot/manual_review_promote/derived_rebuild` 六类更新模式、非标数据晋级规则、来源有效性检测和串并行调度分组；运行元数据进入 `fa_meta_source_snapshot/fa_meta_source_health/fa_meta_update_run/fa_meta_update_run_step/fa_meta_nonstandard_review_queue`。非标数据只允许停留在 raw、候选和复核队列，复核通过后才发布标准包。
+数据更新治理用于确定数据什么时候重跑、怎么增量、旧数据如何覆盖、失败来源如何阻断依赖。`config/data_update_policy.json` 统一维护 `full_replace/partition_replace/primary_key_upsert/append_snapshot/manual_review_promote/derived_rebuild` 六类更新模式、非标数据晋级规则、来源有效性检测和串并行调度分组；运行元数据进入 `fa_meta_source_snapshot/fa_meta_source_health/fa_meta_update_run/fa_meta_update_run_step/fa_meta_nonstandard_review_queue`。`source_key` 表示 source family，具体学校官网、就业网栏目、报告 PDF、Excel 或 API 响应以 `source_instance_key` 和 artifact snapshot 挂到 family 下。非标数据只允许停留在 raw、候选和复核队列，复核通过后才发布标准包。
 
 `build-data-update-plan` 会把更新策略拓扑排序成可审计执行计划，用于判断哪些源必须串行、哪些源可以同阶段并行、哪些衍生 mart 要等待上游数据包完成。该输出不是 data package，不抓取数据，也不写 core：
 
@@ -925,7 +925,7 @@ python3 scripts/build_package.py audit-outcome-collection-plan \
   --report staging/outcome_collection/outcome_collection_audit.json
 ```
 
-已经人工核对的 outcome 结论可以沉淀到 `config/outcome_collection_review_seeds.json`，再重放到重新生成的采集计划。种子只保存指标值、来源 URL、摘录、口径和复核说明，不提交 PDF 原文或 ignored staging 文件；`audit-outcome-collection-review-seeds` 会按 `config/outcome_metrics.json` 的 metric 注册检查指标合法性、完成状态、重复主键、metric_year 整数、HTTP(S) 来源 URL、日期格式、时间顺序、数值类型和值域上下限，避免 120%、负数、`2024.0` 年份、本地路径来源、非 `YYYY-MM-DD` 日期或复核早于来源可用日期这类错误进入后续计划：
+已经人工核对的 outcome 结论可以沉淀到 `config/outcome_collection_review_seeds.json`，再重放到重新生成的采集计划。种子只保存指标值、来源 URL、摘录、口径和复核说明，不提交 PDF 原文或 ignored staging 文件；`audit-outcome-collection-review-seeds` 会按 `config/outcome_metrics.json` 的 metric 注册检查指标合法性、完成状态、重复主键、重复 `seed_id`、metric_year 整数、HTTP(S) 来源 URL、日期格式、时间顺序、数值类型和值域上下限，并输出第三方来源和代理口径的 policy hints。`build-outcome-from-collection-plan` 会拒绝仍带有 unresolved policy hints 的 complete 行，避免 120%、负数、`2024.0` 年份、本地路径来源、非 `YYYY-MM-DD` 日期、复核早于来源可用日期、第三方转述或考研率冒充保研率这类问题进入后续计划和 core 包：
 
 ```bash
 python3 scripts/build_package.py audit-outcome-collection-review-seeds \
@@ -936,10 +936,17 @@ python3 scripts/build_package.py apply-outcome-collection-review-seeds \
   --output staging/outcome_collection/outcome_collection_plan.seeded.csv \
   --report staging/outcome_collection/outcome_review_seed_apply.json
 
+python3 scripts/build_package.py build-outcome-policy-hint-review-batch \
+  --output-dir staging/outcome_collection/policy_hint_batch_001 \
+  --hint-kind semantic \
+  --limit 100
+
 python3 scripts/build_package.py audit-outcome-collection-plan \
   --plan-csv staging/outcome_collection/outcome_collection_plan.seeded.csv \
   --report staging/outcome_collection/outcome_collection_seeded_audit.json
 ```
+
+`build-outcome-policy-hint-review-batch` 只生成本地复核队列和 manifest，不会自动修改 seeds，也不会降低 package gate。复核时优先处理 semantic hints，再处理第三方来源 hints；只有把对应 seed 的来源、口径、替代 URL 或指标修正写回 `config/outcome_collection_review_seeds.json` 并重新审计到 `publication_ready=true` 后，才能进入 outcome package。
 
 学校或专业报告 PDF/OFD 可以先进入候选提取，不直接写回采集计划。`extract-outcome-report-candidates` 按 `config/outcome_metrics.json` 里的指标标签、aliases 和 `extraction.max_context_lines` 从报告文本中提取百分比/分值；报告把指标名和数值拆到相邻行时，候选提取会拼接同页向后上下文。输出仍是 `needs_review` 候选 CSV，候选值必须人工核对原文上下文后，才能复制到 outcome collection batch 的证据列：
 

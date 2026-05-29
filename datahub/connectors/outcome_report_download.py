@@ -51,7 +51,10 @@ REPORT_EXTENSIONS = (".pdf", ".ofd", ".doc", ".docx")
 USER_AGENT = "Mozilla/5.0"
 CLOUD_IFRAME_NAME_RE = re.compile(r"name=\\\\\"([^\\\\\"]+)\\\\\"|name=\\\"([^\\\"]+)\\\"|name=\"([^\"]+)\"")
 VSB_PDF_IFRAME_RE = re.compile(r"showVsbpdfIframe\(\s*['\"]([^'\"]+\.pdf(?:\?[^'\"]*)?)['\"]", re.IGNORECASE)
-REPORT_IMAGE_RE = re.compile(r"<img\b[^>]*(?:alt|src)=['\"][^'\"]*(?:报告|report)[^'\"]*['\"][^>]*>", re.IGNORECASE)
+REPORT_IMAGE_RE = re.compile(
+    r"<img\b[^>]*(?:alt|src)\s*=\s*(?:['\"][^'\"]*(?:报告|report)[^'\"]*['\"]|[^\s>]*(?:报告|report)[^\s>]*)[^>]*>",
+    re.IGNORECASE,
+)
 EMBEDDED_PDF_DATA_RE = re.compile(r"(?:var\s+)?pdfData\s*=\s*['\"]([A-Za-z0-9+/=\s]+)['\"]", re.IGNORECASE)
 
 
@@ -253,6 +256,12 @@ def _manual_intake_classification(download_error: str) -> tuple[str, str]:
         return "captcha_required", "manual_browser_download"
     if "pdf page images" in lower or "embedded report images" in lower or "ocr" in lower:
         return "image_pdf_ocr_required", "ocr_or_manual_transcription"
+    if "http error 404" in lower or ("404" in lower and "not found" in lower):
+        return "source_url_not_found", "find_alternate_official_url"
+    if "attachment url returned html" in lower:
+        return "attachment_html_or_permission_page", "manual_browser_download_or_source_url_fix"
+    if "no matching report attachment found on page" in lower:
+        return "no_report_attachment_found", "manual_page_inspection_or_image_intake"
     return "download_failed", "manual_review"
 
 

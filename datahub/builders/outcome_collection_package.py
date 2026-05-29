@@ -33,6 +33,12 @@ def build_outcome_packages_from_collection_plan(
     audit = audit_outcome_collection_plan(plan_csv)
     if audit["errors"]:
         raise ValueError("; ".join(audit["errors"]))
+    policy_hint_count = len(audit.get("source_hint_rows") or []) + len(audit.get("semantic_hint_rows") or [])
+    if policy_hint_count:
+        raise ValueError(
+            "outcome collection plan has unresolved policy hints: "
+            f"{policy_hint_count}; run audit-outcome-collection-plan and review source/semantic hints before building packages"
+        )
     progress = audit.get("progress", {})
     pending_rows = int(progress.get("pending_rows") or 0)
     blocked_rows = int(progress.get("blocked_rows") or 0)

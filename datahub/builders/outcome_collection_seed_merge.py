@@ -11,6 +11,7 @@ from urllib.parse import urlparse
 
 from datahub.builders.outcome_collection_batch import TASK_KEY_COLUMNS
 from datahub.builders.outcome_collection_plan import PLAN_COLUMNS
+from datahub.builders.outcome_evidence_policy import build_outcome_policy_hint_report
 from datahub.config import (
     load_outcome_collection,
     load_outcome_collection_review_seeds,
@@ -129,7 +130,8 @@ def _apply_seed(row: dict[str, Any], seed: dict[str, Any], built_at: str) -> Non
         "reviewed_at",
     ]:
         if field in seed:
-            row[field] = str(seed.get(field) or "")
+            value = seed.get(field)
+            row[field] = "" if value is None else str(value)
     row["built_at"] = str(seed.get("built_at") or built_at)
     row["notes"] = _append_note(row.get("notes", ""), str(seed.get("review_note") or ""))
 
@@ -150,6 +152,7 @@ def _audit_seed_config() -> dict[str, Any]:
     domain_metrics = metrics.get("domains", {})
     seen_keys: set[tuple[str, ...]] = set()
     duplicate_keys = 0
+    seed_id_counts: Counter[str] = Counter()
     status_counts: Counter[str] = Counter()
     domain_counts: Counter[str] = Counter()
 
@@ -192,13 +195,32 @@ def _audit_seed_config() -> dict[str, Any]:
         if key in seen_keys:
             duplicate_keys += 1
         seen_keys.add(key)
+        seed_id = str(seed.get("seed_id") or "").strip()
+        if seed_id:
+            seed_id_counts[seed_id] += 1
         if status:
             status_counts[status] += 1
         if domain:
             domain_counts[domain] += 1
 
+    policy_hints = build_outcome_policy_hint_report(
+        collection,
+        seeds,
+        text_fields=("metric_scope", "evidence_quote", "review_note"),
+    )
     if duplicate_keys:
         errors.append(f"duplicate seed task keys: {duplicate_keys}")
+    duplicate_seed_ids = Counter({
+        seed_id: count
+        for seed_id, count in seed_id_counts.items()
+        if count > 1
+    })
+    if duplicate_seed_ids:
+        errors.append(f"duplicate seed_id values: {len(duplicate_seed_ids)}")
+    if policy_hints["source_hint_rows"]:
+        warnings.append(f"source policy hints require review before publication: {len(policy_hints['source_hint_rows'])}")
+    if policy_hints["semantic_hint_rows"]:
+        warnings.append(f"semantic policy hints require review before publication: {len(policy_hints['semantic_hint_rows'])}")
     if not seeds:
         warnings.append("no outcome collection review seeds configured")
 
@@ -207,6 +229,13 @@ def _audit_seed_config() -> dict[str, Any]:
         "status_counts": dict(sorted(status_counts.items())),
         "domain_counts": dict(sorted(domain_counts.items())),
         "duplicate_task_keys": duplicate_keys,
+        "duplicate_seed_ids": dict(sorted(duplicate_seed_ids.items())),
+        "source_host_counts": policy_hints["source_host_counts"],
+        "source_hint_counts": policy_hints["source_hint_counts"],
+        "source_hint_rows": policy_hints["source_hint_rows"],
+        "semantic_hint_counts": policy_hints["semantic_hint_counts"],
+        "semantic_hint_rows": policy_hints["semantic_hint_rows"],
+        "publication_ready": bool(seeds) and not errors and not policy_hints["has_policy_hints"],
         "errors": errors,
         "warnings": warnings,
     }
