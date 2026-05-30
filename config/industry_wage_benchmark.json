@@ -1,20 +1,26 @@
 {
-  "version": "2024.1",
+  "version": "2025.1",
   "source_key": "industry_wage_benchmark",
-  "source_date": "2025-05-16",
-  "availability_date": "2025-05-16",
-  "data_year": 2024,
+  "source_date": "2026-05-15",
+  "availability_date": "2026-05-15",
+  "data_year": 2025,
+  "data_years_covered": [
+    2024,
+    2025
+  ],
   "source_lineage": {
     "source_key": "industry_wage_benchmark",
     "source_kind": "curated_official_statistic",
     "source_org": "国家统计局",
-    "publication": "《2024年城镇单位就业人员年平均工资情况》(2025-05-16) + 《中国统计年鉴2025》",
+    "publication": "《2024/2025年城镇单位就业人员年平均工资情况》(2025-05-16 / 2026-05-15) + 《中国统计年鉴》",
     "evidence_urls": [
-      "https://www.stats.gov.cn/sj/zxfb/202505/t20250516_1959826.html"
+      "https://www.stats.gov.cn/sj/zxfb/202505/t20250516_1959826.html",
+      "https://www.stats.gov.cn/sj/zxfb/202605/t20260515_1963707.html"
     ],
     "industry_classification": "GB/T 4754-2017 行业门类",
-    "source_date": "2025-05-16",
-    "availability_date": "2025-05-16"
+    "caliber": "mean_pretax_full",
+    "source_date": "2026-05-15",
+    "availability_date": "2026-05-15"
   },
   "validation": {
     "allowed_ownership_types": [
@@ -414,6 +420,396 @@
       "source_org": "国家统计局",
       "source_date": "2025-05-16",
       "availability_date": "2025-05-16"
+    },
+    {
+      "gb_category_code": "ALL",
+      "gb_category_name": "全行业（城镇单位合计）",
+      "ownership_type": "urban_non_private",
+      "data_year": 2025,
+      "avg_annual_wage_yuan": 129441,
+      "source_org": "国家统计局",
+      "source_date": "2026-05-15",
+      "availability_date": "2026-05-15"
+    },
+    {
+      "gb_category_code": "ALL",
+      "gb_category_name": "全行业（城镇单位合计）",
+      "ownership_type": "urban_private",
+      "data_year": 2025,
+      "avg_annual_wage_yuan": 71590,
+      "source_org": "国家统计局",
+      "source_date": "2026-05-15",
+      "availability_date": "2026-05-15"
+    },
+    {
+      "gb_category_code": "A",
+      "gb_category_name": "农、林、牧、渔业",
+      "ownership_type": "urban_non_private",
+      "data_year": 2025,
+      "avg_annual_wage_yuan": 74424,
+      "source_org": "国家统计局",
+      "source_date": "2026-05-15",
+      "availability_date": "2026-05-15"
+    },
+    {
+      "gb_category_code": "B",
+      "gb_category_name": "采矿业",
+      "ownership_type": "urban_non_private",
+      "data_year": 2025,
+      "avg_annual_wage_yuan": 143361,
+      "source_org": "国家统计局",
+      "source_date": "2026-05-15",
+      "availability_date": "2026-05-15"
+    },
+    {
+      "gb_category_code": "C",
+      "gb_category_name": "制造业",
+      "ownership_type": "urban_non_private",
+      "data_year": 2025,
+      "avg_annual_wage_yuan": 113594,
+      "source_org": "国家统计局",
+      "source_date": "2026-05-15",
+      "availability_date": "2026-05-15"
+    },
+    {
+      "gb_category_code": "D",
+      "gb_category_name": "电力、热力、燃气及水生产和供应业",
+      "ownership_type": "urban_non_private",
+      "data_year": 2025,
+      "avg_annual_wage_yuan": 160897,
+      "source_org": "国家统计局",
+      "source_date": "2026-05-15",
+      "availability_date": "2026-05-15"
+    },
+    {
+      "gb_category_code": "E",
+      "gb_category_name": "建筑业",
+      "ownership_type": "urban_non_private",
+      "data_year": 2025,
+      "avg_annual_wage_yuan": 92036,
+      "source_org": "国家统计局",
+      "source_date": "2026-05-15",
+      "availability_date": "2026-05-15"
+    },
+    {
+      "gb_category_code": "F",
+      "gb_category_name": "批发和零售业",
+      "ownership_type": "urban_non_private",
+      "data_year": 2025,
+      "avg_annual_wage_yuan": 135749,
+      "source_org": "国家统计局",
+      "source_date": "2026-05-15",
+      "availability_date": "2026-05-15"
+    },
+    {
+      "gb_category_code": "G",
+      "gb_category_name": "交通运输、仓储和邮政业",
+      "ownership_type": "urban_non_private",
+      "data_year": 2025,
+      "avg_annual_wage_yuan": 133981,
+      "source_org": "国家统计局",
+      "source_date": "2026-05-15",
+      "availability_date": "2026-05-15"
+    },
+    {
+      "gb_category_code": "H",
+      "gb_category_name": "住宿和餐饮业",
+      "ownership_type": "urban_non_private",
+      "data_year": 2025,
+      "avg_annual_wage_yuan": 62461,
+      "source_org": "国家统计局",
+      "source_date": "2026-05-15",
+      "availability_date": "2026-05-15"
+    },
+    {
+      "gb_category_code": "I",
+      "gb_category_name": "信息传输、软件和信息技术服务业",
+      "ownership_type": "urban_non_private",
+      "data_year": 2025,
+      "avg_annual_wage_yuan": 248752,
+      "source_org": "国家统计局",
+      "source_date": "2026-05-15",
+      "availability_date": "2026-05-15"
+    },
+    {
+      "gb_category_code": "J",
+      "gb_category_name": "金融业",
+      "ownership_type": "urban_non_private",
+      "data_year": 2025,
+      "avg_annual_wage_yuan": 211164,
+      "source_org": "国家统计局",
+      "source_date": "2026-05-15",
+      "availability_date": "2026-05-15"
+    },
+    {
+      "gb_category_code": "K",
+      "gb_category_name": "房地产业",
+      "ownership_type": "urban_non_private",
+      "data_year": 2025,
+      "avg_annual_wage_yuan": 89679,
+      "source_org": "国家统计局",
+      "source_date": "2026-05-15",
+      "availability_date": "2026-05-15"
+    },
+    {
+      "gb_category_code": "L",
+      "gb_category_name": "租赁和商务服务业",
+      "ownership_type": "urban_non_private",
+      "data_year": 2025,
+      "avg_annual_wage_yuan": 110162,
+      "source_org": "国家统计局",
+      "source_date": "2026-05-15",
+      "availability_date": "2026-05-15"
+    },
+    {
+      "gb_category_code": "M",
+      "gb_category_name": "科学研究和技术服务业",
+      "ownership_type": "urban_non_private",
+      "data_year": 2025,
+      "avg_annual_wage_yuan": 182064,
+      "source_org": "国家统计局",
+      "source_date": "2026-05-15",
+      "availability_date": "2026-05-15"
+    },
+    {
+      "gb_category_code": "N",
+      "gb_category_name": "水利、环境和公共设施管理业",
+      "ownership_type": "urban_non_private",
+      "data_year": 2025,
+      "avg_annual_wage_yuan": 70172,
+      "source_org": "国家统计局",
+      "source_date": "2026-05-15",
+      "availability_date": "2026-05-15"
+    },
+    {
+      "gb_category_code": "O",
+      "gb_category_name": "居民服务、修理和其他服务业",
+      "ownership_type": "urban_non_private",
+      "data_year": 2025,
+      "avg_annual_wage_yuan": 70226,
+      "source_org": "国家统计局",
+      "source_date": "2026-05-15",
+      "availability_date": "2026-05-15"
+    },
+    {
+      "gb_category_code": "P",
+      "gb_category_name": "教育",
+      "ownership_type": "urban_non_private",
+      "data_year": 2025,
+      "avg_annual_wage_yuan": 133539,
+      "source_org": "国家统计局",
+      "source_date": "2026-05-15",
+      "availability_date": "2026-05-15"
+    },
+    {
+      "gb_category_code": "Q",
+      "gb_category_name": "卫生和社会工作",
+      "ownership_type": "urban_non_private",
+      "data_year": 2025,
+      "avg_annual_wage_yuan": 146266,
+      "source_org": "国家统计局",
+      "source_date": "2026-05-15",
+      "availability_date": "2026-05-15"
+    },
+    {
+      "gb_category_code": "R",
+      "gb_category_name": "文化、体育和娱乐业",
+      "ownership_type": "urban_non_private",
+      "data_year": 2025,
+      "avg_annual_wage_yuan": 129447,
+      "source_org": "国家统计局",
+      "source_date": "2026-05-15",
+      "availability_date": "2026-05-15"
+    },
+    {
+      "gb_category_code": "S",
+      "gb_category_name": "公共管理、社会保障和社会组织",
+      "ownership_type": "urban_non_private",
+      "data_year": 2025,
+      "avg_annual_wage_yuan": 119465,
+      "source_org": "国家统计局",
+      "source_date": "2026-05-15",
+      "availability_date": "2026-05-15"
+    },
+    {
+      "gb_category_code": "A",
+      "gb_category_name": "农、林、牧、渔业",
+      "ownership_type": "urban_private",
+      "data_year": 2025,
+      "avg_annual_wage_yuan": 46552,
+      "source_org": "国家统计局",
+      "source_date": "2026-05-15",
+      "availability_date": "2026-05-15"
+    },
+    {
+      "gb_category_code": "B",
+      "gb_category_name": "采矿业",
+      "ownership_type": "urban_private",
+      "data_year": 2025,
+      "avg_annual_wage_yuan": 79169,
+      "source_org": "国家统计局",
+      "source_date": "2026-05-15",
+      "availability_date": "2026-05-15"
+    },
+    {
+      "gb_category_code": "C",
+      "gb_category_name": "制造业",
+      "ownership_type": "urban_private",
+      "data_year": 2025,
+      "avg_annual_wage_yuan": 76055,
+      "source_org": "国家统计局",
+      "source_date": "2026-05-15",
+      "availability_date": "2026-05-15"
+    },
+    {
+      "gb_category_code": "D",
+      "gb_category_name": "电力、热力、燃气及水生产和供应业",
+      "ownership_type": "urban_private",
+      "data_year": 2025,
+      "avg_annual_wage_yuan": 66451,
+      "source_org": "国家统计局",
+      "source_date": "2026-05-15",
+      "availability_date": "2026-05-15"
+    },
+    {
+      "gb_category_code": "E",
+      "gb_category_name": "建筑业",
+      "ownership_type": "urban_private",
+      "data_year": 2025,
+      "avg_annual_wage_yuan": 66275,
+      "source_org": "国家统计局",
+      "source_date": "2026-05-15",
+      "availability_date": "2026-05-15"
+    },
+    {
+      "gb_category_code": "F",
+      "gb_category_name": "批发和零售业",
+      "ownership_type": "urban_private",
+      "data_year": 2025,
+      "avg_annual_wage_yuan": 69622,
+      "source_org": "国家统计局",
+      "source_date": "2026-05-15",
+      "availability_date": "2026-05-15"
+    },
+    {
+      "gb_category_code": "G",
+      "gb_category_name": "交通运输、仓储和邮政业",
+      "ownership_type": "urban_private",
+      "data_year": 2025,
+      "avg_annual_wage_yuan": 73133,
+      "source_org": "国家统计局",
+      "source_date": "2026-05-15",
+      "availability_date": "2026-05-15"
+    },
+    {
+      "gb_category_code": "H",
+      "gb_category_name": "住宿和餐饮业",
+      "ownership_type": "urban_private",
+      "data_year": 2025,
+      "avg_annual_wage_yuan": 55123,
+      "source_org": "国家统计局",
+      "source_date": "2026-05-15",
+      "availability_date": "2026-05-15"
+    },
+    {
+      "gb_category_code": "I",
+      "gb_category_name": "信息传输、软件和信息技术服务业",
+      "ownership_type": "urban_private",
+      "data_year": 2025,
+      "avg_annual_wage_yuan": 128166,
+      "source_org": "国家统计局",
+      "source_date": "2026-05-15",
+      "availability_date": "2026-05-15"
+    },
+    {
+      "gb_category_code": "J",
+      "gb_category_name": "金融业",
+      "ownership_type": "urban_private",
+      "data_year": 2025,
+      "avg_annual_wage_yuan": 140451,
+      "source_org": "国家统计局",
+      "source_date": "2026-05-15",
+      "availability_date": "2026-05-15"
+    },
+    {
+      "gb_category_code": "K",
+      "gb_category_name": "房地产业",
+      "ownership_type": "urban_private",
+      "data_year": 2025,
+      "avg_annual_wage_yuan": 53338,
+      "source_org": "国家统计局",
+      "source_date": "2026-05-15",
+      "availability_date": "2026-05-15"
+    },
+    {
+      "gb_category_code": "L",
+      "gb_category_name": "租赁和商务服务业",
+      "ownership_type": "urban_private",
+      "data_year": 2025,
+      "avg_annual_wage_yuan": 68919,
+      "source_org": "国家统计局",
+      "source_date": "2026-05-15",
+      "availability_date": "2026-05-15"
+    },
+    {
+      "gb_category_code": "M",
+      "gb_category_name": "科学研究和技术服务业",
+      "ownership_type": "urban_private",
+      "data_year": 2025,
+      "avg_annual_wage_yuan": 83560,
+      "source_org": "国家统计局",
+      "source_date": "2026-05-15",
+      "availability_date": "2026-05-15"
+    },
+    {
+      "gb_category_code": "N",
+      "gb_category_name": "水利、环境和公共设施管理业",
+      "ownership_type": "urban_private",
+      "data_year": 2025,
+      "avg_annual_wage_yuan": 49527,
+      "source_org": "国家统计局",
+      "source_date": "2026-05-15",
+      "availability_date": "2026-05-15"
+    },
+    {
+      "gb_category_code": "O",
+      "gb_category_name": "居民服务、修理和其他服务业",
+      "ownership_type": "urban_private",
+      "data_year": 2025,
+      "avg_annual_wage_yuan": 52059,
+      "source_org": "国家统计局",
+      "source_date": "2026-05-15",
+      "availability_date": "2026-05-15"
+    },
+    {
+      "gb_category_code": "P",
+      "gb_category_name": "教育",
+      "ownership_type": "urban_private",
+      "data_year": 2025,
+      "avg_annual_wage_yuan": 63908,
+      "source_org": "国家统计局",
+      "source_date": "2026-05-15",
+      "availability_date": "2026-05-15"
+    },
+    {
+      "gb_category_code": "Q",
+      "gb_category_name": "卫生和社会工作",
+      "ownership_type": "urban_private",
+      "data_year": 2025,
+      "avg_annual_wage_yuan": 75631,
+      "source_org": "国家统计局",
+      "source_date": "2026-05-15",
+      "availability_date": "2026-05-15"
+    },
+    {
+      "gb_category_code": "R",
+      "gb_category_name": "文化、体育和娱乐业",
+      "ownership_type": "urban_private",
+      "data_year": 2025,
+      "avg_annual_wage_yuan": 64015,
+      "source_org": "国家统计局",
+      "source_date": "2026-05-15",
+      "availability_date": "2026-05-15"
     }
   ]
 }

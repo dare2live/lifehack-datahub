@@ -7,6 +7,7 @@ from argparse import Namespace
 from pathlib import Path
 
 from datahub.builders.entity_normalization_registry import build_entity_normalization_registry_package
+from datahub.builders.industry_wage_benchmark import build_industry_wage_benchmark_package
 from datahub.builders.major_mapping_review import build_major_mapping_review_package
 from datahub.builders.policy_tables import (
     build_policy_industry_map_package,
@@ -20,6 +21,7 @@ COMMANDS = {
     "build-review-mapping",
     "build-policy-industry-map",
     "build-policy-plan-history",
+    "build-industry-wage-benchmark",
     "build-entity-normalization-registry",
     "parse-moe-major-catalog",
 }
@@ -53,6 +55,15 @@ def register_reference_commands(sub) -> None:
     build_policy_history.add_argument("--config", type=Path)
     build_policy_history.add_argument("--package-id")
     build_policy_history.add_argument("--source-version")
+
+    build_industry_wage = sub.add_parser(
+        "build-industry-wage-benchmark",
+        help="Build fa_dim_industry_wage_benchmark from curated official-statistic config",
+    )
+    build_industry_wage.add_argument("--output-root", required=True, type=Path)
+    build_industry_wage.add_argument("--config", type=Path)
+    build_industry_wage.add_argument("--package-id")
+    build_industry_wage.add_argument("--source-version")
 
     build_entity_normalization_registry = sub.add_parser(
         "build-entity-normalization-registry",
@@ -98,6 +109,15 @@ def handle_reference_command(args: Namespace) -> int | None:
         return 0
     if args.cmd == "build-policy-plan-history":
         result = build_policy_plan_history_package(
+            output_root=args.output_root,
+            config_path=args.config,
+            package_id=args.package_id,
+            source_version=args.source_version,
+        )
+        _print_json(result)
+        return 0
+    if args.cmd == "build-industry-wage-benchmark":
+        result = build_industry_wage_benchmark_package(
             output_root=args.output_root,
             config_path=args.config,
             package_id=args.package_id,

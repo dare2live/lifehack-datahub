@@ -1403,6 +1403,32 @@
         "built_at": ["built_at", "构建时间"]
       }
     },
+    "fa_dim_industry_wage_benchmark": {
+      "source_key": "industry_wage_benchmark",
+      "primary_key": ["gb_category_code", "ownership_type", "data_year"],
+      "required": [
+        "gb_category_code", "gb_category_name", "ownership_type",
+        "data_year", "avg_annual_wage_yuan",
+        "source_org", "source_date", "availability_date", "built_at"
+      ],
+      "columns": [
+        "gb_category_code", "gb_category_name", "ownership_type",
+        "data_year", "avg_annual_wage_yuan",
+        "source_org", "source_date", "availability_date", "built_at"
+      ],
+      "numeric": ["data_year", "avg_annual_wage_yuan"],
+      "aliases": {
+        "gb_category_code": ["gb_category_code", "GB门类代码"],
+        "gb_category_name": ["gb_category_name", "GB门类名称"],
+        "ownership_type": ["ownership_type", "单位登记类型"],
+        "data_year": ["data_year", "数据年份"],
+        "avg_annual_wage_yuan": ["avg_annual_wage_yuan", "年平均工资元"],
+        "source_org": ["source_org", "来源机构"],
+        "source_date": ["source_date", "来源日期"],
+        "availability_date": ["availability_date", "可用日期"],
+        "built_at": ["built_at", "构建时间"]
+      }
+    },
     "fa_dim_career_occupation": {
       "source_key": "career_occupation_catalog",
       "primary_key": ["occupation_code"],
