@@ -15,7 +15,15 @@ from urllib.request import Request, urlopen
 from datahub.config import load_sources
 
 
-SUPPORTED_OPERATIONS = {"geocode", "district", "place_around"}
+SUPPORTED_OPERATIONS = {"geocode", "district", "place_around", "place_text"}
+
+# District-name city values map to their parent prefecture so AMAP citylimit works.
+# Data-driven minimal map for the known false-multi / district-style admission rows;
+# any value not present is used verbatim (AMAP city accepts both name and adcode).
+_DISTRICT_TO_CITY = {
+    "杨浦区": "上海市",
+    "浦东新区": "上海市",
+}
 
 
 def fetch_amap_web_api(
@@ -70,18 +78,23 @@ def fetch_amap_web_api(
 
     timeout = timeout or int((source_config.get("interfaces") or {}).get("request_policy", {}).get("timeout_seconds", 10))
     sleep_seconds = _request_sleep_seconds(source_config) if sleep_seconds is None else sleep_seconds
+    backoff_seconds = _qps_backoff_seconds(source_config)
     target_dir = output_root / source_key / source_date
     target_dir.mkdir(parents=True, exist_ok=True)
     jsonl_path = target_dir / f"amap_web_api_{operation}.jsonl"
 
     records = []
+    daily_limit_hit = False
     with jsonl_path.open("w", encoding="utf-8") as f:
         for index, request_item in enumerate(rows, start=1):
             params = dict(request_item["params"])
             request_url = _url(endpoint, {**params, "key": key, "output": "JSON"})
-            response_bytes = _read_url(request_url, timeout)
+            response_bytes, response_json = _request_with_qps_backoff(request_url, timeout, backoff_seconds)
+            # DAILY_QUERY_OVER_LIMIT: stop immediately and checkpoint what we have.
+            if str(response_json.get("infocode")) == "10003" or "DAILY_QUERY_OVER_LIMIT" in str(response_json.get("info") or ""):
+                daily_limit_hit = True
+                break
             raw_hash = hashlib.sha256(response_bytes).hexdigest()
-            response_json = json.loads(response_bytes.decode("utf-8", "ignore"))
             record = {
                 "request_index": index,
                 "operation": operation,
@@ -93,6 +106,7 @@ def fetch_amap_web_api(
                 "fetched_at": datetime.utcnow().replace(microsecond=0).isoformat(),
             }
             f.write(json.dumps(record, ensure_ascii=False) + "\n")
+            f.flush()
             records.append(record)
             if sleep_seconds and index < len(rows):
                 time.sleep(sleep_seconds)
@@ -116,6 +130,7 @@ def fetch_amap_web_api(
         "jsonl_path": str(jsonl_path),
         "manifest_path": str(manifest_path),
         "request_count": len(records),
+        "daily_limit_hit": daily_limit_hit,
     }
 
 
@@ -169,7 +184,19 @@ def _request_rows(
     rows = _read_csv(input_path)
     result = []
     for row in rows:
-        if operation == "geocode":
+        if operation == "place_text":
+            # address_column is repurposed as the per-row search-name column
+            # (e.g. --address-column poi_keyword or school_name).
+            keyword = str(row.get(address_column) or "").strip()
+            if not keyword:
+                continue
+            params = {"keywords": keyword, "extensions": "all", "offset": "25", "page": "1"}
+            if types:
+                params["types"] = types
+            if city_column and row.get(city_column):
+                params["city"] = _normalize_city_param(str(row.get(city_column)).strip())
+                params["citylimit"] = "true"
+        elif operation == "geocode":
             address = str(row.get(address_column) or "").strip()
             if not address:
                 continue
@@ -209,6 +236,19 @@ def _location(row: dict[str, Any], location_column: str, longitude_column: str, 
     return None
 
 
+def _normalize_city_param(value: str) -> str:
+    """Map a district-name city to its parent prefecture so citylimit works.
+
+    AMAP's city parameter rejects district granularity for citylimit; district-style
+    admission city values (e.g. 杨浦区/浦东新区) must resolve to their parent city.
+    Unknown values are returned verbatim (AMAP city accepts both name and adcode).
+    """
+    text = value.strip()
+    if text in _DISTRICT_TO_CITY:
+        return _DISTRICT_TO_CITY[text]
+    return text
+
+
 def _url(endpoint: str, params: dict[str, Any]) -> str:
     return f"{endpoint}?{urlencode({key: value for key, value in params.items() if value not in (None, '')})}"
 
@@ -219,10 +259,51 @@ def _read_url(url: str, timeout: int) -> bytes:
         return response.read()
 
 
+def _request_with_qps_backoff(
+    url: str,
+    timeout: int,
+    backoff_seconds: list[float],
+) -> tuple[bytes, dict[str, Any]]:
+    """Issue a single request, transparently retrying per-second QPS rejections.
+
+    AMAP does NOT bill QPS-rejected calls against the daily quota, so re-issuing the
+    SAME url after exponential backoff is free. Daily-limit responses are returned to
+    the caller untouched (caller stops + checkpoints). After exhausting the backoff
+    schedule the last response is returned as-is.
+    """
+    last_bytes = b""
+    last_json: dict[str, Any] = {}
+    for attempt in range(len(backoff_seconds) + 1):
+        last_bytes = _read_url(url, timeout)
+        last_json = json.loads(last_bytes.decode("utf-8", "ignore"))
+        info = str(last_json.get("info") or "")
+        infocode = str(last_json.get("infocode") or "")
+        is_qps = "CUQPS_HAS_EXCEEDED_THE_LIMIT" in info or infocode == "10019"
+        if not is_qps:
+            return last_bytes, last_json
+        if attempt < len(backoff_seconds):
+            time.sleep(backoff_seconds[attempt])
+    return last_bytes, last_json
+
+
 def _request_sleep_seconds(source_config: dict[str, Any]) -> float:
     policy = (source_config.get("interfaces") or {}).get("request_policy") or {}
     rate_limit = float(policy.get("rate_limit_per_second") or 0)
     return 1 / rate_limit if rate_limit > 0 else 0
+
+
+def _qps_backoff_seconds(source_config: dict[str, Any]) -> list[float]:
+    policy = (source_config.get("interfaces") or {}).get("request_policy") or {}
+    raw = policy.get("qps_backoff_seconds")
+    if not isinstance(raw, list) or not raw:
+        return [2.0, 4.0, 8.0]
+    backoff: list[float] = []
+    for value in raw:
+        try:
+            backoff.append(float(value))
+        except (TypeError, ValueError):
+            continue
+    return backoff or [2.0, 4.0, 8.0]
 
 
 def _manifest(

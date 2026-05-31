@@ -59,14 +59,14 @@ def audit_amap_web_api_readiness(
         requestable_rows = 1 if district_keywords else 0
         if not district_keywords:
             errors.append("district operation needs --keywords or interfaces.scope.province")
-    elif operation in {"geocode", "place_around"}:
+    elif operation in {"geocode", "place_around", "place_text"}:
         if input_path is None:
             errors.append(f"{operation} operation requires --input")
         elif not input_path.exists():
             errors.append(f"input file not found: {input_path}")
         else:
             input_rows = _read_csv(input_path)
-            if operation == "geocode":
+            if operation in {"geocode", "place_text"}:
                 requestable_rows = sum(1 for row in input_rows if str(row.get(address_column) or "").strip())
                 if input_rows and address_column not in input_rows[0]:
                     errors.append(f"input missing address column: {address_column}")

@@ -91,10 +91,10 @@ def register_package_commands(sub) -> None:
 
     fetch_amap = sub.add_parser(
         "fetch-amap-web-api",
-        help="Fetch raw Amap Web API responses for configured geocode, district, or place-around sources",
+        help="Fetch raw Amap Web API responses for configured geocode, district, place-around, or place-text sources",
     )
     fetch_amap.add_argument("--source-key", required=True)
-    fetch_amap.add_argument("--operation", required=True, choices=["geocode", "district", "place_around"])
+    fetch_amap.add_argument("--operation", required=True, choices=["geocode", "district", "place_around", "place_text"])
     fetch_amap.add_argument("--output-root", required=True, type=Path)
     fetch_amap.add_argument("--input", type=Path)
     fetch_amap.add_argument("--source-date")
@@ -115,7 +115,7 @@ def register_package_commands(sub) -> None:
         help="Audit Amap Web API source/input/key readiness without sending requests",
     )
     audit_amap.add_argument("--source-key", required=True)
-    audit_amap.add_argument("--operation", required=True, choices=["geocode", "district", "place_around"])
+    audit_amap.add_argument("--operation", required=True, choices=["geocode", "district", "place_around", "place_text"])
     audit_amap.add_argument("--input", type=Path)
     audit_amap.add_argument("--output", type=Path)
     audit_amap.add_argument("--address-column", default="address")

@@ -18,6 +18,7 @@ from datahub.builders.school_identity_review_seed_merge import (
     audit_school_identity_review_seeds,
 )
 from datahub.builders.school_location_from_amap import build_school_location_package_from_amap_geocode
+from datahub.builders.school_location_from_amap_poi import build_school_location_package_from_amap_poi
 from datahub.builders.school_location_geocode_audit import audit_school_location_geocode_input
 from datahub.builders.school_location_geocode_plan import build_school_location_geocode_input_plan
 from datahub.builders.school_profile_merge import build_merged_school_profile_package
@@ -37,6 +38,7 @@ COMMANDS = {
     "build-school-location-geocode-input",
     "audit-school-location-geocode-input",
     "build-school-location-from-amap-geocode",
+    "build-school-location-from-amap-poi",
     "parse-moe-school-profile",
 }
 
@@ -151,6 +153,19 @@ def register_school_commands(sub) -> None:
     build_school_location_from_amap.add_argument("--output-root", required=True, type=Path)
     build_school_location_from_amap.add_argument("--package-id")
     build_school_location_from_amap.add_argument("--source-version")
+
+    build_school_location_from_poi = sub.add_parser(
+        "build-school-location-from-amap-poi",
+        help="Build fa_dim_school_location package from fetch-amap-web-api place_text (POI) JSONL",
+    )
+    build_school_location_from_poi.add_argument("--raw-jsonl", required=True, type=Path)
+    build_school_location_from_poi.add_argument("--retry-jsonl", type=Path)
+    build_school_location_from_poi.add_argument("--geocode-fallback-jsonl", type=Path)
+    build_school_location_from_poi.add_argument("--raw-manifest", type=Path)
+    build_school_location_from_poi.add_argument("--manual-review-out", type=Path)
+    build_school_location_from_poi.add_argument("--output-root", required=True, type=Path)
+    build_school_location_from_poi.add_argument("--package-id")
+    build_school_location_from_poi.add_argument("--source-version")
 
     parse_school = sub.add_parser("parse-moe-school-profile", help="Parse MOE school list XLS to cleaned CSV")
     parse_school.add_argument("--input", required=True, type=Path)
@@ -267,6 +282,19 @@ def handle_school_command(args: Namespace) -> int | None:
         result = build_school_location_package_from_amap_geocode(
             raw_jsonl=args.raw_jsonl,
             raw_manifest=args.raw_manifest,
+            output_root=args.output_root,
+            package_id=args.package_id,
+            source_version=args.source_version,
+        )
+        _print_json(result)
+        return 0
+    if args.cmd == "build-school-location-from-amap-poi":
+        result = build_school_location_package_from_amap_poi(
+            raw_jsonl=args.raw_jsonl,
+            retry_jsonl=args.retry_jsonl,
+            geocode_fallback_jsonl=args.geocode_fallback_jsonl,
+            raw_manifest=args.raw_manifest,
+            manual_review_out=args.manual_review_out,
             output_root=args.output_root,
             package_id=args.package_id,
             source_version=args.source_version,
